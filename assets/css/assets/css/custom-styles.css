@@ -1,0 +1,31 @@
+/* Smaller, more refined page title */
+.page-title {
+  font-size: 3rem;
+  letter-spacing: 0.08em;
+}
+
+/* Tagline under the title */
+.pixel-tagline {
+  text-align: center;
+  margin-top: -10px;
+  margin-bottom: 40px;
+  font-size: 1.1rem;
+  font-style: italic;
+  color: #555555;
+}
+
+/* Make post list feel more like a curated feed */
+.post-preview {
+  max-width: 900px;
+  margin: 0 auto 3rem auto;
+}
+
+/* Slightly smaller post titles */
+.post-preview .post-title {
+  font-size: 2rem;
+}
+
+/* Make preview images a bit cleaner */
+.post-preview img {
+  border-radius: 4px;
+}
