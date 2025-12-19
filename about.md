@@ -3,6 +3,36 @@ layout: page
 title: About Pixel
 ---
 
-Pixel Token is a KRC-20 token built on the Kaspa blockchain, designed to empower creativity and innovation. While inspired by the simplicity of pixel art, it embraces all forms of artistic expression, bridging the gap between technology and creativity. With Kaspa's fast and secure infrastructure, Pixel Token offers decentralized ownership, fostering a vibrant community of artists, collectors, and innovators.
+## About PIXEL
 
-Join the movement and redefine the future of art and blockchain together!
+PIXEL is an audio-visual art project built on the Kaspa blockchain.
+
+Instead of starting with code or static images, PIXEL begins with sound.  
+Audio signals are transformed into visual forms using oscilloscope-based and signal-driven techniques, and then inscribed on Kaspa’s blockDAG as NFTs and on-chain data.
+
+---
+
+## Why Kaspa?
+
+Kaspa’s blockDAG architecture provides fast confirmation and high parallelism.  
+For PIXEL, this means a scalable, living network that can support ongoing audio-visual experiments directly on-chain.
+
+---
+
+## Collections
+
+- **PIXELONKAS** – sound-derived pixel visuals minted as KRC-721 NFTs on Kaspa.  
+- **SYKORA** – a collection inspired by Zdeněk Sýkora and linked to research for the Letenský Tunnel chimney installation in Prague, generated from audio signals and oscilloscope patterns.
+
+---
+
+## Vision
+
+PIXEL is a long-term process:
+
+- continuous experiments with sound → image pipelines  
+- new collections and collaborations  
+- pushing more of the creative process directly on-chain  
+
+Collectors support the project and help expand audio-visual art within the Kaspa ecosystem.
+
