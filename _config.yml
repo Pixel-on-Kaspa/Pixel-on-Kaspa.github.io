@@ -20,6 +20,7 @@ author: PIXEL
 ###############################################
 
 navbar-links:
+  NFT Viewer: "viewer"
   Collections: "collections"
   About Pixel: "about"
   
