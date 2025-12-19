@@ -233,10 +233,8 @@
     <div id="grid" class="nft-grid"></div>
   </div>
 
-  <script>
-    // === STATIC DATA V1 ====================================
-    // Sem doplň svoje reálné NFT. Začínám několika příklady, které si přepíšeš.
-
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
     const collections = {
       pixelonkas: {
         name: "PIXELONKAS",
@@ -252,31 +250,27 @@
             name: "PIXELONKAS #259",
             image: "/assets/img/nft/PIXELONKAS_259.png",
             listedPriceKas: 500
-          },
-          // Přidej další položky podle potřeby:
-          // { tokenId: 1, name: "PIXELONKAS #1", image: "...", listedPriceKas: null }
+          }
         ]
       },
       sykora: {
         name: "SYKORA",
         ticker: "SYKORA",
         explorerUrl: "https://kaspa.com/nft/collections/SYKORA",
-        totalSupply: 40, // uprav podle reality
-        totalMinted: 1,  // uprav podle reality
+        totalSupply: 40,
+        totalMinted: 1,
         floorPriceKas: null,
         mintPriceKas: null,
         items: [
           {
             tokenId: 1,
             name: "SYKORA #1",
-            image: "https://YOUR-IMAGE-CDN/sykora-1.png",
+            image: "/assets/img/nft/SYKORA_1.png",
             listedPriceKas: null
           }
         ]
       }
     };
-
-    // === RENDER LOGIKA =====================================
 
     const gridEl = document.getElementById("grid");
     const statusEl = document.getElementById("status");
@@ -287,7 +281,7 @@
 
     function formatKas(v) {
       if (v == null) return "—";
-      return `${v} KAS`;
+      return v + " KAS";
     }
 
     function renderMeta(collection) {
@@ -300,10 +294,12 @@
         ["Floor", formatKas(collection.floorPriceKas)]
       ];
 
-      pills.forEach(([label, value]) => {
+      pills.forEach(function (entry) {
+        const label = entry[0];
+        const value = entry[1];
         const div = document.createElement("div");
         div.className = "meta-pill";
-        div.innerHTML = `${label}: <span>${value}</span>`;
+        div.innerHTML = label + ': <span>' + value + "</span>";
         metaEl.appendChild(div);
       });
     }
@@ -313,11 +309,9 @@
       if (!col) return;
 
       currentKey = key;
-      switchButtons.forEach((btn) => {
-        btn.classList.toggle(
-          "active",
-          btn.dataset.collection === key
-        );
+
+      switchButtons.forEach(function (btn) {
+        btn.classList.toggle("active", btn.dataset.collection === key);
       });
 
       renderMeta(col);
@@ -329,10 +323,15 @@
         return;
       }
 
-      statusEl.innerHTML = `<strong>${col.items.length}</strong> items displayed from the ${col.name} collection.`;
+      statusEl.innerHTML =
+        "<strong>" +
+        col.items.length +
+        "</strong> items displayed from the " +
+        col.name +
+        " collection.";
 
       gridEl.innerHTML = "";
-      col.items.forEach((item) => {
+      col.items.forEach(function (item) {
         const card = document.createElement("div");
         card.className = "nft-card";
 
@@ -342,20 +341,22 @@
         const img = document.createElement("img");
         img.className = "nft-thumb";
         img.src = item.image;
-        img.alt = item.name || `Token #${item.tokenId}`;
+        img.alt = item.name || "Token #" + item.tokenId;
         thumbWrap.appendChild(img);
 
         const title = document.createElement("div");
         title.className = "nft-title";
         title.textContent =
-          item.name || `${col.name} #${item.tokenId}`;
+          item.name || col.name + " #" + item.tokenId;
 
         const meta = document.createElement("div");
         meta.className = "nft-meta";
-        meta.innerHTML = `
-          <span>ID: ${item.tokenId}</span>
-          <span>${item.listedPriceKas ? formatKas(item.listedPriceKas) : ""}</span>
-        `;
+        meta.innerHTML =
+          "<span>ID: " +
+          item.tokenId +
+          "</span><span>" +
+          (item.listedPriceKas ? formatKas(item.listedPriceKas) : "") +
+          "</span>";
 
         const actions = document.createElement("div");
         actions.className = "nft-actions";
@@ -386,31 +387,15 @@
       });
     }
 
-    switchButtons.forEach((btn) => {
-      btn.addEventListener("click", () => {
+    switchButtons.forEach(function (btn) {
+      btn.addEventListener("click", function () {
         const key = btn.dataset.collection;
         renderCollection(key);
       });
     });
 
-    // Initial render
     renderCollection(currentKey);
-
-    // ============================================
-    // POZNÁMKA PRO BUDOUCÍ API INTEGRACI:
-    //
-    // Jakmile budeš mít ověřené API endpointy (např. z network tab v dev tools
-    // na kaspa.com/nft/collections/PIXELONKAS), můžeš místo static `collections.*.items`
-    // zavolat fetch() a naplnit je dynamicky.
-    //
-    // Příklad:
-    //
-    // fetch("TVŮJ_ENDPOINT_PRO_PIXELONKAS")
-    //   .then(res => res.json())
-    //   .then(data => { collections.pixelonkas.items = mapFromApi(data); renderCollection("pixelonkas"); });
-    //
-    // Do té doby tenhle viewer funguje čistě jako krásná statická galerie.
-    // ============================================
-  </script>
+  });
+</script>
 </body>
 </html>
