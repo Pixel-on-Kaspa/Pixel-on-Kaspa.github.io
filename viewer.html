@@ -368,25 +368,16 @@
     return r.json();
   }
 
-  async function tryFetchNfts(tick, offset = 0, limit = 100) {
-  const url = `${API_BASE}/nfts?offset=${offset}`;
+  async function tryFetchNfts(tick, offset = 0, limit = 60) {
+  const url = `${API_BASE}/nfts/${encodeURIComponent(tick)}?offset=${offset}&limit=${limit}`;
 
   const r = await fetch(url, { cache: "no-store" });
   if (!r.ok) throw new Error(`nfts failed (${r.status})`);
 
-  const all = await r.json();
-
-  const filtered = Array.isArray(all)
-    ? all.filter(n => String(n.tick).toUpperCase() === tick.toUpperCase())
-    : [];
-
-  return {
-    urlUsed: url,
-    data: filtered.slice(0, limit),
-  };
+  const data = await r.json();
+  return { urlUsed: url, data };
 }
 
-    // We try multiple common endpoint shapes because your Network list truncates the URL.
     
   }
 
