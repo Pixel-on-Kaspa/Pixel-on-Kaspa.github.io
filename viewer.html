@@ -509,17 +509,33 @@
 
   // === Wire UI ===
   function init() {
-    // Buttons (your HTML already uses data-collection="pixelonkas|sykora")
-    qsa(".collection-button").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const key = btn.getAttribute("data-collection");
-        loadCollection(key);
-      });
-    });
+  qsa(".collection-button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const key = btn.getAttribute("data-collection");
 
-    // Default load
-    loadCollection("pixelonkas");
-  }
+      // 🔹 ACTIVE STATE
+      qsa(".collection-button").forEach(b =>
+        b.classList.toggle(
+          "active",
+          b.getAttribute("data-collection") === key
+        )
+      );
+
+      loadCollection(key);
+    });
+  });
+
+  // default state
+  qsa(".collection-button").forEach(b =>
+    b.classList.toggle(
+      "active",
+      b.getAttribute("data-collection") === "pixelonkas"
+    )
+  );
+
+  loadCollection("pixelonkas");
+}
+
 
   document.addEventListener("DOMContentLoaded", init);
 })();
