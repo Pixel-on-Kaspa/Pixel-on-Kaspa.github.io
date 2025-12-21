@@ -387,24 +387,7 @@
 }
 
     // We try multiple common endpoint shapes because your Network list truncates the URL.
-    const candidates = [
-      `${API_BASE}/nfts/${encodeURIComponent(tick)}?offset=${offset}&limit=${limit}`,
-      `${API_BASE}/nfts?tick=${encodeURIComponent(tick)}&offset=${offset}&limit=${limit}`,
-      `${API_BASE}/nfts?offset=${offset}&limit=${limit}&tick=${encodeURIComponent(tick)}`,
-    ];
-
-    let lastErr = null;
-    for (const url of candidates) {
-      try {
-        const r = await fetch(url, { cache: "no-store" });
-        if (!r.ok) throw new Error(`nfts failed (${r.status})`);
-        const data = await r.json();
-        return { urlUsed: url, data };
-      } catch (e) {
-        lastErr = e;
-      }
-    }
-    throw lastErr || new Error("nfts request failed");
+    
   }
 
   function parseCollectionMeta(rangesJson, tick) {
