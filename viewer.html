@@ -259,168 +259,275 @@
   </div>
 
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const collections = {
-      pixelonkas: {
-        name: "PIXELONKAS",
-        ticker: "PIXELONKAS",
-        explorerUrl: "https://kaspa.com/nft/collections/PIXELONKAS",
-        totalSupply: 342,
-        totalMinted: 21,
-        floorPriceKas: 500,
-        mintPriceKas: 287,
-        items: [
-          {
-            tokenId: 259,
-            name: "PIXELONKAS #259",
-            image: "/assets/img/PIXELONKAS_259.png",
-            listedPriceKas: 500
-          }
-        ]
-      },
-      sykora: {
-        name: "SYKORA",
-        ticker: "SYKORA",
-        explorerUrl: "https://kaspa.com/nft/collections/SYKORA",
-        totalSupply: 40,
-        totalMinted: 1,
-        floorPriceKas: null,
-        mintPriceKas: null,
-        items: [
-          {
-            tokenId: 1,
-            name: "SYKORA #1",
-            image: "/assets/img/nft/SYKORA_1.png",
-            listedPriceKas: null
-          }
-        ]
+(() => {
+  // === Config ===
+  const API_BASE = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
+  const TICKS = {
+    pixelonkas: "PIXELONKAS",
+    sykora: "SYKORA",
+  };
+
+  // Use a public gateway for ipfs:// links (you can swap gateways anytime)
+  const IPFS_GATEWAYS = [
+    "https://cloudflare-ipfs.com/ipfs/",
+    "https://ipfs.io/ipfs/",
+  ];
+
+  // === Helpers ===
+  function qs(sel) { return document.querySelector(sel); }
+  function qsa(sel) { return Array.from(document.querySelectorAll(sel)); }
+
+  function setText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
+
+  function normalizeIpfs(url) {
+    if (!url) return "";
+    if (url.startsWith("ipfs://")) {
+      const cid = url.replace("ipfs://", "");
+      return IPFS_GATEWAYS[0] + cid;
+    }
+    return url;
+  }
+
+  function safeNumber(x) {
+    const n = Number(x);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function formatKasAmount(raw) {
+    // Some APIs return big integer strings; we keep it simple & readable.
+    // If you later confirm exact decimals, we can format precisely.
+    if (raw == null) return "—";
+    if (typeof raw === "number") return String(raw);
+    if (typeof raw === "string") return raw;
+    return String(raw);
+  }
+
+  function getGridEl() {
+    let grid = document.getElementById("grid") || document.getElementById("nftGrid");
+    if (grid) return grid;
+
+    // If your HTML doesn't have a grid container, we create one after meta section:
+    const metaSection = document.getElementById("collectionMeta") || document.getElementById("metaBox")?.closest("section");
+    grid = document.createElement("div");
+    grid.id = "grid";
+    grid.style.maxWidth = "1100px";
+    grid.style.margin = "18px auto 40px";
+    grid.style.padding = "0 16px";
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = "repeat(auto-fill, minmax(220px, 1fr))";
+    grid.style.gap = "14px";
+
+    if (metaSection && metaSection.parentNode) {
+      metaSection.insertAdjacentElement("afterend", grid);
+    } else {
+      document.body.appendChild(grid);
+    }
+    return grid;
+  }
+
+  function renderLoading(msg) {
+    const grid = getGridEl();
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;opacity:.75;padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:14px;">
+        ${msg}
+      </div>`;
+  }
+
+  function renderError(msg) {
+    const grid = getGridEl();
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;color:#ffb4b4;opacity:.95;padding:16px;border:1px solid rgba(255,180,180,.35);border-radius:14px;">
+        ${msg}
+      </div>`;
+  }
+
+  function cardTemplate(item) {
+    const img = item.image ? `<img src="${item.image}" alt="" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px;border:1px solid rgba(255,255,255,.10);" />`
+                           : `<div style="width:100%;aspect-ratio:1/1;border-radius:12px;border:1px dashed rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;opacity:.7;">No image</div>`;
+
+    const badge = item.minted
+      ? `<span style="padding:4px 10px;border-radius:999px;background:rgba(80,200,120,.16);border:1px solid rgba(80,200,120,.28);">Minted</span>`
+      : `<span style="padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);opacity:.9;">Available</span>`;
+
+    return `
+      <div style="padding:12px;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);backdrop-filter:blur(10px);">
+        ${img}
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:10px;">
+          <div style="font-weight:700;letter-spacing:.02em;">#${item.tokenId ?? "?"}</div>
+          ${badge}
+        </div>
+        ${item.owner ? `<div style="opacity:.7;font-size:12px;margin-top:6px;">Owner: ${item.owner}</div>` : ""}
+      </div>`;
+  }
+
+  // === API Calls ===
+
+  async function fetchRanges(tick) {
+    const url = `${API_BASE}/ranges/${encodeURIComponent(tick)}`;
+    const r = await fetch(url, { cache: "no-store" });
+    if (!r.ok) throw new Error(`ranges failed (${r.status})`);
+    return r.json();
+  }
+
+  async function tryFetchNfts(tick, offset = 0, limit = 60) {
+    // We try multiple common endpoint shapes because your Network list truncates the URL.
+    const candidates = [
+      `${API_BASE}/nfts/${encodeURIComponent(tick)}?offset=${offset}&limit=${limit}`,
+      `${API_BASE}/nfts?tick=${encodeURIComponent(tick)}&offset=${offset}&limit=${limit}`,
+      `${API_BASE}/nfts?offset=${offset}&limit=${limit}&tick=${encodeURIComponent(tick)}`,
+    ];
+
+    let lastErr = null;
+    for (const url of candidates) {
+      try {
+        const r = await fetch(url, { cache: "no-store" });
+        if (!r.ok) throw new Error(`nfts failed (${r.status})`);
+        const data = await r.json();
+        return { urlUsed: url, data };
+      } catch (e) {
+        lastErr = e;
       }
+    }
+    throw lastErr || new Error("nfts request failed");
+  }
+
+  function parseCollectionMeta(rangesJson, tick) {
+    // Your Response screenshot shows objects like: { tick, max, minted, royaltyFee, royaltyTo, buri, ... }
+    // Sometimes API returns an array; sometimes an object. We handle both.
+    const entry =
+      Array.isArray(rangesJson)
+        ? rangesJson.find(x => String(x.tick).toUpperCase() === tick.toUpperCase()) || rangesJson[0]
+        : rangesJson;
+
+    const max = safeNumber(entry?.max);
+    const minted = safeNumber(entry?.minted);
+
+    return {
+      tick,
+      max,
+      minted,
+      royaltyTo: entry?.royaltyTo || null,
+      royaltyFee: entry?.royaltyFee || null,
+      buri: entry?.buri || null,
     };
+  }
 
-    const gridEl = document.getElementById("grid");
-    const statusEl = document.getElementById("status");
-    const metaEl = document.getElementById("meta");
-    const switchButtons = document.querySelectorAll(".collection-button");
+  function parseNftsList(nftsJson) {
+    // We try to locate an array of NFT items in common shapes:
+    // - array directly
+    // - { nfts: [...] } or { items: [...] } or { data: [...] }
+    const arr =
+      Array.isArray(nftsJson) ? nftsJson :
+      (Array.isArray(nftsJson?.nfts) ? nftsJson.nfts :
+      (Array.isArray(nftsJson?.items) ? nftsJson.items :
+      (Array.isArray(nftsJson?.data) ? nftsJson.data : [])));
 
-    let currentKey = "pixelonkas";
+    // Normalize fields
+    return arr.map(x => {
+      const tokenId = x.tokenId ?? x.id ?? x.token_id ?? x.inscriptionNumber ?? x.num ?? null;
 
-    function formatKas(v) {
-      if (v == null) return "—";
-      return v + " KAS";
-    }
+      // Image field might be: image / img / uri / buri / content / metadata.image
+      const rawImage =
+        x.image || x.img || x.imageUrl ||
+        x.uri || x.buri ||
+        x?.metadata?.image ||
+        "";
 
-    function renderMeta(collection) {
-      metaEl.innerHTML = "";
+      // minted status might be explicit or inferred
+      const minted = Boolean(
+        x.minted === true ||
+        x.state === "minted" ||
+        x.owner ||
+        x.ownerAddress
+      );
 
-      const pills = [
-        ["Supply", collection.totalSupply],
-        ["Minted", collection.totalMinted],
-        ["Mint price", formatKas(collection.mintPriceKas)],
-        ["Floor", formatKas(collection.floorPriceKas)]
-      ];
+      return {
+        tokenId,
+        minted,
+        owner: x.owner || x.ownerAddress || null,
+        image: normalizeIpfs(rawImage),
+      };
+    }).filter(x => x.tokenId != null);
+  }
 
-      pills.forEach(function (entry) {
-        const label = entry[0];
-        const value = entry[1];
-        const div = document.createElement("div");
-        div.className = "meta-pill";
-        div.innerHTML = label + ': <span>' + value + "</span>";
-        metaEl.appendChild(div);
-      });
-    }
+  async function loadCollection(key) {
+    const tick = TICKS[key];
+    if (!tick) return;
 
-    function renderCollection(key) {
-      const col = collections[key];
-      if (!col) return;
+    // UI: active button
+    qsa(".collection-button").forEach(btn => {
+      const isActive = btn.getAttribute("data-collection") === key;
+      btn.classList.toggle("active", isActive);
+    });
 
-      currentKey = key;
+    // Start loading
+    renderLoading(`Loading ${tick}…`);
 
-      switchButtons.forEach(function (btn) {
-        btn.classList.toggle("active", btn.dataset.collection === key);
-      });
+    try {
+      // 1) Meta
+      const rangesJson = await fetchRanges(tick);
+      const meta = parseCollectionMeta(rangesJson, tick);
 
-      renderMeta(col);
+      setText("metaTitle", meta.tick);
+      setText("metaSubtitle", "Live data from KRC Scan API");
+      setText("metaMinted", `Minted: ${meta.minted ?? "—"} / ${meta.max ?? "—"}`);
+      setText("metaRoyalty", `Royalty: ${formatKasAmount(meta.royaltyFee)}${meta.royaltyTo ? ` → ${meta.royaltyTo}` : ""}`);
 
-      if (!col.items || col.items.length === 0) {
-        gridEl.innerHTML = "";
-        statusEl.innerHTML =
-          "No items defined yet. Add NFTs to the collection config in the viewer.";
+      // 2) NFTs list
+      const { urlUsed, data: nftsJson } = await tryFetchNfts(tick, 0, 60);
+      const items = parseNftsList(nftsJson);
+
+      const grid = getGridEl();
+      if (!items.length) {
+        grid.innerHTML = `
+          <div style="grid-column:1/-1;opacity:.75;padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:14px;">
+            Loaded meta OK, but NFT list returned 0 items.<br/>
+            Tried: <code style="opacity:.85">${urlUsed}</code>
+          </div>`;
         return;
       }
 
-      statusEl.innerHTML =
-        "<strong>" +
-        col.items.length +
-        "</strong> items displayed from the " +
-        col.name +
-        " collection.";
+      grid.innerHTML = items.map(cardTemplate).join("");
 
-      gridEl.innerHTML = "";
-      col.items.forEach(function (item) {
-        const card = document.createElement("div");
-        card.className = "nft-card";
+      // (optional) small debug line at bottom of grid
+      const debug = document.createElement("div");
+      debug.style.gridColumn = "1/-1";
+      debug.style.opacity = ".55";
+      debug.style.fontSize = "12px";
+      debug.style.marginTop = "6px";
+      debug.textContent = `API: ${urlUsed}`;
+      grid.appendChild(debug);
 
-        const thumbWrap = document.createElement("div");
-        thumbWrap.className = "nft-thumb-wrapper";
-
-        const img = document.createElement("img");
-        img.className = "nft-thumb";
-        img.src = item.image;
-        img.alt = item.name || "Token #" + item.tokenId;
-        thumbWrap.appendChild(img);
-
-        const title = document.createElement("div");
-        title.className = "nft-title";
-        title.textContent =
-          item.name || col.name + " #" + item.tokenId;
-
-        const meta = document.createElement("div");
-        meta.className = "nft-meta";
-        meta.innerHTML =
-          "<span>ID: " +
-          item.tokenId +
-          "</span><span>" +
-          (item.listedPriceKas ? formatKas(item.listedPriceKas) : "") +
-          "</span>";
-
-        const actions = document.createElement("div");
-        actions.className = "nft-actions";
-
-        const openKaspa = document.createElement("a");
-        openKaspa.className = "nft-link";
-        openKaspa.href = col.explorerUrl;
-        openKaspa.target = "_blank";
-        openKaspa.rel = "noopener noreferrer";
-        openKaspa.textContent = "View on Kaspacom";
-
-        const openCollection = document.createElement("a");
-        openCollection.className = "nft-link-secondary";
-        openCollection.href = col.explorerUrl;
-        openCollection.target = "_blank";
-        openCollection.rel = "noopener noreferrer";
-        openCollection.textContent = "Open collection";
-
-        actions.appendChild(openKaspa);
-        actions.appendChild(openCollection);
-
-        card.appendChild(thumbWrap);
-        card.appendChild(title);
-        card.appendChild(meta);
-        card.appendChild(actions);
-
-        gridEl.appendChild(card);
-      });
+    } catch (e) {
+      renderError(
+        `Failed to load <b>${tick}</b>.<br/><br/>` +
+        `Open DevTools → Console for details.<br/><br/>` +
+        `<code style="opacity:.85">${String(e.message || e)}</code>`
+      );
+      console.error(e);
     }
+  }
 
-    switchButtons.forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        const key = btn.dataset.collection;
-        renderCollection(key);
+  // === Wire UI ===
+  function init() {
+    // Buttons (your HTML already uses data-collection="pixelonkas|sykora")
+    qsa(".collection-button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const key = btn.getAttribute("data-collection");
+        loadCollection(key);
       });
     });
 
-    renderCollection(currentKey);
-  });
+    // Default load
+    loadCollection("pixelonkas");
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+})();
 </script>
+
 </body>
 </html>
