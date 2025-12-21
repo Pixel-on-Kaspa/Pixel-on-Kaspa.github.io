@@ -368,77 +368,76 @@
     return r.json();
   }
 
-  async function tryFetchNfts(tick, offset = 0, limit = 60) {
-  const url = `${API_BASE}/nfts/${encodeURIComponent(tick)}?offset=${offset}&limit=${limit}`;
+ async function tryFetchNfts(tick, offset = 0, limit = 60) {
+  // simplest working variant: fetch list and filter by tick
+  const url = `${API_BASE}/nfts?offset=${offset}`;
 
   const r = await fetch(url, { cache: "no-store" });
   if (!r.ok) throw new Error(`nfts failed (${r.status})`);
 
-  const data = await r.json();
-  return { urlUsed: url, data };
+  const all = await r.json();
+
+  const filtered = Array.isArray(all)
+    ? all.filter(n => String(n.tick).toUpperCase() === tick.toUpperCase())
+    : [];
+
+  return {
+    urlUsed: url,
+    data: filtered.slice(0, limit),
+  };
 }
 
-    
-  }
+function parseCollectionMeta(rangesJson, tick) {
+  const entry =
+    Array.isArray(rangesJson)
+      ? rangesJson.find(x => String(x.tick).toUpperCase() === tick.toUpperCase()) || rangesJson[0]
+      : rangesJson;
 
-  function parseCollectionMeta(rangesJson, tick) {
-    // Your Response screenshot shows objects like: { tick, max, minted, royaltyFee, royaltyTo, buri, ... }
-    // Sometimes API returns an array; sometimes an object. We handle both.
-    const entry =
-      Array.isArray(rangesJson)
-        ? rangesJson.find(x => String(x.tick).toUpperCase() === tick.toUpperCase()) || rangesJson[0]
-        : rangesJson;
+  const max = safeNumber(entry?.max);
+  const minted = safeNumber(entry?.minted);
 
-    const max = safeNumber(entry?.max);
-    const minted = safeNumber(entry?.minted);
+  return {
+    tick,
+    max,
+    minted,
+    royaltyTo: entry?.royaltyTo || null,
+    royaltyFee: entry?.royaltyFee || null,
+    buri: entry?.buri || null,
+  };
+}
+
+function parseNftsList(nftsJson) {
+  const arr =
+    Array.isArray(nftsJson) ? nftsJson :
+    (Array.isArray(nftsJson?.nfts) ? nftsJson.nfts :
+    (Array.isArray(nftsJson?.items) ? nftsJson.items :
+    (Array.isArray(nftsJson?.data) ? nftsJson.data : [])));
+
+  return arr.map(x => {
+    const tokenId = x.tokenId ?? x.id ?? x.token_id ?? x.inscriptionNumber ?? x.num ?? null;
+
+    const rawImage =
+      x.image || x.img || x.imageUrl ||
+      x.uri || x.buri ||
+      x?.metadata?.image ||
+      "";
+
+    const minted = Boolean(
+      x.minted === true ||
+      x.state === "minted" ||
+      x.owner ||
+      x.ownerAddress
+    );
 
     return {
-      tick,
-      max,
+      tokenId,
       minted,
-      royaltyTo: entry?.royaltyTo || null,
-      royaltyFee: entry?.royaltyFee || null,
-      buri: entry?.buri || null,
+      owner: x.owner || x.ownerAddress || null,
+      image: normalizeIpfs(rawImage),
     };
-  }
+  }).filter(x => x.tokenId != null);
+}
 
-  function parseNftsList(nftsJson) {
-    // We try to locate an array of NFT items in common shapes:
-    // - array directly
-    // - { nfts: [...] } or { items: [...] } or { data: [...] }
-    const arr =
-      Array.isArray(nftsJson) ? nftsJson :
-      (Array.isArray(nftsJson?.nfts) ? nftsJson.nfts :
-      (Array.isArray(nftsJson?.items) ? nftsJson.items :
-      (Array.isArray(nftsJson?.data) ? nftsJson.data : [])));
-
-    // Normalize fields
-    return arr.map(x => {
-      const tokenId = x.tokenId ?? x.id ?? x.token_id ?? x.inscriptionNumber ?? x.num ?? null;
-
-      // Image field might be: image / img / uri / buri / content / metadata.image
-      const rawImage =
-        x.image || x.img || x.imageUrl ||
-        x.uri || x.buri ||
-        x?.metadata?.image ||
-        "";
-
-      // minted status might be explicit or inferred
-      const minted = Boolean(
-        x.minted === true ||
-        x.state === "minted" ||
-        x.owner ||
-        x.ownerAddress
-      );
-
-      return {
-        tokenId,
-        minted,
-        owner: x.owner || x.ownerAddress || null,
-        image: normalizeIpfs(rawImage),
-      };
-    }).filter(x => x.tokenId != null);
-  }
 
   async function loadCollection(key) {
     const tick = TICKS[key];
