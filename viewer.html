@@ -8,12 +8,12 @@
     :root{
       --bg:#050608;
       --panel: rgba(0,0,0,.18);
-      --card:#101218;
       --border: rgba(255,255,255,.12);
       --muted: rgba(255,255,255,.65);
       --accent:#00c4ff;
       --accentSoft: rgba(0,196,255,.14);
-      --danger: #ffb4b4;
+      --danger:#ffb4b4;
+      --cardShadow: 0 18px 35px rgba(0,0,0,.5);
     }
     *{box-sizing:border-box}
     body{
@@ -62,7 +62,30 @@
       background: rgba(5,7,11,.45);
       font-size:.85rem;
     }
+    .btn{
+      font-size:.85rem;
+      text-decoration:none;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid rgba(0,196,255,.6);
+      color: var(--accent);
+      background: transparent;
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      cursor:pointer;
+      transition: background .15s,color .15s,border-color .15s;
+      user-select:none;
+    }
+    .btn:hover{background: var(--accent); color:#020308;}
+    .btnGhost{
+      border:1px solid rgba(255,255,255,.16);
+      color: rgba(255,255,255,.8);
+    }
+    .btnGhost:hover{background: rgba(255,255,255,.10); color:#fff;}
+
     #statusLine{opacity:.75;font-size:14px;margin:10px 0}
+
     #grid{
       display:grid;
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -72,7 +95,7 @@
       padding:12px;border-radius:16px;border:1px solid var(--border);
       background: rgba(0,0,0,.18);
       backdrop-filter: blur(10px);
-      box-shadow: 0 18px 35px rgba(0,0,0,.5);
+      box-shadow: var(--cardShadow);
       transition: transform .15s ease-out, box-shadow .15s ease-out, border-color .15s;
       display:flex;flex-direction:column;gap:10px;
     }
@@ -89,6 +112,8 @@
       font-size:12px;
       text-align:center;
       padding:8px;
+      cursor: zoom-in;
+      position: relative;
     }
     .thumb img{width:100%;height:100%;object-fit:cover;display:block}
     .row{display:flex;justify-content:space-between;gap:10px;align-items:center}
@@ -99,7 +124,10 @@
       border: 1px solid rgba(80,200,120,.28);
       font-size:12px;
     }
-    .small{opacity:.7;font-size:12px;word-break:break-all}
+    .small{opacity:.7;font-size:12px;word-break:break-word}
+    .titleLine{font-weight:650;font-size:13px;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .metaLine{opacity:.70;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
     #loadMoreWrap{display:flex;justify-content:center;margin:18px 0 0}
     #loadMoreBtn{
       display:none;
@@ -110,6 +138,7 @@
       color:inherit;
       cursor:pointer;
     }
+
     .errBox{
       grid-column:1/-1;
       padding:14px;
@@ -119,16 +148,104 @@
       background: rgba(255,180,180,.06);
       opacity:.95;
     }
-    @media (max-width:600px){
-      header h1{font-size:1.6rem}
-      .collection-switcher{width:100%;justify-content:space-between}
+
+    /* Lightbox / fullscreen */
+    #lightbox{
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(0,0,0,.72);
+      z-index: 9999;
+    }
+    #lightbox.open{ display:flex; }
+    .lbPanel{
+      width: min(1100px, 96vw);
+      max-height: 92vh;
+      overflow: auto;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(10,12,18,.92);
+      box-shadow: 0 30px 80px rgba(0,0,0,.75);
+      backdrop-filter: blur(10px);
+    }
+    .lbTop{
+      display:flex;
+      justify-content: space-between;
+      align-items:center;
+      gap:12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      position: sticky;
+      top: 0;
+      background: rgba(10,12,18,.92);
+    }
+    .lbTitle{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+    .lbTitle b{letter-spacing:.06em}
+    .lbBody{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 14px;
+      padding: 14px;
+    }
+    .lbImgWrap{
+      border-radius: 14px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.12);
+      background:#000;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height: 320px;
+    }
+    .lbImgWrap img{
+      width:100%;
+      height:auto;
+      max-height: 75vh;
+      object-fit: contain;
+      display:block;
+      cursor: zoom-out;
+    }
+    .lbSide{
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      padding: 12px;
+      overflow:auto;
+    }
+    .kv{margin:0 0 10px}
+    .kv .k{opacity:.7;font-size:12px;margin-bottom:4px}
+    .kv .v{font-size:14px;word-break:break-word}
+    .attrs{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top: 8px;
+    }
+    .chip{
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:12px;
+      opacity:.95;
+    }
+    @media (max-width: 860px){
+      .lbBody{grid-template-columns: 1fr;}
+      .lbImgWrap{min-height: 240px;}
     }
   </style>
 </head>
 <body>
 <div class="app">
   <header>
-    <h1>Pixel on Kaspa</h1>
+    <h1>PIXEL ON KASPA</h1>
     <p>Audio-visual art generated by sound and inscribed on the Kaspa blockDAG.</p>
 
     <div class="collection-switcher">
@@ -143,10 +260,10 @@
         <div id="metaTitle">—</div>
         <div id="metaSubtitle">—</div>
       </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center;">
         <div id="metaMinted" class="pill">Minted: —</div>
         <div id="metaMax" class="pill">Max: —</div>
-        <div id="metaRoyalty" class="pill">Royalty: —</div>
+        <a id="mintBtn" class="btn" href="#" target="_blank" rel="noreferrer">Mint on KaspaCom</a>
       </div>
     </div>
   </section>
@@ -161,6 +278,28 @@
   </section>
 </div>
 
+<!-- Lightbox -->
+<div id="lightbox" aria-hidden="true">
+  <div class="lbPanel" role="dialog" aria-modal="true">
+    <div class="lbTop">
+      <div class="lbTitle">
+        <b id="lbHeading">—</b>
+        <span id="lbSub" style="opacity:.7;font-size:12px">—</span>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+        <a id="lbMint" class="btn" href="#" target="_blank" rel="noreferrer">Mint</a>
+        <a id="lbOpenMeta" class="btn btnGhost" href="#" target="_blank" rel="noreferrer">Open metadata</a>
+        <a id="lbOpenImg" class="btn btnGhost" href="#" target="_blank" rel="noreferrer">Open image</a>
+        <button id="lbClose" class="btn btnGhost" type="button">Close</button>
+      </div>
+    </div>
+    <div class="lbBody">
+      <div class="lbImgWrap" id="lbImgWrap"></div>
+      <div class="lbSide" id="lbSide"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 (() => {
   /* =========================
@@ -168,7 +307,7 @@
   ========================= */
   const API_BASE = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
 
-  // IPFS gateways – dweb.link u tebe funguje nejlíp
+  // IPFS gateways (dweb první, cloudflare poslední)
   const IPFS_GATEWAYS = [
     "https://dweb.link/ipfs/",
     "https://ipfs.io/ipfs/",
@@ -178,17 +317,26 @@
   const PAGE_SIZE = 60;
   const META_CONCURRENCY = 8;
 
-  // Deploy meta natvrdo (PIXELONKAS) – nemusíme nic skenovat
+  // ✅ KaspaCom mint linky – uprav si URL pattern podle toho, jak to má KaspaCom přesně:
+  // (Neznám jejich finální routy, takže to dělám jednoduše a editovatelně.)
+  const MINT_URLS = {
+    PIXELONKAS: "https://kaspacom.com/nft/PIXELONKAS",
+    SYKORA: "https://kaspacom.com/nft/SYKORA",
+  };
+
+  // ✅ Hardcoded deploy meta – odstraní “missing buri” a zároveň řeší max pro SYKORA
   const HARDCODED_DEPLOY = {
     PIXELONKAS: {
-      deployer: "kaspa:qq2rnrjvjmx5ec45m5sdymm466rz09x7syzjktgrneqqkvgk4w6kqq9gdj7at",
-      royaltyTo: "kaspa:qq2rnrjvjmx5ec45m5sdymm466rz09x7syzjktgrneqqkvgk4w6kqq9gdj7at",
       buri: "ipfs://bafybeih2phpjzxfrszsscpmxdr44kliaddto3sicsdh44kgx7b3f43fdvm",
-      max: "342",
-      royaltyFee: "28700000000",
-      tick: "PIXELONKAS",
-      minted: "21",
-      state: "deployed"
+      max: 342,
+      minted: 21,           // ✅ user truth
+      idStartFallback: 2     // ✅ token ids start at 2
+    },
+    SYKORA: {
+      buri: "ipfs://bafybeifema4upmzu7c4iipvxdagctirxf46g3htmsin6l66zm77dibfhaq",
+      max: 2518,            // ✅ user asked
+      minted: null,         // necháme z API (nebo spočítáme ze stringu), fallback níže
+      idStartFallback: 1
     }
   };
 
@@ -202,6 +350,7 @@
   function setText(id, t){ const el = document.getElementById(id); if(el) el.textContent = t; }
   function showLoadMore(show){ qs("#loadMoreBtn").style.display = show ? "inline-flex" : "none"; }
   function gridEl(){ return qs("#grid"); }
+  function renderError(msg){ gridEl().innerHTML = `<div class="errBox">${msg}</div>`; }
 
   /* =========================
      IPFS helpers
@@ -220,7 +369,6 @@
   }
 
   async function fetchJsonFromGateways(path, signal){
-    // path: "CID/.../1.json" (bez ipfs://)
     let lastErr = null;
     for(let i=0;i<IPFS_GATEWAYS.length;i++){
       const url = IPFS_GATEWAYS[i] + path;
@@ -241,27 +389,27 @@
   }
 
   function extractImageFromMeta(meta){
-    // přidej sem další klíče, pokud bys v budoucnu měl jiný formát
     const raw = firstTruthy(
       meta?.image,
       meta?.image_url,
       meta?.properties?.image,
-      meta?.data?.image
+      meta?.data?.image,
+      meta?.content?.image,       // some schemas
+      meta?.content?.url          // some schemas
     );
-    if(!raw) return "";
+    if(!raw) return { primary:"", ipfs:null };
 
     if(raw.startsWith("ipfs://")){
       const p = ipfsPath(raw);
-      return { primary: IPFS_GATEWAYS[0] + p, ipfsPath: p };
+      return { primary: IPFS_GATEWAYS[0] + p, ipfs: p };
     }
-    return { primary: raw, ipfsPath: null };
+    return { primary: raw, ipfs: null };
   }
 
   /* =========================
-     ranges/{tick} parsing
+     ranges/{tick}
   ========================= */
   function mintedFromRangesString(s){
-    // "start,len,start,len,..."
     if(typeof s !== "string" || !s.trim()) return null;
     const nums = s.split(",").map(x => Number(x.trim())).filter(Number.isFinite);
     let minted = 0;
@@ -269,17 +417,14 @@
     return minted;
   }
 
-  function idsFromRangesString(s, limit=60, offsetIndex=0){
-    // Vrátí limit tokenId z minted ranges, posunuté o offsetIndex
+  function idsFromRangesString(s, limit, offsetIndex){
     const nums = s.split(",").map(x => Number(x.trim())).filter(Number.isFinite);
     const pairs = [];
     for(let i=0;i<nums.length-1;i+=2){
       pairs.push([nums[i], nums[i+1]]); // [start,len]
     }
-
     let skipped = offsetIndex;
     const out = [];
-
     for(const [start, len] of pairs){
       for(let j=0;j<len;j++){
         const id = start + j;
@@ -292,23 +437,124 @@
   }
 
   /* =========================
-     UI card
+     Cards + metadata cache
   ========================= */
+  const metaCache = new Map(); // key: `${tick}:${id}` -> meta json
+
   function cardSkeleton(tick, tokenId){
     return `
       <div class="card" data-tick="${tick}" data-tokenid="${tokenId}">
-        <div class="thumb">Loading metadata…</div>
+        <div class="thumb" data-action="open">
+          Loading metadata…
+        </div>
         <div class="row">
           <div class="id">#${tokenId}</div>
           <div class="badge">Minted</div>
         </div>
-        <div class="small">${tick}</div>
+        <div class="titleLine" data-title>—</div>
+        <div class="metaLine" data-desc>—</div>
       </div>
     `;
   }
 
-  function renderError(msg){
-    gridEl().innerHTML = `<div class="errBox">${msg}</div>`;
+  /* =========================
+     Lightbox
+  ========================= */
+  const lb = {
+    root: qs("#lightbox"),
+    imgWrap: qs("#lbImgWrap"),
+    side: qs("#lbSide"),
+    heading: qs("#lbHeading"),
+    sub: qs("#lbSub"),
+    closeBtn: qs("#lbClose"),
+    openMeta: qs("#lbOpenMeta"),
+    openImg: qs("#lbOpenImg"),
+    mint: qs("#lbMint")
+  };
+
+  function openLightbox({ tick, tokenId, meta, metaUrl, imgUrl, mintUrl }){
+    lb.heading.textContent = `${tick} #${tokenId}`;
+    lb.sub.textContent = meta?.name ? meta.name : "";
+    lb.mint.href = mintUrl || "#";
+    lb.openMeta.href = metaUrl || "#";
+    lb.openImg.href = imgUrl || "#";
+
+    // image
+    lb.imgWrap.innerHTML = imgUrl
+      ? `<img src="${imgUrl}" alt="" />`
+      : `<div style="opacity:.7;padding:18px">No image</div>`;
+
+    // fallback gateway for image if ipfs
+    const imgEl = lb.imgWrap.querySelector("img");
+    if(imgEl && imgUrl && imgUrl.startsWith(IPFS_GATEWAYS[0])){
+      // we only know it's from gateway; if we also have ipfs path, we'll handle in opener
+    }
+
+    // side meta
+    const name = meta?.name || `#${tokenId}`;
+    const desc = meta?.description || "";
+    const attrs = Array.isArray(meta?.attributes) ? meta.attributes : [];
+    const props = meta?.properties?.attributes && Array.isArray(meta.properties.attributes)
+      ? meta.properties.attributes
+      : null;
+
+    const finalAttrs = attrs.length ? attrs : (props || []);
+
+    lb.side.innerHTML = `
+      <div class="kv">
+        <div class="k">Name</div>
+        <div class="v">${escapeHtml(name)}</div>
+      </div>
+      <div class="kv">
+        <div class="k">Description</div>
+        <div class="v">${desc ? escapeHtml(desc) : "<span style='opacity:.7'>—</span>"}</div>
+      </div>
+      <div class="kv">
+        <div class="k">Token</div>
+        <div class="v">${escapeHtml(tick)} #${escapeHtml(String(tokenId))}</div>
+      </div>
+      <div class="kv">
+        <div class="k">Attributes</div>
+        <div class="v">
+          ${finalAttrs && finalAttrs.length ? `
+            <div class="attrs">
+              ${finalAttrs.slice(0, 64).map(a => {
+                const t = a?.trait_type ?? a?.trait ?? a?.type ?? "Trait";
+                const v = a?.value ?? a?.val ?? "";
+                return `<span class="chip">${escapeHtml(String(t))}: <b>${escapeHtml(String(v))}</b></span>`;
+              }).join("")}
+            </div>
+          ` : `<span style="opacity:.7">—</span>`}
+        </div>
+      </div>
+    `;
+
+    lb.root.classList.add("open");
+    lb.root.setAttribute("aria-hidden", "false");
+  }
+
+  function closeLightbox(){
+    lb.root.classList.remove("open");
+    lb.root.setAttribute("aria-hidden", "true");
+    lb.imgWrap.innerHTML = "";
+    lb.side.innerHTML = "";
+  }
+
+  lb.closeBtn.addEventListener("click", closeLightbox);
+  lb.root.addEventListener("click", (e) => {
+    if(e.target === lb.root) closeLightbox();
+  });
+  document.addEventListener("keydown", (e) => {
+    if(e.key === "Escape" && lb.root.classList.contains("open")) closeLightbox();
+  });
+
+  function escapeHtml(str){
+    return String(str)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
   }
 
   /* =========================
@@ -318,9 +564,9 @@
   let currentBuri = null;
   let currentRangesString = null;
   let mintedLimit = null;
+  let maxSupply = null;
   let pageIndex = 0;
   let abortCtrl = null;
-  const metaCache = new Map(); // `${tick}:${id}` -> meta json
 
   /* =========================
      Load collection
@@ -330,6 +576,7 @@
     currentBuri = null;
     currentRangesString = null;
     mintedLimit = null;
+    maxSupply = null;
     pageIndex = 0;
 
     showLoadMore(false);
@@ -338,93 +585,103 @@
     if(abortCtrl) abortCtrl.abort();
     abortCtrl = new AbortController();
 
+    // mint button
+    qs("#mintBtn").href = MINT_URLS[tick] || "#";
+    qs("#mintBtn").style.display = MINT_URLS[tick] ? "inline-flex" : "none";
+
     setStatus(`Loading <b>${tick}</b>…`);
     setText("metaTitle", tick);
     setText("metaSubtitle", "Loading meta…");
     setText("metaMinted", "Minted: —");
     setText("metaMax", "Max: —");
-    setText("metaRoyalty", "Royalty: —");
 
-    // 1) ranges/{tick}
+    // 1) fetch ranges
     let rangesRes = null;
     try{
       const rangesJson = await fetchJson(`${API_BASE}/ranges/${encodeURIComponent(tick)}`, abortCtrl.signal);
-      rangesRes = rangesJson?.result ?? rangesJson;
+      // important: don't flatten wrongly
+      rangesRes = (rangesJson && typeof rangesJson === "object" && ("result" in rangesJson)) ? rangesJson.result : rangesJson;
     }catch(e){
-      // i když by ranges padlo, PIXELONKAS máme hardcoded a SYKORA zkusíme dál
-      console.warn("ranges fetch failed", e);
+      // ok, fallback to hardcoded only
+      rangesRes = null;
     }
 
-    // 2) slož meta z nejlepších zdrojů
-    let meta = {
-      tick,
-      buri: null,
-      minted: null,
-      max: null,
-      royaltyFee: null,
-      royaltyTo: null,
-      source: ""
-    };
+    // 2) build meta
+    const hard = HARDCODED_DEPLOY[tick] || {};
+    let source = [];
 
     if(typeof rangesRes === "string"){
-      // minted ranges string (PIXELONKAS typ)
       currentRangesString = rangesRes;
-      meta.minted = mintedFromRangesString(rangesRes);
-      meta.source = "ranges-string";
+      const mintedFromString = mintedFromRangesString(rangesRes);
+      // minted: prefer hardcoded if present (PIXELONKAS)
+      mintedLimit = Number.isFinite(hard.minted) ? hard.minted : mintedFromString;
+      source.push("ranges-string");
     }else if(rangesRes && typeof rangesRes === "object"){
-      // deploy objekt (SYKORA typ)
-      meta.buri = rangesRes.buri ?? null;
-      meta.minted = rangesRes.minted ?? null;
-      meta.max = rangesRes.max ?? null;
-      meta.royaltyFee = rangesRes.royaltyFee ?? null;
-      meta.royaltyTo = rangesRes.royaltyTo ?? null;
-      meta.source = "ranges-object";
+      // if API ever returns object
+      currentBuri = rangesRes.buri || null;
+      mintedLimit = Number(rangesRes.minted ?? NaN);
+      maxSupply = Number(rangesRes.max ?? NaN);
+      source.push("ranges-object");
     }
 
-    // 3) přimíchej hardcoded deploy (PIXELONKAS)
-    if(HARDCODED_DEPLOY[tick]){
-      const h = HARDCODED_DEPLOY[tick];
-      meta.buri = meta.buri ?? h.buri;
-      meta.minted = meta.minted ?? h.minted;
-      meta.max = meta.max ?? h.max;
-      meta.royaltyFee = meta.royaltyFee ?? h.royaltyFee;
-      meta.royaltyTo = meta.royaltyTo ?? h.royaltyTo;
-      meta.source = meta.source ? (meta.source + " + hardcoded") : "hardcoded";
-    }
+    // apply hardcoded deploy (always for buri + max)
+    currentBuri = currentBuri || hard.buri || null;
+    maxSupply = Number.isFinite(maxSupply) ? maxSupply : (Number.isFinite(hard.max) ? hard.max : null);
 
-    // 4) render meta box
-    currentBuri = meta.buri;
-    mintedLimit = meta.minted != null ? Number(meta.minted) : null;
+    // minted fallback rules:
+    // - PIXELONKAS: hardcoded minted=21 (user)
+    // - SYKORA: if string minted exists, use that; else we can leave minted unknown
+    if(!Number.isFinite(mintedLimit) || mintedLimit == null){
+      mintedLimit = Number.isFinite(hard.minted) ? hard.minted : null;
+    }
+    if(tick === "PIXELONKAS" && Number.isFinite(hard.minted)){
+      mintedLimit = hard.minted; // force user truth
+      source.push("hardcoded");
+    } else if(hard.buri || hard.max){
+      source.push("hardcoded");
+    }
 
     setText("metaTitle", tick);
-    setText("metaSubtitle", `Source: ${meta.source || "unknown"}`);
-    setText("metaMinted", `Minted: ${meta.minted ?? "—"}`);
-    setText("metaMax", `Max: ${meta.max ?? "—"}`);
-    setText("metaRoyalty", `Royalty: ${meta.royaltyFee ?? "—"}${meta.royaltyTo ? " → " + meta.royaltyTo : ""}`);
+    setText("metaSubtitle", `Source: ${source.filter(Boolean).join(" + ") || "unknown"}`);
+    setText("metaMinted", `Minted: ${Number.isFinite(mintedLimit) ? mintedLimit : "—"}`);
+    setText("metaMax", `Max: ${Number.isFinite(maxSupply) ? maxSupply : "—"}`);
 
     if(!currentBuri){
-      setStatus(`Missing <b>buri</b> for <b>${tick}</b>. (Needed to load ${tick}/{id}.json from IPFS)`);
-      renderError(`Missing <b>buri</b> for this collection.<br><br>
-      Fix: ensure <code>/ranges/${tick}</code> returns an object with <code>buri</code>, or add the deploy meta hardcoded like PIXELONKAS.`);
+      setStatus(`Missing <b>buri</b> for <b>${tick}</b>.`);
+      renderError(`Missing <b>buri</b> for this collection.`);
       return;
     }
 
-    // 5) první stránka
     await renderNextPage();
   }
 
   async function renderNextPage(){
     const tick = currentTick;
     const buri = currentBuri;
+    const hard = HARDCODED_DEPLOY[tick] || {};
     if(!tick || !buri) return;
 
-    // vyrob tokenId list pro tuhle stránku
+    // token id list
     let ids = [];
     if(currentRangesString){
-      ids = idsFromRangesString(currentRangesString, PAGE_SIZE, pageIndex);
+      // take mintedLimit ids from ranges expansion
+      const pageCount = PAGE_SIZE;
+      ids = idsFromRangesString(currentRangesString, pageCount, pageIndex);
+      if(Number.isFinite(mintedLimit)){
+        // cut to mintedLimit total shown
+        const remaining = mintedLimit - pageIndex;
+        if(remaining <= 0) ids = [];
+        else ids = ids.slice(0, remaining);
+      }
     }else{
-      const start = pageIndex + 1;
-      const end = mintedLimit ? Math.min(start + PAGE_SIZE - 1, mintedLimit) : (start + PAGE_SIZE - 1);
+      // fallback sequence (PIXELONKAS starts at 2)
+      const startId = Number.isFinite(hard.idStartFallback) ? hard.idStartFallback : 1;
+      const start = startId + pageIndex;
+      let end = start + PAGE_SIZE - 1;
+      if(Number.isFinite(mintedLimit)){
+        const last = startId + mintedLimit - 1;
+        end = Math.min(end, last);
+      }
       for(let id=start; id<=end; id++) ids.push(id);
     }
 
@@ -435,12 +692,11 @@
     }
 
     // skeletons
-    const html = ids.map(id => cardSkeleton(tick, id)).join("");
-    gridEl().insertAdjacentHTML("beforeend", html);
+    gridEl().insertAdjacentHTML("beforeend", ids.map(id => cardSkeleton(tick, id)).join(""));
 
-    setStatus(`Loading metadata JSONs via IPFS gateway…`);
+    setStatus(`Loading metadata (${ids.length} items)…`);
 
-    // hydrate: concurrent workers
+    // hydrate
     let idx = 0;
     const cards = Array.from(document.querySelectorAll(`.card[data-tick="${tick}"]`)).slice(-ids.length);
 
@@ -450,42 +706,63 @@
         const tokenId = Number(card.getAttribute("data-tokenid"));
         const cacheKey = `${tick}:${tokenId}`;
 
+        const thumb = card.querySelector(".thumb");
+        const titleEl = card.querySelector("[data-title]");
+        const descEl = card.querySelector("[data-desc]");
+
         try{
           let meta = metaCache.get(cacheKey);
           if(!meta){
-            const folder = ipfsPath(buri).replace(/\/+$/,""); // "CID/dir"
+            const folder = ipfsPath(buri).replace(/\/+$/,"");
             const metaPath = `${folder}/${tokenId}.json`;
             meta = await fetchJsonFromGateways(metaPath, abortCtrl.signal);
             metaCache.set(cacheKey, meta);
           }
 
-          const { primary, ipfsPath: imgIpfsPath } = extractImageFromMeta(meta);
-          const thumb = card.querySelector(".thumb");
+          const name = meta?.name || `${tick} #${tokenId}`;
+          const desc = meta?.description || "";
 
-          if(!thumb) continue;
+          if(titleEl) titleEl.textContent = name;
+          if(descEl) descEl.textContent = desc || "—";
 
-          if(primary){
+          const { primary, ipfs } = extractImageFromMeta(meta);
+
+          if(primary && thumb){
             thumb.innerHTML = `<img src="${primary}" alt="" loading="lazy">`;
+            const imgEl = thumb.querySelector("img");
 
-            // fallback pro ipfs image: zkus další gatewaye
-            if(imgIpfsPath){
-              const imgEl = thumb.querySelector("img");
+            // gateway fallback for ipfs image
+            if(ipfs && imgEl){
               let gw = 0;
               imgEl.onerror = () => {
                 gw++;
                 if(gw < IPFS_GATEWAYS.length){
-                  imgEl.src = IPFS_GATEWAYS[gw] + imgIpfsPath;
+                  imgEl.src = IPFS_GATEWAYS[gw] + ipfs;
                 }else{
                   thumb.textContent = "Image error";
                 }
               };
             }
+
+            // click → lightbox
+            if(thumb){
+              thumb.onclick = () => {
+                const folder = ipfsPath(buri).replace(/\/+$/,"");
+                const metaUrl = IPFS_GATEWAYS[0] + `${folder}/${tokenId}.json`;
+                const mintUrl = MINT_URLS[tick] || "#";
+                // choose open image url: if ipfs path known, open primary; else open primary
+                const imgUrl = primary || "#";
+                openLightbox({ tick, tokenId, meta, metaUrl, imgUrl, mintUrl });
+              };
+            }
           }else{
-            thumb.textContent = "No image in JSON";
+            if(thumb) thumb.textContent = "No image in JSON";
           }
+
         }catch(e){
-          const thumb = card.querySelector(".thumb");
           if(thumb) thumb.textContent = "Meta error";
+          if(titleEl) titleEl.textContent = `${tick} #${tokenId}`;
+          if(descEl) descEl.textContent = "—";
         }
       }
     }
@@ -494,13 +771,14 @@
 
     pageIndex += ids.length;
 
-    // Load more: pokud víme mintedLimit a došli jsme na konec, schovej
-    if(mintedLimit && pageIndex >= mintedLimit){
+    // Load more
+    if(Number.isFinite(mintedLimit) && pageIndex >= mintedLimit){
       showLoadMore(false);
+      setStatus(`Ready. Loaded ${pageIndex} items.`);
     }else{
       showLoadMore(true);
+      setStatus(`Ready. Loaded ${pageIndex} items.`);
     }
-    setStatus(`Ready. Loaded ${pageIndex} items.`);
   }
 
   /* =========================
@@ -520,11 +798,20 @@
     });
   });
 
-  qs("#loadMoreBtn").addEventListener("click", () => {
-    renderNextPage();
+  qs("#loadMoreBtn").addEventListener("click", () => renderNextPage());
+
+  // lightbox button urls get set on open
+  qs("#lbMint").addEventListener("click", (e) => {
+    if(qs("#lbMint").href.endsWith("#")) e.preventDefault();
+  });
+  qs("#lbOpenMeta").addEventListener("click", (e) => {
+    if(qs("#lbOpenMeta").href.endsWith("#")) e.preventDefault();
+  });
+  qs("#lbOpenImg").addEventListener("click", (e) => {
+    if(qs("#lbOpenImg").href.endsWith("#")) e.preventDefault();
   });
 
-  // default
+  // Default
   loadCollection("PIXELONKAS");
 })();
 </script>
