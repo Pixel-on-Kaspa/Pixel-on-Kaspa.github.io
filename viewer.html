@@ -1,224 +1,532 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Kaspa NFT Viewer</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <title>PIXEL NFT Viewer – PIXELONKAS & SYKORA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#050608;
+      --panel: rgba(0,0,0,.18);
+      --card:#101218;
+      --border: rgba(255,255,255,.12);
+      --muted: rgba(255,255,255,.65);
+      --accent:#00c4ff;
+      --accentSoft: rgba(0,196,255,.14);
+      --danger: #ffb4b4;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
+      background: radial-gradient(circle at top, #121623 0, #050608 52%);
+      color:#f5f5f5;
+      min-height:100vh;
+    }
+    .app{max-width:1100px;margin:0 auto;padding:24px 16px 48px}
+    header{text-align:center;margin-bottom:10px}
+    header h1{margin:8px 0 4px;font-size:2.1rem;letter-spacing:.12em;text-transform:uppercase}
+    header p{margin:0;color:var(--muted);font-size:.95rem}
 
-<style>
-body {
-  margin: 0;
-  font-family: system-ui, sans-serif;
-  background: #050608;
-  color: #f5f5f5;
-}
-header {
-  text-align: center;
-  padding: 24px;
-}
-button {
-  background: transparent;
-  border: 1px solid #333;
-  color: #aaa;
-  padding: 8px 16px;
-  margin: 0 6px;
-  border-radius: 999px;
-  cursor: pointer;
-}
-button.active {
-  color: #00c4ff;
-  border-color: #00c4ff;
-}
-#meta {
-  max-width: 1100px;
-  margin: 0 auto 16px;
-  padding: 12px 16px;
-  border: 1px solid #333;
-  border-radius: 12px;
-}
-#grid {
-  max-width: 1100px;
-  margin: 0 auto 40px;
-  padding: 0 16px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px,1fr));
-  gap: 16px;
-}
-.card {
-  background: #101218;
-  border: 1px solid #262938;
-  border-radius: 14px;
-  padding: 10px;
-}
-.thumb {
-  aspect-ratio: 1 / 1;
-  background: #000;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-.thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.small {
-  font-size: 12px;
-  opacity: .7;
-}
-</style>
+    .collection-switcher{
+      display:inline-flex;
+      padding:4px;
+      background: rgba(10,12,18,.9);
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      margin:20px auto 6px;
+      gap:6px;
+    }
+    .collection-button{
+      border:none;background:transparent;color:rgba(255,255,255,.65);
+      padding:8px 18px;border-radius:999px;font-size:.9rem;cursor:pointer;
+      transition:background .2s,color .2s;
+    }
+    .collection-button.active{background: var(--accentSoft); color: var(--accent);}
+
+    #metaBox{
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px 16px;
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      margin:18px auto 10px;
+    }
+    #metaRow{
+      display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;
+    }
+    #metaTitle{font-weight:800;letter-spacing:.08em}
+    #metaSubtitle{opacity:.75;font-size:14px;margin-top:4px}
+    .pill{
+      padding:6px 10px;border-radius:999px;border:1px solid var(--border);
+      background: rgba(5,7,11,.45);
+      font-size:.85rem;
+    }
+    #statusLine{opacity:.75;font-size:14px;margin:10px 0}
+    #grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap:16px;
+    }
+    .card{
+      padding:12px;border-radius:16px;border:1px solid var(--border);
+      background: rgba(0,0,0,.18);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 18px 35px rgba(0,0,0,.5);
+      transition: transform .15s ease-out, box-shadow .15s ease-out, border-color .15s;
+      display:flex;flex-direction:column;gap:10px;
+    }
+    .card:hover{transform: translateY(-3px); box-shadow:0 24px 40px rgba(0,0,0,.7); border-color: rgba(0,196,255,.22);}
+    .thumb{
+      width:100%;
+      aspect-ratio: 1/1;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.10);
+      background:#000;
+      overflow:hidden;
+      display:flex;align-items:center;justify-content:center;
+      color:rgba(255,255,255,.7);
+      font-size:12px;
+      text-align:center;
+      padding:8px;
+    }
+    .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+    .row{display:flex;justify-content:space-between;gap:10px;align-items:center}
+    .id{font-weight:800}
+    .badge{
+      padding:4px 10px;border-radius:999px;
+      background: rgba(80,200,120,.16);
+      border: 1px solid rgba(80,200,120,.28);
+      font-size:12px;
+    }
+    .small{opacity:.7;font-size:12px;word-break:break-all}
+    #loadMoreWrap{display:flex;justify-content:center;margin:18px 0 0}
+    #loadMoreBtn{
+      display:none;
+      padding:10px 14px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color:inherit;
+      cursor:pointer;
+    }
+    .errBox{
+      grid-column:1/-1;
+      padding:14px;
+      border-radius:14px;
+      border:1px solid rgba(255,180,180,.35);
+      color: var(--danger);
+      background: rgba(255,180,180,.06);
+      opacity:.95;
+    }
+    @media (max-width:600px){
+      header h1{font-size:1.6rem}
+      .collection-switcher{width:100%;justify-content:space-between}
+    }
+  </style>
 </head>
-
 <body>
+<div class="app">
+  <header>
+    <h1>Pixel on Kaspa</h1>
+    <p>Audio-visual art generated by sound and inscribed on the Kaspa blockDAG.</p>
 
-<header>
-  <h1>Pixel on Kaspa</h1>
-  <button id="btnPixel" class="active">PIXELONKAS</button>
-  <button id="btnSykora">SYKORA</button>
-</header>
+    <div class="collection-switcher">
+      <button class="collection-button active" data-collection="PIXELONKAS">PIXELONKAS</button>
+      <button class="collection-button" data-collection="SYKORA">SYKORA</button>
+    </div>
+  </header>
 
-<div id="meta">Loading…</div>
-<div id="grid"></div>
+  <section id="metaBox">
+    <div id="metaRow">
+      <div>
+        <div id="metaTitle">—</div>
+        <div id="metaSubtitle">—</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+        <div id="metaMinted" class="pill">Minted: —</div>
+        <div id="metaMax" class="pill">Max: —</div>
+        <div id="metaRoyalty" class="pill">Royalty: —</div>
+      </div>
+    </div>
+  </section>
+
+  <div id="statusLine">Ready.</div>
+
+  <section>
+    <div id="grid"></div>
+    <div id="loadMoreWrap">
+      <button id="loadMoreBtn">Load more</button>
+    </div>
+  </section>
+</div>
 
 <script>
-/* ===================== CONFIG ===================== */
+(() => {
+  /* =========================
+     CONFIG
+  ========================= */
+  const API_BASE = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
 
-const API_BASE = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
+  // IPFS gateways – dweb.link u tebe funguje nejlíp
+  const IPFS_GATEWAYS = [
+    "https://dweb.link/ipfs/",
+    "https://ipfs.io/ipfs/",
+    "https://cloudflare-ipfs.com/ipfs/",
+  ];
 
-const COLLECTIONS = {
-  PIXELONKAS: {
-    tick: "PIXELONKAS",
-    buri: null   // ⚠️ DOPLŇ, pokud ho znáš
-  },
-  SYKORA: {
-    tick: "SYKORA",
-    buri: null   // načte se automaticky
-  }
-};
+  const PAGE_SIZE = 60;
+  const META_CONCURRENCY = 8;
 
-// IPFS gateway (ověřená u tebe)
-const IPFS_GATEWAY = "https://dweb.link/ipfs/";
-
-/* ===================== HELPERS ===================== */
-
-function ipfsToHttp(ipfs) {
-  return IPFS_GATEWAY + ipfs.replace("ipfs://", "");
-}
-
-async function fetchJson(url) {
-  const r = await fetch(url, { cache: "no-store" });
-  if (!r.ok) throw new Error(url);
-  return r.json();
-}
-
-/* ===================== META ===================== */
-
-async function loadMeta(tick) {
-  const json = await fetchJson(`${API_BASE}/ranges/${tick}`);
-  const res = json.result;
-
-  if (typeof res === "string") {
-    // minted ranges string
-    const nums = res.split(",").map(Number);
-    let minted = 0;
-    for (let i = 1; i < nums.length; i += 2) minted += nums[i];
-    return { minted };
-  }
-
-  return {
-    buri: res.buri,
-    minted: Number(res.minted),
-    max: Number(res.max),
-    royalty: res.royaltyFee
-  };
-}
-
-/* ===================== NFT METADATA ===================== */
-
-async function loadTokenMeta(buri, tokenId) {
-  const url = ipfsToHttp(`${buri}/${tokenId}.json`);
-  const r = await fetch(url);
-  if (!r.ok) throw new Error("meta");
-  return r.json();
-}
-
-/* ===================== UI ===================== */
-
-function setMeta(text) {
-  document.getElementById("meta").innerHTML = text;
-}
-
-function renderCard(id) {
-  return `
-    <div class="card" data-id="${id}">
-      <div class="thumb">Loading…</div>
-      <div>#${id}</div>
-    </div>
-  `;
-}
-
-/* ===================== MAIN ===================== */
-
-async function loadCollection(key) {
-  const col = COLLECTIONS[key];
-  const grid = document.getElementById("grid");
-  grid.innerHTML = "";
-  setMeta("Loading metadata…");
-
-  const meta = await loadMeta(col.tick);
-
-  if (!col.buri && meta.buri) col.buri = meta.buri;
-  if (!col.buri) {
-    setMeta("Missing buri for this collection.");
-    return;
-  }
-
-  setMeta(`
-    <b>${col.tick}</b><br>
-    Minted: ${meta.minted ?? "?"}
-  `);
-
-  const count = Math.min(meta.minted, 60);
-  for (let i = 1; i <= count; i++) {
-    grid.insertAdjacentHTML("beforeend", renderCard(i));
-  }
-
-  const cards = document.querySelectorAll(".card");
-  for (const card of cards) {
-    const id = card.dataset.id;
-    try {
-      const metaJson = await loadTokenMeta(col.buri, id);
-      const img = metaJson.image
-        ? ipfsToHttp(metaJson.image)
-        : null;
-
-      card.querySelector(".thumb").innerHTML = img
-        ? `<img src="${img}">`
-        : "No image";
-    } catch {
-      card.querySelector(".thumb").innerHTML = "Meta error";
+  // Deploy meta natvrdo (PIXELONKAS) – nemusíme nic skenovat
+  const HARDCODED_DEPLOY = {
+    PIXELONKAS: {
+      deployer: "kaspa:qq2rnrjvjmx5ec45m5sdymm466rz09x7syzjktgrneqqkvgk4w6kqq9gdj7at",
+      royaltyTo: "kaspa:qq2rnrjvjmx5ec45m5sdymm466rz09x7syzjktgrneqqkvgk4w6kqq9gdj7at",
+      buri: "ipfs://bafybeih2phpjzxfrszsscpmxdr44kliaddto3sicsdh44kgx7b3f43fdvm",
+      max: "342",
+      royaltyFee: "28700000000",
+      tick: "PIXELONKAS",
+      minted: "21",
+      state: "deployed"
     }
+  };
+
+  /* =========================
+     DOM helpers
+  ========================= */
+  const qs = (s) => document.querySelector(s);
+  const qsa = (s) => Array.from(document.querySelectorAll(s));
+
+  function setStatus(html){ qs("#statusLine").innerHTML = html; }
+  function setText(id, t){ const el = document.getElementById(id); if(el) el.textContent = t; }
+  function showLoadMore(show){ qs("#loadMoreBtn").style.display = show ? "inline-flex" : "none"; }
+  function gridEl(){ return qs("#grid"); }
+
+  /* =========================
+     IPFS helpers
+  ========================= */
+  function ipfsPath(ipfsUrl){
+    if(!ipfsUrl) return "";
+    if(ipfsUrl.startsWith("ipfs://")) return ipfsUrl.slice("ipfs://".length);
+    const m = ipfsUrl.match(/\/ipfs\/(.+)$/);
+    return m ? m[1] : "";
   }
-}
 
-/* ===================== EVENTS ===================== */
+  async function fetchJson(url, signal){
+    const r = await fetch(url, { cache:"no-store", signal });
+    if(!r.ok) throw new Error(`${url} HTTP ${r.status}`);
+    return r.json();
+  }
 
-btnPixel.onclick = () => {
-  btnPixel.classList.add("active");
-  btnSykora.classList.remove("active");
+  async function fetchJsonFromGateways(path, signal){
+    // path: "CID/.../1.json" (bez ipfs://)
+    let lastErr = null;
+    for(let i=0;i<IPFS_GATEWAYS.length;i++){
+      const url = IPFS_GATEWAYS[i] + path;
+      try{
+        const r = await fetch(url, { cache:"no-store", signal });
+        if(!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      }catch(e){
+        lastErr = e;
+      }
+    }
+    throw lastErr || new Error("IPFS fetch failed");
+  }
+
+  function firstTruthy(...vals){
+    for(const v of vals){ if(v) return v; }
+    return "";
+  }
+
+  function extractImageFromMeta(meta){
+    // přidej sem další klíče, pokud bys v budoucnu měl jiný formát
+    const raw = firstTruthy(
+      meta?.image,
+      meta?.image_url,
+      meta?.properties?.image,
+      meta?.data?.image
+    );
+    if(!raw) return "";
+
+    if(raw.startsWith("ipfs://")){
+      const p = ipfsPath(raw);
+      return { primary: IPFS_GATEWAYS[0] + p, ipfsPath: p };
+    }
+    return { primary: raw, ipfsPath: null };
+  }
+
+  /* =========================
+     ranges/{tick} parsing
+  ========================= */
+  function mintedFromRangesString(s){
+    // "start,len,start,len,..."
+    if(typeof s !== "string" || !s.trim()) return null;
+    const nums = s.split(",").map(x => Number(x.trim())).filter(Number.isFinite);
+    let minted = 0;
+    for(let i=1;i<nums.length;i+=2) minted += nums[i];
+    return minted;
+  }
+
+  function idsFromRangesString(s, limit=60, offsetIndex=0){
+    // Vrátí limit tokenId z minted ranges, posunuté o offsetIndex
+    const nums = s.split(",").map(x => Number(x.trim())).filter(Number.isFinite);
+    const pairs = [];
+    for(let i=0;i<nums.length-1;i+=2){
+      pairs.push([nums[i], nums[i+1]]); // [start,len]
+    }
+
+    let skipped = offsetIndex;
+    const out = [];
+
+    for(const [start, len] of pairs){
+      for(let j=0;j<len;j++){
+        const id = start + j;
+        if(skipped > 0){ skipped--; continue; }
+        out.push(id);
+        if(out.length >= limit) return out;
+      }
+    }
+    return out;
+  }
+
+  /* =========================
+     UI card
+  ========================= */
+  function cardSkeleton(tick, tokenId){
+    return `
+      <div class="card" data-tick="${tick}" data-tokenid="${tokenId}">
+        <div class="thumb">Loading metadata…</div>
+        <div class="row">
+          <div class="id">#${tokenId}</div>
+          <div class="badge">Minted</div>
+        </div>
+        <div class="small">${tick}</div>
+      </div>
+    `;
+  }
+
+  function renderError(msg){
+    gridEl().innerHTML = `<div class="errBox">${msg}</div>`;
+  }
+
+  /* =========================
+     State
+  ========================= */
+  let currentTick = "PIXELONKAS";
+  let currentBuri = null;
+  let currentRangesString = null;
+  let mintedLimit = null;
+  let pageIndex = 0;
+  let abortCtrl = null;
+  const metaCache = new Map(); // `${tick}:${id}` -> meta json
+
+  /* =========================
+     Load collection
+  ========================= */
+  async function loadCollection(tick){
+    currentTick = tick;
+    currentBuri = null;
+    currentRangesString = null;
+    mintedLimit = null;
+    pageIndex = 0;
+
+    showLoadMore(false);
+    gridEl().innerHTML = "";
+
+    if(abortCtrl) abortCtrl.abort();
+    abortCtrl = new AbortController();
+
+    setStatus(`Loading <b>${tick}</b>…`);
+    setText("metaTitle", tick);
+    setText("metaSubtitle", "Loading meta…");
+    setText("metaMinted", "Minted: —");
+    setText("metaMax", "Max: —");
+    setText("metaRoyalty", "Royalty: —");
+
+    // 1) ranges/{tick}
+    let rangesRes = null;
+    try{
+      const rangesJson = await fetchJson(`${API_BASE}/ranges/${encodeURIComponent(tick)}`, abortCtrl.signal);
+      rangesRes = rangesJson?.result ?? rangesJson;
+    }catch(e){
+      // i když by ranges padlo, PIXELONKAS máme hardcoded a SYKORA zkusíme dál
+      console.warn("ranges fetch failed", e);
+    }
+
+    // 2) slož meta z nejlepších zdrojů
+    let meta = {
+      tick,
+      buri: null,
+      minted: null,
+      max: null,
+      royaltyFee: null,
+      royaltyTo: null,
+      source: ""
+    };
+
+    if(typeof rangesRes === "string"){
+      // minted ranges string (PIXELONKAS typ)
+      currentRangesString = rangesRes;
+      meta.minted = mintedFromRangesString(rangesRes);
+      meta.source = "ranges-string";
+    }else if(rangesRes && typeof rangesRes === "object"){
+      // deploy objekt (SYKORA typ)
+      meta.buri = rangesRes.buri ?? null;
+      meta.minted = rangesRes.minted ?? null;
+      meta.max = rangesRes.max ?? null;
+      meta.royaltyFee = rangesRes.royaltyFee ?? null;
+      meta.royaltyTo = rangesRes.royaltyTo ?? null;
+      meta.source = "ranges-object";
+    }
+
+    // 3) přimíchej hardcoded deploy (PIXELONKAS)
+    if(HARDCODED_DEPLOY[tick]){
+      const h = HARDCODED_DEPLOY[tick];
+      meta.buri = meta.buri ?? h.buri;
+      meta.minted = meta.minted ?? h.minted;
+      meta.max = meta.max ?? h.max;
+      meta.royaltyFee = meta.royaltyFee ?? h.royaltyFee;
+      meta.royaltyTo = meta.royaltyTo ?? h.royaltyTo;
+      meta.source = meta.source ? (meta.source + " + hardcoded") : "hardcoded";
+    }
+
+    // 4) render meta box
+    currentBuri = meta.buri;
+    mintedLimit = meta.minted != null ? Number(meta.minted) : null;
+
+    setText("metaTitle", tick);
+    setText("metaSubtitle", `Source: ${meta.source || "unknown"}`);
+    setText("metaMinted", `Minted: ${meta.minted ?? "—"}`);
+    setText("metaMax", `Max: ${meta.max ?? "—"}`);
+    setText("metaRoyalty", `Royalty: ${meta.royaltyFee ?? "—"}${meta.royaltyTo ? " → " + meta.royaltyTo : ""}`);
+
+    if(!currentBuri){
+      setStatus(`Missing <b>buri</b> for <b>${tick}</b>. (Needed to load ${tick}/{id}.json from IPFS)`);
+      renderError(`Missing <b>buri</b> for this collection.<br><br>
+      Fix: ensure <code>/ranges/${tick}</code> returns an object with <code>buri</code>, or add the deploy meta hardcoded like PIXELONKAS.`);
+      return;
+    }
+
+    // 5) první stránka
+    await renderNextPage();
+  }
+
+  async function renderNextPage(){
+    const tick = currentTick;
+    const buri = currentBuri;
+    if(!tick || !buri) return;
+
+    // vyrob tokenId list pro tuhle stránku
+    let ids = [];
+    if(currentRangesString){
+      ids = idsFromRangesString(currentRangesString, PAGE_SIZE, pageIndex);
+    }else{
+      const start = pageIndex + 1;
+      const end = mintedLimit ? Math.min(start + PAGE_SIZE - 1, mintedLimit) : (start + PAGE_SIZE - 1);
+      for(let id=start; id<=end; id++) ids.push(id);
+    }
+
+    if(ids.length === 0){
+      showLoadMore(false);
+      setStatus(`No more items.`);
+      return;
+    }
+
+    // skeletons
+    const html = ids.map(id => cardSkeleton(tick, id)).join("");
+    gridEl().insertAdjacentHTML("beforeend", html);
+
+    setStatus(`Loading metadata JSONs via IPFS gateway…`);
+
+    // hydrate: concurrent workers
+    let idx = 0;
+    const cards = Array.from(document.querySelectorAll(`.card[data-tick="${tick}"]`)).slice(-ids.length);
+
+    async function worker(){
+      while(idx < cards.length){
+        const card = cards[idx++];
+        const tokenId = Number(card.getAttribute("data-tokenid"));
+        const cacheKey = `${tick}:${tokenId}`;
+
+        try{
+          let meta = metaCache.get(cacheKey);
+          if(!meta){
+            const folder = ipfsPath(buri).replace(/\/+$/,""); // "CID/dir"
+            const metaPath = `${folder}/${tokenId}.json`;
+            meta = await fetchJsonFromGateways(metaPath, abortCtrl.signal);
+            metaCache.set(cacheKey, meta);
+          }
+
+          const { primary, ipfsPath: imgIpfsPath } = extractImageFromMeta(meta);
+          const thumb = card.querySelector(".thumb");
+
+          if(!thumb) continue;
+
+          if(primary){
+            thumb.innerHTML = `<img src="${primary}" alt="" loading="lazy">`;
+
+            // fallback pro ipfs image: zkus další gatewaye
+            if(imgIpfsPath){
+              const imgEl = thumb.querySelector("img");
+              let gw = 0;
+              imgEl.onerror = () => {
+                gw++;
+                if(gw < IPFS_GATEWAYS.length){
+                  imgEl.src = IPFS_GATEWAYS[gw] + imgIpfsPath;
+                }else{
+                  thumb.textContent = "Image error";
+                }
+              };
+            }
+          }else{
+            thumb.textContent = "No image in JSON";
+          }
+        }catch(e){
+          const thumb = card.querySelector(".thumb");
+          if(thumb) thumb.textContent = "Meta error";
+        }
+      }
+    }
+
+    await Promise.all(Array.from({length: META_CONCURRENCY}, worker));
+
+    pageIndex += ids.length;
+
+    // Load more: pokud víme mintedLimit a došli jsme na konec, schovej
+    if(mintedLimit && pageIndex >= mintedLimit){
+      showLoadMore(false);
+    }else{
+      showLoadMore(true);
+    }
+    setStatus(`Ready. Loaded ${pageIndex} items.`);
+  }
+
+  /* =========================
+     Wire UI
+  ========================= */
+  function setActiveButton(tick){
+    qsa(".collection-button").forEach(btn => {
+      btn.classList.toggle("active", btn.getAttribute("data-collection") === tick);
+    });
+  }
+
+  qsa(".collection-button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tick = btn.getAttribute("data-collection");
+      setActiveButton(tick);
+      loadCollection(tick);
+    });
+  });
+
+  qs("#loadMoreBtn").addEventListener("click", () => {
+    renderNextPage();
+  });
+
+  // default
   loadCollection("PIXELONKAS");
-};
-
-btnSykora.onclick = () => {
-  btnSykora.classList.add("active");
-  btnPixel.classList.remove("active");
-  loadCollection("SYKORA");
-};
-
-loadCollection("PIXELONKAS");
+})();
 </script>
-
 </body>
 </html>
