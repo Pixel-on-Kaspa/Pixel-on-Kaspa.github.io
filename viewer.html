@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
-      --bg:#050608;
       --panel: rgba(0,0,0,.18);
       --border: rgba(255,255,255,.12);
       --muted: rgba(255,255,255,.65);
@@ -56,22 +55,20 @@
       display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;
     }
     #metaTitle{font-weight:850;letter-spacing:.08em}
-    #metaSubtitle{opacity:.75;font-size:14px;margin-top:4px}
-
     .pill{
       padding:7px 12px;border-radius:999px;border:1px solid var(--border);
       background: rgba(5,7,11,.45);
       font-size:.9rem;
     }
 
-    /* Bigger Kaspa.com button */
+    /* Bigger kaspa.com button */
     .mintPill{
       padding:10px 16px;
       border-radius:999px;
       border:1px solid rgba(0,196,255,.70);
       color: var(--accent);
       background: rgba(0,196,255,.08);
-      font-weight: 700;
+      font-weight: 800;
       font-size: 1rem;
       text-decoration:none;
       display:inline-flex;
@@ -80,11 +77,7 @@
       transition: background .15s, color .15s, transform .15s;
       white-space: nowrap;
     }
-    .mintPill:hover{
-      background: var(--accent);
-      color:#020308;
-      transform: translateY(-1px);
-    }
+    .mintPill:hover{background: var(--accent); color:#020308; transform: translateY(-1px);}
 
     #statusLine{opacity:.75;font-size:14px;margin:10px 0}
     #grid{
@@ -137,7 +130,6 @@
       color:inherit;
       cursor:pointer;
     }
-
     .errBox{
       grid-column:1/-1;
       padding:14px;
@@ -150,11 +142,9 @@
 
     /* Lightbox */
     #lightbox{
-      position: fixed;
-      inset: 0;
+      position: fixed; inset: 0;
       display: none;
-      align-items: center;
-      justify-content: center;
+      align-items: center; justify-content: center;
       padding: 18px;
       background: rgba(0,0,0,.72);
       z-index: 9999;
@@ -254,7 +244,6 @@
     <div id="metaRow">
       <div>
         <div id="metaTitle">—</div>
-        <div id="metaSubtitle">—</div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center;">
         <div id="metaMinted" class="pill">Minted: —</div>
@@ -298,6 +287,7 @@
 <script>
 (() => {
   const API_BASE = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
+
   const IPFS_GATEWAYS = [
     "https://dweb.link/ipfs/",
     "https://ipfs.io/ipfs/",
@@ -307,18 +297,6 @@
   const PAGE_SIZE = 60;
   const META_CONCURRENCY = 8;
 
-  // kaspa.com routes are flaky/unclear; we generate a safe fallback list
-  function kaspaCollectionUrls(tick){
-    const t = encodeURIComponent(String(tick));
-    return [
-      `https://kaspa.com/nft/collections/${t}`,
-      `https://kaspa.com/nft/collection/${t}`,
-      `https://kaspa.com/nft/${t}`,
-      `https://kaspa.com/nft/collections/${t}/mint`
-    ];
-  }
-
-  // Hardcoded deploy meta + minted truth
   const HARDCODED = {
     PIXELONKAS: {
       buri: "ipfs://bafybeih2phpjzxfrszsscpmxdr44kliaddto3sicsdh44kgx7b3f43fdvm",
@@ -333,6 +311,10 @@
       idStartFallback: 1
     }
   };
+
+  function kaspaCollectionUrl(tick){
+    return `https://kaspa.com/nft/collections/${encodeURIComponent(String(tick))}`;
+  }
 
   const qs = (s)=>document.querySelector(s);
   const qsa = (s)=>Array.from(document.querySelectorAll(s));
@@ -356,15 +338,20 @@
     return r.json();
   }
 
+  // IMPORTANT: tries multiple candidate paths; each path tries multiple gateways
   async function fetchJsonFromGateways(paths, signal){
-    // paths: array of candidate relative paths (CID + ...)
     let lastErr = null;
     for(const p of paths){
       for(const gw of IPFS_GATEWAYS){
         const url = gw + p;
         try{
-          const r = await fetch(url, { cache:"no-store", signal });
+          const r = await fetch(url, { cache:"no-store", signal, redirect:"follow" });
           if(!r.ok) throw new Error(`HTTP ${r.status}`);
+          const ct = r.headers.get("content-type") || "";
+          // Some gateways return HTML for directories; still try to parse JSON only if it looks like JSON
+          if(!ct.includes("application/json") && !ct.includes("text/plain") && !ct.includes("application/octet-stream")){
+            // allow anyway; some gateways mislabel
+          }
           return { json: await r.json(), url };
         }catch(e){
           lastErr = e;
@@ -374,10 +361,7 @@
     throw lastErr || new Error("IPFS fetch failed");
   }
 
-  function firstTruthy(...vals){
-    for(const v of vals){ if(v) return v; }
-    return "";
-  }
+  function firstTruthy(...vals){ for(const v of vals){ if(v) return v; } return ""; }
 
   function extractImageFromMeta(meta){
     const raw = firstTruthy(
@@ -389,7 +373,6 @@
       meta?.content?.url
     );
     if(!raw) return { primary:"", ipfs:null };
-
     if(raw.startsWith("ipfs://")){
       const p = ipfsPath(raw);
       return { primary: IPFS_GATEWAYS[0] + p, ipfs: p };
@@ -428,6 +411,27 @@
       .replaceAll('"',"&quot;").replaceAll("'","&#039;");
   }
 
+  // ✅ This is the SYKORA FIX: also try /31 and /31/index.json (not only 31.json)
+  function metaCandidatePaths(buri, tick, tokenId){
+    const folder = ipfsPath(buri).replace(/\/+$/,"");
+    const t = String(tick);
+
+    return [
+      `${folder}/${tokenId}.json`,
+      `${folder}/${tokenId}`,                 // <-- IMPORTANT
+      `${folder}/${tokenId}/index.json`,      // <-- IMPORTANT
+
+      `${folder}/metadata/${tokenId}.json`,
+      `${folder}/metadata/${tokenId}`,
+      `${folder}/meta/${tokenId}`,
+
+      `${folder}/${t}/${tokenId}`,
+      `${folder}/${t}/${tokenId}/index.json`,
+      `${folder}/${t.toLowerCase()}/${tokenId}`,
+      `${folder}/${t.toLowerCase()}/${tokenId}/index.json`
+    ];
+  }
+
   // Lightbox
   const lb = {
     root: qs("#lightbox"),
@@ -439,6 +443,7 @@
     openImg: qs("#lbOpenImg"),
     mint: qs("#lbMint")
   };
+
   function openLightbox({ tick, tokenId, meta, imgUrl, imgIpfs, mintUrl }){
     lb.heading.textContent = `${tick} #${tokenId}`;
     lb.sub.textContent = meta?.name ? meta.name : "";
@@ -462,7 +467,8 @@
 
     const name = meta?.name || `#${tokenId}`;
     const desc = meta?.description || "";
-    const attrs = Array.isArray(meta?.attributes) ? meta.attributes : (Array.isArray(meta?.properties?.attributes) ? meta.properties.attributes : []);
+    const attrs = Array.isArray(meta?.attributes) ? meta.attributes
+      : (Array.isArray(meta?.properties?.attributes) ? meta.properties.attributes : []);
 
     lb.side.innerHTML = `
       <div class="kv">
@@ -492,6 +498,7 @@
     lb.root.classList.add("open");
     lb.root.setAttribute("aria-hidden", "false");
   }
+
   function closeLightbox(){
     lb.root.classList.remove("open");
     lb.root.setAttribute("aria-hidden", "true");
@@ -502,7 +509,6 @@
   lb.root.addEventListener("click", (e)=>{ if(e.target===lb.root) closeLightbox(); });
   document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && lb.root.classList.contains("open")) closeLightbox(); });
 
-  // Card
   function cardSkeleton(tick, tokenId){
     return `
       <div class="card" data-tick="${tick}" data-tokenid="${tokenId}">
@@ -526,14 +532,6 @@
   let pageIndex = 0;
   let abortCtrl = null;
 
-  async function setMintLinks(tick){
-    const urls = kaspaCollectionUrls(tick);
-    // simplest: set first; also keep list for lightbox
-    qs("#mintBtn").href = urls[0];
-    // We also add a click fallback: if first doesn't load, user can try others via right click new tab.
-    qs("#mintBtn").dataset.alt = JSON.stringify(urls);
-  }
-
   async function loadCollection(tick){
     currentTick = tick;
     currentBuri = null;
@@ -548,21 +546,20 @@
     if(abortCtrl) abortCtrl.abort();
     abortCtrl = new AbortController();
 
-    await setMintLinks(tick);
-
-    setStatus(`Loading <b>${tick}</b>…`);
+    // UI meta
     setText("metaTitle", tick);
-    setText("metaSubtitle", "");
-    setText("metaMinted", "Minted: —");
-    setText("metaMax", "Max: —");
 
-    // Prefer hardcoded truth
+    // kaspa.com mint
+    const mintUrl = kaspaCollectionUrl(tick);
+    qs("#mintBtn").href = mintUrl;
+
+    // Hardcoded truth
     const hard = HARDCODED[tick] || {};
     currentBuri = hard.buri || null;
     mintedLimit = Number.isFinite(hard.minted) ? hard.minted : null;
     maxSupply = Number.isFinite(hard.max) ? hard.max : null;
 
-    // ranges fetch only to get minted ranges string for IDs ordering
+    // ranges fetch only to get correct minted ranges ordering (IDs)
     let rangesRes = null;
     try{
       const rangesJson = await fetchJson(`${API_BASE}/ranges/${encodeURIComponent(tick)}`, abortCtrl.signal);
@@ -571,12 +568,8 @@
 
     if(typeof rangesRes === "string"){
       currentRangesString = rangesRes;
-      // minted from ranges might be larger than current minted truth; we keep hardcoded minted
-      if(!Number.isFinite(mintedLimit)){
-        mintedLimit = mintedFromRangesString(rangesRes);
-      }
+      if(!Number.isFinite(mintedLimit)) mintedLimit = mintedFromRangesString(rangesRes);
     }else if(rangesRes && typeof rangesRes === "object"){
-      // if API ever provides better info, merge it (but keep hardcoded minted if exists)
       currentBuri = currentBuri || rangesRes.buri || null;
       if(!Number.isFinite(mintedLimit)) mintedLimit = Number(rangesRes.minted ?? NaN);
       if(!Number.isFinite(maxSupply)) maxSupply = Number(rangesRes.max ?? NaN);
@@ -591,18 +584,8 @@
       return;
     }
 
+    setStatus(`Loading <b>${tick}</b>…`);
     await renderNextPage();
-  }
-
-  function metaCandidatePaths(buri, tokenId){
-    const folder = ipfsPath(buri).replace(/\/+$/,"");
-    // ✅ Try multiple patterns (covers many Pinata layouts)
-    return [
-      `${folder}/${tokenId}.json`,
-      `${folder}/metadata/${tokenId}.json`,
-      `${folder}/json/${tokenId}.json`,
-      `${folder}/${tokenId}/index.json`
-    ];
   }
 
   async function renderNextPage(){
@@ -654,9 +637,9 @@
         try{
           let meta = metaCache.get(cacheKey);
           if(!meta){
-            const { json, url } = await fetchJsonFromGateways(metaCandidatePaths(buri, tokenId), abortCtrl.signal);
+            const paths = metaCandidatePaths(buri, tick, tokenId); // <-- IMPORTANT call signature
+            const { json } = await fetchJsonFromGateways(paths, abortCtrl.signal);
             meta = json;
-            meta.__metaUrl = url;
             metaCache.set(cacheKey, meta);
           }
 
@@ -667,6 +650,7 @@
           if(descEl) descEl.textContent = desc || "—";
 
           const { primary, ipfs } = extractImageFromMeta(meta);
+
           if(primary && thumb){
             thumb.innerHTML = `<img src="${primary}" alt="" loading="lazy">`;
             const imgEl = thumb.querySelector("img");
@@ -682,14 +666,14 @@
               };
             }
 
-            // Open lightbox on click
             thumb.onclick = () => {
-              const mintUrl = kaspaCollectionUrls(tick)[0];
+              const mintUrl = kaspaCollectionUrl(tick);
               openLightbox({ tick, tokenId, meta, imgUrl: primary, imgIpfs: ipfs, mintUrl });
             };
           }else{
             if(thumb) thumb.textContent = "No image in JSON";
           }
+
         }catch(e){
           if(thumb) thumb.textContent = "Meta error";
           if(descEl) descEl.textContent = "—";
