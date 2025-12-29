@@ -274,6 +274,7 @@
       <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
         <a id="lbMint" class="mintPill" href="#" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
         <a id="lbOpenImg" class="btnSmall" href="#" target="_blank" rel="noreferrer">Open image</a>
+        <button id="lbFs" class="btnSmall" type="button">Full screen</button>
         <button id="lbClose" class="btnSmall" type="button">Close</button>
       </div>
     </div>
@@ -297,23 +298,14 @@
   const PAGE_SIZE = 60;
   const META_CONCURRENCY = 8;
 
-  const HARDCODED = {
-    PIXELONKAS: {
-      buri: "ipfs://bafybeih2phpjzxfrszsscpmxdr44kliaddto3sicsdh44kgx7b3f43fdvm",
-      max: 342,
-      minted: 21,
-      idStartFallback: 2
-    },
-    SYKORA: {
-      buri: "ipfs://bafybeifema4upmzu7c4iipvxdagctirxf46g3htmsin6l66zm77dibfhaq",
-      max: 2518,
-      minted: 49,
-      idStartFallback: 1
-    }
+  // ONLY buri fallback (because sometimes /ranges/{tick} returns only ranges-string)
+  const BURI_FALLBACK = {
+    PIXELONKAS: "ipfs://bafybeih2phpjzxfrszsscpmxdr44kliaddto3sicsdh44kgx7b3f43fdvm",
+    SYKORA:     "ipfs://bafybeifema4upmzu7c4iipvxdagctirxf46g3htmsin6l66zm77dibfhaq"
   };
 
-  function kaspaCollectionUrl(tick){
-    return `https://kaspa.com/nft/collections/${encodeURIComponent(String(tick))}`;
+  function kaspaCollectionUrl(ticker){
+    return `https://kaspa.com/nft/collections/${encodeURIComponent(String(ticker))}`;
   }
 
   const qs = (s)=>document.querySelector(s);
@@ -338,6 +330,11 @@
     return r.json();
   }
 
+  function unwrapResult(x){
+    if(x && typeof x === "object" && "result" in x) return x.result;
+    return x;
+  }
+
   // IMPORTANT: tries multiple candidate paths; each path tries multiple gateways
   async function fetchJsonFromGateways(paths, signal){
     let lastErr = null;
@@ -347,11 +344,6 @@
         try{
           const r = await fetch(url, { cache:"no-store", signal, redirect:"follow" });
           if(!r.ok) throw new Error(`HTTP ${r.status}`);
-          const ct = r.headers.get("content-type") || "";
-          // Some gateways return HTML for directories; still try to parse JSON only if it looks like JSON
-          if(!ct.includes("application/json") && !ct.includes("text/plain") && !ct.includes("application/octet-stream")){
-            // allow anyway; some gateways mislabel
-          }
           return { json: await r.json(), url };
         }catch(e){
           lastErr = e;
@@ -411,25 +403,62 @@
       .replaceAll('"',"&quot;").replaceAll("'","&#039;");
   }
 
-  // ✅ This is the SYKORA FIX: also try /31 and /31/index.json (not only 31.json)
+  // ✅ Try /31.json, /31, /31/index.json + common subfolders
   function metaCandidatePaths(buri, tick, tokenId){
     const folder = ipfsPath(buri).replace(/\/+$/,"");
     const t = String(tick);
 
     return [
       `${folder}/${tokenId}.json`,
-      `${folder}/${tokenId}`,                 // <-- IMPORTANT
-      `${folder}/${tokenId}/index.json`,      // <-- IMPORTANT
+      `${folder}/${tokenId}`,
+      `${folder}/${tokenId}/index.json`,
 
       `${folder}/metadata/${tokenId}.json`,
       `${folder}/metadata/${tokenId}`,
+      `${folder}/metadata/${tokenId}/index.json`,
+
+      `${folder}/meta/${tokenId}.json`,
       `${folder}/meta/${tokenId}`,
+      `${folder}/meta/${tokenId}/index.json`,
 
       `${folder}/${t}/${tokenId}`,
       `${folder}/${t}/${tokenId}/index.json`,
       `${folder}/${t.toLowerCase()}/${tokenId}`,
       `${folder}/${t.toLowerCase()}/${tokenId}/index.json`
     ];
+  }
+
+  async function fetchRangesMeta(tick, signal){
+    const raw = await fetchJson(`${API_BASE}/ranges/${encodeURIComponent(tick)}`, signal);
+    const res = unwrapResult(raw);
+
+    // Case A: res is a ranges string: "2,11,326,1,..."
+    if(typeof res === "string"){
+      return {
+        tick,
+        rangesString: res,
+        minted: mintedFromRangesString(res),
+        max: null,
+        buri: null
+      };
+    }
+
+    // Case B: res is an object (sometimes includes buri/max/minted)
+    if(res && typeof res === "object"){
+      const rangesString = typeof res.ranges === "string" ? res.ranges : null;
+      const mintedFromObj = Number(res.minted ?? NaN);
+      const maxFromObj = Number(res.max ?? NaN);
+
+      return {
+        tick: res.tick || tick,
+        rangesString,
+        minted: Number.isFinite(mintedFromObj) ? mintedFromObj : (rangesString ? mintedFromRangesString(rangesString) : null),
+        max: Number.isFinite(maxFromObj) ? maxFromObj : null,
+        buri: res.buri || null
+      };
+    }
+
+    return { tick, rangesString: null, minted: null, max: null, buri: null };
   }
 
   // Lightbox
@@ -441,8 +470,16 @@
     sub: qs("#lbSub"),
     closeBtn: qs("#lbClose"),
     openImg: qs("#lbOpenImg"),
-    mint: qs("#lbMint")
+    mint: qs("#lbMint"),
+    fsBtn: qs("#lbFs")
   };
+
+  function requestFs(el){
+    if(!el) return;
+    const any = el;
+    const fn = any.requestFullscreen || any.webkitRequestFullscreen || any.mozRequestFullScreen || any.msRequestFullscreen;
+    if(fn) fn.call(any);
+  }
 
   function openLightbox({ tick, tokenId, meta, imgUrl, imgIpfs, mintUrl }){
     lb.heading.textContent = `${tick} #${tokenId}`;
@@ -450,8 +487,9 @@
     lb.mint.href = mintUrl || "#";
     lb.openImg.href = imgUrl || "#";
 
-    lb.imgWrap.innerHTML = imgUrl ? `<img src="${imgUrl}" alt="">` : `<div style="opacity:.7;padding:18px">No image</div>`;
+    lb.imgWrap.innerHTML = imgUrl ? `<img id="lbImg" src="${imgUrl}" alt="">` : `<div style="opacity:.7;padding:18px">No image</div>`;
     const imgEl = lb.imgWrap.querySelector("img");
+
     if(imgEl && imgIpfs){
       let gwIndex = 0;
       imgEl.onerror = () => {
@@ -464,6 +502,8 @@
       };
       imgEl.onclick = () => closeLightbox();
     }
+
+    lb.fsBtn.onclick = () => requestFs(imgEl || lb.imgWrap);
 
     const name = meta?.name || `#${tokenId}`;
     const desc = meta?.description || "";
@@ -527,10 +567,16 @@
   let currentTick = "PIXELONKAS";
   let currentBuri = null;
   let currentRangesString = null;
-  let mintedLimit = null;
-  let maxSupply = null;
+  let mintedLimit = null; // from ranges-string or object
+  let maxSupply = null;   // from object (optional)
   let pageIndex = 0;
   let abortCtrl = null;
+
+  function setActiveButton(tick){
+    qsa(".collection-button").forEach(btn => {
+      btn.classList.toggle("active", btn.getAttribute("data-collection") === tick);
+    });
+  }
 
   async function loadCollection(tick){
     currentTick = tick;
@@ -546,70 +592,56 @@
     if(abortCtrl) abortCtrl.abort();
     abortCtrl = new AbortController();
 
-    // UI meta
     setText("metaTitle", tick);
+    qs("#mintBtn").href = kaspaCollectionUrl(tick);
 
-    // kaspa.com mint
-    const mintUrl = kaspaCollectionUrl(tick);
-    qs("#mintBtn").href = mintUrl;
-
-    // Hardcoded truth
-    const hard = HARDCODED[tick] || {};
-    currentBuri = hard.buri || null;
-    mintedLimit = Number.isFinite(hard.minted) ? hard.minted : null;
-    maxSupply = Number.isFinite(hard.max) ? hard.max : null;
-
-    // ranges fetch only to get correct minted ranges ordering (IDs)
-    let rangesRes = null;
-    try{
-      const rangesJson = await fetchJson(`${API_BASE}/ranges/${encodeURIComponent(tick)}`, abortCtrl.signal);
-      rangesRes = (rangesJson && typeof rangesJson === "object" && ("result" in rangesJson)) ? rangesJson.result : rangesJson;
-    }catch(e){ rangesRes = null; }
-
-    if(typeof rangesRes === "string"){
-      currentRangesString = rangesRes;
-      if(!Number.isFinite(mintedLimit)) mintedLimit = mintedFromRangesString(rangesRes);
-    }else if(rangesRes && typeof rangesRes === "object"){
-      currentBuri = currentBuri || rangesRes.buri || null;
-      if(!Number.isFinite(mintedLimit)) mintedLimit = Number(rangesRes.minted ?? NaN);
-      if(!Number.isFinite(maxSupply)) maxSupply = Number(rangesRes.max ?? NaN);
-    }
-
-    setText("metaMinted", `Minted: ${Number.isFinite(mintedLimit) ? mintedLimit : "—"}`);
-    setText("metaMax", `Max: ${Number.isFinite(maxSupply) ? maxSupply : "—"}`);
-
-    if(!currentBuri){
-      setStatus(`Missing <b>buri</b> for <b>${tick}</b>.`);
-      renderError(`Missing <b>buri</b> for this collection.`);
-      return;
-    }
+    setText("metaMinted", "Minted: —");
+    setText("metaMax", "Max: —");
 
     setStatus(`Loading <b>${tick}</b>…`);
-    await renderNextPage();
+
+    try{
+      const meta = await fetchRangesMeta(tick, abortCtrl.signal);
+      currentRangesString = meta.rangesString || null;
+      mintedLimit = (Number.isFinite(meta.minted) ? meta.minted : null);
+      maxSupply = (Number.isFinite(meta.max) ? meta.max : null);
+
+      // buri: prefer API, else fallback
+      currentBuri = meta.buri || BURI_FALLBACK[tick] || null;
+
+      setText("metaMinted", `Minted: ${Number.isFinite(mintedLimit) ? mintedLimit : "—"}`);
+      setText("metaMax", `Max: ${Number.isFinite(maxSupply) ? maxSupply : "—"}`);
+
+      if(!currentRangesString){
+        renderError(`Missing <b>ranges</b> for <b>${tick}</b> from krc721.stream.`);
+        setStatus(`Missing ranges for <b>${tick}</b>.`);
+        return;
+      }
+      if(!currentBuri){
+        renderError(`Missing <b>buri</b> for <b>${tick}</b>. (Needed to load metadata from IPFS)`);
+        setStatus(`Missing buri for <b>${tick}</b>.`);
+        return;
+      }
+
+      await renderNextPage();
+    }catch(e){
+      renderError(`Failed to load <b>${tick}</b>.<br/><code>${escapeHtml(String(e.message || e))}</code>`);
+      setStatus(`Error.`);
+      console.error(e);
+    }
   }
 
   async function renderNextPage(){
     const tick = currentTick;
     const buri = currentBuri;
-    const hard = HARDCODED[tick] || {};
-    if(!tick || !buri) return;
+    if(!tick || !buri || !currentRangesString) return;
 
-    let ids = [];
-    if(currentRangesString){
-      ids = idsFromRangesString(currentRangesString, PAGE_SIZE, pageIndex);
-      if(Number.isFinite(mintedLimit)){
-        const remaining = mintedLimit - pageIndex;
-        ids = remaining > 0 ? ids.slice(0, remaining) : [];
-      }
-    }else{
-      const startId = Number.isFinite(hard.idStartFallback) ? hard.idStartFallback : 1;
-      const start = startId + pageIndex;
-      let end = start + PAGE_SIZE - 1;
-      if(Number.isFinite(mintedLimit)){
-        const last = startId + mintedLimit - 1;
-        end = Math.min(end, last);
-      }
-      for(let id=start; id<=end; id++) ids.push(id);
+    let ids = idsFromRangesString(currentRangesString, PAGE_SIZE, pageIndex);
+
+    // if mintedLimit exists, clamp
+    if(Number.isFinite(mintedLimit)){
+      const remaining = mintedLimit - pageIndex;
+      ids = remaining > 0 ? ids.slice(0, remaining) : [];
     }
 
     if(ids.length === 0){
@@ -637,7 +669,7 @@
         try{
           let meta = metaCache.get(cacheKey);
           if(!meta){
-            const paths = metaCandidatePaths(buri, tick, tokenId); // <-- IMPORTANT call signature
+            const paths = metaCandidatePaths(buri, tick, tokenId);
             const { json } = await fetchJsonFromGateways(paths, abortCtrl.signal);
             meta = json;
             metaCache.set(cacheKey, meta);
@@ -691,12 +723,6 @@
       showLoadMore(true);
     }
     setStatus(`Ready. Loaded ${pageIndex} items.`);
-  }
-
-  function setActiveButton(tick){
-    qsa(".collection-button").forEach(btn => {
-      btn.classList.toggle("active", btn.getAttribute("data-collection") === tick);
-    });
   }
 
   qsa(".collection-button").forEach(btn => {
