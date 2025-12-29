@@ -298,10 +298,19 @@
   const PAGE_SIZE = 60;
   const META_CONCURRENCY = 8;
 
-  // ONLY buri fallback (because sometimes /ranges/{tick} returns only ranges-string)
-  const BURI_FALLBACK = {
-    PIXELONKAS: "ipfs://bafybeih2phpjzxfrszsscpmxdr44kliaddto3sicsdh44kgx7b3f43fdvm",
-    SYKORA:     "ipfs://bafybeifema4upmzu7c4iipvxdagctirxf46g3htmsin6l66zm77dibfhaq"
+  // krc721.stream /ranges/{tick} returns AVAILABLE (unminted) ranges as string.
+  // We need max/idMin + buri for metadata.
+  const COLLECTIONS = {
+    PIXELONKAS: {
+      buri: "ipfs://bafybeih2phpjzxfrszsscpmxdr44kliaddto3sicsdh44kgx7b3f43fdvm",
+      max: 342,
+      idMin: 2
+    },
+    SYKORA: {
+      buri: "ipfs://bafybeifema4upmzu7c4iipvxdagctirxf46g3htmsin6l66zm77dibfhaq",
+      max: 2518,
+      idMin: 1
+    }
   };
 
   function kaspaCollectionUrl(ticker){
@@ -372,27 +381,29 @@
     return { primary: raw, ipfs: null };
   }
 
-  function mintedFromRangesString(s){
-    if(typeof s !== "string" || !s.trim()) return null;
+  function availableCountFromRangesString(s){
+    if(typeof s !== "string" || !s.trim()) return 0;
     const nums = s.split(",").map(x => Number(x.trim())).filter(Number.isFinite);
-    let minted = 0;
-    for(let i=1;i<nums.length;i+=2) minted += nums[i];
-    return minted;
+    let count = 0;
+    for(let i=1;i<nums.length;i+=2) count += nums[i];
+    return count;
   }
 
-  function idsFromRangesString(s, limit, offsetIndex){
+  function availableSetFromRangesString(s){
     const nums = s.split(",").map(x => Number(x.trim())).filter(Number.isFinite);
-    const pairs = [];
-    for(let i=0;i<nums.length-1;i+=2) pairs.push([nums[i], nums[i+1]]);
-    let skipped = offsetIndex;
+    const set = new Set();
+    for(let i=0;i<nums.length-1;i+=2){
+      const start = nums[i], len = nums[i+1];
+      for(let j=0;j<len;j++) set.add(start + j);
+    }
+    return set;
+  }
+
+  function mintedIdsFromAvailableRanges({ idMin, max, rangesString }){
+    const avail = availableSetFromRangesString(rangesString);
     const out = [];
-    for(const [start, len] of pairs){
-      for(let j=0;j<len;j++){
-        const id = start + j;
-        if(skipped > 0){ skipped--; continue; }
-        out.push(id);
-        if(out.length >= limit) return out;
-      }
+    for(let id=idMin; id<=max; id++){
+      if(!avail.has(id)) out.push(id);
     }
     return out;
   }
@@ -432,33 +443,21 @@
     const raw = await fetchJson(`${API_BASE}/ranges/${encodeURIComponent(tick)}`, signal);
     const res = unwrapResult(raw);
 
-    // Case A: res is a ranges string: "2,11,326,1,..."
+    // Most common: ranges string
     if(typeof res === "string"){
-      return {
-        tick,
-        rangesString: res,
-        minted: mintedFromRangesString(res),
-        max: null,
-        buri: null
-      };
+      return { tick, rangesString: res };
     }
 
-    // Case B: res is an object (sometimes includes buri/max/minted)
+    // Sometimes: object or array. Try to find string inside.
     if(res && typeof res === "object"){
-      const rangesString = typeof res.ranges === "string" ? res.ranges : null;
-      const mintedFromObj = Number(res.minted ?? NaN);
-      const maxFromObj = Number(res.max ?? NaN);
-
-      return {
-        tick: res.tick || tick,
-        rangesString,
-        minted: Number.isFinite(mintedFromObj) ? mintedFromObj : (rangesString ? mintedFromRangesString(rangesString) : null),
-        max: Number.isFinite(maxFromObj) ? maxFromObj : null,
-        buri: res.buri || null
-      };
+      if(typeof res.ranges === "string") return { tick: res.tick || tick, rangesString: res.ranges };
+      if(Array.isArray(res)){
+        const found = res.find(x => String(x?.tick).toUpperCase() === String(tick).toUpperCase());
+        if(found && typeof found.ranges === "string") return { tick: found.tick || tick, rangesString: found.ranges };
+      }
     }
 
-    return { tick, rangesString: null, minted: null, max: null, buri: null };
+    return { tick, rangesString: null };
   }
 
   // Lightbox
@@ -564,12 +563,13 @@
   }
 
   const metaCache = new Map();
+
   let currentTick = "PIXELONKAS";
   let currentBuri = null;
-  let currentRangesString = null;
-  let mintedLimit = null; // from ranges-string or object
-  let maxSupply = null;   // from object (optional)
+  let currentRangesString = null; // AVAILABLE / UNMINTED ranges string
+  let mintedIds = [];             // computed minted IDs list
   let pageIndex = 0;
+  let maxSupply = null;
   let abortCtrl = null;
 
   function setActiveButton(tick){
@@ -582,9 +582,9 @@
     currentTick = tick;
     currentBuri = null;
     currentRangesString = null;
-    mintedLimit = null;
-    maxSupply = null;
+    mintedIds = [];
     pageIndex = 0;
+    maxSupply = null;
 
     showLoadMore(false);
     gridEl().innerHTML = "";
@@ -597,33 +597,52 @@
 
     setText("metaMinted", "Minted: —");
     setText("metaMax", "Max: —");
-
     setStatus(`Loading <b>${tick}</b>…`);
+
+    const cfg = COLLECTIONS[tick];
+    if(!cfg){
+      renderError(`Missing config for <b>${tick}</b> in COLLECTIONS.`);
+      setStatus(`Missing config.`);
+      return;
+    }
 
     try{
       const meta = await fetchRangesMeta(tick, abortCtrl.signal);
       currentRangesString = meta.rangesString || null;
-      mintedLimit = (Number.isFinite(meta.minted) ? meta.minted : null);
-      maxSupply = (Number.isFinite(meta.max) ? meta.max : null);
 
-      // buri: prefer API, else fallback
-      currentBuri = meta.buri || BURI_FALLBACK[tick] || null;
-
-      setText("metaMinted", `Minted: ${Number.isFinite(mintedLimit) ? mintedLimit : "—"}`);
-      setText("metaMax", `Max: ${Number.isFinite(maxSupply) ? maxSupply : "—"}`);
+      currentBuri = cfg.buri || null;
+      maxSupply = cfg.max;
+      const idMin = cfg.idMin;
 
       if(!currentRangesString){
         renderError(`Missing <b>ranges</b> for <b>${tick}</b> from krc721.stream.`);
-        setStatus(`Missing ranges for <b>${tick}</b>.`);
+        setStatus(`Missing ranges.`);
         return;
       }
       if(!currentBuri){
-        renderError(`Missing <b>buri</b> for <b>${tick}</b>. (Needed to load metadata from IPFS)`);
-        setStatus(`Missing buri for <b>${tick}</b>.`);
+        renderError(`Missing <b>buri</b> for <b>${tick}</b>.`);
+        setStatus(`Missing buri.`);
+        return;
+      }
+      if(!Number.isFinite(maxSupply) || !Number.isFinite(idMin)){
+        renderError(`Missing <b>max</b> or <b>idMin</b> for <b>${tick}</b> in COLLECTIONS.`);
+        setStatus(`Missing max/idMin.`);
         return;
       }
 
+      // rangesString = AVAILABLE (unminted) IDs
+      const availableCount = availableCountFromRangesString(currentRangesString);
+      const totalSupply = (maxSupply - idMin + 1);
+      const mintedCount = Math.max(0, totalSupply - availableCount);
+
+      // build minted IDs list (correct grid)
+      mintedIds = mintedIdsFromAvailableRanges({ idMin, max: maxSupply, rangesString: currentRangesString });
+
+      setText("metaMinted", `Minted: ${mintedCount}`);
+      setText("metaMax", `Max: ${maxSupply}`);
+
       await renderNextPage();
+
     }catch(e){
       renderError(`Failed to load <b>${tick}</b>.<br/><code>${escapeHtml(String(e.message || e))}</code>`);
       setStatus(`Error.`);
@@ -634,15 +653,9 @@
   async function renderNextPage(){
     const tick = currentTick;
     const buri = currentBuri;
-    if(!tick || !buri || !currentRangesString) return;
+    if(!tick || !buri) return;
 
-    let ids = idsFromRangesString(currentRangesString, PAGE_SIZE, pageIndex);
-
-    // if mintedLimit exists, clamp
-    if(Number.isFinite(mintedLimit)){
-      const remaining = mintedLimit - pageIndex;
-      ids = remaining > 0 ? ids.slice(0, remaining) : [];
-    }
+    const ids = mintedIds.slice(pageIndex, pageIndex + PAGE_SIZE);
 
     if(ids.length === 0){
       showLoadMore(false);
@@ -717,7 +730,7 @@
 
     pageIndex += ids.length;
 
-    if(Number.isFinite(mintedLimit) && pageIndex >= mintedLimit){
+    if(pageIndex >= mintedIds.length){
       showLoadMore(false);
     }else{
       showLoadMore(true);
