@@ -55,37 +55,38 @@
     #metaRow{
       display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;
     }
-    #metaTitle{font-weight:800;letter-spacing:.08em}
+    #metaTitle{font-weight:850;letter-spacing:.08em}
     #metaSubtitle{opacity:.75;font-size:14px;margin-top:4px}
+
     .pill{
-      padding:6px 10px;border-radius:999px;border:1px solid var(--border);
+      padding:7px 12px;border-radius:999px;border:1px solid var(--border);
       background: rgba(5,7,11,.45);
-      font-size:.85rem;
+      font-size:.9rem;
     }
-    .btn{
-      font-size:.85rem;
-      text-decoration:none;
-      padding:8px 12px;
+
+    /* Bigger Kaspa.com button */
+    .mintPill{
+      padding:10px 16px;
       border-radius:999px;
-      border:1px solid rgba(0,196,255,.6);
+      border:1px solid rgba(0,196,255,.70);
       color: var(--accent);
-      background: transparent;
+      background: rgba(0,196,255,.08);
+      font-weight: 700;
+      font-size: 1rem;
+      text-decoration:none;
       display:inline-flex;
-      gap:8px;
       align-items:center;
-      cursor:pointer;
-      transition: background .15s,color .15s,border-color .15s;
-      user-select:none;
+      gap:10px;
+      transition: background .15s, color .15s, transform .15s;
+      white-space: nowrap;
     }
-    .btn:hover{background: var(--accent); color:#020308;}
-    .btnGhost{
-      border:1px solid rgba(255,255,255,.16);
-      color: rgba(255,255,255,.8);
+    .mintPill:hover{
+      background: var(--accent);
+      color:#020308;
+      transform: translateY(-1px);
     }
-    .btnGhost:hover{background: rgba(255,255,255,.10); color:#fff;}
 
     #statusLine{opacity:.75;font-size:14px;margin:10px 0}
-
     #grid{
       display:grid;
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -113,18 +114,16 @@
       text-align:center;
       padding:8px;
       cursor: zoom-in;
-      position: relative;
     }
     .thumb img{width:100%;height:100%;object-fit:cover;display:block}
     .row{display:flex;justify-content:space-between;gap:10px;align-items:center}
-    .id{font-weight:800}
+    .id{font-weight:850}
     .badge{
       padding:4px 10px;border-radius:999px;
       background: rgba(80,200,120,.16);
       border: 1px solid rgba(80,200,120,.28);
       font-size:12px;
     }
-    .small{opacity:.7;font-size:12px;word-break:break-word}
     .titleLine{font-weight:650;font-size:13px;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .metaLine{opacity:.70;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
@@ -149,7 +148,7 @@
       opacity:.95;
     }
 
-    /* Lightbox / fullscreen */
+    /* Lightbox */
     #lightbox{
       position: fixed;
       inset: 0;
@@ -172,36 +171,23 @@
       backdrop-filter: blur(10px);
     }
     .lbTop{
-      display:flex;
-      justify-content: space-between;
-      align-items:center;
-      gap:12px;
-      padding: 12px 14px;
+      display:flex; justify-content: space-between; align-items:center;
+      gap:12px; padding: 12px 14px;
       border-bottom: 1px solid rgba(255,255,255,.10);
-      position: sticky;
-      top: 0;
+      position: sticky; top: 0;
       background: rgba(10,12,18,.92);
     }
-    .lbTitle{
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-    }
+    .lbTitle{display:flex; flex-direction:column; gap:2px;}
     .lbTitle b{letter-spacing:.06em}
     .lbBody{
-      display:grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap: 14px;
-      padding: 14px;
+      display:grid; grid-template-columns: 1.2fr .8fr;
+      gap: 14px; padding: 14px;
     }
     .lbImgWrap{
-      border-radius: 14px;
-      overflow:hidden;
+      border-radius: 14px; overflow:hidden;
       border:1px solid rgba(255,255,255,.12);
       background:#000;
-      display:flex;
-      align-items:center;
-      justify-content:center;
+      display:flex; align-items:center; justify-content:center;
       min-height: 320px;
     }
     .lbImgWrap img{
@@ -222,12 +208,7 @@
     .kv{margin:0 0 10px}
     .kv .k{opacity:.7;font-size:12px;margin-bottom:4px}
     .kv .v{font-size:14px;word-break:break-word}
-    .attrs{
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      margin-top: 8px;
-    }
+    .attrs{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
     .chip{
       border:1px solid rgba(255,255,255,.14);
       background: rgba(0,0,0,.18);
@@ -236,6 +217,21 @@
       font-size:12px;
       opacity:.95;
     }
+    .btnSmall{
+      font-size:.9rem;
+      text-decoration:none;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.18);
+      color: rgba(255,255,255,.85);
+      background: rgba(255,255,255,.06);
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      cursor:pointer;
+      user-select:none;
+    }
+    .btnSmall:hover{background: rgba(255,255,255,.12); color:#fff;}
     @media (max-width: 860px){
       .lbBody{grid-template-columns: 1fr;}
       .lbImgWrap{min-height: 240px;}
@@ -263,7 +259,7 @@
       <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center;">
         <div id="metaMinted" class="pill">Minted: —</div>
         <div id="metaMax" class="pill">Max: —</div>
-        <a id="mintBtn" class="btn" href="#" target="_blank" rel="noreferrer">Mint on KaspaCom</a>
+        <a id="mintBtn" class="mintPill" href="#" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
       </div>
     </div>
   </section>
@@ -287,10 +283,9 @@
         <span id="lbSub" style="opacity:.7;font-size:12px">—</span>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
-        <a id="lbMint" class="btn" href="#" target="_blank" rel="noreferrer">Mint</a>
-        <a id="lbOpenMeta" class="btn btnGhost" href="#" target="_blank" rel="noreferrer">Open metadata</a>
-        <a id="lbOpenImg" class="btn btnGhost" href="#" target="_blank" rel="noreferrer">Open image</a>
-        <button id="lbClose" class="btn btnGhost" type="button">Close</button>
+        <a id="lbMint" class="mintPill" href="#" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
+        <a id="lbOpenImg" class="btnSmall" href="#" target="_blank" rel="noreferrer">Open image</a>
+        <button id="lbClose" class="btnSmall" type="button">Close</button>
       </div>
     </div>
     <div class="lbBody">
@@ -302,12 +297,7 @@
 
 <script>
 (() => {
-  /* =========================
-     CONFIG
-  ========================= */
   const API_BASE = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
-
-  // IPFS gateways (dweb první, cloudflare poslední)
   const IPFS_GATEWAYS = [
     "https://dweb.link/ipfs/",
     "https://ipfs.io/ipfs/",
@@ -317,44 +307,42 @@
   const PAGE_SIZE = 60;
   const META_CONCURRENCY = 8;
 
-  // ✅ KaspaCom mint linky – uprav si URL pattern podle toho, jak to má KaspaCom přesně:
-  // (Neznám jejich finální routy, takže to dělám jednoduše a editovatelně.)
-  const MINT_URLS = {
-    PIXELONKAS: "https://kaspacom.com/nft/PIXELONKAS",
-    SYKORA: "https://kaspacom.com/nft/SYKORA",
-  };
+  // kaspa.com routes are flaky/unclear; we generate a safe fallback list
+  function kaspaCollectionUrls(tick){
+    const t = encodeURIComponent(String(tick));
+    return [
+      `https://kaspa.com/nft/collections/${t}`,
+      `https://kaspa.com/nft/collection/${t}`,
+      `https://kaspa.com/nft/${t}`,
+      `https://kaspa.com/nft/collections/${t}/mint`
+    ];
+  }
 
-  // ✅ Hardcoded deploy meta – odstraní “missing buri” a zároveň řeší max pro SYKORA
-  const HARDCODED_DEPLOY = {
+  // Hardcoded deploy meta + minted truth
+  const HARDCODED = {
     PIXELONKAS: {
       buri: "ipfs://bafybeih2phpjzxfrszsscpmxdr44kliaddto3sicsdh44kgx7b3f43fdvm",
       max: 342,
-      minted: 21,           // ✅ user truth
-      idStartFallback: 2     // ✅ token ids start at 2
+      minted: 21,
+      idStartFallback: 2
     },
     SYKORA: {
       buri: "ipfs://bafybeifema4upmzu7c4iipvxdagctirxf46g3htmsin6l66zm77dibfhaq",
-      max: 2518,            // ✅ user asked
-      minted: null,         // necháme z API (nebo spočítáme ze stringu), fallback níže
+      max: 2518,
+      minted: 49,
       idStartFallback: 1
     }
   };
 
-  /* =========================
-     DOM helpers
-  ========================= */
-  const qs = (s) => document.querySelector(s);
-  const qsa = (s) => Array.from(document.querySelectorAll(s));
+  const qs = (s)=>document.querySelector(s);
+  const qsa = (s)=>Array.from(document.querySelectorAll(s));
+  const gridEl = ()=>qs("#grid");
 
   function setStatus(html){ qs("#statusLine").innerHTML = html; }
-  function setText(id, t){ const el = document.getElementById(id); if(el) el.textContent = t; }
+  function setText(id, t){ const el=document.getElementById(id); if(el) el.textContent=t; }
   function showLoadMore(show){ qs("#loadMoreBtn").style.display = show ? "inline-flex" : "none"; }
-  function gridEl(){ return qs("#grid"); }
   function renderError(msg){ gridEl().innerHTML = `<div class="errBox">${msg}</div>`; }
 
-  /* =========================
-     IPFS helpers
-  ========================= */
   function ipfsPath(ipfsUrl){
     if(!ipfsUrl) return "";
     if(ipfsUrl.startsWith("ipfs://")) return ipfsUrl.slice("ipfs://".length);
@@ -368,16 +356,19 @@
     return r.json();
   }
 
-  async function fetchJsonFromGateways(path, signal){
+  async function fetchJsonFromGateways(paths, signal){
+    // paths: array of candidate relative paths (CID + ...)
     let lastErr = null;
-    for(let i=0;i<IPFS_GATEWAYS.length;i++){
-      const url = IPFS_GATEWAYS[i] + path;
-      try{
-        const r = await fetch(url, { cache:"no-store", signal });
-        if(!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      }catch(e){
-        lastErr = e;
+    for(const p of paths){
+      for(const gw of IPFS_GATEWAYS){
+        const url = gw + p;
+        try{
+          const r = await fetch(url, { cache:"no-store", signal });
+          if(!r.ok) throw new Error(`HTTP ${r.status}`);
+          return { json: await r.json(), url };
+        }catch(e){
+          lastErr = e;
+        }
       }
     }
     throw lastErr || new Error("IPFS fetch failed");
@@ -394,8 +385,8 @@
       meta?.image_url,
       meta?.properties?.image,
       meta?.data?.image,
-      meta?.content?.image,       // some schemas
-      meta?.content?.url          // some schemas
+      meta?.content?.image,
+      meta?.content?.url
     );
     if(!raw) return { primary:"", ipfs:null };
 
@@ -406,9 +397,6 @@
     return { primary: raw, ipfs: null };
   }
 
-  /* =========================
-     ranges/{tick}
-  ========================= */
   function mintedFromRangesString(s){
     if(typeof s !== "string" || !s.trim()) return null;
     const nums = s.split(",").map(x => Number(x.trim())).filter(Number.isFinite);
@@ -420,9 +408,7 @@
   function idsFromRangesString(s, limit, offsetIndex){
     const nums = s.split(",").map(x => Number(x.trim())).filter(Number.isFinite);
     const pairs = [];
-    for(let i=0;i<nums.length-1;i+=2){
-      pairs.push([nums[i], nums[i+1]]); // [start,len]
-    }
+    for(let i=0;i<nums.length-1;i+=2) pairs.push([nums[i], nums[i+1]]);
     let skipped = offsetIndex;
     const out = [];
     for(const [start, len] of pairs){
@@ -436,30 +422,13 @@
     return out;
   }
 
-  /* =========================
-     Cards + metadata cache
-  ========================= */
-  const metaCache = new Map(); // key: `${tick}:${id}` -> meta json
-
-  function cardSkeleton(tick, tokenId){
-    return `
-      <div class="card" data-tick="${tick}" data-tokenid="${tokenId}">
-        <div class="thumb" data-action="open">
-          Loading metadata…
-        </div>
-        <div class="row">
-          <div class="id">#${tokenId}</div>
-          <div class="badge">Minted</div>
-        </div>
-        <div class="titleLine" data-title>—</div>
-        <div class="metaLine" data-desc>—</div>
-      </div>
-    `;
+  function escapeHtml(str){
+    return String(str)
+      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;").replaceAll("'","&#039;");
   }
 
-  /* =========================
-     Lightbox
-  ========================= */
+  // Lightbox
   const lb = {
     root: qs("#lightbox"),
     imgWrap: qs("#lbImgWrap"),
@@ -467,38 +436,33 @@
     heading: qs("#lbHeading"),
     sub: qs("#lbSub"),
     closeBtn: qs("#lbClose"),
-    openMeta: qs("#lbOpenMeta"),
     openImg: qs("#lbOpenImg"),
     mint: qs("#lbMint")
   };
-
-  function openLightbox({ tick, tokenId, meta, metaUrl, imgUrl, mintUrl }){
+  function openLightbox({ tick, tokenId, meta, imgUrl, imgIpfs, mintUrl }){
     lb.heading.textContent = `${tick} #${tokenId}`;
     lb.sub.textContent = meta?.name ? meta.name : "";
     lb.mint.href = mintUrl || "#";
-    lb.openMeta.href = metaUrl || "#";
     lb.openImg.href = imgUrl || "#";
 
-    // image
-    lb.imgWrap.innerHTML = imgUrl
-      ? `<img src="${imgUrl}" alt="" />`
-      : `<div style="opacity:.7;padding:18px">No image</div>`;
-
-    // fallback gateway for image if ipfs
+    lb.imgWrap.innerHTML = imgUrl ? `<img src="${imgUrl}" alt="">` : `<div style="opacity:.7;padding:18px">No image</div>`;
     const imgEl = lb.imgWrap.querySelector("img");
-    if(imgEl && imgUrl && imgUrl.startsWith(IPFS_GATEWAYS[0])){
-      // we only know it's from gateway; if we also have ipfs path, we'll handle in opener
+    if(imgEl && imgIpfs){
+      let gwIndex = 0;
+      imgEl.onerror = () => {
+        gwIndex++;
+        if(gwIndex < IPFS_GATEWAYS.length){
+          imgEl.src = IPFS_GATEWAYS[gwIndex] + imgIpfs;
+        }else{
+          lb.imgWrap.textContent = "Image error";
+        }
+      };
+      imgEl.onclick = () => closeLightbox();
     }
 
-    // side meta
     const name = meta?.name || `#${tokenId}`;
     const desc = meta?.description || "";
-    const attrs = Array.isArray(meta?.attributes) ? meta.attributes : [];
-    const props = meta?.properties?.attributes && Array.isArray(meta.properties.attributes)
-      ? meta.properties.attributes
-      : null;
-
-    const finalAttrs = attrs.length ? attrs : (props || []);
+    const attrs = Array.isArray(meta?.attributes) ? meta.attributes : (Array.isArray(meta?.properties?.attributes) ? meta.properties.attributes : []);
 
     lb.side.innerHTML = `
       <div class="kv">
@@ -510,15 +474,11 @@
         <div class="v">${desc ? escapeHtml(desc) : "<span style='opacity:.7'>—</span>"}</div>
       </div>
       <div class="kv">
-        <div class="k">Token</div>
-        <div class="v">${escapeHtml(tick)} #${escapeHtml(String(tokenId))}</div>
-      </div>
-      <div class="kv">
         <div class="k">Attributes</div>
         <div class="v">
-          ${finalAttrs && finalAttrs.length ? `
+          ${attrs && attrs.length ? `
             <div class="attrs">
-              ${finalAttrs.slice(0, 64).map(a => {
+              ${attrs.slice(0, 64).map(a => {
                 const t = a?.trait_type ?? a?.trait ?? a?.type ?? "Trait";
                 const v = a?.value ?? a?.val ?? "";
                 return `<span class="chip">${escapeHtml(String(t))}: <b>${escapeHtml(String(v))}</b></span>`;
@@ -532,34 +492,32 @@
     lb.root.classList.add("open");
     lb.root.setAttribute("aria-hidden", "false");
   }
-
   function closeLightbox(){
     lb.root.classList.remove("open");
     lb.root.setAttribute("aria-hidden", "true");
     lb.imgWrap.innerHTML = "";
     lb.side.innerHTML = "";
   }
-
   lb.closeBtn.addEventListener("click", closeLightbox);
-  lb.root.addEventListener("click", (e) => {
-    if(e.target === lb.root) closeLightbox();
-  });
-  document.addEventListener("keydown", (e) => {
-    if(e.key === "Escape" && lb.root.classList.contains("open")) closeLightbox();
-  });
+  lb.root.addEventListener("click", (e)=>{ if(e.target===lb.root) closeLightbox(); });
+  document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && lb.root.classList.contains("open")) closeLightbox(); });
 
-  function escapeHtml(str){
-    return String(str)
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
+  // Card
+  function cardSkeleton(tick, tokenId){
+    return `
+      <div class="card" data-tick="${tick}" data-tokenid="${tokenId}">
+        <div class="thumb">Loading metadata…</div>
+        <div class="row">
+          <div class="id">#${tokenId}</div>
+          <div class="badge">Minted</div>
+        </div>
+        <div class="titleLine" data-title>${tick} #${tokenId}</div>
+        <div class="metaLine" data-desc>—</div>
+      </div>
+    `;
   }
 
-  /* =========================
-     State
-  ========================= */
+  const metaCache = new Map();
   let currentTick = "PIXELONKAS";
   let currentBuri = null;
   let currentRangesString = null;
@@ -568,9 +526,14 @@
   let pageIndex = 0;
   let abortCtrl = null;
 
-  /* =========================
-     Load collection
-  ========================= */
+  async function setMintLinks(tick){
+    const urls = kaspaCollectionUrls(tick);
+    // simplest: set first; also keep list for lightbox
+    qs("#mintBtn").href = urls[0];
+    // We also add a click fallback: if first doesn't load, user can try others via right click new tab.
+    qs("#mintBtn").dataset.alt = JSON.stringify(urls);
+  }
+
   async function loadCollection(tick){
     currentTick = tick;
     currentBuri = null;
@@ -585,64 +548,40 @@
     if(abortCtrl) abortCtrl.abort();
     abortCtrl = new AbortController();
 
-    // mint button
-    qs("#mintBtn").href = MINT_URLS[tick] || "#";
-    qs("#mintBtn").style.display = MINT_URLS[tick] ? "inline-flex" : "none";
+    await setMintLinks(tick);
 
     setStatus(`Loading <b>${tick}</b>…`);
     setText("metaTitle", tick);
-    setText("metaSubtitle", "Loading meta…");
+    setText("metaSubtitle", "");
     setText("metaMinted", "Minted: —");
     setText("metaMax", "Max: —");
 
-    // 1) fetch ranges
+    // Prefer hardcoded truth
+    const hard = HARDCODED[tick] || {};
+    currentBuri = hard.buri || null;
+    mintedLimit = Number.isFinite(hard.minted) ? hard.minted : null;
+    maxSupply = Number.isFinite(hard.max) ? hard.max : null;
+
+    // ranges fetch only to get minted ranges string for IDs ordering
     let rangesRes = null;
     try{
       const rangesJson = await fetchJson(`${API_BASE}/ranges/${encodeURIComponent(tick)}`, abortCtrl.signal);
-      // important: don't flatten wrongly
       rangesRes = (rangesJson && typeof rangesJson === "object" && ("result" in rangesJson)) ? rangesJson.result : rangesJson;
-    }catch(e){
-      // ok, fallback to hardcoded only
-      rangesRes = null;
-    }
-
-    // 2) build meta
-    const hard = HARDCODED_DEPLOY[tick] || {};
-    let source = [];
+    }catch(e){ rangesRes = null; }
 
     if(typeof rangesRes === "string"){
       currentRangesString = rangesRes;
-      const mintedFromString = mintedFromRangesString(rangesRes);
-      // minted: prefer hardcoded if present (PIXELONKAS)
-      mintedLimit = Number.isFinite(hard.minted) ? hard.minted : mintedFromString;
-      source.push("ranges-string");
+      // minted from ranges might be larger than current minted truth; we keep hardcoded minted
+      if(!Number.isFinite(mintedLimit)){
+        mintedLimit = mintedFromRangesString(rangesRes);
+      }
     }else if(rangesRes && typeof rangesRes === "object"){
-      // if API ever returns object
-      currentBuri = rangesRes.buri || null;
-      mintedLimit = Number(rangesRes.minted ?? NaN);
-      maxSupply = Number(rangesRes.max ?? NaN);
-      source.push("ranges-object");
+      // if API ever provides better info, merge it (but keep hardcoded minted if exists)
+      currentBuri = currentBuri || rangesRes.buri || null;
+      if(!Number.isFinite(mintedLimit)) mintedLimit = Number(rangesRes.minted ?? NaN);
+      if(!Number.isFinite(maxSupply)) maxSupply = Number(rangesRes.max ?? NaN);
     }
 
-    // apply hardcoded deploy (always for buri + max)
-    currentBuri = currentBuri || hard.buri || null;
-    maxSupply = Number.isFinite(maxSupply) ? maxSupply : (Number.isFinite(hard.max) ? hard.max : null);
-
-    // minted fallback rules:
-    // - PIXELONKAS: hardcoded minted=21 (user)
-    // - SYKORA: if string minted exists, use that; else we can leave minted unknown
-    if(!Number.isFinite(mintedLimit) || mintedLimit == null){
-      mintedLimit = Number.isFinite(hard.minted) ? hard.minted : null;
-    }
-    if(tick === "PIXELONKAS" && Number.isFinite(hard.minted)){
-      mintedLimit = hard.minted; // force user truth
-      source.push("hardcoded");
-    } else if(hard.buri || hard.max){
-      source.push("hardcoded");
-    }
-
-    setText("metaTitle", tick);
-    setText("metaSubtitle", `Source: ${source.filter(Boolean).join(" + ") || "unknown"}`);
     setText("metaMinted", `Minted: ${Number.isFinite(mintedLimit) ? mintedLimit : "—"}`);
     setText("metaMax", `Max: ${Number.isFinite(maxSupply) ? maxSupply : "—"}`);
 
@@ -655,26 +594,31 @@
     await renderNextPage();
   }
 
+  function metaCandidatePaths(buri, tokenId){
+    const folder = ipfsPath(buri).replace(/\/+$/,"");
+    // ✅ Try multiple patterns (covers many Pinata layouts)
+    return [
+      `${folder}/${tokenId}.json`,
+      `${folder}/metadata/${tokenId}.json`,
+      `${folder}/json/${tokenId}.json`,
+      `${folder}/${tokenId}/index.json`
+    ];
+  }
+
   async function renderNextPage(){
     const tick = currentTick;
     const buri = currentBuri;
-    const hard = HARDCODED_DEPLOY[tick] || {};
+    const hard = HARDCODED[tick] || {};
     if(!tick || !buri) return;
 
-    // token id list
     let ids = [];
     if(currentRangesString){
-      // take mintedLimit ids from ranges expansion
-      const pageCount = PAGE_SIZE;
-      ids = idsFromRangesString(currentRangesString, pageCount, pageIndex);
+      ids = idsFromRangesString(currentRangesString, PAGE_SIZE, pageIndex);
       if(Number.isFinite(mintedLimit)){
-        // cut to mintedLimit total shown
         const remaining = mintedLimit - pageIndex;
-        if(remaining <= 0) ids = [];
-        else ids = ids.slice(0, remaining);
+        ids = remaining > 0 ? ids.slice(0, remaining) : [];
       }
     }else{
-      // fallback sequence (PIXELONKAS starts at 2)
       const startId = Number.isFinite(hard.idStartFallback) ? hard.idStartFallback : 1;
       const start = startId + pageIndex;
       let end = start + PAGE_SIZE - 1;
@@ -691,12 +635,9 @@
       return;
     }
 
-    // skeletons
     gridEl().insertAdjacentHTML("beforeend", ids.map(id => cardSkeleton(tick, id)).join(""));
-
     setStatus(`Loading metadata (${ids.length} items)…`);
 
-    // hydrate
     let idx = 0;
     const cards = Array.from(document.querySelectorAll(`.card[data-tick="${tick}"]`)).slice(-ids.length);
 
@@ -713,9 +654,9 @@
         try{
           let meta = metaCache.get(cacheKey);
           if(!meta){
-            const folder = ipfsPath(buri).replace(/\/+$/,"");
-            const metaPath = `${folder}/${tokenId}.json`;
-            meta = await fetchJsonFromGateways(metaPath, abortCtrl.signal);
+            const { json, url } = await fetchJsonFromGateways(metaCandidatePaths(buri, tokenId), abortCtrl.signal);
+            meta = json;
+            meta.__metaUrl = url;
             metaCache.set(cacheKey, meta);
           }
 
@@ -726,42 +667,31 @@
           if(descEl) descEl.textContent = desc || "—";
 
           const { primary, ipfs } = extractImageFromMeta(meta);
-
           if(primary && thumb){
             thumb.innerHTML = `<img src="${primary}" alt="" loading="lazy">`;
             const imgEl = thumb.querySelector("img");
-
-            // gateway fallback for ipfs image
-            if(ipfs && imgEl){
-              let gw = 0;
+            if(imgEl && ipfs){
+              let gwIndex = 0;
               imgEl.onerror = () => {
-                gw++;
-                if(gw < IPFS_GATEWAYS.length){
-                  imgEl.src = IPFS_GATEWAYS[gw] + ipfs;
+                gwIndex++;
+                if(gwIndex < IPFS_GATEWAYS.length){
+                  imgEl.src = IPFS_GATEWAYS[gwIndex] + ipfs;
                 }else{
                   thumb.textContent = "Image error";
                 }
               };
             }
 
-            // click → lightbox
-            if(thumb){
-              thumb.onclick = () => {
-                const folder = ipfsPath(buri).replace(/\/+$/,"");
-                const metaUrl = IPFS_GATEWAYS[0] + `${folder}/${tokenId}.json`;
-                const mintUrl = MINT_URLS[tick] || "#";
-                // choose open image url: if ipfs path known, open primary; else open primary
-                const imgUrl = primary || "#";
-                openLightbox({ tick, tokenId, meta, metaUrl, imgUrl, mintUrl });
-              };
-            }
+            // Open lightbox on click
+            thumb.onclick = () => {
+              const mintUrl = kaspaCollectionUrls(tick)[0];
+              openLightbox({ tick, tokenId, meta, imgUrl: primary, imgIpfs: ipfs, mintUrl });
+            };
           }else{
             if(thumb) thumb.textContent = "No image in JSON";
           }
-
         }catch(e){
           if(thumb) thumb.textContent = "Meta error";
-          if(titleEl) titleEl.textContent = `${tick} #${tokenId}`;
           if(descEl) descEl.textContent = "—";
         }
       }
@@ -771,19 +701,14 @@
 
     pageIndex += ids.length;
 
-    // Load more
     if(Number.isFinite(mintedLimit) && pageIndex >= mintedLimit){
       showLoadMore(false);
-      setStatus(`Ready. Loaded ${pageIndex} items.`);
     }else{
       showLoadMore(true);
-      setStatus(`Ready. Loaded ${pageIndex} items.`);
     }
+    setStatus(`Ready. Loaded ${pageIndex} items.`);
   }
 
-  /* =========================
-     Wire UI
-  ========================= */
   function setActiveButton(tick){
     qsa(".collection-button").forEach(btn => {
       btn.classList.toggle("active", btn.getAttribute("data-collection") === tick);
@@ -799,17 +724,6 @@
   });
 
   qs("#loadMoreBtn").addEventListener("click", () => renderNextPage());
-
-  // lightbox button urls get set on open
-  qs("#lbMint").addEventListener("click", (e) => {
-    if(qs("#lbMint").href.endsWith("#")) e.preventDefault();
-  });
-  qs("#lbOpenMeta").addEventListener("click", (e) => {
-    if(qs("#lbOpenMeta").href.endsWith("#")) e.preventDefault();
-  });
-  qs("#lbOpenImg").addEventListener("click", (e) => {
-    if(qs("#lbOpenImg").href.endsWith("#")) e.preventDefault();
-  });
 
   // Default
   loadCollection("PIXELONKAS");
