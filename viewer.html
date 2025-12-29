@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Kaspa NFT Viewer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #050608;
+  color: #f5f5f5;
+}
+header {
+  text-align: center;
+  padding: 24px;
+}
+button {
+  background: transparent;
+  border: 1px solid #333;
+  color: #aaa;
+  padding: 8px 16px;
+  margin: 0 6px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+button.active {
+  color: #00c4ff;
+  border-color: #00c4ff;
+}
+#meta {
+  max-width: 1100px;
+  margin: 0 auto 16px;
+  padding: 12px 16px;
+  border: 1px solid #333;
+  border-radius: 12px;
+}
+#grid {
+  max-width: 1100px;
+  margin: 0 auto 40px;
+  padding: 0 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px,1fr));
+  gap: 16px;
+}
+.card {
+  background: #101218;
+  border: 1px solid #262938;
+  border-radius: 14px;
+  padding: 10px;
+}
+.thumb {
+  aspect-ratio: 1 / 1;
+  background: #000;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.small {
+  font-size: 12px;
+  opacity: .7;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>Pixel on Kaspa</h1>
+  <button id="btnPixel" class="active">PIXELONKAS</button>
+  <button id="btnSykora">SYKORA</button>
+</header>
+
+<div id="meta">Loading…</div>
+<div id="grid"></div>
+
+<script>
+/* ===================== CONFIG ===================== */
+
+const API_BASE = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
+
+const COLLECTIONS = {
+  PIXELONKAS: {
+    tick: "PIXELONKAS",
+    buri: null   // ⚠️ DOPLŇ, pokud ho znáš
+  },
+  SYKORA: {
+    tick: "SYKORA",
+    buri: null   // načte se automaticky
+  }
+};
+
+// IPFS gateway (ověřená u tebe)
+const IPFS_GATEWAY = "https://dweb.link/ipfs/";
+
+/* ===================== HELPERS ===================== */
+
+function ipfsToHttp(ipfs) {
+  return IPFS_GATEWAY + ipfs.replace("ipfs://", "");
+}
+
+async function fetchJson(url) {
+  const r = await fetch(url, { cache: "no-store" });
+  if (!r.ok) throw new Error(url);
+  return r.json();
+}
+
+/* ===================== META ===================== */
+
+async function loadMeta(tick) {
+  const json = await fetchJson(`${API_BASE}/ranges/${tick}`);
+  const res = json.result;
+
+  if (typeof res === "string") {
+    // minted ranges string
+    const nums = res.split(",").map(Number);
+    let minted = 0;
+    for (let i = 1; i < nums.length; i += 2) minted += nums[i];
+    return { minted };
+  }
+
+  return {
+    buri: res.buri,
+    minted: Number(res.minted),
+    max: Number(res.max),
+    royalty: res.royaltyFee
+  };
+}
+
+/* ===================== NFT METADATA ===================== */
+
+async function loadTokenMeta(buri, tokenId) {
+  const url = ipfsToHttp(`${buri}/${tokenId}.json`);
+  const r = await fetch(url);
+  if (!r.ok) throw new Error("meta");
+  return r.json();
+}
+
+/* ===================== UI ===================== */
+
+function setMeta(text) {
+  document.getElementById("meta").innerHTML = text;
+}
+
+function renderCard(id) {
+  return `
+    <div class="card" data-id="${id}">
+      <div class="thumb">Loading…</div>
+      <div>#${id}</div>
+    </div>
+  `;
+}
+
+/* ===================== MAIN ===================== */
+
+async function loadCollection(key) {
+  const col = COLLECTIONS[key];
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+  setMeta("Loading metadata…");
+
+  const meta = await loadMeta(col.tick);
+
+  if (!col.buri && meta.buri) col.buri = meta.buri;
+  if (!col.buri) {
+    setMeta("Missing buri for this collection.");
+    return;
+  }
+
+  setMeta(`
+    <b>${col.tick}</b><br>
+    Minted: ${meta.minted ?? "?"}
+  `);
+
+  const count = Math.min(meta.minted, 60);
+  for (let i = 1; i <= count; i++) {
+    grid.insertAdjacentHTML("beforeend", renderCard(i));
+  }
+
+  const cards = document.querySelectorAll(".card");
+  for (const card of cards) {
+    const id = card.dataset.id;
+    try {
+      const metaJson = await loadTokenMeta(col.buri, id);
+      const img = metaJson.image
+        ? ipfsToHttp(metaJson.image)
+        : null;
+
+      card.querySelector(".thumb").innerHTML = img
+        ? `<img src="${img}">`
+        : "No image";
+    } catch {
+      card.querySelector(".thumb").innerHTML = "Meta error";
+    }
+  }
+}
+
+/* ===================== EVENTS ===================== */
+
+btnPixel.onclick = () => {
+  btnPixel.classList.add("active");
+  btnSykora.classList.remove("active");
+  loadCollection("PIXELONKAS");
+};
+
+btnSykora.onclick = () => {
+  btnSykora.classList.add("active");
+  btnPixel.classList.remove("active");
+  loadCollection("SYKORA");
+};
+
+loadCollection("PIXELONKAS");
+</script>
+
+</body>
+</html>
