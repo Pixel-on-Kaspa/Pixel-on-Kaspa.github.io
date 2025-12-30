@@ -1,521 +1,265 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Pixel on Kaspa</title>
-  <style>
-    :root{
-      --bg1:#121623;
-      --bg2:#050608;
-      --panel: rgba(0,0,0,.18);
-      --border: rgba(255,255,255,.12);
-      --muted: rgba(255,255,255,.68);
-      --accent:#00c4ff;
-      --accentSoft: rgba(0,196,255,.14);
-      --shadow: 0 18px 35px rgba(0,0,0,.50);
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
-      background: radial-gradient(circle at top, var(--bg1) 0, var(--bg2) 52%);
-      color:#f5f5f5;
-      min-height:100vh;
-    }
-    a{color:inherit}
-    .wrap{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pixel on Kaspa</title>
 
-    /* Sticky topbar wrapper */
-    .topbarSticky{
-      position: sticky;
-      top: 12px;
-      z-index: 1000;
-      margin-bottom: 16px;
-    }
+<style>
+:root{
+  --bg1:#121623;
+  --bg2:#050608;
+  --panel:rgba(0,0,0,.18);
+  --border:rgba(255,255,255,.12);
+  --muted:rgba(255,255,255,.70);
+  --accent:#00c4ff;
+  --accentSoft:rgba(0,196,255,.14);
+  --shadow:0 18px 35px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
+  background:radial-gradient(circle at top,var(--bg1) 0,var(--bg2) 52%);
+  color:#f5f5f5;
+}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
 
-    /* Top bar */
-    .topbar{
-      display:flex;align-items:center;justify-content:space-between;
-      gap:14px;
-      border:1px solid var(--border);
-      border-radius:16px;
-      background: var(--panel);
-      backdrop-filter: blur(10px);
-      padding:12px 14px;
-      box-shadow: var(--shadow);
-    }
-    .brand{
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-      text-decoration:none;
-    }
-    .brand b{
-      letter-spacing:.12em;
-      text-transform:uppercase;
-      font-weight:900;
-      font-size:14px;
-    }
-    .brand small{
-      opacity:.7;
-      font-weight:650;
-      letter-spacing:.08em;
-      font-size:12px;
-      white-space:nowrap;
-    }
-    .nav{
-      display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center;
-    }
+/* Top bar */
+.topbarSticky{position:sticky;top:12px;z-index:1000;margin-bottom:18px}
+.topbar{
+  display:flex;justify-content:space-between;align-items:center;gap:14px;
+  border:1px solid var(--border);border-radius:16px;
+  background:var(--panel);backdrop-filter:blur(10px);
+  padding:12px 14px;box-shadow:var(--shadow);
+}
+.brand b{letter-spacing:.14em;text-transform:uppercase;font-weight:900}
+.brand small{opacity:.7;font-size:12px;letter-spacing:.08em}
+.nav{display:flex;gap:10px;flex-wrap:wrap}
 
-    /* Buttons */
-    .btn{
-      text-decoration:none;
-      display:inline-flex;align-items:center;gap:8px;
-      padding:9px 14px;border-radius:999px;
-      border:1px solid rgba(255,255,255,.16);
-      background: rgba(255,255,255,.06);
-      color: rgba(255,255,255,.88);
-      font-weight:750;
-      transition: background .15s, color .15s, transform .15s, border-color .15s;
-      white-space:nowrap;
-    }
-    .btn:hover{background: rgba(255,255,255,.12);color:#fff;transform: translateY(-1px);}
-    .btnPrimary{
-      border-color: rgba(0,196,255,.70);
-      color: var(--accent);
-      background: rgba(0,196,255,.08);
-    }
-    .btnPrimary:hover{background: var(--accent); color:#020308;}
-    .btnGhost{
-      background: transparent;
-      border-color: rgba(255,255,255,.16);
-      opacity:.95;
-    }
+/* Buttons */
+.btn{
+  padding:9px 14px;border-radius:999px;
+  border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.06);
+  font-weight:700;font-size:14px;
+  transition:.15s;
+}
+.btn:hover{background:rgba(255,255,255,.12);transform:translateY(-1px)}
+.btnPrimary{
+  border-color:rgba(0,196,255,.7);
+  color:var(--accent);
+  background:rgba(0,196,255,.08);
+}
+.btnPrimary:hover{background:var(--accent);color:#020308}
+.btnGhost{background:transparent}
 
-    /* Hero */
-    .hero{
-      margin-top:10px;
-      display:grid;
-      grid-template-columns: 1.15fr .85fr;
-      gap:16px;
-      align-items:start;
-    }
-    .heroMain{
-      border:1px solid var(--border);
-      border-radius:20px;
-      background: var(--panel);
-      backdrop-filter: blur(10px);
-      padding:18px 18px 16px;
-      box-shadow: var(--shadow);
-      position:relative;
-      overflow:hidden;
-    }
-    .heroMain::before{
-      content:"";
-      position:absolute;inset:-120px -120px auto auto;
-      width:260px;height:260px;
-      background: radial-gradient(circle at center, rgba(0,196,255,.22), transparent 60%);
-      filter: blur(2px);
-      transform: rotate(12deg);
-      pointer-events:none;
-    }
-    .kicker{
-      opacity:.75;
-      letter-spacing:.18em;
-      text-transform:uppercase;
-      font-weight:800;
-      font-size:12px;
-      margin-bottom:10px;
-    }
-    h1{
-      margin:0 0 8px;
-      font-size:44px;
-      letter-spacing:.10em;
-      text-transform:uppercase;
-      line-height:1.02;
-    }
-    .sub{
-      margin:0 0 14px;
-      opacity:.78;
-      font-size:16px;
-      max-width: 64ch;
-      line-height: 1.55;
-    }
-    .ctaRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+/* Hero */
+.hero{
+  display:grid;grid-template-columns:1.1fr .9fr;gap:16px;margin-bottom:26px;
+}
+.heroMain{
+  border:1px solid var(--border);border-radius:20px;
+  background:var(--panel);backdrop-filter:blur(10px);
+  padding:20px;box-shadow:var(--shadow);
+}
+.kicker{
+  letter-spacing:.18em;text-transform:uppercase;
+  font-size:12px;font-weight:800;opacity:.75;margin-bottom:10px;
+}
+h1{
+  margin:0 0 10px;font-size:42px;
+  letter-spacing:.12em;text-transform:uppercase;
+}
+.sub{opacity:.8;max-width:65ch;line-height:1.55}
+.ctaRow{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap}
 
-    /* Side mini panel */
-    .panel{
-      border:1px solid var(--border);
-      border-radius:20px;
-      background: rgba(0,0,0,.14);
-      backdrop-filter: blur(10px);
-      padding:16px;
-      box-shadow: var(--shadow);
-    }
-    .panel h3{
-      margin:0 0 8px;
-      letter-spacing:.10em;
-      text-transform:uppercase;
-      font-size:13px;
-      opacity:.9;
-    }
-    .bullets{margin:0;padding-left:16px;opacity:.78}
-    .bullets li{margin:6px 0}
+.panel{
+  border:1px solid var(--border);border-radius:20px;
+  background:rgba(0,0,0,.14);backdrop-filter:blur(10px);
+  padding:16px;box-shadow:var(--shadow);
+}
+.panel h3{
+  margin:0 0 8px;font-size:13px;
+  letter-spacing:.12em;text-transform:uppercase;
+}
+.panel ul{margin:0;padding-left:16px;opacity:.78}
+.panel li{margin:6px 0}
 
-    /* Collections */
-    .sectionTitle{
-      margin:22px 0 12px;
-      letter-spacing:.14em;
-      text-transform:uppercase;
-      font-weight:900;
-      font-size:14px;
-      opacity:.85;
-    }
-    .cards{
-      display:grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap:16px;
-    }
-    .card{
-      border:1px solid var(--border);
-      border-radius:20px;
-      background: rgba(0,0,0,.18);
-      backdrop-filter: blur(10px);
-      padding:16px;
-      box-shadow: var(--shadow);
-      transition: transform .15s ease-out, border-color .15s, box-shadow .15s;
-      overflow:hidden;
-    }
-    .card:hover{transform: translateY(-3px); border-color: rgba(0,196,255,.22); box-shadow:0 24px 40px rgba(0,0,0,.7);}
+/* Sections */
+.sectionTitle{
+  margin:22px 0 12px;
+  letter-spacing:.14em;text-transform:uppercase;
+  font-size:14px;font-weight:900;opacity:.85;
+}
 
-    .thumb{
-      width:100%;
-      aspect-ratio: 16/10;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.10);
-      background: #000;
-      overflow:hidden;
-      display:flex;align-items:center;justify-content:center;
-      color: rgba(255,255,255,.70);
-      font-size: 12px;
-      margin-bottom:12px;
-      position:relative;
-    }
-    .thumb img{width:100%;height:100%;object-fit:cover;display:block}
-    .thumb .tag{
-      position:absolute;left:10px;top:10px;
-      padding:6px 10px;border-radius:999px;
-      border:1px solid rgba(0,196,255,.35);
-      background: rgba(0,196,255,.10);
-      color: var(--accent);
-      font-weight:900;
-      font-size:12px;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-      backdrop-filter: blur(10px);
-    }
-    .thumb .hint{
-      position:absolute;right:10px;top:10px;
-      padding:6px 10px;border-radius:999px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(0,0,0,.22);
-      opacity:.85;
-      font-size:12px;
-      backdrop-filter: blur(10px);
-    }
+/* Cards */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.card{
+  border:1px solid var(--border);border-radius:20px;
+  background:rgba(0,0,0,.18);backdrop-filter:blur(10px);
+  padding:16px;box-shadow:var(--shadow);
+  transition:.15s;
+}
+.card:hover{transform:translateY(-3px);border-color:rgba(0,196,255,.25)}
+.card h2{
+  margin:0 0 6px;font-size:18px;
+  letter-spacing:.1em;text-transform:uppercase;
+}
+.card p{opacity:.78;line-height:1.55;font-size:14px}
+.block{
+  margin:12px 0;padding:12px;
+  border:1px solid var(--border);border-radius:14px;
+  background:rgba(255,255,255,.04);
+}
+.block b{font-weight:800}
+.cardActions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
 
-    .cardHead{
-      display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
-      margin-bottom:10px;
-    }
-    .cardHead b{
-      font-size:18px;letter-spacing:.10em;text-transform:uppercase;
-    }
-    .chip{
-      padding:6px 10px;border-radius:999px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
-      opacity:.85;
-      font-size:12px;
-      white-space:nowrap;
-    }
-    .card p{margin:0 0 14px;opacity:.78;line-height:1.55}
-    .cardActions{display:flex;gap:10px;flex-wrap:wrap}
+/* Footer */
+footer{
+  margin-top:26px;font-size:13px;opacity:.7;
+  display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;
+}
 
-    /* Footer */
-    footer{
-      margin-top:22px;
-      opacity:.70;
-      font-size:13px;
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      flex-wrap:wrap;
-    }
-    footer a{color: var(--accent); text-decoration:none}
-    footer a:hover{text-decoration:underline}
-
-    @media (max-width: 920px){
-      .hero{grid-template-columns:1fr}
-      h1{font-size:36px}
-      .cards{grid-template-columns:1fr}
-      .brand small{display:none}
-    }
-  </style>
+/* Responsive */
+@media(max-width:900px){
+  .hero{grid-template-columns:1fr}
+  .cards{grid-template-columns:1fr}
+}
+</style>
 </head>
+
 <body>
-  <div class="wrap">
+<div class="wrap">
 
-    <div class="topbarSticky">
-      <div class="topbar">
-        <a class="brand" href="/">
-          <b>PIXEL ON KASPA</b>
-          <small>sound → image → chain</small>
-        </a>
-
-        <div class="nav">
-          <a class="btn btnPrimary" href="/viewer">Viewer</a>
-          <a class="btn btnGhost" href="#collections">Collections</a>
-          <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">Mint PIXELONKAS</a>
-          <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">Mint SYKORA</a>
-          <a class="btn btnGhost" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
-          <a class="btn btnGhost" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
-        </div>
-      </div>
+<!-- TOP BAR -->
+<div class="topbarSticky">
+  <div class="topbar">
+    <div class="brand">
+      <b>PIXEL ON KASPA</b><br>
+      <small>sound → image → chain</small>
     </div>
+    <div class="nav">
+      <a class="btn btnPrimary" href="/viewer">Viewer</a>
+      <a class="btn btnGhost" href="#collections">Collections</a>
+      <a class="btn btnGhost" href="https://x.com/PixelonKas" target="_blank">X</a>
+      <a class="btn btnGhost" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank">TG</a>
+    </div>
+  </div>
+</div>
 
-    <section class="hero">
-      <div class="heroMain">
-        <div class="kicker">Audio-visual inscriptions</div>
-        <h1>PIXEL ON KASPA</h1>
-        <p class="sub">
-          Sound-driven image generation inscribed on the Kaspa blockDAG.
-          The viewer shows minted pieces only (indexed on-chain).
-          Two collections: PIXELONKAS + SYKORA.
-        </p>
-
-        <div class="ctaRow">
-          <a class="btn btnPrimary" href="/viewer">Open Viewer</a>
-          <a class="btn" href="#collections">Explore Collections</a>
-        </div>
-      </div>
-
-      <div class="panel">
-        <h3>Quick actions</h3>
-        <ul class="bullets">
-          <li>Browse minted NFTs in the viewer</li>
-          <li>Mint directly on kaspa.com</li>
-          <li>Follow updates on X / TG</li>
-        </ul>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
-          <a class="btn btnGhost" href="/viewer">Viewer</a>
-          <a class="btn btnGhost" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">PIXELONKAS</a>
-          <a class="btn btnGhost" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">SYKORA</a>
-        </div>
-      </div>
-    </section>
-
-    <div id="collections" class="sectionTitle">Collections</div>
-
-    <section class="cards">
-      <div class="card">
-        <div class="thumb" id="thumbPIXELONKAS">
-          <span class="tag">PIXELONKAS</span>
-          <span class="hint" id="hintPIXELONKAS">Loading cover…</span>
-        </div>
-        <div class="cardHead">
-          <b>PIXELONKAS</b>
-          <span class="chip">Sound → pixels</span>
-        </div>
-        <p>Early series: minimal sound-generated frames, raw and direct.</p>
-        <div class="cardActions">
-          <a class="btn btnPrimary" href="/viewer">Open in Viewer</a>
-          <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="thumb" id="thumbSYKORA">
-          <span class="tag">SYKORA</span>
-          <span class="hint" id="hintSYKORA">Loading cover…</span>
-        </div>
-        <div class="cardHead">
-          <b>SYKORA</b>
-          <span class="chip">Expanded set</span>
-        </div>
-        <p>Larger collection built to scale the visual language and collector ecosystem.</p>
-        <div class="cardActions">
-          <a class="btn btnPrimary" href="/viewer">Open in Viewer</a>
-          <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
-        </div>
-      </div>
-    </section>
-
-    <footer>
-      <div>© Pixel on Kaspa</div>
-      <div>
-        <a href="/viewer">Viewer</a> ·
-        <a href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a> ·
-        <a href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
-      </div>
-    </footer>
-
+<!-- HERO -->
+<section class="hero">
+  <div class="heroMain">
+    <div class="kicker">Audio-visual inscriptions</div>
+    <h1>PIXEL ON KASPA</h1>
+    <p class="sub">
+      Sound-driven image generation inscribed on the Kaspa blockDAG.
+      NFTs are powered by the <b>$PIXEL</b> utility token.
+    </p>
+    <div class="ctaRow">
+      <a class="btn btnPrimary" href="/viewer">Open Viewer</a>
+      <a class="btn" href="#collections">Explore Collections</a>
+    </div>
   </div>
 
-<script>
-(() => {
-  const API_BASE = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
-  const IPFS_GATEWAYS = [
-    "https://dweb.link/ipfs/",
-    "https://ipfs.io/ipfs/",
-    "https://cloudflare-ipfs.com/ipfs/",
-  ];
+  <div class="panel">
+    <h3>What it is</h3>
+    <ul>
+      <li>KRC-20 utility token + KRC-721 NFTs</li>
+      <li>Minted pieces only</li>
+      <li>On-chain indexed, IPFS metadata</li>
+    </ul>
+  </div>
+</section>
 
-  // Same truth source as viewer: ranges endpoint returns AVAILABLE (unminted) ranges string.
-  const COLLECTIONS = {
-    PIXELONKAS: {
-      buri: "ipfs://bafybeih2phpjzxfrszsscpmxdr44kliaddto3sicsdh44kgx7b3f43fdvm",
-      max: 342,
-      idMin: 1
-    },
-    SYKORA: {
-      buri: "ipfs://bafybeifema4upmzu7c4iipvxdagctirxf46g3htmsin6l66zm77dibfhaq",
-      max: 2518,
-      idMin: 1
-    }
-  };
+<!-- COLLECTIONS -->
+<div id="collections" class="sectionTitle">Ecosystem</div>
 
-  const qs = (s)=>document.querySelector(s);
+<section class="cards">
 
-  function ipfsPath(ipfsUrl){
-    if(!ipfsUrl) return "";
-    if(ipfsUrl.startsWith("ipfs://")) return ipfsUrl.slice("ipfs://".length);
-    const m = ipfsUrl.match(/\/ipfs\/(.+)$/);
-    return m ? m[1] : "";
-  }
+<!-- PIXEL TOKEN -->
+<div class="card">
+  <h2>PIXEL (KRC-20)</h2>
+  <p>
+    Utility token powering the Pixel on Kaspa ecosystem.
+    Used for NFT rewards, incentives and future tools.
+  </p>
 
-  async function fetchJson(url){
-    const r = await fetch(url, { cache:"no-store" });
-    if(!r.ok) throw new Error(`HTTP ${r.status}`);
-    return r.json();
-  }
+  <div class="block">
+    <b>Status</b><br>
+    Fully minted · On kaspa.com marketplace
+  </div>
 
-  function unwrapResult(x){
-    if(x && typeof x === "object" && "result" in x) return x.result;
-    return x;
-  }
+  <div class="cardActions">
+    <a class="btn" href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank">
+      View on kaspa.com
+    </a>
+  </div>
+</div>
 
-  function availableSetFromRangesString(s){
-    const nums = String(s).split(",").map(x => Number(x.trim())).filter(Number.isFinite);
-    const set = new Set();
-    for(let i=0;i<nums.length-1;i+=2){
-      const start = nums[i], len = nums[i+1];
-      for(let j=0;j<len;j++) set.add(start + j);
-    }
-    return set;
-  }
+<!-- PIXELONKAS -->
+<div class="card">
+  <h2>PIXELONKAS</h2>
+  <p>
+    Genesis NFT series of <b>342</b> sound-generated artworks.
+    Each mint unlocks <b>$PIXEL rewards</b> based on rarity.
+  </p>
 
-  function firstMintedIdFromAvailableRanges({ idMin, max, rangesString }){
-    const avail = availableSetFromRangesString(rangesString);
-    for(let id=idMin; id<=max; id++){
-      if(!avail.has(id)) return id;
-    }
-    return null;
-  }
+  <div class="block">
+    <b>Rewards</b><br>
+    Total: <b>10B $PIXEL</b><br><br>
+    Super Broken (1) → <b>1B</b><br>
+    Broken → 100M · Grey → 80M · Orange → 50M<br>
+    Yellow → 30M · Pink → 26M · Red → 24M<br>
+    Purple → 22M · White → 20M · Green → 15M<br>
+    Black / Blue → 12M
+  </div>
 
-  function metaCandidatePaths(buri, tick, tokenId){
-    const folder = ipfsPath(buri).replace(/\/+$/,"");
-    const t = String(tick);
-    return [
-      `${folder}/${tokenId}.json`,
-      `${folder}/${tokenId}`,
-      `${folder}/${tokenId}/index.json`,
-      `${folder}/metadata/${tokenId}.json`,
-      `${folder}/metadata/${tokenId}`,
-      `${folder}/metadata/${tokenId}/index.json`,
-      `${folder}/meta/${tokenId}.json`,
-      `${folder}/meta/${tokenId}`,
-      `${folder}/meta/${tokenId}/index.json`,
-      `${folder}/${t}/${tokenId}`,
-      `${folder}/${t}/${tokenId}/index.json`,
-      `${folder}/${t.toLowerCase()}/${tokenId}`,
-      `${folder}/${t.toLowerCase()}/${tokenId}/index.json`
-    ];
-  }
+  <div class="cardActions">
+    <a class="btn btnPrimary" href="/viewer?c=PIXELONKAS">Open in Viewer</a>
+    <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank">
+      Mint on kaspa.com
+    </a>
+  </div>
+</div>
 
-  async function fetchMetaFromGateways(paths){
-    let lastErr = null;
-    for(const p of paths){
-      for(const gw of IPFS_GATEWAYS){
-        const url = gw + p;
-        try{
-          const r = await fetch(url, { cache:"no-store", redirect:"follow" });
-          if(!r.ok) throw new Error(`HTTP ${r.status}`);
-          return await r.json();
-        }catch(e){
-          lastErr = e;
-        }
-      }
-    }
-    throw lastErr || new Error("IPFS fetch failed");
-  }
+<!-- SYKORA -->
+<div class="card">
+  <h2>SYKORA</h2>
+  <p>
+    Expanded NFT collection of <b>2,518</b> pieces
+    with instant $PIXEL perks for selected rarities.
+  </p>
 
-  function extractImage(meta){
-    const raw = meta?.image || meta?.image_url || meta?.properties?.image || meta?.data?.image || meta?.content?.image || meta?.content?.url;
-    if(!raw) return { url:"", ipfs:null };
-    if(String(raw).startsWith("ipfs://")){
-      const p = ipfsPath(String(raw));
-      return { url: IPFS_GATEWAYS[0] + p, ipfs: p };
-    }
-    return { url: String(raw), ipfs: null };
-  }
+  <div class="block">
+    <b>Instant perks</b><br>
+    Ice (23) → <b>100M $PIXEL</b> + future airdrops<br>
+    Black (9) → <b>80M $PIXEL</b> + bonus NFT<br>
+    Pink (58) → <b>40M $PIXEL</b><br><br>
+    Own 5 styles → special bonus
+  </div>
 
-  async function loadCover(tick){
-    const cfg = COLLECTIONS[tick];
-    const thumb = qs(`#thumb${tick}`);
-    const hint = qs(`#hint${tick}`);
-    if(!cfg || !thumb || !hint) return;
+  <div class="cardActions">
+    <a class="btn btnPrimary" href="/viewer?c=SYKORA">Open in Viewer</a>
+    <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank">
+      Mint on kaspa.com
+    </a>
+  </div>
+</div>
 
-    try{
-      const raw = await fetchJson(`${API_BASE}/ranges/${encodeURIComponent(tick)}`);
-      const res = unwrapResult(raw);
-      if(typeof res !== "string" || !res.trim()) throw new Error("Missing ranges string");
+</section>
 
-      const coverId = firstMintedIdFromAvailableRanges({ idMin: cfg.idMin, max: cfg.max, rangesString: res });
-      if(!coverId) throw new Error("No minted IDs yet");
+<footer>
+  <div>© Pixel on Kaspa</div>
+  <div>
+    <a href="/viewer">Viewer</a> ·
+    <a href="https://x.com/PixelonKas" target="_blank">X</a> ·
+    <a href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank">TG</a>
+  </div>
+</footer>
 
-      hint.textContent = `Cover: #${coverId}`;
-
-      const meta = await fetchMetaFromGateways(metaCandidatePaths(cfg.buri, tick, coverId));
-      const { url, ipfs } = extractImage(meta);
-      if(!url) throw new Error("No image in metadata");
-
-      thumb.innerHTML = `
-        <span class="tag">${tick}</span>
-        <span class="hint">Cover: #${coverId}</span>
-        <img src="${url}" alt="${tick} cover" loading="lazy">
-      `;
-
-      // fallback gateways for image if ipfs://
-      const img = thumb.querySelector("img");
-      if(img && ipfs){
-        let gw = 0;
-        img.onerror = () => {
-          gw++;
-          if(gw < IPFS_GATEWAYS.length){
-            img.src = IPFS_GATEWAYS[gw] + ipfs;
-          }
-        };
-      }
-    } catch (e){
-      hint.textContent = "Cover unavailable";
-    }
-  }
-
-  loadCover("PIXELONKAS");
-  loadCover("SYKORA");
-})();
-</script>
+</div>
 </body>
 </html>
