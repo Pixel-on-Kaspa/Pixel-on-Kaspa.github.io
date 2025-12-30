@@ -98,6 +98,10 @@ a{text-decoration:none;color:inherit}
   aspect-ratio:16/10;
   background:#000;
   overflow:hidden;
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 .cardImg img{
   width:100%;
@@ -105,9 +109,38 @@ a{text-decoration:none;color:inherit}
   object-fit:cover;
   display:block;
 }
-.cardBody{
-  padding:18px;
+.coverOverlay{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  padding:12px;
+  pointer-events:none;
 }
+.badge{
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid rgba(0,196,255,.35);
+  background:rgba(0,196,255,.10);
+  color:var(--accent);
+  font-weight:900;
+  font-size:12px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  backdrop-filter:blur(10px);
+}
+.hint{
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.22);
+  opacity:.9;
+  font-size:12px;
+  backdrop-filter:blur(10px);
+}
+
+.cardBody{padding:18px}
 .cardBody h2{
   margin:0 0 8px;
   font-size:22px;
@@ -146,82 +179,283 @@ footer{
 <body>
 <div class="wrap">
 
-<!-- TOP -->
-<div class="topbar">
-  <div class="brand">PIXELONKASPA</div>
-  <div class="nav">
-    <a class="btn btnPrimary" href="/viewer">Viewer</a>
-    <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank">PIXELONKAS</a>
-    <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank">SYKORA</a>
-    <a class="btn" href="https://x.com/PixelonKas" target="_blank">X</a>
-    <a class="btn" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank">TG</a>
-  </div>
-</div>
-
-<!-- HERO -->
-<section class="hero">
-  <h1>PIXELONKASPA</h1>
-  <p>
-    Sound-driven image generation inscribed on the Kaspa blockDAG.<br>
-    Two collections. Minted pieces only.
-  </p>
-</section>
-
-<!-- COLLECTIONS -->
-<section class="cards">
-
-<!-- PIXELONKAS -->
-<div class="card">
-  <div class="cardImg">
-    <!-- nahraď src svým coverem (IPFS / gateway) -->
-    <img src="https://dweb.link/ipfs/bafybeih2phpjzxfrszsscpmxdr44kliaddto3sicsdh44kgx7b3f43fdvm/1.png" alt="PIXELONKAS">
-  </div>
-  <div class="cardBody">
-    <h2>PIXELONKAS</h2>
-    <p>
-      Genesis collection of 342 sound-generated NFTs.
-      Rarity-based $PIXEL rewards.
-    </p>
-    <div class="cardActions">
-      <a class="btn btnPrimary" href="/viewer?c=PIXELONKAS">Open Viewer</a>
-      <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank">
-        Mint on kaspa.com
-      </a>
+  <div class="topbar">
+    <div class="brand">PIXELONKASPA</div>
+    <div class="nav">
+      <a class="btn btnPrimary" href="/viewer">Viewer</a>
+      <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">PIXELONKAS</a>
+      <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">SYKORA</a>
+      <a class="btn" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
+      <a class="btn" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
     </div>
   </div>
-</div>
 
-<!-- SYKORA -->
-<div class="card">
-  <div class="cardImg">
-    <img src="https://dweb.link/ipfs/bafybeifema4upmzu7c4iipvxdagctirxf46g3htmsin6l66zm77dibfhaq/1.png" alt="SYKORA">
-  </div>
-  <div class="cardBody">
-    <h2>SYKORA</h2>
+  <section class="hero">
+    <h1>PIXELONKASPA</h1>
     <p>
-      Expanded collection of 2,518 NFTs with instant $PIXEL perks
-      for selected rarities.
+      Sound-driven image generation inscribed on the Kaspa blockDAG.<br>
+      Two collections. Minted pieces only.
     </p>
-    <div class="cardActions">
-      <a class="btn btnPrimary" href="/viewer?c=SYKORA">Open Viewer</a>
-      <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank">
-        Mint on kaspa.com
-      </a>
+  </section>
+
+  <section class="cards">
+
+    <!-- PIXELONKAS -->
+    <div class="card">
+      <div class="cardImg" id="coverPIXELONKAS">
+        <div class="coverOverlay">
+          <span class="badge">PIXELONKAS</span>
+          <span class="hint" id="hintPIXELONKAS">Loading last mint…</span>
+        </div>
+      </div>
+      <div class="cardBody">
+        <h2>PIXELONKAS</h2>
+        <p>
+          Genesis collection of 342 sound-generated NFTs. Rarity-based $PIXEL rewards.
+        </p>
+        <div class="cardActions">
+          <a class="btn btnPrimary" href="/viewer?c=PIXELONKAS">Open Viewer</a>
+          <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
+        </div>
+      </div>
     </div>
-  </div>
+
+    <!-- SYKORA -->
+    <div class="card">
+      <div class="cardImg" id="coverSYKORA">
+        <div class="coverOverlay">
+          <span class="badge">SYKORA</span>
+          <span class="hint" id="hintSYKORA">Loading last mint…</span>
+        </div>
+      </div>
+      <div class="cardBody">
+        <h2>SYKORA</h2>
+        <p>
+          Expanded collection of 2,518 NFTs with instant $PIXEL perks for selected rarities.
+        </p>
+        <div class="cardActions">
+          <a class="btn btnPrimary" href="/viewer?c=SYKORA">Open Viewer</a>
+          <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <footer>
+    <div>© Pixel on Kaspa</div>
+    <div>
+      <a href="/viewer">Viewer</a> ·
+      <a href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a> ·
+      <a href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
+    </div>
+  </footer>
+
 </div>
 
-</section>
+<script>
+(() => {
+  const API_BASE = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
+  const IPFS_GATEWAYS = [
+    "https://dweb.link/ipfs/",
+    "https://ipfs.io/ipfs/",
+    "https://cloudflare-ipfs.com/ipfs/",
+  ];
 
-<footer>
-  <div>© Pixel on Kaspa</div>
-  <div>
-    <a href="/viewer">Viewer</a> ·
-    <a href="https://x.com/PixelonKas" target="_blank">X</a> ·
-    <a href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank">TG</a>
-  </div>
-</footer>
+  // IMPORTANT: ranges endpoint returns AVAILABLE (unminted) ranges string.
+  // We find minted IDs by complement within [idMin..max], then choose the HIGHEST minted ID = last minted.
+  const COLLECTIONS = {
+    PIXELONKAS: {
+      buri: "ipfs://bafybeih2phpjzxfrszsscpmxdr44kliaddto3sicsdh44kgx7b3f43fdvm",
+      max: 342,
+      idMin: 1
+    },
+    SYKORA: {
+      buri: "ipfs://bafybeifema4upmzu7c4iipvxdagctirxf46g3htmsin6l66zm77dibfhaq",
+      max: 2518,
+      idMin: 1
+    }
+  };
 
-</div>
+  const qs = (s)=>document.querySelector(s);
+
+  function ipfsPath(ipfsUrl){
+    if(!ipfsUrl) return "";
+    if(ipfsUrl.startsWith("ipfs://")) return ipfsUrl.slice("ipfs://".length);
+    const m = ipfsUrl.match(/\/ipfs\/(.+)$/);
+    return m ? m[1] : "";
+  }
+
+  async function fetchJson(url){
+    const r = await fetch(url, { cache:"no-store" });
+    if(!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
+    return r.json();
+  }
+
+  function unwrapResult(x){
+    if(x && typeof x === "object" && "result" in x) return x.result;
+    return x;
+  }
+
+  function availableSetFromRangesString(s){
+    const nums = String(s).split(",").map(x => Number(x.trim())).filter(Number.isFinite);
+    const set = new Set();
+    for(let i=0;i<nums.length-1;i+=2){
+      const start = nums[i], len = nums[i+1];
+      for(let j=0;j<len;j++) set.add(start + j);
+    }
+    return set;
+  }
+
+  function lastMintedIdFromAvailableRanges({ idMin, max, rangesString }){
+    const avail = availableSetFromRangesString(rangesString);
+    for(let id=max; id>=idMin; id--){
+      if(!avail.has(id)) return id;
+    }
+    return null;
+  }
+
+  // Same strategy as viewer (including SYKORA "folder/id" and "folder/id/index.json")
+  function metaCandidatePaths(buri, tick, tokenId){
+    const folder = ipfsPath(buri).replace(/\/+$/,"");
+    const t = String(tick);
+    return [
+      `${folder}/${tokenId}.json`,
+      `${folder}/${tokenId}`,
+      `${folder}/${tokenId}/index.json`,
+      `${folder}/metadata/${tokenId}.json`,
+      `${folder}/metadata/${tokenId}`,
+      `${folder}/metadata/${tokenId}/index.json`,
+      `${folder}/meta/${tokenId}.json`,
+      `${folder}/meta/${tokenId}`,
+      `${folder}/meta/${tokenId}/index.json`,
+      `${folder}/${t}/${tokenId}`,
+      `${folder}/${t}/${tokenId}/index.json`,
+      `${folder}/${t.toLowerCase()}/${tokenId}`,
+      `${folder}/${t.toLowerCase()}/${tokenId}/index.json`
+    ];
+  }
+
+  async function fetchMetaFromGateways(paths){
+    let lastErr = null;
+    for(const p of paths){
+      for(const gw of IPFS_GATEWAYS){
+        const url = gw + p;
+        try{
+          const r = await fetch(url, { cache:"no-store", redirect:"follow" });
+          if(!r.ok) throw new Error(`HTTP ${r.status}`);
+          return await r.json();
+        }catch(e){
+          lastErr = e;
+        }
+      }
+    }
+    throw lastErr || new Error("IPFS meta fetch failed");
+  }
+
+  function extractImage(meta){
+    const raw =
+      meta?.image ||
+      meta?.image_url ||
+      meta?.properties?.image ||
+      meta?.data?.image ||
+      meta?.content?.image ||
+      meta?.content?.url ||
+      "";
+    if(!raw) return { url:"", ipfs:null };
+    if(String(raw).startsWith("ipfs://")){
+      const p = ipfsPath(String(raw));
+      return { url: IPFS_GATEWAYS[0] + p, ipfs: p };
+    }
+    return { url: String(raw), ipfs: null };
+  }
+
+  function setCoverLoading(tick, text){
+    const hint = qs(`#hint${tick}`);
+    if(hint) hint.textContent = text;
+  }
+
+  function setCoverError(tick, text){
+    const hint = qs(`#hint${tick}`);
+    if(hint) hint.textContent = text;
+    const box = qs(`#cover${tick}`);
+    if(box) box.style.background = "linear-gradient(135deg, rgba(255,255,255,.06), rgba(0,0,0,.2))";
+  }
+
+  function mountCoverImage(tick, imgUrl, imgIpfs, tokenId){
+    const box = qs(`#cover${tick}`);
+    const hint = qs(`#hint${tick}`);
+    if(!box) return;
+
+    box.innerHTML = `
+      <img id="img${tick}" src="${imgUrl}" alt="${tick} cover" loading="lazy">
+      <div class="coverOverlay">
+        <span class="badge">${tick}</span>
+        <span class="hint">Last mint: #${tokenId}</span>
+      </div>
+    `;
+
+    const img = qs(`#img${tick}`);
+    if(hint) hint.textContent = `Last mint: #${tokenId}`;
+
+    // fallback gateways for IPFS image
+    if(img && imgIpfs){
+      let gw = 0;
+      img.onerror = () => {
+        gw++;
+        if(gw < IPFS_GATEWAYS.length){
+          img.src = IPFS_GATEWAYS[gw] + imgIpfs;
+        }
+      };
+    }
+  }
+
+  async function loadLastMintCover(tick){
+    const cfg = COLLECTIONS[tick];
+    if(!cfg) return;
+
+    setCoverLoading(tick, "Loading last mint…");
+
+    try{
+      const raw = await fetchJson(`${API_BASE}/ranges/${encodeURIComponent(tick)}`);
+      const res = unwrapResult(raw);
+
+      if(typeof res !== "string" || !res.trim()){
+        throw new Error("Missing ranges string");
+      }
+
+      const lastId = lastMintedIdFromAvailableRanges({
+        idMin: cfg.idMin,
+        max: cfg.max,
+        rangesString: res
+      });
+
+      if(!lastId){
+        setCoverError(tick, "No mints yet");
+        return;
+      }
+
+      setCoverLoading(tick, `Fetching meta (#${lastId})…`);
+
+      const meta = await fetchMetaFromGateways(metaCandidatePaths(cfg.buri, tick, lastId));
+      const { url, ipfs } = extractImage(meta);
+
+      if(!url){
+        setCoverError(tick, `No image in meta (#${lastId})`);
+        return;
+      }
+
+      mountCoverImage(tick, url, ipfs, lastId);
+    }catch(e){
+      setCoverError(tick, "Cover unavailable");
+      console.error(`[${tick}] cover error:`, e);
+    }
+  }
+
+  loadLastMintCover("PIXELONKAS");
+  loadLastMintCover("SYKORA");
+})();
+</script>
+
 </body>
 </html>
