@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PIXELONKASPA</title>
+  <title>PIXEL on Kaspa</title>
   <style>
     :root{
       --bg1:#121623;
@@ -14,25 +14,26 @@
       --accent:#00c4ff;
       --accentSoft: rgba(0,196,255,.14);
       --shadow: 0 18px 35px rgba(0,0,0,.50);
-      --danger:#ffb4b4;
+      --text:#f5f5f5;
     }
     *{box-sizing:border-box}
+    html,body{height:100%}
     body{
       margin:0;
       font-family: system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
       background: radial-gradient(circle at top, var(--bg1) 0, var(--bg2) 52%);
-      color:#f5f5f5;
+      color:var(--text);
       min-height:100vh;
     }
     a{color:inherit}
-    .wrap{max-width:1180px;margin:0 auto;padding:22px 16px 60px}
+    .wrap{max-width:1100px;margin:0 auto;padding:22px 16px 56px}
 
     /* Top bar */
     .topbar{
       display:flex;align-items:center;justify-content:space-between;
       gap:14px;
       border:1px solid var(--border);
-      border-radius:18px;
+      border-radius:16px;
       background: var(--panel);
       backdrop-filter: blur(10px);
       padding:12px 14px;
@@ -40,9 +41,14 @@
     }
     .brand{
       display:flex;align-items:baseline;gap:10px;
-      font-weight:950;
+      letter-spacing:.14em;
       text-transform:uppercase;
-      letter-spacing:.16em;
+      font-weight:900;
+      white-space:nowrap;
+    }
+    .brand small{
+      opacity:.7;font-weight:700;letter-spacing:.10em;text-transform:none;
+      white-space:nowrap;
     }
     .nav{
       display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center;
@@ -55,12 +61,11 @@
       padding:9px 14px;border-radius:999px;
       border:1px solid rgba(255,255,255,.16);
       background: rgba(255,255,255,.06);
-      color: rgba(255,255,255,.90);
-      font-weight:800;
+      color: rgba(255,255,255,.88);
+      font-weight:750;
       transition: background .15s, color .15s, transform .15s, border-color .15s;
       white-space:nowrap;
-      cursor:pointer;
-      user-select:none;
+      line-height:1;
     }
     .btn:hover{background: rgba(255,255,255,.12);color:#fff;transform: translateY(-1px);}
     .btnPrimary{
@@ -74,57 +79,77 @@
       border-color: rgba(255,255,255,.16);
       opacity:.95;
     }
+    .btnIcon{
+      padding:8px 12px;
+    }
+    .btnIcon img{
+      width:18px;height:18px;display:block;
+      border-radius:4px;
+    }
 
     /* Hero */
     .hero{
-      margin-top:22px;
+      margin-top:18px;
       border:1px solid var(--border);
       border-radius:22px;
-      background: rgba(0,0,0,.14);
+      background: var(--panel);
       backdrop-filter: blur(10px);
-      padding:26px 18px 18px;
       box-shadow: var(--shadow);
+      padding:22px 18px 18px;
       position:relative;
       overflow:hidden;
       text-align:center;
     }
     .hero::before{
       content:"";
-      position:absolute;inset:-140px -140px auto auto;
+      position:absolute;inset:-140px -160px auto auto;
       width:320px;height:320px;
-      background: radial-gradient(circle at center, rgba(0,196,255,.22), transparent 62%);
+      background: radial-gradient(circle at center, rgba(0,196,255,.22), transparent 60%);
       filter: blur(2px);
-      transform: rotate(12deg);
+      transform: rotate(10deg);
       pointer-events:none;
     }
-    .heroTitle{
-      margin:4px 0 10px;
-      font-size:58px;
-      letter-spacing:.28em; /* bigger gaps */
+    h1{
+      margin:0 0 10px;
+      font-size:54px;
+      letter-spacing:.22em;           /* bigger spacing */
       text-transform:uppercase;
-      font-weight:950;
       line-height:1.02;
     }
-    .heroSub{
-      margin:0 auto 14px;
-      max-width: 70ch;
-      opacity:.78;
+    .sub{
+      margin:0 auto 2px;
+      opacity:.80;
       font-size:16px;
-      line-height:1.55;
+      max-width: 70ch;
     }
-    .heroSub b{color:var(--accent)}
-    .ctaRow{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+    .sub2{
+      margin:10px auto 0;
+      opacity:.70;
+      font-size:13px;
+      max-width: 70ch;
+    }
+    .heroCtas{
+      display:flex;gap:10px;flex-wrap:wrap;justify-content:center;
+      margin-top:14px;
+    }
 
-    /* Cards */
+    /* Collections */
+    .sectionTitle{
+      margin:22px 0 12px;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      font-weight:900;
+      font-size:14px;
+      opacity:.85;
+    }
     .cards{
-      margin-top:18px;
       display:grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap:16px;
     }
     .card{
       border:1px solid var(--border);
-      border-radius:22px;
+      border-radius:20px;
       background: rgba(0,0,0,.18);
       backdrop-filter: blur(10px);
       padding:16px;
@@ -132,12 +157,11 @@
       transition: transform .15s ease-out, border-color .15s, box-shadow .15s;
       overflow:hidden;
     }
-    .card:hover{transform: translateY(-3px); border-color: rgba(0,196,255,.22); box-shadow:0 24px 44px rgba(0,0,0,.72);}
-
+    .card:hover{transform: translateY(-3px); border-color: rgba(0,196,255,.22); box-shadow:0 24px 40px rgba(0,0,0,.7);}
     .thumb{
       width:100%;
       aspect-ratio: 16/10;
-      border-radius:18px;
+      border-radius:16px;
       border:1px solid rgba(255,255,255,.10);
       background: #000;
       overflow:hidden;
@@ -148,19 +172,19 @@
       position:relative;
     }
     .thumb img{width:100%;height:100%;object-fit:cover;display:block}
-    .tag{
+    .thumb .tag{
       position:absolute;left:10px;top:10px;
       padding:6px 10px;border-radius:999px;
       border:1px solid rgba(0,196,255,.35);
       background: rgba(0,196,255,.10);
       color: var(--accent);
-      font-weight:950;
+      font-weight:900;
       font-size:12px;
-      letter-spacing:.10em;
+      letter-spacing:.08em;
       text-transform:uppercase;
       backdrop-filter: blur(10px);
     }
-    .hint{
+    .thumb .hint{
       position:absolute;right:10px;top:10px;
       padding:6px 10px;border-radius:999px;
       border:1px solid rgba(255,255,255,.14);
@@ -168,17 +192,13 @@
       opacity:.88;
       font-size:12px;
       backdrop-filter: blur(10px);
-      max-width: 70%;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
     }
     .cardHead{
       display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
       margin-bottom:10px;
     }
     .cardHead b{
-      font-size:18px;letter-spacing:.12em;text-transform:uppercase;
+      font-size:18px;letter-spacing:.10em;text-transform:uppercase;
     }
     .chip{
       padding:6px 10px;border-radius:999px;
@@ -188,7 +208,7 @@
       font-size:12px;
       white-space:nowrap;
     }
-    .card p{margin:0 0 14px;opacity:.78;line-height:1.55}
+    .card p{margin:0 0 14px;opacity:.78;line-height:1.5}
     .cardActions{display:flex;gap:10px;flex-wrap:wrap}
 
     /* Footer */
@@ -204,116 +224,66 @@
     footer a{color: var(--accent); text-decoration:none}
     footer a:hover{text-decoration:underline}
 
-    /* Modal / Overlay */
-    .overlay{
-      position:fixed; inset:0;
-      display:none;
-      align-items:center; justify-content:center;
-      padding:18px;
-      background: rgba(0,0,0,.72);
-      z-index:9999;
-    }
-    .overlay.open{display:flex;}
-    .modal{
-      width: min(1000px, 96vw);
-      max-height: 92vh;
-      overflow:auto;
-      border-radius: 18px;
-      border: 1px solid rgba(255,255,255,.14);
-      background: rgba(10,12,18,.92);
-      box-shadow: 0 30px 80px rgba(0,0,0,.75);
-      backdrop-filter: blur(10px);
-    }
-    .modalTop{
-      display:flex; justify-content:space-between; align-items:center;
-      gap:12px; padding: 12px 14px;
-      border-bottom: 1px solid rgba(255,255,255,.10);
-      position: sticky; top: 0;
-      background: rgba(10,12,18,.92);
-    }
-    .modalTop b{
-      letter-spacing:.12em;
-      text-transform:uppercase;
-    }
-    .modalBody{padding:14px;}
-    .grid2{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:14px;
-    }
-    .box{
-      border:1px solid rgba(255,255,255,.12);
-      border-radius:16px;
-      background: rgba(255,255,255,.04);
-      padding:12px;
-    }
-    .box h3{
-      margin:0 0 8px;
-      letter-spacing:.10em;
-      text-transform:uppercase;
-      font-size:13px;
-      opacity:.9;
-    }
-    .box ul{margin:0;padding-left:16px;opacity:.82;line-height:1.55}
-    .box li{margin:6px 0}
-    .smallNote{opacity:.7;font-size:12px;margin-top:10px}
-    .err{
-      color: var(--danger);
-      border:1px solid rgba(255,180,180,.30);
-      background: rgba(255,180,180,.06);
-      padding:10px 12px;
-      border-radius:14px;
-      margin-top:10px;
-    }
-
-    @media (max-width: 980px){
+    @media (max-width: 920px){
+      h1{font-size:40px;letter-spacing:.18em}
       .cards{grid-template-columns:1fr}
-      .heroTitle{font-size:42px; letter-spacing:.22em;}
-      .grid2{grid-template-columns:1fr}
-      .brand{letter-spacing:.12em}
+      .brand small{display:none}
     }
   </style>
 </head>
 <body>
   <div class="wrap">
+
     <div class="topbar">
-      <div class="brand">PIXELONKASPA</div>
+      <div class="brand">
+        PIXEL ON KASPA <small>sound → image → chain</small>
+      </div>
       <div class="nav">
-        <a class="btn btnPrimary" href="/viewer">Viewer</a>
-        <button class="btn" id="rewardsBtn" type="button">Rewards</button>
+        <!-- Topbar: no Viewer/Rewards under title; keep navigation here -->
+        <a class="btn btnPrimary" href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">Open $PIXEL</a>
+
+        <a class="btn" href="/viewer">Viewer</a>
         <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">Mint PIXELONKAS</a>
         <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">Mint SYKORA</a>
-        <a class="btn btnGhost" href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">$PIXEL</a>
+
+        <a class="btn btnIcon btnGhost" href="/synthi" title="SYNTHI">
+          <img src="/logo.png" alt="SYNTHI">
+          SYNTHI
+        </a>
+
         <a class="btn btnGhost" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
         <a class="btn btnGhost" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
       </div>
     </div>
 
     <section class="hero">
-      <div class="heroTitle">PIXELONKASPA</div>
-      <p class="heroSub">
-        <b>$PIXEL</b>, KRC20 token on Kaspa. <br/>
-        Sound-driven image generation inscribed on the Kaspa blockDAG. Two collections. Minted pieces only.
+      <h1>PIXEL&nbsp;ON&nbsp;KASPA</h1>
+      <p class="sub">
+        <b>$PIXEL</b> is a KRC-20 token on Kaspa powering the Pixel on Kaspa ecosystem.
       </p>
-      <div class="ctaRow">
-        <a class="btn btnPrimary" href="/viewer">Open Viewer</a>
-        <button class="btn" id="rewardsBtn2" type="button">Rewards</button>
-        <a class="btn" href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">Open $PIXEL</a>
+      <p class="sub2">
+        Sound-driven image generation inscribed on the Kaspa blockDAG.
+      </p>
+
+      <div class="heroCtas">
+        <a class="btn btnPrimary" href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">Open $PIXEL</a>
+        <a class="btn" href="/viewer">Open Viewer</a>
       </div>
     </section>
 
+    <div id="collections" class="sectionTitle">NFT Collections</div>
     <section class="cards">
       <div class="card">
         <div class="thumb" id="thumbPIXELONKAS">
           <span class="tag">PIXELONKAS</span>
-          <span class="hint" id="hintPIXELONKAS">Loading last mint…</span>
+          <span class="hint" id="hintPIXELONKAS">Loading…</span>
         </div>
         <div class="cardHead">
           <b>PIXELONKAS</b>
-          <span class="chip">Genesis (342)</span>
+          <span class="chip">342 total</span>
         </div>
         <p>
-          Limited collection of 342 sound-generated NFTs. Rarity-based <b>$PIXEL</b> rewards.
+          Genesis collection of sound-generated frames with rarity-based <b>$PIXEL</b> rewards.
         </p>
         <div class="cardActions">
           <a class="btn btnPrimary" href="/viewer">Open Viewer</a>
@@ -324,14 +294,14 @@
       <div class="card">
         <div class="thumb" id="thumbSYKORA">
           <span class="tag">SYKORA</span>
-          <span class="hint" id="hintSYKORA">Loading last mint…</span>
+          <span class="hint" id="hintSYKORA">Loading…</span>
         </div>
         <div class="cardHead">
           <b>SYKORA</b>
-          <span class="chip">Expanded (2,518)</span>
+          <span class="chip">2,518 total</span>
         </div>
         <p>
-          Expanded set with instant collector perks for selected styles/rarities.
+          Expanded collection with instant <b>$PIXEL</b> perks for selected rarities and collector milestones.
         </p>
         <div class="cardActions">
           <a class="btn btnPrimary" href="/viewer">Open Viewer</a>
@@ -343,73 +313,24 @@
     <footer>
       <div>© Pixel on Kaspa</div>
       <div>
-        <a href="/viewer">Viewer</a> ·
         <a href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">$PIXEL</a> ·
+        <a href="/viewer">Viewer</a> ·
         <a href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a> ·
         <a href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
       </div>
     </footer>
-  </div>
 
-  <!-- Rewards modal -->
-  <div class="overlay" id="overlay" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true">
-      <div class="modalTop">
-        <b>Rewards</b>
-        <button class="btn btnGhost" id="closeOverlay" type="button">Close</button>
-      </div>
-      <div class="modalBody">
-        <div class="grid2">
-          <div class="box">
-            <h3>PIXELONKAS Rewards</h3>
-            <ul>
-              <li><b>Total rewards:</b> 10B $PIXEL</li>
-              <li>🔥 <b>Super Broken</b> (1) → <b>1B</b> $PIXEL</li>
-              <li>⚡ <b>Broken</b> (24) → <b>100M</b> $PIXEL</li>
-              <li>⚫ Grey (10) → 80M</li>
-              <li>🟠 Orange (15) → 50M</li>
-              <li>🟡 Yellow (17) → 30M</li>
-              <li>🌸 Pink (22) → 26M</li>
-              <li>🔴 Red (25) → 24M</li>
-              <li>🟣 Purple (27) → 22M</li>
-              <li>⚪ White (28) → 20M</li>
-              <li>🟩 Green (46) → 15M</li>
-              <li>⚫ Black (63) → 12M</li>
-              <li>🔵 Blue (64) → 12M</li>
-            </ul>
-            <div class="smallNote">Mint price: 287 KAS (per your announcement).</div>
-          </div>
-
-          <div class="box">
-            <h3>SYKORA Instant Perks</h3>
-            <ul>
-              <li>❄️ <b>Ice</b> (23) → instant <b>100M</b> $PIXEL + future airdrop</li>
-              <li>⚫ <b>Black style</b> (9) → instant <b>80M</b> $PIXEL + 1 bonus SYKORA NFT</li>
-              <li>💖 <b>Pink style</b> (58) → instant <b>40M</b> $PIXEL</li>
-              <li>🔑 Own 5 different styles → special bonus (larger $PIXEL reward)</li>
-              <li>⏳ Total supply: 2,518</li>
-            </ul>
-            <div class="smallNote">Rewards panel is informational (you can later wire it to on-chain data if you want).</div>
-          </div>
-        </div>
-
-        <div class="smallNote">
-          Quick links:
-          <a href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">PIXELONKAS mint</a> ·
-          <a href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">SYKORA mint</a> ·
-          <a href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">$PIXEL token</a>
-        </div>
-      </div>
-    </div>
   </div>
 
 <script>
 (() => {
-  // NOTE: For "last minted by date" we try api.kaspa.com first (mint endpoint),
-  // then fall back to "last minted id" derived from krc721.stream ranges if needed.
+  // NOTE:
+  // - Covers are loaded from the LAST minted token by mint timestamp if we can read it.
+  // - If kaspa API doesn’t return data (CORS / schema differences), we gracefully fall back to the
+  //   "ranges" method (find last minted ID in the id space).
 
-  const API_KASPACOM = "https://api.kaspa.com/api";
-  const API_STREAM = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
+  const STREAM_API = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
+  const KASPA_API  = "https://api.kaspa.com/api"; // used for best-effort last-mint by date
 
   const IPFS_GATEWAYS = [
     "https://dweb.link/ipfs/",
@@ -432,27 +353,16 @@
 
   const qs = (s)=>document.querySelector(s);
 
-  // Modal wiring
-  const overlay = qs("#overlay");
-  const openOverlay = () => { overlay.classList.add("open"); overlay.setAttribute("aria-hidden","false"); };
-  const closeOverlay = () => { overlay.classList.remove("open"); overlay.setAttribute("aria-hidden","true"); };
-
-  qs("#rewardsBtn").addEventListener("click", openOverlay);
-  qs("#rewardsBtn2").addEventListener("click", openOverlay);
-  qs("#closeOverlay").addEventListener("click", closeOverlay);
-  overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeOverlay(); });
-  document.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && overlay.classList.contains("open")) closeOverlay(); });
-
   function ipfsPath(ipfsUrl){
     if(!ipfsUrl) return "";
-    if(String(ipfsUrl).startsWith("ipfs://")) return String(ipfsUrl).slice("ipfs://".length);
-    const m = String(ipfsUrl).match(/\/ipfs\/(.+)$/);
+    if(ipfsUrl.startsWith("ipfs://")) return ipfsUrl.slice("ipfs://".length);
+    const m = ipfsUrl.match(/\/ipfs\/(.+)$/);
     return m ? m[1] : "";
   }
 
-  async function fetchJson(url){
-    const r = await fetch(url, { cache:"no-store" });
-    if(!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
+  async function fetchJson(url, opts){
+    const r = await fetch(url, { cache:"no-store", ...opts });
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
     return r.json();
   }
 
@@ -471,85 +381,14 @@
     return set;
   }
 
-  // fallback: last minted ID (not by date), derived from "available ranges"
+  // Fallback: last minted by scanning id space and remembering last minted (not available)
   function lastMintedIdFromAvailableRanges({ idMin, max, rangesString }){
     const avail = availableSetFromRangesString(rangesString);
-    for(let id=max; id>=idMin; id--){
-      if(!avail.has(id)) return id;
+    let last = null;
+    for(let id=idMin; id<=max; id++){
+      if(!avail.has(id)) last = id;
     }
-    return null;
-  }
-
-  function pickTime(obj){
-    // tries multiple possible fields
-    const candidates = [
-      obj?.mintedAt,
-      obj?.mintTime,
-      obj?.createdAt,
-      obj?.created_at,
-      obj?.timestamp,
-      obj?.time,
-      obj?.date,
-      obj?.blockTime,
-      obj?.mts,
-      obj?.mtsAdd
-    ];
-    for(const c of candidates){
-      if(typeof c === "number" && Number.isFinite(c)) return c;
-      if(typeof c === "string" && c.trim()){
-        const n = Number(c);
-        if(Number.isFinite(n)) return n;
-        const d = Date.parse(c);
-        if(Number.isFinite(d)) return d;
-      }
-    }
-    return -1;
-  }
-
-  function pickTokenId(obj){
-    const cands = [obj?.tokenId, obj?.id, obj?.token_id, obj?.serial, obj?.index];
-    for(const c of cands){
-      const n = Number(c);
-      if(Number.isFinite(n) && n > 0) return n;
-    }
-    return null;
-  }
-
-  // Primary: api.kaspa.com recent mints (by date)
-  async function getLastMintFromKaspaCom(ticker){
-    // If ticker-filtered returns [], we will try global endpoint and filter locally.
-    let arr = null;
-
-    try{
-      const a = await fetchJson(`${API_KASPACOM}/krc721/mint?ticker=${encodeURIComponent(ticker)}`);
-      if(Array.isArray(a)) arr = a;
-    }catch(e){ /* ignore */ }
-
-    // if empty or not array -> try without ticker and filter
-    if(!Array.isArray(arr) || arr.length === 0){
-      try{
-        const all = await fetchJson(`${API_KASPACOM}/krc721/mint`);
-        if(Array.isArray(all)) arr = all.filter(x => String(x?.ticker || x?.collection || "").toUpperCase() === String(ticker).toUpperCase());
-      }catch(e){ arr = []; }
-    }
-
-    if(!Array.isArray(arr) || arr.length === 0) return null;
-
-    // pick newest by time
-    let best = null;
-    let bestT = -1;
-    for(const it of arr){
-      const t = pickTime(it);
-      if(t > bestT){
-        bestT = t;
-        best = it;
-      }
-    }
-
-    if(!best) return null;
-    const tokenId = pickTokenId(best);
-    if(!tokenId) return null;
-    return { tokenId, time: bestT };
+    return last;
   }
 
   function metaCandidatePaths(buri, tick, tokenId){
@@ -606,13 +445,47 @@
     return { url: String(raw), ipfs: null };
   }
 
-  function formatTime(msOrSec){
-    if(!Number.isFinite(msOrSec) || msOrSec <= 0) return "";
-    // heuristics: if looks like seconds, convert
-    const ms = msOrSec < 2e12 ? msOrSec * 1000 : msOrSec;
-    const d = new Date(ms);
-    if(Number.isNaN(d.getTime())) return "";
-    return d.toLocaleString(undefined, { year:"numeric", month:"short", day:"2-digit", hour:"2-digit", minute:"2-digit" });
+  // Best-effort: ask Kaspa API for the newest minted token (by timestamp).
+  // We don't know the exact request schema for /krc721/tokens, so we try a small set of bodies.
+  async function tryGetLastMintFromKaspaApi(ticker){
+    const endpoint = `${KASPA_API}/krc721/tokens`;
+
+    const candidates = [
+      // minimal required field (we know ticker is required)
+      { ticker: String(ticker), page: 1, pageSize: 1, sortBy: "mintedAt", sortDirection: "desc" },
+      { ticker: String(ticker), offset: 0, limit: 1, sort: "mintedAt", order: "desc" },
+      { ticker: String(ticker), page: 1, perPage: 1, sort: "mintedAt", sortDirection: "desc" },
+      { ticker: String(ticker), page: 1, pageSize: 1, sortBy: "createdAt", sortDirection: "desc" },
+    ];
+
+    for(const body of candidates){
+      try{
+        const res = await fetchJson(endpoint, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body)
+        });
+
+        // expected-ish shapes:
+        // { items:[{ tokenId: "123", ... }], totalCount: ... }
+        // { data:[...]} etc.
+        const items =
+          Array.isArray(res?.items) ? res.items :
+          Array.isArray(res?.data) ? res.data :
+          Array.isArray(res) ? res :
+          [];
+
+        if(items.length){
+          const it = items[0];
+          const tokenId = it?.tokenId ?? it?.id ?? it?.nftId ?? it?.token_id;
+          if(tokenId != null) return Number(tokenId);
+        }
+      }catch(_e){
+        // ignore and try next schema
+      }
+    }
+
+    return null;
   }
 
   async function loadCover(tick){
@@ -621,37 +494,41 @@
     const hint = qs(`#hint${tick}`);
     if(!cfg || !thumb || !hint) return;
 
+    // 1) prefer last-mint by timestamp from Kaspa API (if available)
+    let coverId = null;
     try{
-      hint.textContent = "Loading last mint…";
+      coverId = await tryGetLastMintFromKaspaApi(tick);
+    }catch(_e){ /* ignore */ }
 
-      // 1) try kaspa.com mint API (by date)
-      let last = await getLastMintFromKaspaCom(tick);
-
-      // 2) fallback: derive last minted id from stream ranges
-      if(!last){
-        const raw = await fetchJson(`${API_STREAM}/ranges/${encodeURIComponent(tick)}`);
+    // 2) fallback: compute from krc721.stream ranges
+    if(!Number.isFinite(coverId)){
+      try{
+        const raw = await fetchJson(`${STREAM_API}/ranges/${encodeURIComponent(tick)}`);
         const res = unwrapResult(raw);
-        if(typeof res !== "string" || !res.trim()) throw new Error("Missing ranges string");
-        const tokenId = lastMintedIdFromAvailableRanges({ idMin: cfg.idMin, max: cfg.max, rangesString: res });
-        if(!tokenId) throw new Error("No minted IDs yet");
-        last = { tokenId, time: -1 };
-      }
+        if(typeof res === "string" && res.trim()){
+          coverId = lastMintedIdFromAvailableRanges({ idMin: cfg.idMin, max: cfg.max, rangesString: res });
+        }
+      }catch(_e){ /* ignore */ }
+    }
 
-      const coverId = last.tokenId;
-      const when = formatTime(last.time);
-      hint.textContent = when ? `Last mint: #${coverId} · ${when}` : `Last mint: #${coverId}`;
+    if(!Number.isFinite(coverId)){
+      hint.textContent = "Cover unavailable";
+      return;
+    }
 
+    hint.textContent = `Last mint: #${coverId}`;
+
+    try{
       const meta = await fetchMetaFromGateways(metaCandidatePaths(cfg.buri, tick, coverId));
       const { url, ipfs } = extractImage(meta);
       if(!url) throw new Error("No image in metadata");
 
       thumb.innerHTML = `
         <span class="tag">${tick}</span>
-        <span class="hint">${hint.textContent}</span>
+        <span class="hint">Last mint: #${coverId}</span>
         <img src="${url}" alt="${tick} cover" loading="lazy">
       `;
 
-      // image gateway fallback if ipfs
       const img = thumb.querySelector("img");
       if(img && ipfs){
         let gw = 0;
@@ -662,9 +539,8 @@
           }
         };
       }
-    } catch (e){
-      hint.textContent = "Cover unavailable";
-      // keep placeholder
+    }catch(_e){
+      hint.textContent = `Last mint: #${coverId} (image unavailable)`;
     }
   }
 
