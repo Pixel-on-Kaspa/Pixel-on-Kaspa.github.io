@@ -15,6 +15,7 @@
       --accentSoft: rgba(0,196,255,.14);
       --shadow: 0 18px 35px rgba(0,0,0,.50);
       --text:#f5f5f5;
+      --danger:#ffb4b4;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -67,6 +68,7 @@
       white-space:nowrap;
       line-height:1;
       cursor:pointer;
+      user-select:none;
     }
     .btn:hover{background: rgba(255,255,255,.12);color:#fff;transform: translateY(-1px);}
     .btnPrimary{
@@ -87,6 +89,18 @@
       width:18px;height:18px;display:block;
       border-radius:4px;
     }
+
+    /* Rewards button bigger */
+    .btnRewards{
+      font-size:1.02rem;     /* bigger text */
+      font-weight:900;
+      letter-spacing:.08em;
+      padding:10px 16px;
+      border-color: rgba(0,196,255,.55);
+      background: rgba(0,196,255,.10);
+      color: var(--accent);
+    }
+    .btnRewards:hover{background: var(--accent); color:#020308;}
 
     /* Hero */
     .hero{
@@ -225,22 +239,26 @@
     footer a{color: var(--accent); text-decoration:none}
     footer a:hover{text-decoration:underline}
 
-    /* =========================
-       Rewards Modal / Overlay
-       ========================= */
-    .modal{
-      position: fixed; inset: 0;
-      display: none;
-      align-items: center; justify-content: center;
+    @media (max-width: 920px){
+      h1{font-size:40px;letter-spacing:.18em}
+      .cards{grid-template-columns:1fr}
+      .brand small{display:none}
+    }
+
+    /* Rewards modal */
+    .overlay{
+      position: fixed; inset:0;
+      display:none;
+      align-items:center; justify-content:center;
       padding: 18px;
-      background: rgba(0,0,0,.72);
+      background: rgba(0,0,0,.74);
       z-index: 9999;
     }
-    .modal.open{ display:flex; }
-    .modalPanel{
-      width: min(1100px, 96vw);
-      max-height: 92vh;
-      overflow: auto;
+    .overlay.open{display:flex;}
+    .modal{
+      width: min(980px, 96vw);
+      max-height: 90vh;
+      overflow:auto;
       border-radius: 18px;
       border: 1px solid rgba(255,255,255,.14);
       background: rgba(10,12,18,.92);
@@ -248,96 +266,39 @@
       backdrop-filter: blur(10px);
     }
     .modalTop{
-      display:flex; justify-content: space-between; align-items:flex-start;
-      gap:12px; padding: 12px 14px;
+      display:flex; justify-content:space-between; align-items:center;
+      gap: 12px;
+      padding: 12px 14px;
       border-bottom: 1px solid rgba(255,255,255,.10);
-      position: sticky; top: 0;
+      position: sticky; top:0;
       background: rgba(10,12,18,.92);
     }
-    .modalTitle{display:flex; flex-direction:column; gap:2px;}
-    .modalTitle b{letter-spacing:.12em; text-transform:uppercase}
-    .modalSub{opacity:.7;font-size:12px}
-    .modalActions{display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end}
-    .modalBody{padding: 14px}
-
-    .tabRow{
-      display:inline-flex; gap:6px; padding:4px;
-      border-radius:999px;
+    .modalTop b{letter-spacing:.10em;text-transform:uppercase}
+    .modalBody{padding: 14px;}
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .box{
       border:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.18);
+      background: rgba(255,255,255,.04);
+      border-radius: 14px;
+      padding: 12px;
     }
-    .tab{
-      border:none; background:transparent;
-      color: rgba(255,255,255,.7);
-      padding:8px 14px;
-      border-radius:999px;
-      cursor:pointer;
-      font-weight:800;
-      letter-spacing:.06em;
-    }
-    .tab.active{ background: rgba(0,196,255,.14); color:#00c4ff; }
-
-    .tabPane{display:none}
-    .tabPane.open{display:block}
-
-    .h3{
-      margin:0 0 10px;
+    .box h3{
+      margin:0 0 8px;
       letter-spacing:.10em;
       text-transform:uppercase;
-      font-size:14px;
-      opacity:.95;
-    }
-    .p{margin:0 0 12px; opacity:.82; line-height:1.6}
-    .p.subtle{opacity:.72}
-
-    .pillRow{display:flex; gap:10px; flex-wrap:wrap; margin: 10px 0 14px}
-    .pill{
-      padding:7px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
       font-size:13px;
       opacity:.9;
     }
-    .pillLink{
-      padding:8px 12px;border-radius:999px;
-      border:1px solid rgba(0,196,255,.40);
-      background: rgba(0,196,255,.08);
-      color:#00c4ff;
-      text-decoration:none;
-      font-weight:850;
-      font-size:13px;
-    }
-    .pillLink:hover{background:#00c4ff;color:#020308}
-
-    .table{
-      border:1px solid rgba(255,255,255,.10);
-      border-radius: 14px;
-      overflow:hidden;
-    }
-    .tr{
-      display:grid;
-      grid-template-columns: 1.2fr .5fr .9fr;
-      gap:10px;
-      padding:10px 12px;
-      border-top:1px solid rgba(255,255,255,.08);
-      background: rgba(255,255,255,.03);
-    }
-    .tr.head{
-      border-top:none;
-      background: rgba(255,255,255,.06);
-      font-weight:900;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-      font-size:12px;
-      opacity:.9;
-    }
-
-    @media (max-width: 920px){
-      h1{font-size:40px;letter-spacing:.18em}
-      .cards{grid-template-columns:1fr}
-      .brand small{display:none}
-    }
-    @media (max-width: 720px){
-      .tr{grid-template-columns: 1fr}
+    .box p{margin:0 0 10px;opacity:.78;line-height:1.55}
+    .list{margin:0;padding-left:16px;opacity:.80}
+    .list li{margin:6px 0}
+    .muted{opacity:.70}
+    @media (max-width: 860px){
+      .grid2{grid-template-columns:1fr;}
     }
   </style>
 </head>
@@ -348,18 +309,20 @@
       <div class="brand">
         PIXEL ON KASPA <small>sound → image → chain</small>
       </div>
+
       <div class="nav">
-        <a class="btn btnPrimary" href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">Open $PIXEL</a>
-
-        <!-- ✅ Rewards button (modal) -->
-        <button class="btn" id="rewardsBtn" type="button">Rewards</button>
-
+        <!-- Removed: Open $PIXEL from topbar (as requested) -->
         <a class="btn" href="/viewer">Viewer</a>
+
+        <!-- Bigger Rewards -->
+        <button class="btn btnRewards" id="rewardsBtn" type="button">REWARDS</button>
+
         <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">Mint PIXELONKAS</a>
         <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">Mint SYKORA</a>
 
+        <!-- SYNTHI (icon from assets/img/logo.png) -->
         <a class="btn btnIcon btnGhost" href="/synthi" title="SYNTHI">
-          <img src="/logo.png" alt="SYNTHI">
+          <img src="assets/img/logo.png" alt="SYNTHI" onerror="this.style.display='none'">
           SYNTHI
         </a>
 
@@ -370,16 +333,13 @@
 
     <section class="hero">
       <h1>PIXEL&nbsp;ON&nbsp;KASPA</h1>
-      <p class="sub">
-        <b>$PIXEL</b> is a KRC-20 utility token.
-      </p>
-      <p class="sub2">
-        Sound-driven image generation inscribed on the Kaspa blockDAG.
-      </p>
+      <p class="sub"><b>$PIXEL</b> is a KRC-20 utility token.</p>
+      <p class="sub2">Sound-driven image generation inscribed on the Kaspa blockDAG.</p>
 
-      <!-- ✅ pod nápisem jen Open $PIXEL -->
       <div class="heroCtas">
         <a class="btn btnPrimary" href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">Open $PIXEL</a>
+        <a class="btn" href="/viewer">Open Viewer</a>
+        <button class="btn btnGhost" id="rewardsBtn2" type="button">View Rewards</button>
       </div>
     </section>
 
@@ -394,9 +354,7 @@
           <b>PIXELONKAS</b>
           <span class="chip">342 total</span>
         </div>
-        <p>
-          Genesis collection of sound-generated frames with rarity-based <b>$PIXEL</b> rewards.
-        </p>
+        <p>Genesis collection of sound-generated frames with rarity-based <b>$PIXEL</b> rewards.</p>
         <div class="cardActions">
           <a class="btn btnPrimary" href="/viewer">Open Viewer</a>
           <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
@@ -412,9 +370,7 @@
           <b>SYKORA</b>
           <span class="chip">2,518 total</span>
         </div>
-        <p>
-          Expanded collection with instant <b>$PIXEL</b> perks for selected rarities and collector milestones.
-        </p>
+        <p>Expanded collection with instant <b>$PIXEL</b> perks for selected rarities and collector milestones.</p>
         <div class="cardActions">
           <a class="btn btnPrimary" href="/viewer">Open Viewer</a>
           <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
@@ -434,80 +390,62 @@
 
   </div>
 
-  <!-- =========================
-       Rewards Modal / Overlay
-       ========================= -->
-  <div id="rewardsModal" class="modal" aria-hidden="true">
-    <div class="modalPanel" role="dialog" aria-modal="true" aria-labelledby="rewardsTitle">
+  <!-- Rewards overlay -->
+  <div class="overlay" id="rewardsOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Rewards">
       <div class="modalTop">
-        <div class="modalTitle">
-          <b id="rewardsTitle">Rewards</b>
-          <span class="modalSub">Rarity-based $PIXEL perks for collectors</span>
+        <div>
+          <b>Rewards</b>
+          <div class="muted" style="font-size:12px;margin-top:3px;">$PIXEL perks for collectors</div>
         </div>
-
-        <div class="modalActions">
-          <div class="tabRow" role="tablist" aria-label="Rewards tabs">
-            <button class="tab active" type="button" data-tab="pxk" role="tab" aria-selected="true">PIXELONKAS</button>
-            <button class="tab" type="button" data-tab="syk" role="tab" aria-selected="false">SYKORA</button>
-          </div>
-          <button class="btn btnGhost" id="rewardsClose" type="button">Close</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+          <a class="btn btnPrimary" href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">Open $PIXEL</a>
+          <button class="btn btnGhost" id="closeRewards" type="button">Close</button>
         </div>
       </div>
-
       <div class="modalBody">
-        <!-- PIXELONKAS -->
-        <div class="tabPane open" data-pane="pxk" role="tabpanel">
-          <h3 class="h3">Introducing PIXELONKAS</h3>
-          <p class="p">
-            A limited collection of <b>342</b> unique sound-generated NFTs on Kaspa.
-            Each mint comes with a special <b>$PIXEL</b> reward — the rarer the color, the bigger the prize.
-          </p>
-
-          <div class="pillRow">
-            <span class="pill">Mint price: <b>287 KAS</b></span>
-            <a class="pillLink" target="_blank" rel="noreferrer" href="https://kaspa.com/nft/collections/PIXELONKAS">Mint PIXELONKAS</a>
-            <a class="pillLink" target="_blank" rel="noreferrer" href="https://kaspa.com/tokens/marketplace/token/PIXEL">Open $PIXEL</a>
+        <div class="grid2">
+          <div class="box">
+            <h3>PIXELONKAS — Rewards</h3>
+            <p class="muted">Total rewards: <b>10B $PIXEL</b> • Mint price: <b>287 KAS</b> • Supply: <b>342</b></p>
+            <ul class="list">
+              <li><b>Super Broken (1)</b> → <b>1B $PIXEL</b></li>
+              <li><b>Broken (24)</b> → <b>100M $PIXEL</b></li>
+              <li><b>Grey (10)</b> → <b>80M $PIXEL</b></li>
+              <li><b>Orange (15)</b> → <b>50M $PIXEL</b></li>
+              <li><b>Yellow (17)</b> → <b>30M $PIXEL</b></li>
+              <li><b>Pink (22)</b> → <b>26M $PIXEL</b></li>
+              <li><b>Red (25)</b> → <b>24M $PIXEL</b></li>
+              <li><b>Purple (27)</b> → <b>22M $PIXEL</b></li>
+              <li><b>White (28)</b> → <b>20M $PIXEL</b></li>
+              <li><b>Green (46)</b> → <b>15M $PIXEL</b></li>
+              <li><b>Black (63)</b> → <b>12M $PIXEL</b></li>
+              <li><b>Blue (64)</b> → <b>12M $PIXEL</b></li>
+            </ul>
+            <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
+              <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">Mint PIXELONKAS</a>
+            </div>
           </div>
 
-          <div class="table">
-            <div class="tr head"><div>Rarity</div><div>Count</div><div>Reward</div></div>
-            <div class="tr"><div>🔥 Super Broken</div><div>1</div><div><b>1B</b> $PIXEL</div></div>
-            <div class="tr"><div>⚡ Broken</div><div>24</div><div><b>100M</b> $PIXEL</div></div>
-            <div class="tr"><div>⚫ Grey</div><div>10</div><div><b>80M</b> $PIXEL</div></div>
-            <div class="tr"><div>🟠 Orange</div><div>15</div><div><b>50M</b> $PIXEL</div></div>
-            <div class="tr"><div>🟡 Yellow</div><div>17</div><div><b>30M</b> $PIXEL</div></div>
-            <div class="tr"><div>🌸 Pink</div><div>22</div><div><b>26M</b> $PIXEL</div></div>
-            <div class="tr"><div>🔴 Red</div><div>25</div><div><b>24M</b> $PIXEL</div></div>
-            <div class="tr"><div>🟣 Purple</div><div>27</div><div><b>22M</b> $PIXEL</div></div>
-            <div class="tr"><div>⚪ White</div><div>28</div><div><b>20M</b> $PIXEL</div></div>
-            <div class="tr"><div>🟩 Green</div><div>46</div><div><b>15M</b> $PIXEL</div></div>
-            <div class="tr"><div>⚫ Black</div><div>63</div><div><b>12M</b> $PIXEL</div></div>
-            <div class="tr"><div>🔵 Blue</div><div>64</div><div><b>12M</b> $PIXEL</div></div>
+          <div class="box">
+            <h3>SYKORA — Instant Perks</h3>
+            <p class="muted">Supply: <b>2,518</b> • Selected rarities unlock instant $PIXEL perks</p>
+            <ul class="list">
+              <li><b>Ice NFTs (23)</b> → <b>100M $PIXEL</b> + free airdrop from future $PIXEL NFT collections</li>
+              <li><b>Black style NFTs (9)</b> → <b>80M $PIXEL</b> + <b>1 bonus SYKORA NFT</b></li>
+              <li><b>Pink style NFTs (58)</b> → <b>40M $PIXEL</b></li>
+            </ul>
+            <p class="muted" style="margin-top:10px;">
+              Own <b>5 different styles</b>? Unlock a special bonus with a larger <b>$PIXEL</b> reward.
+            </p>
+            <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
+              <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">Mint SYKORA</a>
+            </div>
           </div>
-
-          <p class="p subtle">Total rewards: <b>10B $PIXEL</b></p>
         </div>
 
-        <!-- SYKORA -->
-        <div class="tabPane" data-pane="syk" role="tabpanel">
-          <h3 class="h3">$PIXEL SYKORA — Instant Perks for Collectors</h3>
-          <p class="p">
-            Exclusive rewards for rare NFT minters. Only <b>2,518</b> NFTs — rarities are limited.
-          </p>
-
-          <div class="pillRow">
-            <a class="pillLink" target="_blank" rel="noreferrer" href="https://kaspa.com/nft/collections/SYKORA">Mint SYKORA</a>
-            <a class="pillLink" target="_blank" rel="noreferrer" href="https://kaspa.com/tokens/marketplace/token/PIXEL">Open $PIXEL</a>
-          </div>
-
-          <div class="table">
-            <div class="tr head"><div>Style</div><div>Count</div><div>Instant Reward</div></div>
-            <div class="tr"><div>❄️ Ice</div><div>23</div><div><b>100M</b> $PIXEL + future airdrop 🎁</div></div>
-            <div class="tr"><div>⚫ Black style</div><div>9</div><div><b>80M</b> $PIXEL + 1 bonus SYKORA NFT</div></div>
-            <div class="tr"><div>💖 Pink style</div><div>58</div><div><b>40M</b> $PIXEL</div></div>
-          </div>
-
-          <p class="p subtle">Own 5 different styles? Unlock a special bonus with a larger $PIXEL reward.</p>
+        <div class="muted" style="margin-top:12px;font-size:12px;">
+          Rewards/perks text can be updated anytime—this modal is just UI (doesn’t claim on-chain execution).
         </div>
       </div>
     </div>
@@ -515,44 +453,11 @@
 
 <script>
 (() => {
-  // =========================
-  // Rewards modal logic
-  // =========================
-  const rewardsModal = document.getElementById("rewardsModal");
-  const rewardsBtn = document.getElementById("rewardsBtn");
-  const rewardsClose = document.getElementById("rewardsClose");
+  // Covers: prefer "last minted by timestamp" via Kaspa API /krc721/tokens (best-effort),
+  // fallback to computing last minted ID from krc721.stream ranges.
 
-  function openRewards(){
-    rewardsModal.classList.add("open");
-    rewardsModal.setAttribute("aria-hidden", "false");
-  }
-  function closeRewards(){
-    rewardsModal.classList.remove("open");
-    rewardsModal.setAttribute("aria-hidden", "true");
-  }
-
-  rewardsBtn?.addEventListener("click", openRewards);
-  rewardsClose?.addEventListener("click", closeRewards);
-  rewardsModal?.addEventListener("click", (e)=>{ if(e.target === rewardsModal) closeRewards(); });
-  document.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && rewardsModal?.classList.contains("open")) closeRewards(); });
-
-  // Tabs
-  const tabs = Array.from(document.querySelectorAll(".tab[data-tab]"));
-  const panes = Array.from(document.querySelectorAll(".tabPane[data-pane]"));
-
-  function setTab(key){
-    tabs.forEach(t => t.classList.toggle("active", t.dataset.tab === key));
-    tabs.forEach(t => t.setAttribute("aria-selected", t.dataset.tab === key ? "true" : "false"));
-    panes.forEach(p => p.classList.toggle("open", p.dataset.pane === key));
-  }
-
-  tabs.forEach(t => t.addEventListener("click", ()=> setTab(t.dataset.tab)));
-
-  // =========================
-  // Covers logic (your original)
-  // =========================
   const STREAM_API = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
-  const KASPA_API  = "https://api.kaspa.com/api"; // best-effort last-mint by date
+  const KASPA_API  = "https://api.kaspa.com/api";
 
   const IPFS_GATEWAYS = [
     "https://dweb.link/ipfs/",
@@ -695,9 +600,7 @@
           const tokenId = it?.tokenId ?? it?.id ?? it?.nftId ?? it?.token_id;
           if(tokenId != null) return Number(tokenId);
         }
-      }catch(_e){
-        // ignore and try next schema
-      }
+      }catch(_e){}
     }
     return null;
   }
@@ -710,10 +613,8 @@
 
     let coverId = null;
 
-    // 1) prefer timestamp-based last mint from Kaspa API (if it works)
-    try{
-      coverId = await tryGetLastMintFromKaspaApi(tick);
-    }catch(_e){}
+    // 1) best-effort: newest by timestamp via Kaspa API
+    try{ coverId = await tryGetLastMintFromKaspaApi(tick); }catch(_e){}
 
     // 2) fallback: compute from ranges
     if(!Number.isFinite(coverId)){
@@ -759,6 +660,25 @@
     }
   }
 
+  // Rewards modal logic
+  const overlay = qs("#rewardsOverlay");
+  const openRewards = () => {
+    overlay.classList.add("open");
+    overlay.setAttribute("aria-hidden","false");
+  };
+  const closeRewards = () => {
+    overlay.classList.remove("open");
+    overlay.setAttribute("aria-hidden","true");
+  };
+
+  qs("#rewardsBtn")?.addEventListener("click", openRewards);
+  qs("#rewardsBtn2")?.addEventListener("click", openRewards);
+  qs("#closeRewards")?.addEventListener("click", closeRewards);
+
+  overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeRewards(); });
+  document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && overlay.classList.contains("open")) closeRewards(); });
+
+  // Load covers
   loadCover("PIXELONKAS");
   loadCover("SYKORA");
 })();
