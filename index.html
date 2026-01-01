@@ -66,6 +66,7 @@
       transition: background .15s, color .15s, transform .15s, border-color .15s;
       white-space:nowrap;
       line-height:1;
+      cursor:pointer;
     }
     .btn:hover{background: rgba(255,255,255,.12);color:#fff;transform: translateY(-1px);}
     .btnPrimary{
@@ -112,7 +113,7 @@
     h1{
       margin:0 0 10px;
       font-size:54px;
-      letter-spacing:.22em;           /* bigger spacing */
+      letter-spacing:.22em;
       text-transform:uppercase;
       line-height:1.02;
     }
@@ -224,10 +225,119 @@
     footer a{color: var(--accent); text-decoration:none}
     footer a:hover{text-decoration:underline}
 
+    /* =========================
+       Rewards Modal / Overlay
+       ========================= */
+    .modal{
+      position: fixed; inset: 0;
+      display: none;
+      align-items: center; justify-content: center;
+      padding: 18px;
+      background: rgba(0,0,0,.72);
+      z-index: 9999;
+    }
+    .modal.open{ display:flex; }
+    .modalPanel{
+      width: min(1100px, 96vw);
+      max-height: 92vh;
+      overflow: auto;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(10,12,18,.92);
+      box-shadow: 0 30px 80px rgba(0,0,0,.75);
+      backdrop-filter: blur(10px);
+    }
+    .modalTop{
+      display:flex; justify-content: space-between; align-items:flex-start;
+      gap:12px; padding: 12px 14px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      position: sticky; top: 0;
+      background: rgba(10,12,18,.92);
+    }
+    .modalTitle{display:flex; flex-direction:column; gap:2px;}
+    .modalTitle b{letter-spacing:.12em; text-transform:uppercase}
+    .modalSub{opacity:.7;font-size:12px}
+    .modalActions{display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end}
+    .modalBody{padding: 14px}
+
+    .tabRow{
+      display:inline-flex; gap:6px; padding:4px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+    }
+    .tab{
+      border:none; background:transparent;
+      color: rgba(255,255,255,.7);
+      padding:8px 14px;
+      border-radius:999px;
+      cursor:pointer;
+      font-weight:800;
+      letter-spacing:.06em;
+    }
+    .tab.active{ background: rgba(0,196,255,.14); color:#00c4ff; }
+
+    .tabPane{display:none}
+    .tabPane.open{display:block}
+
+    .h3{
+      margin:0 0 10px;
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      font-size:14px;
+      opacity:.95;
+    }
+    .p{margin:0 0 12px; opacity:.82; line-height:1.6}
+    .p.subtle{opacity:.72}
+
+    .pillRow{display:flex; gap:10px; flex-wrap:wrap; margin: 10px 0 14px}
+    .pill{
+      padding:7px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      font-size:13px;
+      opacity:.9;
+    }
+    .pillLink{
+      padding:8px 12px;border-radius:999px;
+      border:1px solid rgba(0,196,255,.40);
+      background: rgba(0,196,255,.08);
+      color:#00c4ff;
+      text-decoration:none;
+      font-weight:850;
+      font-size:13px;
+    }
+    .pillLink:hover{background:#00c4ff;color:#020308}
+
+    .table{
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      overflow:hidden;
+    }
+    .tr{
+      display:grid;
+      grid-template-columns: 1.2fr .5fr .9fr;
+      gap:10px;
+      padding:10px 12px;
+      border-top:1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+    }
+    .tr.head{
+      border-top:none;
+      background: rgba(255,255,255,.06);
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      font-size:12px;
+      opacity:.9;
+    }
+
     @media (max-width: 920px){
       h1{font-size:40px;letter-spacing:.18em}
       .cards{grid-template-columns:1fr}
       .brand small{display:none}
+    }
+    @media (max-width: 720px){
+      .tr{grid-template-columns: 1fr}
     }
   </style>
 </head>
@@ -239,8 +349,10 @@
         PIXEL ON KASPA <small>sound → image → chain</small>
       </div>
       <div class="nav">
-        <!-- Topbar: no Viewer/Rewards under title; keep navigation here -->
         <a class="btn btnPrimary" href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">Open $PIXEL</a>
+
+        <!-- ✅ Rewards button (modal) -->
+        <button class="btn" id="rewardsBtn" type="button">Rewards</button>
 
         <a class="btn" href="/viewer">Viewer</a>
         <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">Mint PIXELONKAS</a>
@@ -265,9 +377,9 @@
         Sound-driven image generation inscribed on the Kaspa blockDAG.
       </p>
 
+      <!-- ✅ pod nápisem jen Open $PIXEL -->
       <div class="heroCtas">
         <a class="btn btnPrimary" href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">Open $PIXEL</a>
-        <a class="btn" href="/viewer">Open Viewer</a>
       </div>
     </section>
 
@@ -322,15 +434,125 @@
 
   </div>
 
+  <!-- =========================
+       Rewards Modal / Overlay
+       ========================= -->
+  <div id="rewardsModal" class="modal" aria-hidden="true">
+    <div class="modalPanel" role="dialog" aria-modal="true" aria-labelledby="rewardsTitle">
+      <div class="modalTop">
+        <div class="modalTitle">
+          <b id="rewardsTitle">Rewards</b>
+          <span class="modalSub">Rarity-based $PIXEL perks for collectors</span>
+        </div>
+
+        <div class="modalActions">
+          <div class="tabRow" role="tablist" aria-label="Rewards tabs">
+            <button class="tab active" type="button" data-tab="pxk" role="tab" aria-selected="true">PIXELONKAS</button>
+            <button class="tab" type="button" data-tab="syk" role="tab" aria-selected="false">SYKORA</button>
+          </div>
+          <button class="btn btnGhost" id="rewardsClose" type="button">Close</button>
+        </div>
+      </div>
+
+      <div class="modalBody">
+        <!-- PIXELONKAS -->
+        <div class="tabPane open" data-pane="pxk" role="tabpanel">
+          <h3 class="h3">Introducing PIXELONKAS</h3>
+          <p class="p">
+            A limited collection of <b>342</b> unique sound-generated NFTs on Kaspa.
+            Each mint comes with a special <b>$PIXEL</b> reward — the rarer the color, the bigger the prize.
+          </p>
+
+          <div class="pillRow">
+            <span class="pill">Mint price: <b>287 KAS</b></span>
+            <a class="pillLink" target="_blank" rel="noreferrer" href="https://kaspa.com/nft/collections/PIXELONKAS">Mint PIXELONKAS</a>
+            <a class="pillLink" target="_blank" rel="noreferrer" href="https://kaspa.com/tokens/marketplace/token/PIXEL">Open $PIXEL</a>
+          </div>
+
+          <div class="table">
+            <div class="tr head"><div>Rarity</div><div>Count</div><div>Reward</div></div>
+            <div class="tr"><div>🔥 Super Broken</div><div>1</div><div><b>1B</b> $PIXEL</div></div>
+            <div class="tr"><div>⚡ Broken</div><div>24</div><div><b>100M</b> $PIXEL</div></div>
+            <div class="tr"><div>⚫ Grey</div><div>10</div><div><b>80M</b> $PIXEL</div></div>
+            <div class="tr"><div>🟠 Orange</div><div>15</div><div><b>50M</b> $PIXEL</div></div>
+            <div class="tr"><div>🟡 Yellow</div><div>17</div><div><b>30M</b> $PIXEL</div></div>
+            <div class="tr"><div>🌸 Pink</div><div>22</div><div><b>26M</b> $PIXEL</div></div>
+            <div class="tr"><div>🔴 Red</div><div>25</div><div><b>24M</b> $PIXEL</div></div>
+            <div class="tr"><div>🟣 Purple</div><div>27</div><div><b>22M</b> $PIXEL</div></div>
+            <div class="tr"><div>⚪ White</div><div>28</div><div><b>20M</b> $PIXEL</div></div>
+            <div class="tr"><div>🟩 Green</div><div>46</div><div><b>15M</b> $PIXEL</div></div>
+            <div class="tr"><div>⚫ Black</div><div>63</div><div><b>12M</b> $PIXEL</div></div>
+            <div class="tr"><div>🔵 Blue</div><div>64</div><div><b>12M</b> $PIXEL</div></div>
+          </div>
+
+          <p class="p subtle">Total rewards: <b>10B $PIXEL</b></p>
+        </div>
+
+        <!-- SYKORA -->
+        <div class="tabPane" data-pane="syk" role="tabpanel">
+          <h3 class="h3">$PIXEL SYKORA — Instant Perks for Collectors</h3>
+          <p class="p">
+            Exclusive rewards for rare NFT minters. Only <b>2,518</b> NFTs — rarities are limited.
+          </p>
+
+          <div class="pillRow">
+            <a class="pillLink" target="_blank" rel="noreferrer" href="https://kaspa.com/nft/collections/SYKORA">Mint SYKORA</a>
+            <a class="pillLink" target="_blank" rel="noreferrer" href="https://kaspa.com/tokens/marketplace/token/PIXEL">Open $PIXEL</a>
+          </div>
+
+          <div class="table">
+            <div class="tr head"><div>Style</div><div>Count</div><div>Instant Reward</div></div>
+            <div class="tr"><div>❄️ Ice</div><div>23</div><div><b>100M</b> $PIXEL + future airdrop 🎁</div></div>
+            <div class="tr"><div>⚫ Black style</div><div>9</div><div><b>80M</b> $PIXEL + 1 bonus SYKORA NFT</div></div>
+            <div class="tr"><div>💖 Pink style</div><div>58</div><div><b>40M</b> $PIXEL</div></div>
+          </div>
+
+          <p class="p subtle">Own 5 different styles? Unlock a special bonus with a larger $PIXEL reward.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <script>
 (() => {
-  // NOTE:
-  // - Covers are loaded from the LAST minted token by mint timestamp if we can read it.
-  // - If kaspa API doesn’t return data (CORS / schema differences), we gracefully fall back to the
-  //   "ranges" method (find last minted ID in the id space).
+  // =========================
+  // Rewards modal logic
+  // =========================
+  const rewardsModal = document.getElementById("rewardsModal");
+  const rewardsBtn = document.getElementById("rewardsBtn");
+  const rewardsClose = document.getElementById("rewardsClose");
 
+  function openRewards(){
+    rewardsModal.classList.add("open");
+    rewardsModal.setAttribute("aria-hidden", "false");
+  }
+  function closeRewards(){
+    rewardsModal.classList.remove("open");
+    rewardsModal.setAttribute("aria-hidden", "true");
+  }
+
+  rewardsBtn?.addEventListener("click", openRewards);
+  rewardsClose?.addEventListener("click", closeRewards);
+  rewardsModal?.addEventListener("click", (e)=>{ if(e.target === rewardsModal) closeRewards(); });
+  document.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && rewardsModal?.classList.contains("open")) closeRewards(); });
+
+  // Tabs
+  const tabs = Array.from(document.querySelectorAll(".tab[data-tab]"));
+  const panes = Array.from(document.querySelectorAll(".tabPane[data-pane]"));
+
+  function setTab(key){
+    tabs.forEach(t => t.classList.toggle("active", t.dataset.tab === key));
+    tabs.forEach(t => t.setAttribute("aria-selected", t.dataset.tab === key ? "true" : "false"));
+    panes.forEach(p => p.classList.toggle("open", p.dataset.pane === key));
+  }
+
+  tabs.forEach(t => t.addEventListener("click", ()=> setTab(t.dataset.tab)));
+
+  // =========================
+  // Covers logic (your original)
+  // =========================
   const STREAM_API = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
-  const KASPA_API  = "https://api.kaspa.com/api"; // used for best-effort last-mint by date
+  const KASPA_API  = "https://api.kaspa.com/api"; // best-effort last-mint by date
 
   const IPFS_GATEWAYS = [
     "https://dweb.link/ipfs/",
@@ -381,7 +603,6 @@
     return set;
   }
 
-  // Fallback: last minted by scanning id space and remembering last minted (not available)
   function lastMintedIdFromAvailableRanges({ idMin, max, rangesString }){
     const avail = availableSetFromRangesString(rangesString);
     let last = null;
@@ -445,13 +666,10 @@
     return { url: String(raw), ipfs: null };
   }
 
-  // Best-effort: ask Kaspa API for the newest minted token (by timestamp).
-  // We don't know the exact request schema for /krc721/tokens, so we try a small set of bodies.
   async function tryGetLastMintFromKaspaApi(ticker){
     const endpoint = `${KASPA_API}/krc721/tokens`;
 
     const candidates = [
-      // minimal required field (we know ticker is required)
       { ticker: String(ticker), page: 1, pageSize: 1, sortBy: "mintedAt", sortDirection: "desc" },
       { ticker: String(ticker), offset: 0, limit: 1, sort: "mintedAt", order: "desc" },
       { ticker: String(ticker), page: 1, perPage: 1, sort: "mintedAt", sortDirection: "desc" },
@@ -466,9 +684,6 @@
           body: JSON.stringify(body)
         });
 
-        // expected-ish shapes:
-        // { items:[{ tokenId: "123", ... }], totalCount: ... }
-        // { data:[...]} etc.
         const items =
           Array.isArray(res?.items) ? res.items :
           Array.isArray(res?.data) ? res.data :
@@ -484,7 +699,6 @@
         // ignore and try next schema
       }
     }
-
     return null;
   }
 
@@ -494,13 +708,14 @@
     const hint = qs(`#hint${tick}`);
     if(!cfg || !thumb || !hint) return;
 
-    // 1) prefer last-mint by timestamp from Kaspa API (if available)
     let coverId = null;
+
+    // 1) prefer timestamp-based last mint from Kaspa API (if it works)
     try{
       coverId = await tryGetLastMintFromKaspaApi(tick);
-    }catch(_e){ /* ignore */ }
+    }catch(_e){}
 
-    // 2) fallback: compute from krc721.stream ranges
+    // 2) fallback: compute from ranges
     if(!Number.isFinite(coverId)){
       try{
         const raw = await fetchJson(`${STREAM_API}/ranges/${encodeURIComponent(tick)}`);
@@ -508,7 +723,7 @@
         if(typeof res === "string" && res.trim()){
           coverId = lastMintedIdFromAvailableRanges({ idMin: cfg.idMin, max: cfg.max, rangesString: res });
         }
-      }catch(_e){ /* ignore */ }
+      }catch(_e){}
     }
 
     if(!Number.isFinite(coverId)){
