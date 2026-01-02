@@ -47,6 +47,7 @@
       width:30px;height:30px;border-radius:10px;
       border:1px solid rgba(255,255,255,.14);
       background: rgba(255,255,255,.06);
+      display:block;
     }
     .nav{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
 
@@ -117,12 +118,12 @@
     }
     .panelBody{padding:14px}
 
-    video{width:100%;height:auto;display:block;background:#000}
+    video{width:100%;height:auto;display:block;background:#000;border-radius:14px;border:1px solid rgba(255,255,255,.10)}
     audio{width:100%}
     .note{opacity:.70;font-size:12px;line-height:1.45;margin-top:10px}
-    .kv{display:grid;grid-template-columns: 120px 1fr;gap:8px 10px;font-size:13px}
-    .kv div{opacity:.86}
-    .kv .k{opacity:.65}
+    .kv{display:grid;grid-template-columns: 110px 1fr;gap:8px 10px;font-size:13px;margin-top:12px}
+    .kv .k{opacity:.60}
+    .kv .v{opacity:.86;word-break:break-all}
 
     footer{
       margin-top:22px;
@@ -147,11 +148,12 @@
   <div class="wrap">
     <div class="topbar">
       <div class="brand">
+        <!-- DŮLEŽITÉ: tady je ../ protože jsme v /synthi/ -->
         <img src="../assets/img/logo.png" alt="SYNTHI">
         <span>SYNTHI</span>
       </div>
       <div class="nav">
-        <a class="btn btnGhost" href="/" title="Back to PIXEL on Kaspa">Home</a>
+        <a class="btn btnGhost" href="/" title="Back to Home">Home</a>
         <a class="btn btnGhost" href="/viewer">Viewer</a>
         <a class="btn btnGhost" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
         <a class="btn btnGhost" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
@@ -161,8 +163,7 @@
     <section class="hero">
       <h1>SYNTHI LIVE</h1>
       <p>
-        Live audiovisual stream. Video + audio player below.
-        (Browsers block autoplay with sound — click Play.)
+        Stream page with audio. Browsers block autoplay with sound — click Play.
       </p>
     </section>
 
@@ -175,7 +176,7 @@
         <div class="panelBody" id="videoWrap">
           <video id="synthiVideo" controls playsinline preload="metadata"></video>
           <div class="note">
-            If your stream is HLS (.m3u8): Safari works natively. Chrome usually needs hls.js.
+            If you use HLS (.m3u8): Safari plays it natively. Chrome often needs hls.js (not included here).
           </div>
         </div>
       </div>
@@ -188,13 +189,12 @@
         <div class="panelBody" id="audioWrap">
           <audio id="synthiAudio" controls preload="none"></audio>
           <div class="note">
-            Use this if you publish separate audio (mp3/aac/hls audio). Otherwise leave empty.
+            Use this only if you have separate audio stream (mp3/aac/hls audio). Otherwise keep empty.
           </div>
 
-          <div style="height:12px"></div>
           <div class="kv">
-            <div class="k">Video URL</div><div id="kvVideo">—</div>
-            <div class="k">Audio URL</div><div id="kvAudio">—</div>
+            <div class="k">Video URL</div><div class="v" id="kvVideo">—</div>
+            <div class="k">Audio URL</div><div class="v" id="kvAudio">—</div>
           </div>
         </div>
       </div>
@@ -203,20 +203,18 @@
     <footer>
       <div>© SYNTHI</div>
       <div>
-        <a href="/">Home</a> ·
-        <a href="/viewer">Viewer</a>
+        <a href="/">Home</a> · <a href="/viewer">Viewer</a>
       </div>
     </footer>
   </div>
 
 <script>
 (() => {
-  // === SET THESE ===
-  const SYNTHI_VIDEO_SRC = ""; // e.g. "https://.../live.m3u8" or "https://.../stream.mp4"
-  const SYNTHI_AUDIO_SRC = ""; // e.g. "https://.../audio.mp3" or "https://.../audio.aac"
+  // === SET THESE (OBS output URL / HLS / MP4 / audio) ===
+  const SYNTHI_VIDEO_SRC = ""; // e.g. "https://.../live.m3u8" OR "https://.../stream.mp4"
+  const SYNTHI_AUDIO_SRC = ""; // e.g. "https://.../audio.mp3" OR "https://.../audio.aac"
 
   const qs = (s)=>document.querySelector(s);
-
   function setStatus(t){ qs("#streamStatus").textContent = t; }
 
   const v = qs("#synthiVideo");
@@ -231,9 +229,10 @@
     if(SYNTHI_VIDEO_SRC.endsWith(".m3u8")) s.type = "application/vnd.apple.mpegurl";
     else if(SYNTHI_VIDEO_SRC.endsWith(".mp4")) s.type = "video/mp4";
     v.appendChild(s);
-    setStatus("Video source set.");
+    setStatus("Video source set. Click Play.");
   } else {
-    qs("#videoWrap").innerHTML = `<div style="opacity:.75">Set <b>SYNTHI_VIDEO_SRC</b> in the script to show the stream.</div>`;
+    qs("#videoWrap").innerHTML =
+      `<div style="opacity:.75">Set <b>SYNTHI_VIDEO_SRC</b> in the script to show the stream.</div>`;
     setStatus("Missing video source.");
   }
 
@@ -245,7 +244,10 @@
     else if(SYNTHI_AUDIO_SRC.endsWith(".aac")) s2.type = "audio/aac";
     a.appendChild(s2);
   } else {
-    qs("#audioWrap").insertAdjacentHTML("afterbegin", `<div style="opacity:.65;margin-bottom:10px">No separate audio configured.</div>`);
+    qs("#audioWrap").insertAdjacentHTML(
+      "afterbegin",
+      `<div style="opacity:.65;margin-bottom:10px">No separate audio configured.</div>`
+    );
   }
 })();
 </script>
