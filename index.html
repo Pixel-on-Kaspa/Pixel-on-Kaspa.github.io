@@ -10,9 +10,8 @@
       --bg2:#050608;
       --panel: rgba(0,0,0,.18);
       --border: rgba(255,255,255,.12);
-      --muted: rgba(255,255,255,.68);
+      --muted: rgba(255,255,255,.70);
       --accent:#00c4ff;
-      --accentSoft: rgba(0,196,255,.14);
       --shadow: 0 18px 35px rgba(0,0,0,.50);
       --text:#f5f5f5;
     }
@@ -47,7 +46,7 @@
       white-space:nowrap;
     }
     .brand small{
-      opacity:.7;font-weight:700;letter-spacing:.10em;text-transform:none;
+      opacity:.7;font-weight:700;letter-spacing:.08em;text-transform:none;
       white-space:nowrap;
     }
     .nav{
@@ -57,7 +56,7 @@
     /* Buttons */
     .btn{
       text-decoration:none;
-      display:inline-flex;align-items:center;gap:10px;
+      display:inline-flex;align-items:center;gap:8px;
       padding:9px 14px;border-radius:999px;
       border:1px solid rgba(255,255,255,.16);
       background: rgba(255,255,255,.06);
@@ -76,18 +75,16 @@
       background: rgba(0,196,255,.08);
     }
     .btnPrimary:hover{background: var(--accent); color:#020308;}
-    .btnGhost{
-      background: transparent;
-      border-color: rgba(255,255,255,.16);
-      opacity:.95;
-    }
+    .btnGhost{ background: transparent; border-color: rgba(255,255,255,.16); opacity:.95; }
+    .btnIcon{ padding:8px 12px; }
+    .btnIcon img{ width:22px;height:22px;display:block;border-radius:7px; }
 
-    /* SYNTHI icon bigger */
-    .btnSynthi{ padding:8px 14px; }
-    .btnSynthi img{
-      width:26px;height:26px;
-      display:block;
-      border-radius:6px;
+    /* Rewards top button bigger */
+    .btnRewardsTop{
+      font-size: 1.02rem;
+      font-weight: 900;
+      letter-spacing: .06em;
+      padding: 10px 16px;
     }
 
     /* Hero */
@@ -106,7 +103,7 @@
     .hero::before{
       content:"";
       position:absolute;inset:-140px -160px auto auto;
-      width:320px;height:320px;
+      width:340px;height:340px;
       background: radial-gradient(circle at center, rgba(0,196,255,.22), transparent 60%);
       filter: blur(2px);
       transform: rotate(10deg);
@@ -121,9 +118,15 @@
     }
     .sub{
       margin:0 auto 0;
-      opacity:.80;
+      opacity:.86;
       font-size:16px;
-      max-width: 80ch;
+      max-width: 78ch;
+    }
+    .sub2{
+      margin:10px auto 0;
+      opacity:.72;
+      font-size:13px;
+      max-width: 78ch;
     }
     .heroCtas{
       display:flex;gap:10px;flex-wrap:wrap;justify-content:center;
@@ -138,13 +141,6 @@
       font-weight:900;
       font-size:14px;
       opacity:.85;
-    }
-    .sectionSub{
-      margin:-6px 0 14px;
-      opacity:.72;
-      font-size:13px;
-      line-height:1.55;
-      max-width: 80ch;
     }
     .cards{
       display:grid;
@@ -162,6 +158,7 @@
       overflow:hidden;
     }
     .card:hover{transform: translateY(-3px); border-color: rgba(0,196,255,.22); box-shadow:0 24px 40px rgba(0,0,0,.7);}
+
     .thumb{
       width:100%;
       aspect-ratio: 16/10;
@@ -197,6 +194,7 @@
       font-size:12px;
       backdrop-filter: blur(10px);
     }
+
     .cardHead{
       display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
       margin-bottom:10px;
@@ -212,83 +210,13 @@
       font-size:12px;
       white-space:nowrap;
     }
-    .card p{margin:0 0 12px;opacity:.78;line-height:1.5}
-    .cardActions{display:flex;gap:10px;flex-wrap:wrap}
-
-    /* Rewards button box */
-    .rewardsBox{
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-      border-radius:14px;
-      padding:12px;
-      margin: 10px 0 14px;
+    .card p{margin:0 0 14px;opacity:.78;line-height:1.5}
+    .cardActions{
       display:flex;
-      justify-content:flex-start;
+      gap:10px;
+      flex-wrap:wrap;
       align-items:center;
     }
-
-    /* Modal */
-    .modalBack{
-      position:fixed; inset:0;
-      display:none;
-      align-items:center; justify-content:center;
-      padding:18px;
-      background: rgba(0,0,0,.72);
-      z-index:9999;
-    }
-    .modalBack.open{display:flex;}
-    .modal{
-      width:min(980px, 96vw);
-      max-height:90vh;
-      overflow:auto;
-      border-radius:18px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(10,12,18,.92);
-      box-shadow: 0 30px 80px rgba(0,0,0,.75);
-      backdrop-filter: blur(10px);
-    }
-    .modalTop{
-      display:flex;justify-content:space-between;align-items:center;
-      gap:12px;
-      padding:12px 14px;
-      border-bottom:1px solid rgba(255,255,255,.10);
-      position:sticky; top:0;
-      background: rgba(10,12,18,.92);
-    }
-    .modalTop b{
-      letter-spacing:.10em;
-      text-transform:uppercase;
-    }
-    .modalBody{
-      padding:14px;
-    }
-    .modalGrid{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap:14px;
-    }
-    .rewardPanel{
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-      border-radius:14px;
-      padding:12px;
-    }
-    .rewardPanel h3{
-      margin:0 0 10px;
-      letter-spacing:.10em;
-      text-transform:uppercase;
-      font-size:13px;
-      opacity:.9;
-    }
-    .rewardPanel ul{
-      margin:0;
-      padding-left:16px;
-      opacity:.86;
-      font-size:13px;
-      line-height:1.55;
-    }
-    .rewardPanel li{margin:7px 0}
-    .muted{opacity:.72}
 
     /* Footer */
     footer{
@@ -303,7 +231,74 @@
     footer a{color: var(--accent); text-decoration:none}
     footer a:hover{text-decoration:underline}
 
-    @media (max-width: 920px){
+    /* Rewards Modal */
+    .modal{
+      position:fixed;inset:0;
+      background: rgba(0,0,0,.72);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      z-index:9999;
+    }
+    .modal.open{display:flex;}
+    .modalPanel{
+      width:min(980px, 96vw);
+      max-height: 92vh;
+      overflow:auto;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(10,12,18,.92);
+      box-shadow: 0 30px 80px rgba(0,0,0,.75);
+      backdrop-filter: blur(10px);
+    }
+    .modalTop{
+      display:flex;justify-content:space-between;align-items:center;gap:12px;
+      padding:12px 14px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      position:sticky;top:0;
+      background: rgba(10,12,18,.92);
+      z-index:1;
+    }
+    .modalTitle{
+      display:flex;flex-direction:column;gap:2px;
+    }
+    .modalTitle b{letter-spacing:.10em;text-transform:uppercase}
+    .modalTitle span{opacity:.70;font-size:12px}
+    .modalBody{padding:14px}
+    .modalTabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+    .tabBtn{
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.90);
+      padding:8px 12px;border-radius:999px;
+      cursor:pointer;
+      font-weight:800;
+    }
+    .tabBtn.active{
+      border-color: rgba(0,196,255,.70);
+      color: var(--accent);
+      background: rgba(0,196,255,.10);
+    }
+    .rewardBlock{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      border-radius:16px;
+      padding:14px;
+      margin-bottom:12px;
+    }
+    .rewardBlock h3{
+      margin:0 0 10px;
+      letter-spacing:.10em;text-transform:uppercase;
+      font-size:13px;
+      opacity:.92;
+    }
+    .rewardBlock p{margin:0 0 10px;opacity:.78;line-height:1.55}
+    .rewardList{margin:0;padding-left:18px;opacity:.86}
+    .rewardList li{margin:6px 0}
+    .miniNote{opacity:.65;font-size:12px;margin-top:10px}
+
+    @media (max-width: 980px){
       h1{font-size:40px;letter-spacing:.18em}
       .cards{grid-template-columns:1fr}
       .brand small{display:none}
@@ -317,14 +312,15 @@
       <div class="brand">
         PIXEL ON KASPA <small>sound → image → chain</small>
       </div>
-
       <div class="nav">
+        <button class="btn btnRewardsTop btnPrimary" type="button" data-open-rewards="PIXELONKAS">REWARDS</button>
+
         <a class="btn" href="/viewer">Viewer</a>
         <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">Mint PIXELONKAS</a>
         <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">Mint SYKORA</a>
 
-        <a class="btn btnGhost btnSynthi" href="/synthi" title="SYNTHI">
-          <img src="assets/img/logo.png" alt="SYNTHI" onerror="this.style.display='none'">
+        <a class="btn btnIcon btnGhost" href="/synthi/" title="SYNTHI">
+          <img src="assets/img/logo.png" alt="SYNTHI">
           SYNTHI
         </a>
 
@@ -335,65 +331,48 @@
 
     <section class="hero">
       <h1>PIXEL&nbsp;ON&nbsp;KASPA</h1>
-      <p class="sub"><b>$PIXEL</b> is a KRC-20 utility token.</p>
+      <p class="sub"><b>$PIXEL</b> is a KRC-20 utility token on Kaspa.</p>
+      <p class="sub2">Sound-driven image generation inscribed on the Kaspa blockDAG.</p>
 
       <div class="heroCtas">
         <a class="btn btnPrimary" href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">Open $PIXEL</a>
-        <a class="btn" href="/viewer">Open Viewer</a>
       </div>
     </section>
 
-    <div id="collections" class="sectionTitle">NFT Collections</div>
-    <div class="sectionSub">
-      Sound-driven image generation inscribed on the Kaspa blockDAG. <span class="muted">Minted pieces only.</span>
-    </div>
+    <div class="sectionTitle">NFT COLLECTIONS</div>
 
     <section class="cards">
-      <!-- PIXELONKAS -->
       <div class="card">
         <div class="thumb" id="thumbPIXELONKAS">
           <span class="tag">PIXELONKAS</span>
           <span class="hint" id="hintPIXELONKAS">Loading…</span>
         </div>
-
         <div class="cardHead">
           <b>PIXELONKAS</b>
           <span class="chip">342 total</span>
         </div>
-
-        <p>Genesis collection of sound-generated frames with rarity-based <b>$PIXEL</b> rewards.</p>
-
-        <div class="rewardsBox">
-          <button class="btn btnPrimary" type="button" data-open-rewards="PIXELONKAS">Rewards</button>
-        </div>
-
+        <p>NFT collection — sound-driven image generation inscribed on the Kaspa blockDAG.</p>
         <div class="cardActions">
           <a class="btn btnPrimary" href="/viewer">Open Viewer</a>
           <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
+          <button class="btn btnGhost" type="button" data-open-rewards="PIXELONKAS">Rewards</button>
         </div>
       </div>
 
-      <!-- SYKORA -->
       <div class="card">
         <div class="thumb" id="thumbSYKORA">
           <span class="tag">SYKORA</span>
           <span class="hint" id="hintSYKORA">Loading…</span>
         </div>
-
         <div class="cardHead">
           <b>SYKORA</b>
           <span class="chip">2,518 total</span>
         </div>
-
-        <p>Expanded collection with instant <b>$PIXEL</b> perks for selected rarities and collector milestones.</p>
-
-        <div class="rewardsBox">
-          <button class="btn btnPrimary" type="button" data-open-rewards="SYKORA">Rewards</button>
-        </div>
-
+        <p>NFT collection — sound-driven image generation inscribed on the Kaspa blockDAG.</p>
         <div class="cardActions">
           <a class="btn btnPrimary" href="/viewer">Open Viewer</a>
           <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
+          <button class="btn btnGhost" type="button" data-open-rewards="SYKORA">Rewards</button>
         </div>
       </div>
     </section>
@@ -411,27 +390,81 @@
   </div>
 
   <!-- Rewards Modal -->
-  <div class="modalBack" id="rewardsModal" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true">
+  <div class="modal" id="rewardsModal" aria-hidden="true">
+    <div class="modalPanel" role="dialog" aria-modal="true">
       <div class="modalTop">
-        <b id="rewardsTitle">Rewards</b>
+        <div class="modalTitle">
+          <b id="rewardsTitle">Rewards</b>
+          <span id="rewardsSub">$PIXEL perks for collectors</span>
+        </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
-          <a class="btn btnGhost" href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">Open $PIXEL</a>
           <button class="btn btnGhost" type="button" id="rewardsClose">Close</button>
         </div>
       </div>
-      <div class="modalBody" id="rewardsBody"></div>
+
+      <div class="modalBody">
+        <div class="modalTabs">
+          <button class="tabBtn active" type="button" data-tab="PIXELONKAS">PIXELONKAS</button>
+          <button class="tabBtn" type="button" data-tab="SYKORA">SYKORA</button>
+        </div>
+
+        <div id="tabPIXELONKAS" class="tabPanel">
+          <div class="rewardBlock">
+            <h3>PIXELONKAS Rewards</h3>
+            <p>
+              Limited collection of 342 unique sound-generated NFTs on Kaspa.
+              Each mint comes with a <b>$PIXEL</b> reward — the rarer the color, the bigger the prize.
+            </p>
+            <ul class="rewardList">
+              <li>Mint price: <b>287 KAS</b></li>
+              <li>Total rewards: <b>10B $PIXEL</b></li>
+            </ul>
+          </div>
+
+          <div class="rewardBlock">
+            <h3>Top Rewards</h3>
+            <ul class="rewardList">
+              <li>🔥 Super Broken (1 NFT) → <b>1B $PIXEL</b></li>
+              <li>⚡ Broken (24 NFTs) → <b>100M $PIXEL</b></li>
+              <li>⚫ Grey (10 NFTs) → <b>80M $PIXEL</b></li>
+              <li>🟠 Orange (15 NFTs) → <b>50M $PIXEL</b></li>
+              <li>🟡 Yellow (17 NFTs) → <b>30M $PIXEL</b></li>
+              <li>🌸 Pink (22 NFTs) → <b>26M $PIXEL</b></li>
+              <li>🔴 Red (25 NFTs) → <b>24M $PIXEL</b></li>
+              <li>🟣 Purple (27 NFTs) → <b>22M $PIXEL</b></li>
+              <li>⚪ White (28 NFTs) → <b>20M $PIXEL</b></li>
+              <li>🟩 Green (46 NFTs) → <b>15M $PIXEL</b></li>
+              <li>⚫ Black (63 NFTs) → <b>12M $PIXEL</b></li>
+              <li>🔵 Blue (64 NFTs) → <b>12M $PIXEL</b></li>
+            </ul>
+            <div class="miniNote">Mint link: kaspa.com/nft/collections/PIXELONKAS</div>
+          </div>
+        </div>
+
+        <div id="tabSYKORA" class="tabPanel" style="display:none">
+          <div class="rewardBlock">
+            <h3>SYKORA Instant Perks</h3>
+            <p><b>$PIXEL</b> SYKORA NFT Instant Perks for Collectors.</p>
+            <ul class="rewardList">
+              <li>❄️ Ice NFTs (23) – instant <b>100M $PIXEL</b> + Free airdrop from future $PIXEL NFT collections</li>
+              <li>⚫ Black style NFTs (9) – instant <b>80M $PIXEL</b> + 1 bonus SYKORA NFT</li>
+              <li>💖 Pink style NFTs (58) – instant <b>40M $PIXEL</b></li>
+            </ul>
+            <p class="miniNote">
+              🔑 Own 5 different styles? Unlock a special bonus with a larger $PIXEL reward. ⏳ Only 2,518 NFTs.
+            </p>
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
 
 <script>
 (() => {
-  // Covers: prefer "last minted by timestamp" via Kaspa API /krc721/tokens (best-effort),
-  // fallback to computing last minted ID from krc721.stream ranges.
-
+  // Covers: last minted by timestamp if possible, else fallback ranges scan.
   const STREAM_API = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
   const KASPA_API  = "https://api.kaspa.com/api";
-
   const IPFS_GATEWAYS = [
     "https://dweb.link/ipfs/",
     "https://ipfs.io/ipfs/",
@@ -449,37 +482,6 @@
       max: 2518,
       idMin: 1
     }
-  };
-
-  // Rewards content (static)
-  const REWARDS = {
-    PIXELONKAS: `
-      <div class="modalGrid">
-        <div class="rewardPanel">
-          <h3>PIXELONKAS – Rarity rewards</h3>
-          <ul>
-            <li><b>Super Broken (1)</b> → <b>1B $PIXEL</b></li>
-            <li><b>Broken (24)</b> → <b>100M $PIXEL</b></li>
-            <li class="muted">Grey (10) → 80M • Orange (15) → 50M • Yellow (17) → 30M</li>
-            <li class="muted">Pink (22) → 26M • Red (25) → 24M • Purple (27) → 22M</li>
-            <li class="muted">White (28) → 20M • Green (46) → 15M • Black (63) → 12M • Blue (64) → 12M</li>
-          </ul>
-        </div>
-      </div>
-    `,
-    SYKORA: `
-      <div class="modalGrid">
-        <div class="rewardPanel">
-          <h3>SYKORA – Instant perks</h3>
-          <ul>
-            <li><b>Ice NFTs (23)</b> → <b>100M $PIXEL</b> + future $PIXEL NFT airdrop</li>
-            <li><b>Black style (9)</b> → <b>80M $PIXEL</b> + <b>1 bonus SYKORA NFT</b></li>
-            <li><b>Pink style (58)</b> → <b>40M $PIXEL</b></li>
-            <li class="muted"><b>5 different styles</b> → unlock a special bonus (larger $PIXEL reward)</li>
-          </ul>
-        </div>
-      </div>
-    `
   };
 
   const qs = (s)=>document.querySelector(s);
@@ -542,23 +544,6 @@
     ];
   }
 
-  function extractImage(meta){
-    const raw =
-      meta?.image ||
-      meta?.image_url ||
-      meta?.properties?.image ||
-      meta?.data?.image ||
-      meta?.content?.image ||
-      meta?.content?.url;
-
-    if(!raw) return { url:"", ipfs:null };
-    if(String(raw).startsWith("ipfs://")){
-      const p = ipfsPath(String(raw));
-      return { url: IPFS_GATEWAYS[0] + p, ipfs: p };
-    }
-    return { url: String(raw), ipfs: null };
-  }
-
   async function fetchMetaFromGateways(paths){
     let lastErr = null;
     for(const p of paths){
@@ -576,6 +561,23 @@
     throw lastErr || new Error("IPFS fetch failed");
   }
 
+  function extractImage(meta){
+    const raw =
+      meta?.image ||
+      meta?.image_url ||
+      meta?.properties?.image ||
+      meta?.data?.image ||
+      meta?.content?.image ||
+      meta?.content?.url;
+
+    if(!raw) return { url:"", ipfs:null };
+    if(String(raw).startsWith("ipfs://")){
+      const p = ipfsPath(String(raw));
+      return { url: IPFS_GATEWAYS[0] + p, ipfs: p };
+    }
+    return { url: String(raw), ipfs: null };
+  }
+
   async function tryGetLastMintFromKaspaApi(ticker){
     const endpoint = `${KASPA_API}/krc721/tokens`;
 
@@ -584,6 +586,7 @@
       { ticker: String(ticker), offset: 0, limit: 1, sort: "mintedAt", order: "desc" },
       { ticker: String(ticker), page: 1, perPage: 1, sort: "mintedAt", sortDirection: "desc" },
       { ticker: String(ticker), page: 1, pageSize: 1, sortBy: "createdAt", sortDirection: "desc" },
+      { ticker: String(ticker), page: 1, pageSize: 1, sortBy: "timestamp", sortDirection: "desc" },
     ];
 
     for(const body of candidates){
@@ -619,7 +622,6 @@
     let coverId = null;
 
     try{ coverId = await tryGetLastMintFromKaspaApi(tick); }catch(_e){}
-
     if(!Number.isFinite(coverId)){
       try{
         const raw = await fetchJson(`${STREAM_API}/ranges/${encodeURIComponent(tick)}`);
@@ -665,30 +667,32 @@
 
   // Rewards modal
   const modal = qs("#rewardsModal");
-  const modalTitle = qs("#rewardsTitle");
-  const modalBody = qs("#rewardsBody");
   const closeBtn = qs("#rewardsClose");
 
-  function openRewards(which){
-    modalTitle.textContent = `${which} Rewards`;
-    modalBody.innerHTML = REWARDS[which] || "<div class='rewardPanel'>No rewards data.</div>";
+  function openModal(tab){
     modal.classList.add("open");
     modal.setAttribute("aria-hidden","false");
+    setTab(tab || "PIXELONKAS");
   }
-  function closeRewards(){
+  function closeModal(){
     modal.classList.remove("open");
     modal.setAttribute("aria-hidden","true");
-    modalBody.innerHTML = "";
+  }
+  function setTab(tab){
+    qsa(".tabBtn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+    qs("#tabPIXELONKAS").style.display = (tab === "PIXELONKAS") ? "block" : "none";
+    qs("#tabSYKORA").style.display = (tab === "SYKORA") ? "block" : "none";
   }
 
-  qsa("[data-open-rewards]").forEach(btn=>{
-    btn.addEventListener("click", ()=> openRewards(btn.getAttribute("data-open-rewards")));
+  qsa("[data-open-rewards]").forEach(el => {
+    el.addEventListener("click", () => openModal(el.getAttribute("data-open-rewards")));
   });
-  closeBtn.addEventListener("click", closeRewards);
-  modal.addEventListener("click", (e)=>{ if(e.target===modal) closeRewards(); });
-  document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && modal.classList.contains("open")) closeRewards(); });
+  qsa(".tabBtn").forEach(b => b.addEventListener("click", () => setTab(b.dataset.tab)));
+  closeBtn.addEventListener("click", closeModal);
+  modal.addEventListener("click", (e)=>{ if(e.target === modal) closeModal(); });
+  document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && modal.classList.contains("open")) closeModal(); });
 
-  // Init
+  // init
   loadCover("PIXELONKAS");
   loadCover("SYKORA");
 })();
