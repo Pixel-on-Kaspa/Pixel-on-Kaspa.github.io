@@ -16,7 +16,6 @@
       --text:#f5f5f5;
     }
     *{box-sizing:border-box}
-    html,body{height:100%}
     body{
       margin:0;
       font-family: system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
@@ -24,8 +23,8 @@
       color:var(--text);
       min-height:100vh;
     }
+    .wrap{max-width:1280px;margin:0 auto;padding:22px 16px 56px}
     a{color:inherit}
-    .wrap{max-width:1200px;margin:0 auto;padding:22px 16px 56px}
 
     .topbar{
       display:flex;align-items:center;justify-content:space-between;
@@ -44,7 +43,7 @@
       text-transform:uppercase;
       white-space:nowrap;
     }
-    .brand img{width:30px;height:30px;display:block;border-radius:8px}
+    .brand img{width:34px;height:34px;display:block;border-radius:10px}
     .nav{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
 
     .btn{
@@ -76,7 +75,7 @@
       background: var(--panel);
       backdrop-filter: blur(10px);
       box-shadow: var(--shadow);
-      padding:20px 18px 16px;
+      padding:18px 18px 14px;
       position:relative;
       overflow:hidden;
     }
@@ -90,21 +89,23 @@
       pointer-events:none;
     }
     .hero h1{
-      margin:0 0 10px;
+      margin:0 0 8px;
       font-size:40px;
       letter-spacing:.18em;
       text-transform:uppercase;
       line-height:1.02;
     }
-    .hero p{margin:0;opacity:.78;max-width:90ch}
+    .hero p{margin:0;opacity:.80;max-width:100ch}
+    .hero small{display:block;margin-top:8px;opacity:.65}
 
-    .grid{
+    .layout{
       margin-top:16px;
       display:grid;
-      grid-template-columns: 1.35fr .65fr;
+      grid-template-columns: 320px 1fr 360px;
       gap:16px;
       align-items:start;
     }
+
     .panel{
       border:1px solid var(--border);
       border-radius:20px;
@@ -126,60 +127,95 @@
     }
     .panelBody{padding:14px}
 
-    .iframeWrap{
-      width:100%;
-      height:70vh;
-      min-height:520px;
-      border-radius:16px;
-      overflow:hidden;
-      border:1px solid rgba(255,255,255,.12);
-      background:#000;
+    /* playlist */
+    .playlist{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
     }
-    iframe{width:100%;height:100%;border:0}
+    .item{
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:16px;
+      background: rgba(255,255,255,.05);
+      padding:10px 10px;
+      transition: transform .15s, border-color .15s, background .15s;
+      cursor:pointer;
+    }
+    .item:hover{transform: translateY(-1px); background: rgba(255,255,255,.08);}
+    .item.active{
+      border-color: rgba(0,196,255,.55);
+      background: rgba(0,196,255,.10);
+    }
+    .itemTop{
+      display:flex;justify-content:space-between;gap:10px;align-items:center;
+    }
+    .itemTitle{
+      font-weight:850;
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      font-size:12px;
+      opacity:.95;
+    }
+    .badge{
+      font-size:11px;
+      opacity:.78;
+      padding:5px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      white-space:nowrap;
+    }
+    .itemMeta{
+      margin-top:6px;
+      font-size:12px;
+      opacity:.70;
+      line-height:1.35;
+      word-break: break-word;
+    }
+    .tinyBtnRow{
+      margin-top:10px;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .tinyBtn{
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.16);
+      font-size:12px;
+      opacity:.90;
+    }
+    .tinyBtn:hover{background: rgba(255,255,255,.10);}
 
+    /* player */
     .playerWrap{
-      position:relative;
       width:100%;
       aspect-ratio: 16/9;
-      background:#000;
       border-radius:16px;
       overflow:hidden;
       border:1px solid rgba(255,255,255,.12);
-    }
-    video{
-      width:100%;
-      height:100%;
-      object-fit:contain;
-      display:block;
       background:#000;
+      position:relative;
     }
-    .overlay{
-      position:absolute;inset:0;
-      display:flex;align-items:center;justify-content:center;
-      background: radial-gradient(circle at center, rgba(0,0,0,.10), rgba(0,0,0,.72));
-      gap:10px;
-      flex-direction:column;
-      text-align:center;
-      padding:16px;
+    video, iframe{width:100%;height:100%;display:block;border:0;background:#000;object-fit:contain}
+    .playerNote{
+      margin-top:10px;
+      opacity:.70;
+      font-size:12px;
+      line-height:1.45;
     }
-    .overlay.hidden{display:none}
-    .overlay .hint{
-      opacity:.78;
-      max-width:68ch;
-      font-size:13px;
-      line-height:1.35;
+    code{
+      background: rgba(255,255,255,.08);
+      padding:2px 6px;
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,.12);
+      word-break: break-word;
     }
 
-    .kv{margin:0 0 10px}
-    .kv .k{opacity:.65;font-size:12px;margin-bottom:4px}
-    .kv .v{font-size:14px;word-break:break-word}
-    .muted{opacity:.70}
-    code{background: rgba(255,255,255,.08); padding:2px 6px; border-radius:8px; border:1px solid rgba(255,255,255,.12)}
-
-    @media (max-width: 980px){
-      .grid{grid-template-columns:1fr}
+    @media (max-width: 1160px){
+      .layout{grid-template-columns: 1fr}
       .hero h1{font-size:34px;letter-spacing:.14em}
-      .iframeWrap{height:62vh}
     }
   </style>
 </head>
@@ -202,46 +238,60 @@
     <section class="hero">
       <h1>SYNTHI LIVE</h1>
       <p>
-        Nativní přehrávač (video+zvuk) z pump.fun clipu. Když CORS nedovolí přímé HLS, stránka sama přepne na iframe embed.
-        Autoplay se zvukem je blokované — musíš kliknout Play.
+        Vyber stream ze seznamu. Default je přímý přehrávač (video+zvuk). Když CORS nedovolí HLS mimo pump.fun,
+        stránka automaticky přepne na iframe embed (ten funguje vždy).
       </p>
+      <small>Tip: autoplay se zvukem prohlížeče blokují — klikni Play.</small>
     </section>
 
-    <section class="grid">
+    <section class="layout">
+      <!-- LEFT: playlist -->
+      <div class="panel">
+        <div class="panelHead">
+          <b>Streams</b>
+          <span class="badge" id="countBadge">—</span>
+        </div>
+        <div class="panelBody">
+          <div class="playlist" id="playlist"></div>
+          <div class="playerNote" style="margin-top:14px">
+            Přidání streamu = přidat URL do pole <code>STREAMS</code> ve scriptu dole.
+          </div>
+        </div>
+      </div>
+
+      <!-- MIDDLE: player -->
       <div class="panel">
         <div class="panelHead">
           <b>Stream</b>
           <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
             <a id="btnPump" class="btn btnPrimary" href="#" target="_blank" rel="noreferrer">Open on pump.fun</a>
-            <button id="btnMode" class="btn" type="button">Toggle mode</button>
+            <button id="btnToggle" class="btn" type="button">Toggle mode</button>
           </div>
         </div>
-        <div class="panelBody" id="mainBody"></div>
+        <div class="panelBody">
+          <div class="playerWrap" id="playerWrap"></div>
+          <div class="playerNote" id="modeNote">—</div>
+        </div>
       </div>
 
+      <!-- RIGHT: source info -->
       <div class="panel">
         <div class="panelHead">
           <b>Source</b>
-          <span class="muted" style="font-size:12px">REC / Synthi Records</span>
+          <span class="badge">REC / Synthi Records</span>
         </div>
         <div class="panelBody">
-          <div class="kv">
-            <div class="k">Mode</div>
-            <div class="v" id="modeLabel">—</div>
-          </div>
+          <div style="opacity:.70;font-size:12px;margin-bottom:6px">Mode</div>
+          <div style="margin-bottom:12px"><code id="modeCode">—</code></div>
 
-          <div class="kv">
-            <div class="k">pump.fun URL</div>
-            <div class="v"><code id="pumpUrlCode">—</code></div>
-          </div>
+          <div style="opacity:.70;font-size:12px;margin-bottom:6px">pump.fun URL</div>
+          <div style="margin-bottom:12px"><code id="pumpUrlCode">—</code></div>
 
-          <div class="kv">
-            <div class="k">HLS playlist (.m3u8)</div>
-            <div class="v"><code id="videoUrlCode">—</code></div>
-            <div class="muted" style="font-size:12px;line-height:1.35;margin-top:6px">
-              Pozn.: pokud server vrací <code>Access-Control-Allow-Origin</code> jen pro <code>https://pump.fun</code>, může to mimo pump.fun spadnout →
-              automatický fallback na iframe.
-            </div>
+          <div style="opacity:.70;font-size:12px;margin-bottom:6px">HLS playlist (.m3u8)</div>
+          <div><code id="m3u8Code">—</code></div>
+
+          <div class="playerNote" style="margin-top:12px">
+            Pozn.: pump.fun často vrací CORS jen pro <code>https://pump.fun</code> → proto existuje fallback na iframe.
           </div>
         </div>
       </div>
@@ -249,171 +299,187 @@
 
     <footer style="margin-top:22px;opacity:.70;font-size:13px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
       <div>© SYNTHI</div>
-      <div class="muted">No backend • GitHub Pages friendly</div>
+      <div style="opacity:.70">No backend • GitHub Pages friendly</div>
     </footer>
 
   </div>
 
 <script>
 (() => {
-  // Pump.fun coin page
-  const PUMPFUN_URL = "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump";
+  // =========================
+  // 1) TVŮJ PLAYLIST (jen doplňuješ)
+  // =========================
+  const COIN_ID = "2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump";
 
-  // ✅ HLS playlist found in your DevTools (Network → playlist.m3u8)
-  const REC_VIDEO_SRC =
-    "https://clips.pump.fun/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump/clips/20251214_014052:1848857_20251214_014035/playlist.m3u8";
+  const STREAMS = [
+    {
+      title: "SYNTHI REC STREAM 3",
+      url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251213_003042%3A1845633_20251213_003028"
+    },
+    {
+      title: "SYNTHI REC STREAM 2",
+      url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251212_001755%3A1839921_20251212_001741"
+    },
+    {
+      title: "SYNTHI REC STREAM 1",
+      url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251210_160546%3A1830890_20251210_160533"
+    }
+  ];
 
-  // Prefer native player; will auto-fallback to iframe on error
-  let IFRAME_MODE = false;
-
+  // =========================
+  // 2) helpers: parse clip -> m3u8
+  // =========================
   const qs = (s)=>document.querySelector(s);
 
-  const mainBody = qs("#mainBody");
-  const modeLabel = qs("#modeLabel");
+  function getClipParam(pumpUrl){
+    try{
+      const u = new URL(pumpUrl);
+      return u.searchParams.get("clip"); // encoded with %3A
+    }catch(_e){
+      return null;
+    }
+  }
+
+  // clip param is URL-decoded by URLSearchParams already (":" will be ":")
+  // m3u8 pattern observed:
+  // https://clips.pump.fun/<COIN_ID>/clips/<CLIP_ID>/playlist.m3u8
+  function makeM3U8(clipId){
+    if(!clipId) return "";
+    return `https://clips.pump.fun/${COIN_ID}/clips/${clipId}/playlist.m3u8`;
+  }
+
+  // =========================
+  // 3) player modes
+  // =========================
+  const MODE = { DIRECT:"direct", EMBED:"embed" };
+  let currentMode = MODE.DIRECT;
+  let currentIndex = 0;
+
+  const playlistEl = qs("#playlist");
+  const playerWrap = qs("#playerWrap");
+
   const btnPump = qs("#btnPump");
-  const btnMode = qs("#btnMode");
+  const btnToggle = qs("#btnToggle");
 
-  btnPump.href = PUMPFUN_URL || "#";
-  qs("#pumpUrlCode").textContent  = PUMPFUN_URL || "—";
-  qs("#videoUrlCode").textContent = REC_VIDEO_SRC || "—";
+  const modeNote = qs("#modeNote");
+  const modeCode = qs("#modeCode");
+  const pumpUrlCode = qs("#pumpUrlCode");
+  const m3u8Code = qs("#m3u8Code");
+  const countBadge = qs("#countBadge");
 
-  function renderIframe(){
-    IFRAME_MODE = true;
-    modeLabel.textContent = "Embedded pump.fun page (iframe)";
-    mainBody.innerHTML = "";
-
-    const wrap = document.createElement("div");
-    wrap.className = "iframeWrap";
-    wrap.innerHTML = PUMPFUN_URL
-      ? `<iframe src="${PUMPFUN_URL}" loading="lazy" referrerpolicy="no-referrer"></iframe>`
-      : `<div style="padding:16px;opacity:.75">Set <b>PUMPFUN_URL</b> in the script.</div>`;
-    mainBody.appendChild(wrap);
-
-    const note = document.createElement("div");
-    note.style.marginTop = "12px";
-    note.style.opacity = ".75";
-    note.style.fontSize = "12px";
-    note.innerHTML = `Fallback active. If you find another clip that exposes <code>m3u8</code> with open CORS, native playback will work.`;
-    mainBody.appendChild(note);
+  function setActiveItem(){
+    [...playlistEl.querySelectorAll(".item")].forEach((el, i) => {
+      el.classList.toggle("active", i === currentIndex);
+    });
   }
 
-  function renderNative(){
-    IFRAME_MODE = false;
-    modeLabel.textContent = "Direct video player (HLS/MP4)";
-    mainBody.innerHTML = "";
+  function renderPlaylist(){
+    countBadge.textContent = `${STREAMS.length} total`;
 
-    const playerWrap = document.createElement("div");
-    playerWrap.className = "playerWrap";
-    playerWrap.innerHTML = `
-      <video id="recVideo" playsinline controls preload="metadata"></video>
-      <div id="overlay" class="overlay">
-        <button id="btnPlay" class="btn btnPrimary" type="button">Play (with sound)</button>
-        <div class="hint">
-          Autoplay se zvukem je blokované — klikni Play.<br>
-          Source: <code>${escapeHtml(REC_VIDEO_SRC)}</code><br><br>
-          Pokud to spadne (CORS), stránka přepne na iframe.
+    playlistEl.innerHTML = STREAMS.map((s, idx) => {
+      const clipId = getClipParam(s.url) || "";
+      const m3u8 = makeM3U8(clipId);
+      return `
+        <div class="item" data-idx="${idx}">
+          <div class="itemTop">
+            <div class="itemTitle">${escapeHtml(s.title || `Stream ${idx+1}`)}</div>
+            <span class="badge">#${idx+1}</span>
+          </div>
+          <div class="itemMeta">
+            <div><span style="opacity:.75">clip:</span> <code>${escapeHtml(clipId || "—")}</code></div>
+          </div>
+          <div class="tinyBtnRow">
+            <a class="tinyBtn" href="${s.url}" target="_blank" rel="noreferrer">pump.fun</a>
+            <button class="tinyBtn" type="button" data-action="play" data-idx="${idx}">Play</button>
+          </div>
         </div>
-      </div>
-    `;
-    mainBody.appendChild(playerWrap);
+      `;
+    }).join("");
 
-    const video = qs("#recVideo");
-    const overlay = qs("#overlay");
-    const btnPlay = qs("#btnPlay");
-
-    let fallbackTimer = null;
-
-    const goFallback = (reason) => {
-      console.warn("Switching to iframe fallback:", reason);
-      renderIframe();
-    };
-
-    // If video errors → fallback
-    video.addEventListener("error", () => {
-      const err = video.error ? `${video.error.code}` : "unknown";
-      goFallback("video error code " + err);
+    playlistEl.addEventListener("click", (e) => {
+      const playBtn = e.target.closest('button[data-action="play"]');
+      if(playBtn){
+        const idx = Number(playBtn.dataset.idx);
+        if(Number.isFinite(idx)) selectStream(idx);
+        return;
+      }
+      const item = e.target.closest(".item");
+      if(item){
+        const idx = Number(item.dataset.idx);
+        if(Number.isFinite(idx)) selectStream(idx);
+      }
     });
 
-    // If nothing starts within ~6s after user action → fallback (common with HLS+CORS)
-    const armFallback = () => {
-      clearTimeout(fallbackTimer);
-      fallbackTimer = setTimeout(() => {
-        // If still not playing/ready, fallback
-        if (video.readyState < 2 || video.paused) goFallback("timeout / not loading");
-      }, 6000);
-    };
-
-    setupVideoSource(video, REC_VIDEO_SRC).then(() => {
-      btnPlay.addEventListener("click", async () => {
-        try{
-          video.muted = false;
-          armFallback();
-          await video.play();
-          overlay.classList.add("hidden");
-        }catch(e){
-          overlay.querySelector(".hint").innerHTML =
-            `Play blocked. Zkus ovládání videa.<br>(${escapeHtml(String(e))})`;
-          // Don’t instantly fallback here; user might press play again.
-        }
-      });
-
-      video.addEventListener("playing", () => {
-        clearTimeout(fallbackTimer);
-        overlay.classList.add("hidden");
-      });
-      video.addEventListener("pause", () => overlay.classList.remove("hidden"));
-    }).catch(err => {
-      console.warn("Native setup failed:", err);
-      goFallback("native setup failed: " + String(err));
-    });
+    setActiveItem();
   }
 
-  function escapeHtml(str){
-    return String(str)
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
+  function selectStream(idx){
+    currentIndex = idx;
+    localStorage.setItem("synthi_rec_last_index", String(idx));
+    setActiveItem();
+    loadCurrent();
   }
 
-  async function setupVideoSource(videoEl, src){
-    const isM3U8 = /\.m3u8(\?|$)/i.test(src);
-    if(!isM3U8){
-      videoEl.src = src;
+  function loadCurrent(){
+    const s = STREAMS[currentIndex];
+    const clipId = getClipParam(s.url);
+    const m3u8 = makeM3U8(clipId);
+
+    btnPump.href = s.url;
+    pumpUrlCode.textContent = s.url;
+    m3u8Code.textContent = m3u8 || "—";
+
+    if(currentMode === MODE.EMBED){
+      renderEmbed(s.url);
+    }else{
+      renderDirect(m3u8, s.url);
+    }
+  }
+
+  function renderEmbed(pumpUrl){
+    currentMode = MODE.EMBED;
+    modeCode.textContent = "Embed (iframe) — always works";
+    modeNote.textContent = "Embed mode: pump.fun player inside iframe (audio + video).";
+    playerWrap.innerHTML = `<iframe src="${pumpUrl}" loading="lazy" referrerpolicy="no-referrer"></iframe>`;
+  }
+
+  function renderDirect(m3u8Url, pumpUrl){
+    currentMode = MODE.DIRECT;
+    modeCode.textContent = "Direct video player (HLS/MP4) — may fall back";
+    modeNote.textContent = "Direct mode: tries native HLS (Safari) or hls.js (Chrome/Firefox). If CORS fails, it falls back to iframe.";
+
+    playerWrap.innerHTML = `<video id="v" controls playsinline preload="metadata"></video>`;
+    const v = qs("#v");
+
+    if(!m3u8Url){
+      renderEmbed(pumpUrl);
       return;
     }
 
-    // Safari supports HLS natively
-    if (videoEl.canPlayType("application/vnd.apple.mpegurl")){
-      videoEl.src = src;
+    // Safari/iOS: native HLS
+    if(v.canPlayType("application/vnd.apple.mpegurl")){
+      v.src = m3u8Url;
       return;
     }
 
-    // Otherwise load hls.js
-    await loadScriptOnce("https://cdn.jsdelivr.net/npm/hls.js@1.5.15/dist/hls.min.js");
-    if(!window.Hls) throw new Error("hls.js failed to load");
+    // Chrome/Firefox: hls.js (often fails due to CORS)
+    loadScriptOnce("https://cdn.jsdelivr.net/npm/hls.js@1.5.15/dist/hls.min.js")
+      .then(() => {
+        if(!window.Hls || !window.Hls.isSupported()) throw new Error("HLS not supported");
+        const hls = new window.Hls({ enableWorker:true });
 
-    if(window.Hls.isSupported()){
-      const hls = new window.Hls({
-        enableWorker:true,
-        lowLatencyMode:false
-      });
-      hls.loadSource(src);
-      hls.attachMedia(videoEl);
-      videoEl.__hls = hls;
+        hls.loadSource(m3u8Url);
+        hls.attachMedia(v);
 
-      // If HLS fails (often CORS), throw so we can fallback
-      hls.on(window.Hls.Events.ERROR, (event, data) => {
-        if(data?.fatal){
-          throw new Error("HLS fatal error: " + (data?.type || "unknown"));
-        }
-      });
+        hls.on(window.Hls.Events.ERROR, (_e, data) => {
+          if(data?.fatal){
+            renderEmbed(pumpUrl);
+          }
+        });
 
-      return;
-    }
-
-    throw new Error("HLS not supported in this browser");
+        v.addEventListener("error", () => renderEmbed(pumpUrl));
+      })
+      .catch(() => renderEmbed(pumpUrl));
   }
 
   function loadScriptOnce(url){
@@ -424,18 +490,29 @@
       s.async = true;
       s.dataset.src = url;
       s.onload = resolve;
-      s.onerror = () => reject(new Error("Failed to load script: " + url));
+      s.onerror = () => reject(new Error("Failed to load: " + url));
       document.head.appendChild(s);
     });
   }
 
-  btnMode.addEventListener("click", () => {
-    if(IFRAME_MODE) renderNative();
-    else renderIframe();
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, (m) => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[m]));
+  }
+
+  // Toggle button
+  btnToggle.addEventListener("click", () => {
+    currentMode = (currentMode === MODE.DIRECT) ? MODE.EMBED : MODE.DIRECT;
+    loadCurrent();
   });
 
-  // Start in native; fallback if anything breaks
-  renderNative();
+  // init
+  const saved = Number(localStorage.getItem("synthi_rec_last_index"));
+  if(Number.isFinite(saved) && saved >= 0 && saved < STREAMS.length) currentIndex = saved;
+
+  renderPlaylist();
+  loadCurrent();
 })();
 </script>
 </body>
