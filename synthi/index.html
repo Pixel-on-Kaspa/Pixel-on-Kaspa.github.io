@@ -88,6 +88,7 @@
       line-height:1.02;
     }
     .hero p{margin:0;opacity:.80}
+    .hero small{display:block;margin-top:6px;opacity:.65}
 
     .layout{
       margin-top:16px;
@@ -118,12 +119,7 @@
     }
     .panelBody{padding:14px}
 
-    /* Stream buttons */
-    .streamGrid{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap:10px;
-    }
+    .streamGrid{display:grid;grid-template-columns:1fr;gap:10px;}
     .streamBtn{
       width:100%;
       justify-content:space-between;
@@ -145,7 +141,6 @@
       background: rgba(0,196,255,.10);
       color:#fff;
     }
-
     .pill{
       font-size:11px;
       letter-spacing:.06em;
@@ -157,16 +152,11 @@
       background: rgba(0,0,0,.18);
       white-space:nowrap;
     }
-    .modePill{
-      border-color: rgba(0,196,255,.40);
-      background: rgba(0,196,255,.10);
-      color: var(--accent);
-      font-weight:900;
-      letter-spacing:.10em;
-      text-transform:uppercase;
+
+    .playerTopActions{
+      display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center;
     }
 
-    /* Player */
     .playerWrap{
       width:100%;
       aspect-ratio: 16/9;
@@ -176,21 +166,14 @@
       background:#000;
       position:relative;
     }
-    video, iframe{width:100%;height:100%;display:block;border:0;background:#000;object-fit:contain}
-
-    .playerTopActions{
-      display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center;
-    }
+    video{width:100%;height:100%;display:block;border:0;background:#000;object-fit:contain}
 
     @media (max-width: 980px){
       .layout{grid-template-columns: 1fr}
       .hero h1{font-size:34px;letter-spacing:.14em}
-      .streamGrid{grid-template-columns: repeat(3, minmax(0, 1fr));}
+      .streamGrid{grid-template-columns: repeat(2, minmax(0, 1fr));}
       .streamBtn{justify-content:center}
       .streamBtn .pill{display:none}
-    }
-    @media (max-width: 560px){
-      .streamGrid{grid-template-columns: repeat(2, minmax(0, 1fr));}
     }
   </style>
 </head>
@@ -212,7 +195,8 @@
 
     <section class="hero">
       <h1>SYNTHI LIVE</h1>
-      <p>Choose a stream. Toggle switches <b>Direct</b> (native player) ↔ <b>Embed</b> (pump.fun).</p>
+      <p>Choose a stream. Plays directly here (video + sound).</p>
+      <small>Tip: autoplay with sound is blocked — click Play.</small>
     </section>
 
     <section class="layout">
@@ -232,9 +216,7 @@
         <div class="panelHead">
           <b>Stream</b>
           <div class="playerTopActions">
-            <span class="pill modePill" id="modePill">MODE: —</span>
             <a id="btnPump" class="btn btnPrimary" href="#" target="_blank" rel="noreferrer">Open on pump.fun</a>
-            <button id="btnToggle" class="btn" type="button">Toggle →</button>
           </div>
         </div>
         <div class="panelBody">
@@ -254,40 +236,31 @@
 (() => {
   const COIN_ID = "2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump";
 
+  // Streams list (edit titles anytime)
   const STREAMS = [
-    {
-      title: "REC STREAM 3",
-      url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251213_003042%3A1845633_20251213_003028"
-    },
-    {
-      title: "REC STREAM 2",
-      url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251212_001755%3A1839921_20251212_001741"
-    },
-    {
-      title: "REC STREAM 1",
-      url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251210_160546%3A1830890_20251210_160533"
-    }
+    { title: "REC STREAM 7", url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251208_215456%3A1826876_20251208_215436" },
+    { title: "REC STREAM 6", url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251206_142518%3A1808592_20251206_142500" },
+    { title: "REC STREAM 5", url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251205_225958%3A1800113_20251205_225938" },
+    { title: "REC STREAM 4", url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251130_135527%3A1742504_20251130_135514" },
+
+    { title: "REC STREAM 3", url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251213_003042%3A1845633_20251213_003028" },
+    { title: "REC STREAM 2", url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251212_001755%3A1839921_20251212_001741" },
+    { title: "REC STREAM 1", url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251210_160546%3A1830890_20251210_160533" },
   ];
 
-  const MODE = { DIRECT:"direct", EMBED:"embed" };
-  let currentMode = MODE.DIRECT;
   let currentIndex = 0;
 
   const qs = (s)=>document.querySelector(s);
   const streamGrid = qs("#streamGrid");
   const playerWrap = qs("#playerWrap");
   const btnPump = qs("#btnPump");
-  const btnToggle = qs("#btnToggle");
   const countPill = qs("#countPill");
-  const modePill = qs("#modePill");
 
   function getClipParam(pumpUrl){
     try{
       const u = new URL(pumpUrl);
       return u.searchParams.get("clip");
-    }catch(_e){
-      return null;
-    }
+    }catch(_e){ return null; }
   }
   function makeM3U8(clipId){
     if(!clipId) return "";
@@ -296,27 +269,18 @@
 
   function setUrlParams(){
     const u = new URL(window.location.href);
-    u.searchParams.set("mode", currentMode);
     u.searchParams.set("s", String(currentIndex));
     history.replaceState({}, "", u.toString());
   }
 
-  function applyModeUI(){
-    modePill.textContent = `MODE: ${currentMode.toUpperCase()}`;
-    btnToggle.textContent = (currentMode === MODE.DIRECT) ? "Switch to Embed" : "Switch to Direct";
-  }
-
   function renderButtons(){
     countPill.textContent = `${STREAMS.length} total`;
-
-    streamGrid.innerHTML = STREAMS.map((s, idx) => {
-      return `
-        <button class="streamBtn" type="button" data-idx="${idx}">
-          <span>${escapeHtml(s.title || `Stream ${idx+1}`)}</span>
-          <span class="pill">#${idx+1}</span>
-        </button>
-      `;
-    }).join("");
+    streamGrid.innerHTML = STREAMS.map((s, idx) => `
+      <button class="streamBtn" type="button" data-idx="${idx}">
+        <span>${escapeHtml(s.title || `Stream ${idx+1}`)}</span>
+        <span class="pill">#${idx+1}</span>
+      </button>
+    `).join("");
 
     streamGrid.addEventListener("click", (e) => {
       const b = e.target.closest(".streamBtn");
@@ -347,20 +311,8 @@
     const m3u8 = makeM3U8(clipId);
 
     btnPump.href = s.url;
-
-    applyModeUI();
     setUrlParams();
-
-    // Always rerender so toggle is visibly doing something
-    if(currentMode === MODE.EMBED){
-      renderEmbed(s.url);
-    }else{
-      renderDirect(m3u8, s.url);
-    }
-  }
-
-  function renderEmbed(pumpUrl){
-    playerWrap.innerHTML = `<iframe src="${pumpUrl}" loading="lazy" referrerpolicy="no-referrer"></iframe>`;
+    renderDirect(m3u8, s.url);
   }
 
   function renderDirect(m3u8Url, pumpUrl){
@@ -368,17 +320,25 @@
     const v = qs("#v");
 
     if(!m3u8Url){
-      renderEmbed(pumpUrl);
+      playerWrap.innerHTML = `
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:18px;text-align:center;">
+          <div style="max-width:520px;border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.35);border-radius:18px;padding:18px;box-shadow:var(--shadow);">
+            <div style="letter-spacing:.12em;text-transform:uppercase;font-weight:900;margin-bottom:8px;">Missing clip</div>
+            <div style="opacity:.78;line-height:1.5;margin-bottom:12px;">This stream URL has no clip param.</div>
+            <a class="btn btnPrimary" href="${pumpUrl}" target="_blank" rel="noreferrer">Open on pump.fun</a>
+          </div>
+        </div>
+      `;
       return;
     }
 
-    // Safari/iOS: native HLS
+    // Safari/iOS native HLS
     if(v.canPlayType("application/vnd.apple.mpegurl")){
       v.src = m3u8Url;
       return;
     }
 
-    // Chrome/Firefox: hls.js (may fail due to CORS -> fallback)
+    // Chrome/Firefox hls.js (may fail if CORS blocks HLS)
     loadScriptOnce("https://cdn.jsdelivr.net/npm/hls.js@1.5.15/dist/hls.min.js")
       .then(() => {
         if(!window.Hls || !window.Hls.isSupported()) throw new Error("HLS not supported");
@@ -388,21 +348,35 @@
         hls.attachMedia(v);
 
         hls.on(window.Hls.Events.ERROR, (_e, data) => {
-          if(data?.fatal) renderEmbed(pumpUrl);
+          if(data?.fatal){
+            showHlsFail(pumpUrl);
+          }
         });
 
-        v.addEventListener("error", () => renderEmbed(pumpUrl));
+        v.addEventListener("error", () => showHlsFail(pumpUrl));
       })
-      .catch(() => renderEmbed(pumpUrl));
+      .catch(() => showHlsFail(pumpUrl));
+  }
+
+  function showHlsFail(pumpUrl){
+    playerWrap.innerHTML = `
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:18px;text-align:center;background: radial-gradient(circle at top, rgba(0,196,255,.10), rgba(0,0,0,.55) 55%);">
+        <div style="max-width:560px;border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.35);border-radius:18px;padding:18px;box-shadow:var(--shadow);">
+          <div style="letter-spacing:.12em;text-transform:uppercase;font-weight:900;margin-bottom:8px;">Playback blocked</div>
+          <div style="opacity:.78;line-height:1.5;margin-bottom:12px;">
+            This browser/network blocked HLS (CORS). Open the stream on pump.fun instead.
+          </div>
+          <a class="btn btnPrimary" href="${pumpUrl}" target="_blank" rel="noreferrer">Open on pump.fun</a>
+        </div>
+      </div>
+    `;
   }
 
   function loadScriptOnce(url){
     return new Promise((resolve, reject) => {
       if(document.querySelector(`script[data-src="${url}"]`)) return resolve();
       const s = document.createElement("script");
-      s.src = url;
-      s.async = true;
-      s.dataset.src = url;
+      s.src = url; s.async = true; s.dataset.src = url;
       s.onload = resolve;
       s.onerror = () => reject(new Error("Failed to load: " + url));
       document.head.appendChild(s);
@@ -415,18 +389,9 @@
     }[m]));
   }
 
-  btnToggle.addEventListener("click", () => {
-    currentMode = (currentMode === MODE.DIRECT) ? MODE.EMBED : MODE.DIRECT;
-    loadCurrent();
-  });
-
-  // init: allow URL overrides
+  // init: allow URL override
   const u = new URL(window.location.href);
-  const urlMode = (u.searchParams.get("mode") || "").toLowerCase();
   const urlS = Number(u.searchParams.get("s"));
-
-  if(urlMode === MODE.EMBED || urlMode === MODE.DIRECT) currentMode = urlMode;
-
   if(Number.isFinite(urlS) && urlS >= 0 && urlS < STREAMS.length){
     currentIndex = urlS;
   }else{
