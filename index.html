@@ -27,7 +27,6 @@
     a{color:inherit}
     .wrap{max-width:1100px;margin:0 auto;padding:22px 16px 56px}
 
-    /* Top bar */
     .topbar{
       display:flex;align-items:center;justify-content:space-between;
       gap:14px;
@@ -53,7 +52,6 @@
       display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center;
     }
 
-    /* Buttons */
     .btn{
       text-decoration:none;
       display:inline-flex;align-items:center;gap:8px;
@@ -63,10 +61,7 @@
       color: rgba(255,255,255,.88);
       font-weight:750;
       transition: background .15s, color .15s, transform .15s, border-color .15s;
-      white-space:nowrap;
-      line-height:1;
-      cursor:pointer;
-      user-select:none;
+      white-space:nowrap;line-height:1;cursor:pointer;user-select:none;
     }
     .btn:hover{background: rgba(255,255,255,.12);color:#fff;transform: translateY(-1px);}
     .btnPrimary{
@@ -79,7 +74,6 @@
     .btnIcon{ padding:8px 12px; }
     .btnIcon img{ width:22px;height:22px;display:block;border-radius:7px; }
 
-    /* Rewards top button bigger */
     .btnRewardsTop{
       font-size: 1.02rem;
       font-weight: 900;
@@ -87,7 +81,6 @@
       padding: 10px 16px;
     }
 
-    /* Hero */
     .hero{
       margin-top:18px;
       border:1px solid var(--border);
@@ -116,24 +109,10 @@
       text-transform:uppercase;
       line-height:1.02;
     }
-    .sub{
-      margin:0 auto 0;
-      opacity:.86;
-      font-size:16px;
-      max-width: 78ch;
-    }
-    .sub2{
-      margin:10px auto 0;
-      opacity:.72;
-      font-size:13px;
-      max-width: 78ch;
-    }
-    .heroCtas{
-      display:flex;gap:10px;flex-wrap:wrap;justify-content:center;
-      margin-top:14px;
-    }
+    .sub{margin:0 auto 0;opacity:.86;font-size:16px;max-width: 78ch;}
+    .sub2{margin:10px auto 0;opacity:.72;font-size:13px;max-width: 78ch;}
+    .heroCtas{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:14px;}
 
-    /* Collections */
     .sectionTitle{
       margin:22px 0 12px;
       letter-spacing:.14em;
@@ -141,10 +120,13 @@
       font-weight:900;
       font-size:14px;
       opacity:.85;
+      display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;
     }
+    .sectionTitle span{opacity:.65;font-weight:700;letter-spacing:.08em;text-transform:none;font-size:12px}
+
     .cards{
       display:grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap:16px;
     }
     .card{
@@ -159,9 +141,10 @@
     }
     .card:hover{transform: translateY(-3px); border-color: rgba(0,196,255,.22); box-shadow:0 24px 40px rgba(0,0,0,.7);}
 
+    /* square thumbs */
     .thumb{
       width:100%;
-      aspect-ratio: 16/10;
+      aspect-ratio: 1/1;
       border-radius:16px;
       border:1px solid rgba(255,255,255,.10);
       background: #000;
@@ -194,14 +177,20 @@
       font-size:12px;
       backdrop-filter: blur(10px);
     }
+    .thumb .bottomline{
+      position:absolute;left:10px;right:10px;bottom:10px;
+      padding:10px 12px;border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.30);
+      backdrop-filter: blur(10px);
+      font-size:12px;
+      line-height:1.35;
+      opacity:.92;
+    }
+    .thumb .bottomline b{letter-spacing:.08em;text-transform:uppercase}
 
-    .cardHead{
-      display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
-      margin-bottom:10px;
-    }
-    .cardHead b{
-      font-size:18px;letter-spacing:.10em;text-transform:uppercase;
-    }
+    .cardHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;}
+    .cardHead b{font-size:18px;letter-spacing:.10em;text-transform:uppercase;}
     .chip{
       padding:6px 10px;border-radius:999px;
       border:1px solid rgba(255,255,255,.14);
@@ -211,14 +200,8 @@
       white-space:nowrap;
     }
     .card p{margin:0 0 14px;opacity:.78;line-height:1.5}
-    .cardActions{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
+    .cardActions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
 
-    /* Footer */
     footer{
       margin-top:22px;
       opacity:.70;
@@ -231,68 +214,20 @@
     footer a{color: var(--accent); text-decoration:none}
     footer a:hover{text-decoration:underline}
 
-    /* Rewards Modal */
-    .modal{
-      position:fixed;inset:0;
-      background: rgba(0,0,0,.72);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      padding:18px;
-      z-index:9999;
-    }
+    /* Rewards Modal (unchanged) */
+    .modal{position:fixed;inset:0;background: rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:18px;z-index:9999;}
     .modal.open{display:flex;}
-    .modalPanel{
-      width:min(980px, 96vw);
-      max-height: 92vh;
-      overflow:auto;
-      border-radius:18px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(10,12,18,.92);
-      box-shadow: 0 30px 80px rgba(0,0,0,.75);
-      backdrop-filter: blur(10px);
-    }
-    .modalTop{
-      display:flex;justify-content:space-between;align-items:center;gap:12px;
-      padding:12px 14px;
-      border-bottom:1px solid rgba(255,255,255,.10);
-      position:sticky;top:0;
-      background: rgba(10,12,18,.92);
-      z-index:1;
-    }
-    .modalTitle{
-      display:flex;flex-direction:column;gap:2px;
-    }
+    .modalPanel{width:min(980px, 96vw);max-height: 92vh;overflow:auto;border-radius:18px;border:1px solid rgba(255,255,255,.14);background: rgba(10,12,18,.92);box-shadow: 0 30px 80px rgba(0,0,0,.75);backdrop-filter: blur(10px);}
+    .modalTop{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.10);position:sticky;top:0;background: rgba(10,12,18,.92);z-index:1;}
+    .modalTitle{display:flex;flex-direction:column;gap:2px;}
     .modalTitle b{letter-spacing:.10em;text-transform:uppercase}
     .modalTitle span{opacity:.70;font-size:12px}
     .modalBody{padding:14px}
     .modalTabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-    .tabBtn{
-      border:1px solid rgba(255,255,255,.16);
-      background: rgba(255,255,255,.06);
-      color: rgba(255,255,255,.90);
-      padding:8px 12px;border-radius:999px;
-      cursor:pointer;
-      font-weight:800;
-    }
-    .tabBtn.active{
-      border-color: rgba(0,196,255,.70);
-      color: var(--accent);
-      background: rgba(0,196,255,.10);
-    }
-    .rewardBlock{
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-      border-radius:16px;
-      padding:14px;
-      margin-bottom:12px;
-    }
-    .rewardBlock h3{
-      margin:0 0 10px;
-      letter-spacing:.10em;text-transform:uppercase;
-      font-size:13px;
-      opacity:.92;
-    }
+    .tabBtn{border:1px solid rgba(255,255,255,.16);background: rgba(255,255,255,.06);color: rgba(255,255,255,.90);padding:8px 12px;border-radius:999px;cursor:pointer;font-weight:800;}
+    .tabBtn.active{border-color: rgba(0,196,255,.70);color: var(--accent);background: rgba(0,196,255,.10);}
+    .rewardBlock{border:1px solid rgba(255,255,255,.10);background: rgba(255,255,255,.04);border-radius:16px;padding:14px;margin-bottom:12px;}
+    .rewardBlock h3{margin:0 0 10px;letter-spacing:.10em;text-transform:uppercase;font-size:13px;opacity:.92;}
     .rewardBlock p{margin:0 0 10px;opacity:.78;line-height:1.55}
     .rewardList{margin:0;padding-left:18px;opacity:.86}
     .rewardList li{margin:6px 0}
@@ -315,10 +250,13 @@
       <div class="nav">
         <button class="btn btnRewardsTop btnPrimary" type="button" data-open-rewards="PIXELONKAS">REWARDS</button>
 
-        <a class="btn" href="/viewer">Viewer</a>
+        <!-- Viewer renamed -->
+        <a class="btn" href="/nfts">NFTs</a>
+
         <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">Mint PIXELONKAS</a>
         <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">Mint SYKORA</a>
 
+        <!-- SYNTHI entry -->
         <a class="btn btnIcon btnGhost" href="/synthi/" title="SYNTHI">
           <img src="assets/img/logo.png" alt="SYNTHI">
           SYNTHI
@@ -336,16 +274,24 @@
 
       <div class="heroCtas">
         <a class="btn btnPrimary" href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">Open $PIXEL</a>
+        <a class="btn" href="/synthi/">Open SYNTHI</a>
       </div>
     </section>
 
-    <div class="sectionTitle">NFT COLLECTIONS</div>
+    <div class="sectionTitle">
+      NFT COLLECTIONS
+      <span>Sound-driven image generation inscribed on the Kaspa blockDAG.</span>
+    </div>
 
     <section class="cards">
       <div class="card">
         <div class="thumb" id="thumbPIXELONKAS">
           <span class="tag">PIXELONKAS</span>
           <span class="hint" id="hintPIXELONKAS">Loading…</span>
+          <div class="bottomline">
+            <b>System states</b><br>
+            live captures → on-chain residue
+          </div>
         </div>
         <div class="cardHead">
           <b>PIXELONKAS</b>
@@ -353,7 +299,7 @@
         </div>
         <p>NFT collection — sound-driven image generation inscribed on the Kaspa blockDAG.</p>
         <div class="cardActions">
-          <a class="btn btnPrimary" href="/viewer">Open Viewer</a>
+          <a class="btn btnPrimary" href="/nfts">Open NFTs</a>
           <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
           <button class="btn btnGhost" type="button" data-open-rewards="PIXELONKAS">Rewards</button>
         </div>
@@ -363,6 +309,10 @@
         <div class="thumb" id="thumbSYKORA">
           <span class="tag">SYKORA</span>
           <span class="hint" id="hintSYKORA">Loading…</span>
+          <div class="bottomline">
+            <b>Entities</b><br>
+            styles → instant perks
+          </div>
         </div>
         <div class="cardHead">
           <b>SYKORA</b>
@@ -370,9 +320,30 @@
         </div>
         <p>NFT collection — sound-driven image generation inscribed on the Kaspa blockDAG.</p>
         <div class="cardActions">
-          <a class="btn btnPrimary" href="/viewer">Open Viewer</a>
+          <a class="btn btnPrimary" href="/nfts">Open NFTs</a>
           <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
           <button class="btn btnGhost" type="button" data-open-rewards="SYKORA">Rewards</button>
+        </div>
+      </div>
+
+      <!-- optional third card: SYNTHI shortcut (keeps 3-column balanced on desktop) -->
+      <div class="card">
+        <div class="thumb" style="background: radial-gradient(circle at top, rgba(0,196,255,.16), rgba(0,0,0,.55) 60%);">
+          <span class="tag">SYNTHI</span>
+          <span class="hint">REC + token</span>
+          <div class="bottomline">
+            <b>Sound system</b><br>
+            REC streams → archive
+          </div>
+        </div>
+        <div class="cardHead">
+          <b>SYNTHI</b>
+          <span class="chip">KRC-20</span>
+        </div>
+        <p>SYNTHI index — streams archive, links, and on-chain presence.</p>
+        <div class="cardActions">
+          <a class="btn btnPrimary" href="/synthi/">Open SYNTHI</a>
+          <a class="btn" href="/synthi/rec.html">REC Streams</a>
         </div>
       </div>
     </section>
@@ -381,7 +352,7 @@
       <div>© Pixel on Kaspa</div>
       <div>
         <a href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">$PIXEL</a> ·
-        <a href="/viewer">Viewer</a> ·
+        <a href="/nfts">NFTs</a> ·
         <a href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a> ·
         <a href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
       </div>
@@ -389,7 +360,7 @@
 
   </div>
 
-  <!-- Rewards Modal -->
+  <!-- Rewards Modal (your original content) -->
   <div class="modal" id="rewardsModal" aria-hidden="true">
     <div class="modalPanel" role="dialog" aria-modal="true">
       <div class="modalTop">
@@ -462,7 +433,6 @@
 
 <script>
 (() => {
-  // Covers: last minted by timestamp if possible, else fallback ranges scan.
   const STREAM_API = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
   const KASPA_API  = "https://api.kaspa.com/api";
   const IPFS_GATEWAYS = [
@@ -644,9 +614,12 @@
       const { url, ipfs } = extractImage(meta);
       if(!url) throw new Error("No image in metadata");
 
+      // preserve your bottom overlays (tag/hint/bottomline)
+      const bottomline = thumb.querySelector(".bottomline")?.outerHTML || "";
       thumb.innerHTML = `
         <span class="tag">${tick}</span>
         <span class="hint">Last mint: #${coverId}</span>
+        ${bottomline}
         <img src="${url}" alt="${tick} cover" loading="lazy">
       `;
 
@@ -665,7 +638,7 @@
     }
   }
 
-  // Rewards modal
+  // Rewards modal (unchanged)
   const modal = qs("#rewardsModal");
   const closeBtn = qs("#rewardsClose");
 
@@ -692,7 +665,6 @@
   modal.addEventListener("click", (e)=>{ if(e.target === modal) closeModal(); });
   document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && modal.classList.contains("open")) closeModal(); });
 
-  // init
   loadCover("PIXELONKAS");
   loadCover("SYKORA");
 })();
