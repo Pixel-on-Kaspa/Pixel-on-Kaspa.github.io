@@ -43,13 +43,26 @@
       text-transform:uppercase;
       white-space:nowrap;
     }
-    .brand span{
-      display:inline-block;
-      width:22px;height:22px;
-      border-radius:6px;
-      background:#fff;
-      opacity:.9;
+    .brandIcon{
+      width:26px;height:26px;border-radius:8px;
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.06);
+      overflow:hidden;
+      display:grid;place-items:center;
+      flex:0 0 auto;
     }
+    .brandIcon img{
+      width:100%;height:100%;
+      object-fit:cover;
+      display:block;
+    }
+    .brandIconFallback{
+      font-weight:1000;
+      letter-spacing:.08em;
+      opacity:.9;
+      transform: translateY(-.5px);
+    }
+
     .nav{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 
     .btn{
@@ -84,17 +97,37 @@
       position:relative;
       overflow:hidden;
     }
+    .hero::before{
+      content:"";position:absolute;inset:-140px -160px auto auto;
+      width:320px;height:320px;
+      background: radial-gradient(circle at center, rgba(0,196,255,.18), transparent 60%);
+      filter: blur(2px);
+      transform: rotate(10deg);
+      pointer-events:none;
+    }
 
-    /* DECORATIVE IMAGE */
+    /* decorative images */
     .heroArt{
       position:absolute;
-      right:-120px;
-      top:-60px;
-      width:520px;
-      opacity:.12;
-      filter: blur(1.5px);
       pointer-events:none;
-      mix-blend-mode:screen;
+      user-select:none;
+      opacity:.14;
+      filter: blur(1.2px);
+      mix-blend-mode: screen;
+    }
+    .heroArt.a{
+      right:-120px;
+      top:-70px;
+      width:520px;
+      transform: rotate(-6deg);
+    }
+    .heroArt.b{
+      left:-160px;
+      bottom:-140px;
+      width:560px;
+      transform: rotate(12deg) scaleX(-1);
+      opacity:.10;
+      filter: blur(1.8px);
     }
 
     .hero h1{
@@ -138,27 +171,33 @@
       border-radius:16px;
       padding:12px;
     }
+    .streamLeft{display:flex;flex-direction:column;gap:3px}
     .streamLeft b{letter-spacing:.10em;text-transform:uppercase}
     .streamLeft span{opacity:.7;font-size:12px}
+
     .btnMini{
       padding:8px 12px;border-radius:999px;
       border:1px solid rgba(255,255,255,.16);
       background: rgba(0,0,0,.14);
       font-weight:800;font-size:13px;
       text-decoration:none;
+      white-space:nowrap;
     }
+    .btnMini:hover{background: rgba(255,255,255,.10);}
 
     footer{
       margin-top:22px;
       opacity:.7;
       font-size:13px;
-      display:flex;justify-content:space-between;flex-wrap:wrap;
+      display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;
     }
     footer a{color:var(--accent);text-decoration:none}
+    footer a:hover{text-decoration:underline}
 
     @media (max-width:900px){
-      .heroArt{right:-200px;width:420px}
       .hero h1{font-size:34px}
+      .heroArt.a{right:-220px;width:440px}
+      .heroArt.b{left:-220px;width:480px}
     }
   </style>
 </head>
@@ -167,29 +206,32 @@
 
   <div class="topbar">
     <div class="brand">
-      <span></span>
+      <div class="brandIcon" aria-hidden="true">
+        <!-- topbar logo (small icon) -->
+        <img src="../assets/img/logo.png" alt="" onerror="this.remove(); this.parentNode.innerHTML='<span class=&quot;brandIconFallback&quot;>S</span>';">
+      </div>
       SYNTHI • INDEX
     </div>
+
     <div class="nav">
       <a class="btn btnGhost" href="/">Home</a>
       <a class="btn btnPrimary" href="./rec.html">REC Streams</a>
-      <a class="btn btnGhost" href="https://x.com/PixelonKas" target="_blank">X</a>
-      <a class="btn btnGhost" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank">TG</a>
+      <a class="btn btnGhost" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
+      <a class="btn btnGhost" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
     </div>
   </div>
 
   <section class="hero">
-    <!-- decorative image -->
-    <img class="heroArt" src="../assets/img/synthi.png" alt="" />
+    <!-- decorative hero images (NOT the logo) -->
+    <img class="heroArt a" src="../assets/img/synthi.png" alt="" onerror="this.style.display='none'">
+    <img class="heroArt b" src="../assets/img/synthi.png" alt="" onerror="this.style.display='none'">
 
     <h1>SYNTHI</h1>
-    <p class="muted">
-      Sound-driven image generation inscribed on the Kaspa blockDAG.
-    </p>
+    <p class="muted">Sound-driven image generation inscribed on the Kaspa blockDAG.</p>
 
     <div class="heroCtas">
       <a class="btn btnPrimary" href="./rec.html">Open REC</a>
-      <a class="btn btnGhost" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump" target="_blank">
+      <a class="btn btnGhost" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump" target="_blank" rel="noreferrer">
         Open on pump.fun
       </a>
     </div>
@@ -198,15 +240,18 @@
   <section class="panel">
     <div class="panelHead">
       <b>Latest REC</b>
+      <a class="btnMini" href="./rec.html">View all</a>
     </div>
     <div class="panelBody">
+      <div class="muted">Recent live captures archived on pump.fun.</div>
+
       <div class="streamList">
         <div class="streamItem">
           <div class="streamLeft">
             <b>REC STREAM 6</b>
             <span>2026-01-06</span>
           </div>
-          <a class="btnMini" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_231554%3A1914159_20260106_231539" target="_blank">pump.fun</a>
+          <a class="btnMini" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_231554%3A1914159_20260106_231539" target="_blank" rel="noreferrer">pump.fun</a>
         </div>
 
         <div class="streamItem">
@@ -214,7 +259,7 @@
             <b>REC STREAM 5</b>
             <span>2026-01-06</span>
           </div>
-          <a class="btnMini" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_223447%3A1914055_20260106_223434" target="_blank">pump.fun</a>
+          <a class="btnMini" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_223447%3A1914055_20260106_223434" target="_blank" rel="noreferrer">pump.fun</a>
         </div>
 
         <div class="streamItem">
@@ -222,7 +267,7 @@
             <b>REC STREAM 4</b>
             <span>2025-12-14</span>
           </div>
-          <a class="btnMini" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251214_014052%3A1848857_20251214_014035" target="_blank">pump.fun</a>
+          <a class="btnMini" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251214_014052%3A1848857_20251214_014035" target="_blank" rel="noreferrer">pump.fun</a>
         </div>
       </div>
     </div>
@@ -232,8 +277,8 @@
     <div>© SYNTHI</div>
     <div>
       <a href="./rec.html">REC</a> ·
-      <a href="https://x.com/PixelonKas" target="_blank">X</a> ·
-      <a href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank">TG</a>
+      <a href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a> ·
+      <a href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
     </div>
   </footer>
 
