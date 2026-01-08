@@ -26,6 +26,7 @@
     .wrap{max-width:1040px;margin:0 auto;padding:22px 16px 56px}
     a{color:inherit}
 
+    /* topbar */
     .topbar{
       display:flex;align-items:center;justify-content:space-between;gap:14px;
       border:1px solid var(--border);
@@ -35,9 +36,21 @@
       padding:12px 14px;
       box-shadow: var(--shadow);
     }
-    .brand{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;}
-    .brand img{width:34px;height:34px;display:block;border-radius:10px;object-fit:cover}
-    .nav{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+    .brand{
+      display:flex;align-items:center;gap:10px;
+      font-weight:900;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+    .brand span{
+      display:inline-block;
+      width:22px;height:22px;
+      border-radius:6px;
+      background:#fff;
+      opacity:.9;
+    }
+    .nav{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 
     .btn{
       text-decoration:none;
@@ -47,14 +60,19 @@
       background: rgba(255,255,255,.06);
       color: rgba(255,255,255,.88);
       font-weight:750;
-      transition: background .15s, color .15s, transform .15s, border-color .15s;
-      white-space:nowrap;line-height:1;cursor:pointer;
+      transition:.15s;
+      white-space:nowrap;
     }
     .btn:hover{background: rgba(255,255,255,.12);color:#fff;transform: translateY(-1px);}
-    .btnPrimary{border-color: rgba(0,196,255,.70);color: var(--accent);background: rgba(0,196,255,.08);}
+    .btnPrimary{
+      border-color: rgba(0,196,255,.70);
+      color: var(--accent);
+      background: rgba(0,196,255,.08);
+    }
     .btnPrimary:hover{background: var(--accent); color:#020308;}
-    .btnGhost{background: transparent;border-color: rgba(255,255,255,.16);opacity:.95;}
+    .btnGhost{background: transparent;border-color: rgba(255,255,255,.16);}
 
+    /* hero */
     .hero{
       margin-top:18px;
       border:1px solid var(--border);
@@ -62,27 +80,33 @@
       background: var(--panel);
       backdrop-filter: blur(10px);
       box-shadow: var(--shadow);
-      padding:20px 18px 16px;
-      position:relative;overflow:hidden;
+      padding:26px 22px 22px;
+      position:relative;
+      overflow:hidden;
     }
-    .hero::before{
-      content:"";position:absolute;inset:-140px -160px auto auto;
-      width:320px;height:320px;
-      background: radial-gradient(circle at center, rgba(0,196,255,.20), transparent 60%);
-      filter: blur(2px);
-      transform: rotate(10deg);
+
+    /* DECORATIVE IMAGE */
+    .heroArt{
+      position:absolute;
+      right:-120px;
+      top:-60px;
+      width:520px;
+      opacity:.12;
+      filter: blur(1.5px);
       pointer-events:none;
+      mix-blend-mode:screen;
     }
+
     .hero h1{
       margin:0 0 8px;
       font-size:40px;
-      letter-spacing:.18em;
+      letter-spacing:.22em;
       text-transform:uppercase;
-      line-height:1.02;
     }
-    .hero p{margin:0;opacity:.82;max-width:78ch}
-    .heroCtas{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .hero p{margin:0;opacity:.82;max-width:70ch}
+    .heroCtas{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
 
+    /* panels */
     .panel{
       margin-top:16px;
       border:1px solid var(--border);
@@ -95,9 +119,14 @@
     .panelHead{
       padding:12px 14px;
       border-bottom:1px solid rgba(255,255,255,.10);
-      display:flex;justify-content:space-between;align-items:center;gap:10px;
+      display:flex;justify-content:space-between;align-items:center;
     }
-    .panelHead b{letter-spacing:.12em;text-transform:uppercase;font-size:12px;opacity:.9;}
+    .panelHead b{
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      font-size:12px;
+      opacity:.9;
+    }
     .panelBody{padding:14px}
     .muted{opacity:.75}
 
@@ -107,127 +136,107 @@
       border:1px solid rgba(255,255,255,.12);
       background: rgba(255,255,255,.05);
       border-radius:16px;
-      padding:12px 12px;
-      transition: transform .15s, background .15s, border-color .15s;
+      padding:12px;
     }
-    .streamItem:hover{transform: translateY(-1px); background: rgba(255,255,255,.08);}
-    .streamLeft{display:flex;flex-direction:column;gap:3px}
     .streamLeft b{letter-spacing:.10em;text-transform:uppercase}
-    .streamLeft span{opacity:.70;font-size:12px}
-    .miniActions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+    .streamLeft span{opacity:.7;font-size:12px}
     .btnMini{
-      padding:8px 12px;
-      border-radius:999px;
+      padding:8px 12px;border-radius:999px;
       border:1px solid rgba(255,255,255,.16);
       background: rgba(0,0,0,.14);
-      color: rgba(255,255,255,.88);
+      font-weight:800;font-size:13px;
       text-decoration:none;
-      font-weight:800;
-      font-size:13px;
-      white-space:nowrap;
     }
-    .btnMini:hover{background: rgba(255,255,255,.10);}
 
-    footer{margin-top:22px;opacity:.70;font-size:13px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-    footer a{color: var(--accent); text-decoration:none}
-    footer a:hover{text-decoration:underline}
+    footer{
+      margin-top:22px;
+      opacity:.7;
+      font-size:13px;
+      display:flex;justify-content:space-between;flex-wrap:wrap;
+    }
+    footer a{color:var(--accent);text-decoration:none}
 
-    @media (max-width: 980px){
-      .hero h1{font-size:34px;letter-spacing:.14em}
+    @media (max-width:900px){
+      .heroArt{right:-200px;width:420px}
+      .hero h1{font-size:34px}
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
+<div class="wrap">
 
-    <div class="topbar">
-      <div class="brand">
-        <!-- Doporučení: přejmenuj soubor na synthi.png a změň src na ../assets/img/synthi.png -->
-        <img src="../assets/img/synthix%20-%201%20(5).png" alt="SYNTHI">
-        SYNTHI • INDEX
-      </div>
-      <div class="nav">
-        <a class="btn btnGhost" href="/">Home</a>
-        <a class="btn btnPrimary" href="./rec.html">REC Streams</a>
-        <a class="btn btnGhost" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
-        <a class="btn btnGhost" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
+  <div class="topbar">
+    <div class="brand">
+      <span></span>
+      SYNTHI • INDEX
+    </div>
+    <div class="nav">
+      <a class="btn btnGhost" href="/">Home</a>
+      <a class="btn btnPrimary" href="./rec.html">REC Streams</a>
+      <a class="btn btnGhost" href="https://x.com/PixelonKas" target="_blank">X</a>
+      <a class="btn btnGhost" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank">TG</a>
+    </div>
+  </div>
+
+  <section class="hero">
+    <!-- decorative image -->
+    <img class="heroArt" src="../assets/img/synthi.png" alt="" />
+
+    <h1>SYNTHI</h1>
+    <p class="muted">
+      Sound-driven image generation inscribed on the Kaspa blockDAG.
+    </p>
+
+    <div class="heroCtas">
+      <a class="btn btnPrimary" href="./rec.html">Open REC</a>
+      <a class="btn btnGhost" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump" target="_blank">
+        Open on pump.fun
+      </a>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panelHead">
+      <b>Latest REC</b>
+    </div>
+    <div class="panelBody">
+      <div class="streamList">
+        <div class="streamItem">
+          <div class="streamLeft">
+            <b>REC STREAM 6</b>
+            <span>2026-01-06</span>
+          </div>
+          <a class="btnMini" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_231554%3A1914159_20260106_231539" target="_blank">pump.fun</a>
+        </div>
+
+        <div class="streamItem">
+          <div class="streamLeft">
+            <b>REC STREAM 5</b>
+            <span>2026-01-06</span>
+          </div>
+          <a class="btnMini" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_223447%3A1914055_20260106_223434" target="_blank">pump.fun</a>
+        </div>
+
+        <div class="streamItem">
+          <div class="streamLeft">
+            <b>REC STREAM 4</b>
+            <span>2025-12-14</span>
+          </div>
+          <a class="btnMini" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251214_014052%3A1848857_20251214_014035" target="_blank">pump.fun</a>
+        </div>
       </div>
     </div>
+  </section>
 
-    <section class="hero">
-      <h1>SYNTHI</h1>
-      <p class="muted">Sound-driven image generation inscribed on the Kaspa blockDAG.</p>
-      <div class="heroCtas">
-        <a class="btn btnPrimary" href="./rec.html">Open REC</a>
-        <a class="btn btnGhost" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump" target="_blank" rel="noreferrer">Open on pump.fun</a>
-      </div>
-    </section>
+  <footer>
+    <div>© SYNTHI</div>
+    <div>
+      <a href="./rec.html">REC</a> ·
+      <a href="https://x.com/PixelonKas" target="_blank">X</a> ·
+      <a href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank">TG</a>
+    </div>
+  </footer>
 
-    <section class="panel">
-      <div class="panelHead">
-        <b>Latest REC</b>
-        <a class="btnMini" href="./rec.html">View all</a>
-      </div>
-      <div class="panelBody">
-        <div class="muted">Recent live captures archived on pump.fun.</div>
-
-        <div class="streamList">
-          <div class="streamItem">
-            <div class="streamLeft">
-              <b>REC STREAM 6</b>
-              <span>2026-01-06 · clip</span>
-            </div>
-            <div class="miniActions">
-              <a class="btnMini" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_231554%3A1914159_20260106_231539" target="_blank" rel="noreferrer">pump.fun</a>
-            </div>
-          </div>
-
-          <div class="streamItem">
-            <div class="streamLeft">
-              <b>REC STREAM 5</b>
-              <span>2026-01-06 · clip</span>
-            </div>
-            <div class="miniActions">
-              <a class="btnMini" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_223447%3A1914055_20260106_223434" target="_blank" rel="noreferrer">pump.fun</a>
-            </div>
-          </div>
-
-          <div class="streamItem">
-            <div class="streamLeft">
-              <b>REC STREAM 4</b>
-              <span>2025-12-14 · clip</span>
-            </div>
-            <div class="miniActions">
-              <a class="btnMini" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251214_014052%3A1848857_20251214_014035" target="_blank" rel="noreferrer">pump.fun</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel">
-      <div class="panelHead">
-        <b>Links</b>
-      </div>
-      <div class="panelBody">
-        <div class="nav" style="justify-content:flex-start">
-          <a class="btn btnGhost" href="/viewer">NFTs</a>
-          <a class="btn btnGhost" href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">$PIXEL</a>
-          <a class="btn btnGhost" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
-          <a class="btn btnGhost" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
-        </div>
-      </div>
-    </section>
-
-    <footer>
-      <div>© SYNTHI</div>
-      <div>
-        <a href="./rec.html">REC</a> ·
-        <a href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a> ·
-        <a href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
-      </div>
-    </footer>
-
-  </div>
+</div>
 </body>
 </html>
