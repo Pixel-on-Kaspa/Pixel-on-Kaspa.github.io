@@ -1,1 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SYNTHI • REC</title>
+  <style>
+    :root{
+      --bg1:#121623;
+      --bg2:#050608;
+      --panel: rgba(0,0,0,.22);
+      --border: rgba(255,255,255,.12);
+      --muted: rgba(255,255,255,.68);
+      --accent:#00c4ff;
+      --shadow: 0 18px 35px rgba(0,0,0,.55);
+      --text:#f5f5f5;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
+      background: radial-gradient(circle at top, var(--bg1) 0, var(--bg2) 52%);
+      color:var(--text);
+      min-height:100vh;
+    }
+    .wrap{max-width:1180px;margin:0 auto;padding:22px 16px 56px}
+
+    .topbar{
+      display:flex;align-items:center;justify-content:space-between;gap:14px;
+      border:1px solid var(--border);
+      border-radius:16px;
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      padding:12px 14px;
+      box-shadow: var(--shadow);
+    }
+    .brand{
+      display:flex;align-items:center;gap:10px;
+      font-weight:900;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;
+    }
+    .brand img{width:34px;height:34px;display:block;border-radius:10px}
+    .nav{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+
+    .btn{
+      text-decoration:none;
+      display:inline-flex;align-items:center;gap:8px;
+      padding:9px 14px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.88);
+      font-weight:750;
+      transition: background .15s, color .15s, transform .15s, border-color .15s;
+      white-space:nowrap;line-height:1;cursor:pointer;
+    }
+    .btn:hover{background: rgba(255,255,255,.12);color:#fff;transform: translateY(-1px);}
+    .btnPrimary{
+      border-color: rgba(0,196,255,.70);
+      color: var(--accent);
+      background: rgba(0,196,255,.08);
+    }
+    .btnPrimary:hover{background: var(--accent); color:#020308;}
+    .btnGhost{background: transparent;border-color: rgba(255,255,255,.16);opacity:.95;}
+
+    .hero{
+      margin-top:18px;
+      border:1px solid var(--border);
+      border-radius:22px;
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      padding:18px 18px 14px;
+      position:relative;overflow:hidden;
+    }
+    .hero::before{
+      content:"";
+      position:absolute;inset:-140px -160px auto auto;
+      width:320px;height:320px;
+      background: radial-gradient(circle at center, rgba(0,196,255,.22), transparent 60%);
+      filter: blur(2px);
+      transform: rotate(10deg);
+      pointer-events:none;
+    }
+    .hero h1{
+      margin:0 0 8px;
+      font-size:40px;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      line-height:1.02;
+    }
+    .hero p{margin:0;opacity:.80;max-width:80ch}
+    .hero small{display:block;margin-top:6px;opacity:.65}
+
+    .panel{
+      margin-top:16px;
+      border:1px solid var(--border);
+      border-radius:20px;
+      background: rgba(0,0,0,.18);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .panelHead{
+      padding:12px 14px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      display:flex;justify-content:space-between;align-items:center;gap:10px;
+    }
+    .panelHead b{
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      font-size:12px;
+      opacity:.9;
+    }
+    .panelBody{padding:14px}
+
+    .playerTopActions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center;}
+    .playerWrap{
+      width:100%;
+      aspect-ratio: 16/9;
+      border-radius:16px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.12);
+      background:#000;
+      position:relative;
+    }
+    video{width:100%;height:100%;display:block;border:0;background:#000;object-fit:contain}
+
+    .pill{
+      font-size:11px;
+      letter-spacing:.06em;
+      opacity:.85;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      white-space:nowrap;
+    }
+
+    /* Stream drawer */
+    .drawerBg{
+      position:fixed;inset:0;background:rgba(0,0,0,.65);
+      display:none;align-items:flex-start;justify-content:flex-end;
+      padding:16px;z-index:9999;
+    }
+    .drawerBg.open{display:flex;}
+    .drawer{
+      width:min(520px, 96vw);
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(10,12,18,.92);
+      box-shadow: 0 30px 80px rgba(0,0,0,.75);
+      backdrop-filter: blur(10px);
+      overflow:hidden;
+    }
+    .drawerTop{
+      padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.10);
+      display:flex;justify-content:space-between;align-items:center;gap:10px;
+    }
+    .drawerTop b{letter-spacing:.12em;text-transform:uppercase;font-size:12px;opacity:.9}
+    .drawerBody{padding:12px 14px;max-height:75vh;overflow:auto}
+    .streamList{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+    .streamItem{
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      border-radius:16px;
+      padding:12px;
+      display:flex;flex-direction:column;gap:8px;
+      cursor:pointer;
+      transition: transform .15s, background .15s, border-color .15s;
+    }
+    .streamItem:hover{transform: translateY(-1px); background: rgba(255,255,255,.06);}
+    .streamItem.active{border-color: rgba(0,196,255,.55); background: rgba(0,196,255,.10);}
+    .streamRow{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap;}
+    .streamTitle{font-weight:900;letter-spacing:.10em;text-transform:uppercase}
+    .streamMeta{opacity:.75;font-size:12px}
+
+    @media (max-width: 980px){
+      .hero h1{font-size:34px;letter-spacing:.14em}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <div class="topbar">
+      <div class="brand">
+        <img src="../assets/img/logo.png" alt="SYNTHI">
+        SYNTHI • REC
+      </div>
+      <div class="nav">
+        <a class="btn btnGhost" href="/">Home</a>
+        <a class="btn btnGhost" href="./index.html">SYNTHI Index</a>
+
+        <!-- streams now here -->
+        <button class="btn btnPrimary" type="button" id="openDrawer">Streams <span class="pill" id="countPill">—</span></button>
+
+        <a class="btn btnGhost" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
+        <a class="btn btnGhost" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
+      </div>
+    </div>
+
+    <section class="hero">
+      <h1>SYNTHI LIVE</h1>
+      <p>REC archive. Select a stream from the top button. Playback may be blocked by HLS/CORS — if so, open on pump.fun.</p>
+      <small>Tip: autoplay with sound is blocked — click Play.</small>
+    </section>
+
+    <section class="panel">
+      <div class="panelHead">
+        <b id="nowTitle">Stream</b>
+        <div class="playerTopActions">
+          <a id="btnPump" class="btn btnPrimary" href="#" target="_blank" rel="noreferrer">Open on pump.fun</a>
+        </div>
+      </div>
+      <div class="panelBody">
+        <div class="playerWrap" id="playerWrap"></div>
+      </div>
+    </section>
+
+    <footer style="margin-top:22px;opacity:.70;font-size:13px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div>© SYNTHI</div>
+      <div style="opacity:.70">GitHub Pages friendly</div>
+    </footer>
+
+  </div>
+
+  <!-- Drawer -->
+  <div class="drawerBg" id="drawerBg" aria-hidden="true">
+    <div class="drawer" role="dialog" aria-modal="true">
+      <div class="drawerTop">
+        <b>Streams</b>
+        <button class="btn btnGhost" type="button" id="closeDrawer">Close</button>
+      </div>
+      <div class="drawerBody">
+        <ul class="streamList" id="streamList"></ul>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const COIN_ID = "2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump";
+
+  // ✅ REAL STREAM LINKS you provided (newest first)
+  const STREAMS = [
+    { title: "SYNTHI REC STREAM 6", date: "2026-01-06", url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_231554%3A1914159_20260106_231539" },
+    { title: "SYNTHI REC STREAM 5", date: "2026-01-06", url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_223447%3A1914055_20260106_223434" },
+    { title: "SYNTHI REC STREAM 4", date: "2025-12-14", url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251214_014052%3A1848857_20251214_014035" },
+    { title: "SYNTHI REC STREAM 3", date: "2025-12-13", url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251213_003042%3A1845633_20251213_003028" },
+  ];
+
+  let currentIndex = 0;
+
+  const qs = (s)=>document.querySelector(s);
+  const streamList = qs("#streamList");
+  const playerWrap = qs("#playerWrap");
+  const btnPump = qs("#btnPump");
+  const countPill = qs("#countPill");
+  const nowTitle = qs("#nowTitle");
+
+  const drawerBg = qs("#drawerBg");
+  const openDrawer = qs("#openDrawer");
+  const closeDrawer = qs("#closeDrawer");
+
+  function getClipParam(pumpUrl){
+    try{
+      const u = new URL(pumpUrl);
+      return u.searchParams.get("clip");
+    }catch(_e){ return null; }
+  }
+  function makeM3U8(clipId){
+    if(!clipId) return "";
+    return `https://clips.pump.fun/${COIN_ID}/clips/${clipId}/playlist.m3u8`;
+  }
+
+  function setUrlParams(){
+    const u = new URL(window.location.href);
+    u.searchParams.set("s", String(currentIndex));
+    history.replaceState({}, "", u.toString());
+  }
+
+  function renderList(){
+    countPill.textContent = `${STREAMS.length}`;
+    streamList.innerHTML = STREAMS.map((s, idx) => `
+      <li class="streamItem ${idx===currentIndex ? "active":""}" data-idx="${idx}">
+        <div class="streamRow">
+          <div class="streamTitle">${escapeHtml(s.title || `Stream ${idx+1}`)}</div>
+          <div class="pill">${escapeHtml(s.date || "")}</div>
+        </div>
+        <div class="streamMeta">Click to load · open on pump.fun if playback is blocked</div>
+      </li>
+    `).join("");
+  }
+
+  function selectStream(idx){
+    currentIndex = idx;
+    localStorage.setItem("synthi_rec_last_index", String(idx));
+    renderList();
+    loadCurrent();
+    setUrlParams();
+  }
+
+  function loadCurrent(){
+    const s = STREAMS[currentIndex];
+    btnPump.href = s.url;
+    nowTitle.textContent = s.title || "Stream";
+    const clipId = getClipParam(s.url);
+    const m3u8 = makeM3U8(clipId);
+    renderDirect(m3u8, s.url);
+  }
+
+  function renderDirect(m3u8Url, pumpUrl){
+    playerWrap.innerHTML = `<video id="v" controls playsinline preload="metadata"></video>`;
+    const v = qs("#v");
+
+    if(!m3u8Url){
+      playerWrap.innerHTML = `
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:18px;text-align:center;">
+          <div style="max-width:520px;border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.35);border-radius:18px;padding:18px;box-shadow:var(--shadow);">
+            <div style="letter-spacing:.12em;text-transform:uppercase;font-weight:900;margin-bottom:8px;">Missing clip</div>
+            <div style="opacity:.78;line-height:1.5;margin-bottom:12px;">This stream URL has no clip param.</div>
+            <a class="btn btnPrimary" href="${pumpUrl}" target="_blank" rel="noreferrer">Open on pump.fun</a>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    // Safari/iOS native HLS
+    if(v.canPlayType("application/vnd.apple.mpegurl")){
+      v.src = m3u8Url;
+      return;
+    }
+
+    // Chrome/Firefox hls.js (may fail if CORS blocks HLS)
+    loadScriptOnce("https://cdn.jsdelivr.net/npm/hls.js@1.5.15/dist/hls.min.js")
+      .then(() => {
+        if(!window.Hls || !window.Hls.isSupported()) throw new Error("HLS not supported");
+        const hls = new window.Hls({ enableWorker:true });
+
+        hls.loadSource(m3u8Url);
+        hls.attachMedia(v);
+
+        hls.on(window.Hls.Events.ERROR, (_e, data) => {
+          if(data?.fatal){
+            showHlsFail(pumpUrl);
+          }
+        });
+
+        v.addEventListener("error", () => showHlsFail(pumpUrl));
+      })
+      .catch(() => showHlsFail(pumpUrl));
+  }
+
+  function showHlsFail(pumpUrl){
+    playerWrap.innerHTML = `
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:18px;text-align:center;background: radial-gradient(circle at top, rgba(0,196,255,.10), rgba(0,0,0,.55) 55%);">
+        <div style="max-width:560px;border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.35);border-radius:18px;padding:18px;box-shadow:var(--shadow);">
+          <div style="letter-spacing:.12em;text-transform:uppercase;font-weight:900;margin-bottom:8px;">Playback blocked</div>
+          <div style="opacity:.78;line-height:1.5;margin-bottom:12px;">
+            This browser/network blocked HLS (CORS). Open the stream on pump.fun instead.
+          </div>
+          <a class="btn btnPrimary" href="${pumpUrl}" target="_blank" rel="noreferrer">Open on pump.fun</a>
+        </div>
+      </div>
+    `;
+  }
+
+  function loadScriptOnce(url){
+    return new Promise((resolve, reject) => {
+      if(document.querySelector(`script[data-src="${url}"]`)) return resolve();
+      const s = document.createElement("script");
+      s.src = url; s.async = true; s.dataset.src = url;
+      s.onload = resolve;
+      s.onerror = () => reject(new Error("Failed to load: " + url));
+      document.head.appendChild(s);
+    });
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, (m) => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[m]));
+  }
+
+  // Drawer handlers
+  function openD(){ drawerBg.classList.add("open"); drawerBg.setAttribute("aria-hidden","false"); }
+  function closeD(){ drawerBg.classList.remove("open"); drawerBg.setAttribute("aria-hidden","true"); }
+
+  openDrawer.addEventListener("click", openD);
+  closeDrawer.addEventListener("click", closeD);
+  drawerBg.addEventListener("click", (e)=>{ if(e.target === drawerBg) closeD(); });
+  document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && drawerBg.classList.contains("open")) closeD(); });
+
+  streamList.addEventListener("click", (e) => {
+    const item = e.target.closest(".streamItem");
+    if(!item) return;
+    const idx = Number(item.dataset.idx);
+    if(Number.isFinite(idx)){
+      selectStream(idx);
+      closeD();
+    }
+  });
+
+  // init (URL override)
+  const u = new URL(window.location.href);
+  const urlS = Number(u.searchParams.get("s"));
+  if(Number.isFinite(urlS) && urlS >= 0 && urlS < STREAMS.length){
+    currentIndex = urlS;
+  }else{
+    const saved = Number(localStorage.getItem("synthi_rec_last_index"));
+    if(Number.isFinite(saved) && saved >= 0 && saved < STREAMS.length) currentIndex = saved;
+  }
+
+  renderList();
+  loadCurrent();
+})();
+</script>
+</body>
+</html>
 
