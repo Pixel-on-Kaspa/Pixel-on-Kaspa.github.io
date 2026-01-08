@@ -6,144 +6,148 @@
   <title>SYNTHI • INDEX</title>
   <style>
     :root{
-      --bg1:#121623;
+      --bg1:#0e1220;
       --bg2:#050608;
-      --panel: rgba(0,0,0,.22);
-      --border: rgba(255,255,255,.12);
+      --panel: rgba(255,255,255,.05);
+      --border: rgba(255,255,255,.10);
       --muted: rgba(255,255,255,.70);
+      --text:#f5f5f5;
       --accent:#00c4ff;
       --shadow: 0 18px 35px rgba(0,0,0,.55);
-      --text:#f5f5f5;
+      --radius: 18px;
     }
     *{box-sizing:border-box}
+    html,body{height:100%}
     body{
       margin:0;
       font-family: system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
-      background: radial-gradient(circle at top, var(--bg1) 0, var(--bg2) 52%);
+      background: radial-gradient(circle at top, var(--bg1) 0, var(--bg2) 56%);
       color:var(--text);
       min-height:100vh;
     }
-    .wrap{max-width:1040px;margin:0 auto;padding:22px 16px 56px}
     a{color:inherit}
+    .wrap{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
 
-    /* topbar */
+    /* Topbar */
     .topbar{
       display:flex;align-items:center;justify-content:space-between;gap:14px;
       border:1px solid var(--border);
       border-radius:16px;
-      background: var(--panel);
+      background: rgba(0,0,0,.22);
       backdrop-filter: blur(10px);
       padding:12px 14px;
       box-shadow: var(--shadow);
     }
-    .brand{
-      display:flex;align-items:center;gap:10px;
-      font-weight:900;
-      letter-spacing:.14em;
-      text-transform:uppercase;
-      white-space:nowrap;
-    }
-    .brandIcon{
-      width:26px;height:26px;border-radius:8px;
-      border:1px solid rgba(255,255,255,.16);
-      background: rgba(255,255,255,.06);
-      overflow:hidden;
-      display:grid;place-items:center;
-      flex:0 0 auto;
-    }
-    .brandIcon img{
-      width:100%;height:100%;
-      object-fit:cover;
-      display:block;
-    }
-    .brandIconFallback{
-      font-weight:1000;
-      letter-spacing:.08em;
-      opacity:.9;
-      transform: translateY(-.5px);
-    }
-
-    .nav{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;}
+    .brand img{width:28px;height:28px;display:block;border-radius:8px}
+    .nav{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
 
     .btn{
       text-decoration:none;
       display:inline-flex;align-items:center;gap:8px;
       padding:9px 14px;border-radius:999px;
-      border:1px solid rgba(255,255,255,.16);
+      border:1px solid rgba(255,255,255,.14);
       background: rgba(255,255,255,.06);
-      color: rgba(255,255,255,.88);
-      font-weight:750;
-      transition:.15s;
-      white-space:nowrap;
+      color: rgba(255,255,255,.90);
+      font-weight:800;
+      transition: background .15s, transform .15s, border-color .15s;
+      white-space:nowrap;line-height:1;cursor:pointer;
+      user-select:none;
     }
-    .btn:hover{background: rgba(255,255,255,.12);color:#fff;transform: translateY(-1px);}
+    .btn:hover{background: rgba(255,255,255,.10);transform: translateY(-1px);}
     .btnPrimary{
-      border-color: rgba(0,196,255,.70);
+      border-color: rgba(0,196,255,.55);
+      background: rgba(0,196,255,.10);
       color: var(--accent);
-      background: rgba(0,196,255,.08);
     }
-    .btnPrimary:hover{background: var(--accent); color:#020308;}
-    .btnGhost{background: transparent;border-color: rgba(255,255,255,.16);}
+    .btnPrimary:hover{background: rgba(0,196,255,.18);}
 
-    /* hero */
+    /* Hero */
     .hero{
-      margin-top:18px;
+      margin-top:14px;
       border:1px solid var(--border);
       border-radius:22px;
-      background: var(--panel);
+      background: rgba(0,0,0,.20);
       backdrop-filter: blur(10px);
       box-shadow: var(--shadow);
-      padding:26px 22px 22px;
+      padding:18px;
       position:relative;
       overflow:hidden;
+      min-height: 180px;
     }
     .hero::before{
-      content:"";position:absolute;inset:-140px -160px auto auto;
-      width:320px;height:320px;
+      content:"";
+      position:absolute;inset:-140px -180px auto auto;
+      width:360px;height:360px;
       background: radial-gradient(circle at center, rgba(0,196,255,.18), transparent 60%);
       filter: blur(2px);
-      transform: rotate(10deg);
+      transform: rotate(8deg);
       pointer-events:none;
     }
-
-    /* decorative images */
-    .heroArt{
-      position:absolute;
-      pointer-events:none;
-      user-select:none;
-      opacity:.14;
-      filter: blur(1.2px);
-      mix-blend-mode: screen;
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:16px;
+      align-items:center;
     }
-    .heroArt.a{
-      right:-120px;
-      top:-70px;
-      width:520px;
-      transform: rotate(-6deg);
-    }
-    .heroArt.b{
-      left:-160px;
-      bottom:-140px;
-      width:560px;
-      transform: rotate(12deg) scaleX(-1);
-      opacity:.10;
-      filter: blur(1.8px);
-    }
-
     .hero h1{
       margin:0 0 8px;
-      font-size:40px;
-      letter-spacing:.22em;
+      font-size:44px;
+      letter-spacing:.18em;
       text-transform:uppercase;
+      line-height:1.02;
     }
-    .hero p{margin:0;opacity:.82;max-width:70ch}
-    .heroCtas{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+    .hero p{margin:0;opacity:.84;max-width:70ch}
+    .hero .sub{margin-top:8px;opacity:.70;font-size:13px}
+    .heroCtas{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 
-    /* panels */
+    .heroArt{
+      display:flex;
+      justify-content:flex-end;
+      align-items:center;
+    }
+    .heroArt .frame{
+      width:min(260px, 45vw);
+      aspect-ratio: 1/1;
+      border-radius: 18px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.25);
+      box-shadow: 0 20px 60px rgba(0,0,0,.55);
+      overflow:hidden;
+      position:relative;
+    }
+    .heroArt img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+      opacity:.92;
+      filter: contrast(1.05);
+    }
+    .heroArt .label{
+      position:absolute;left:10px;bottom:10px;
+      padding:8px 10px;border-radius:12px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.35);
+      backdrop-filter: blur(10px);
+      font-size:12px;
+      opacity:.90;
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      font-weight:900;
+    }
+
+    /* Layout */
+    .grid{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:14px;
+      align-items:start;
+    }
     .panel{
-      margin-top:16px;
       border:1px solid var(--border);
-      border-radius:20px;
+      border-radius: var(--radius);
       background: rgba(0,0,0,.18);
       backdrop-filter: blur(10px);
       box-shadow: var(--shadow);
@@ -152,136 +156,414 @@
     .panelHead{
       padding:12px 14px;
       border-bottom:1px solid rgba(255,255,255,.10);
-      display:flex;justify-content:space-between;align-items:center;
+      display:flex;justify-content:space-between;align-items:center;gap:10px;
     }
     .panelHead b{
-      letter-spacing:.12em;
+      letter-spacing:.14em;
       text-transform:uppercase;
       font-size:12px;
-      opacity:.9;
+      opacity:.92;
     }
     .panelBody{padding:14px}
-    .muted{opacity:.75}
+    .muted{opacity:.76}
 
-    .streamList{display:grid;gap:10px;margin-top:10px}
-    .streamItem{
-      display:flex;align-items:center;justify-content:space-between;gap:12px;
+    /* Stream cards */
+    .streamGrid{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:12px;
+    }
+    .sCard{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      border-radius: 16px;
+      overflow:hidden;
+      transition: transform .15s, border-color .15s, background .15s;
+    }
+    .sCard:hover{
+      transform: translateY(-2px);
+      border-color: rgba(0,196,255,.22);
+      background: rgba(255,255,255,.06);
+    }
+    .sThumb{
+      width:100%;
+      aspect-ratio: 16/10;
+      background:#000;
+      position:relative;
+      overflow:hidden;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .sThumb img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+      opacity:.92;
+    }
+    .sThumb .fallback{
+      position:absolute;inset:0;
+      display:flex;align-items:center;justify-content:center;
+      color: rgba(255,255,255,.65);
+      font-size:12px;
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      background: radial-gradient(circle at top, rgba(0,196,255,.12), rgba(0,0,0,.70) 65%);
+    }
+    .sThumb .badge{
+      position:absolute;left:10px;top:10px;
+      padding:7px 10px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.35);
+      backdrop-filter: blur(10px);
+      font-size:11px;
+      opacity:.92;
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      font-weight:900;
+    }
+    .sBody{padding:12px}
+    .sTitle{
+      margin:0;
+      font-weight:900;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      font-size:13px;
+    }
+    .sMeta{
+      margin-top:6px;
+      font-size:12px;
+      opacity:.72;
+      display:flex;gap:8px;flex-wrap:wrap;
+    }
+    .chip{
+      padding:6px 10px;border-radius:999px;
       border:1px solid rgba(255,255,255,.12);
       background: rgba(255,255,255,.05);
-      border-radius:16px;
-      padding:12px;
-    }
-    .streamLeft{display:flex;flex-direction:column;gap:3px}
-    .streamLeft b{letter-spacing:.10em;text-transform:uppercase}
-    .streamLeft span{opacity:.7;font-size:12px}
-
-    .btnMini{
-      padding:8px 12px;border-radius:999px;
-      border:1px solid rgba(255,255,255,.16);
-      background: rgba(0,0,0,.14);
-      font-weight:800;font-size:13px;
-      text-decoration:none;
+      font-size:12px;
+      opacity:.88;
       white-space:nowrap;
     }
-    .btnMini:hover{background: rgba(255,255,255,.10);}
+    .sActions{
+      margin-top:10px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .btnSm{padding:8px 12px;font-size:13px}
+
+    /* Right column */
+    .stack{display:flex;flex-direction:column;gap:14px}
+    .pillrow{display:flex;flex-wrap:wrap;gap:10px}
+    .pill{
+      display:inline-flex;gap:8px;align-items:center;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      padding:10px 12px;border-radius:999px;
+      font-size:13px;opacity:.92;
+      font-weight:800;
+    }
 
     footer{
-      margin-top:22px;
-      opacity:.7;
+      margin-top:18px;
+      opacity:.70;
       font-size:13px;
-      display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
     }
-    footer a{color:var(--accent);text-decoration:none}
+    footer a{color: var(--accent); text-decoration:none}
     footer a:hover{text-decoration:underline}
 
-    @media (max-width:900px){
-      .hero h1{font-size:34px}
-      .heroArt.a{right:-220px;width:440px}
-      .heroArt.b{left:-220px;width:480px}
+    @media (max-width: 980px){
+      .heroGrid{grid-template-columns:1fr}
+      .heroArt{justify-content:flex-start}
+      .grid{grid-template-columns:1fr}
+      .streamGrid{grid-template-columns: repeat(2, minmax(0, 1fr));}
+      .hero h1{font-size:36px;letter-spacing:.14em}
+    }
+    @media (max-width: 560px){
+      .streamGrid{grid-template-columns:1fr}
     }
   </style>
 </head>
 <body>
-<div class="wrap">
+  <div class="wrap">
 
-  <div class="topbar">
-    <div class="brand">
-      <div class="brandIcon" aria-hidden="true">
-        <!-- topbar logo (small icon) -->
-        <img src="../assets/img/logo.png" alt="" onerror="this.remove(); this.parentNode.innerHTML='<span class=&quot;brandIconFallback&quot;>S</span>';">
+    <div class="topbar">
+      <div class="brand">
+        <img src="../assets/img/logo.png" alt="SYNTHI">
+        SYNTHI • INDEX
       </div>
-      SYNTHI • INDEX
+      <div class="nav">
+        <a class="btn" href="/">Home</a>
+        <a class="btn btnPrimary" href="./rec.html">REC Streams</a>
+        <a class="btn" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
+        <a class="btn" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
+      </div>
     </div>
 
-    <div class="nav">
-      <a class="btn btnGhost" href="/">Home</a>
-      <a class="btn btnPrimary" href="./rec.html">REC Streams</a>
-      <a class="btn btnGhost" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
-      <a class="btn btnGhost" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
-    </div>
+    <section class="hero">
+      <div class="heroGrid">
+        <div>
+          <h1>SYNTHI</h1>
+          <p class="muted">Sound-driven image generation inscribed on the Kaspa blockDAG.</p>
+          <div class="sub">Early state. Live capture → archived residue.</div>
+          <div class="heroCtas">
+            <a class="btn btnPrimary" href="./rec.html">Open REC</a>
+            <a class="btn" href="/viewer">Open NFTs</a>
+            <a class="btn" id="btnPumpCoin" href="#" target="_blank" rel="noreferrer">pump.fun</a>
+          </div>
+        </div>
+
+        <!-- Decorative (does NOT replace logo) -->
+        <div class="heroArt">
+          <div class="frame">
+            <img src="../assets/img/synthi.png" alt="SYNTHI art" loading="lazy">
+            <div class="label">live → rec</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <!-- LEFT: streams -->
+      <div class="panel">
+        <div class="panelHead">
+          <b>Latest REC</b>
+          <span class="chip" id="streamCount">—</span>
+        </div>
+        <div class="panelBody">
+          <div class="muted" style="margin-bottom:12px;line-height:1.55">
+            Recent captures archived on pump.fun. Each card links to your REC player.
+          </div>
+
+          <div class="streamGrid" id="streamGrid"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: minimal info + exits -->
+      <div class="stack">
+        <div class="panel">
+          <div class="panelHead"><b>On-chain</b></div>
+          <div class="panelBody">
+            <div class="pillrow">
+              <span class="pill">$SYNTHI · KRC-20</span>
+              <span class="pill">$PIXEL · KRC-20</span>
+            </div>
+            <div class="muted" style="margin-top:10px;line-height:1.55">
+              $SYNTHI = sound system layer. $PIXEL = utility layer.
+              REC streams are the archive of live capture.
+            </div>
+            <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+              <a class="btn btnPrimary" href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">Open $PIXEL</a>
+              <a class="btn" id="btnPumpCoin2" href="#" target="_blank" rel="noreferrer">SYNTHI on pump.fun</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panelHead"><b>Links</b></div>
+          <div class="panelBody">
+            <div class="muted" style="margin-bottom:10px">Fast exits. Keep it simple.</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <a class="btn btnSm" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
+              <a class="btn btnSm" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
+              <a class="btn btnSm" href="/" rel="noreferrer">PIXEL on Kaspa</a>
+              <a class="btn btnSm" href="/viewer" rel="noreferrer">NFTs</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div>© SYNTHI</div>
+      <div>
+        <a href="./rec.html">REC</a> ·
+        <a href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a> ·
+        <a href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
+      </div>
+    </footer>
+
   </div>
 
-  <section class="hero">
-    <!-- decorative hero images (NOT the logo) -->
-    <img class="heroArt a" src="../assets/img/synthi.png" alt="" onerror="this.style.display='none'">
-    <img class="heroArt b" src="../assets/img/synthi.png" alt="" onerror="this.style.display='none'">
+<script>
+(() => {
+  // Your pump.fun coin id (roomName)
+  const COIN_ID = "2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump";
+  const PUMP_COIN_URL = `https://pump.fun/coin/${COIN_ID}`;
 
-    <h1>SYNTHI</h1>
-    <p class="muted">Sound-driven image generation inscribed on the Kaspa blockDAG.</p>
+  // Update these only when you add a new stream.
+  const STREAMS = [
+    { title: "SYNTHI REC STREAM 6", date: "2026-01-06", url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_231554%3A1914159_20260106_231539" },
+    { title: "SYNTHI REC STREAM 5", date: "2026-01-06", url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_223447%3A1914055_20260106_223434" },
+    { title: "SYNTHI REC STREAM 4", date: "2025-12-14", url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251214_014052%3A1848857_20251214_014035" },
+    { title: "SYNTHI REC STREAM 3", date: "2025-12-13", url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251213_003042%3A1845633_20251213_003028" },
+  ];
 
-    <div class="heroCtas">
-      <a class="btn btnPrimary" href="./rec.html">Open REC</a>
-      <a class="btn btnGhost" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump" target="_blank" rel="noreferrer">
-        Open on pump.fun
-      </a>
-    </div>
-  </section>
+  const qs = (s)=>document.querySelector(s);
+  const grid = qs("#streamGrid");
+  const count = qs("#streamCount");
 
-  <section class="panel">
-    <div class="panelHead">
-      <b>Latest REC</b>
-      <a class="btnMini" href="./rec.html">View all</a>
-    </div>
-    <div class="panelBody">
-      <div class="muted">Recent live captures archived on pump.fun.</div>
+  qs("#btnPumpCoin").href = PUMP_COIN_URL;
+  qs("#btnPumpCoin2").href = PUMP_COIN_URL;
 
-      <div class="streamList">
-        <div class="streamItem">
-          <div class="streamLeft">
-            <b>REC STREAM 6</b>
-            <span>2026-01-06</span>
-          </div>
-          <a class="btnMini" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_231554%3A1914159_20260106_231539" target="_blank" rel="noreferrer">pump.fun</a>
+  function getClipParam(pumpUrl){
+    try{
+      const u = new URL(pumpUrl);
+      return u.searchParams.get("clip");
+    }catch(_e){ return null; }
+  }
+
+  // --- Thumbnail strategy ---
+  // 1) Try Pump.fun API: https://frontend-api-v3.pump.fun/clips/{roomName}
+  // 2) If blocked (CORS) or no thumb field -> fallback to guessed CDN paths:
+  //    https://clips.pump.fun/{COIN_ID}/clips/{clipId}/thumbnail.jpg (etc)
+  const thumbFromApi = new Map(); // clipId -> url
+
+  async function loadThumbsFromApi(){
+    const api = `https://frontend-api-v3.pump.fun/clips/${encodeURIComponent(COIN_ID)}`;
+    const r = await fetch(api, { cache: "no-store" });
+    if(!r.ok) throw new Error("API HTTP " + r.status);
+    const data = await r.json();
+
+    // We don't know exact schema, so we search flexibly
+    const items = Array.isArray(data) ? data :
+                  Array.isArray(data?.clips) ? data.clips :
+                  Array.isArray(data?.result) ? data.result :
+                  Array.isArray(data?.data) ? data.data :
+                  [];
+
+    for(const it of items){
+      const cid = String(it?.clipId ?? it?.clip_id ?? it?.id ?? it?.clip ?? "");
+      if(!cid) continue;
+
+      const url =
+        it?.thumbnailUrl || it?.thumbnail_url ||
+        it?.previewUrl   || it?.preview_url   ||
+        it?.posterUrl    || it?.poster_url    ||
+        it?.imageUrl     || it?.image_url     ||
+        it?.thumbnail;
+
+      if(url && typeof url === "string") thumbFromApi.set(cid, url);
+    }
+  }
+
+  function guessedThumbCandidates(clipId){
+    if(!clipId) return [];
+    const base = `https://clips.pump.fun/${COIN_ID}/clips/${clipId}/`;
+    return [
+      base + "thumbnail.jpg",
+      base + "thumbnail.png",
+      base + "thumb.jpg",
+      base + "thumb.png",
+      base + "preview.jpg",
+      base + "preview.png",
+      base + "poster.jpg",
+      base + "poster.png",
+    ];
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, (m) => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[m]));
+  }
+
+  function recPlayerLink(streamIdx){
+    // your rec.html supports ?s= index (from your REC code)
+    return `./rec.html?s=${encodeURIComponent(String(streamIdx))}`;
+  }
+
+  function cardHtml(s, idx){
+    const clipId = getClipParam(s.url);
+    const badge = `REC ${String(idx+1).padStart(2,"0")}`;
+
+    // prefer API thumb if we got one
+    const apiThumb = clipId ? thumbFromApi.get(clipId) : null;
+    const candidates = apiThumb ? [apiThumb, ...guessedThumbCandidates(clipId)] : guessedThumbCandidates(clipId);
+
+    // We’ll set data-candidates and let JS rotate on error.
+    const dataCand = encodeURIComponent(JSON.stringify(candidates));
+
+    return `
+      <div class="sCard" data-idx="${idx}">
+        <div class="sThumb">
+          <div class="fallback" data-fallback="1">SYNTHI REC</div>
+          <span class="badge">${escapeHtml(badge)}</span>
+          <img
+            alt="${escapeHtml(s.title)}"
+            loading="lazy"
+            data-candidates="${dataCand}"
+            style="display:none"
+          />
         </div>
-
-        <div class="streamItem">
-          <div class="streamLeft">
-            <b>REC STREAM 5</b>
-            <span>2026-01-06</span>
+        <div class="sBody">
+          <div class="sTitle">${escapeHtml(s.title)}</div>
+          <div class="sMeta">
+            <span class="chip">${escapeHtml(s.date || "clip archive")}</span>
+            ${clipId ? `<span class="chip">clip</span>` : ``}
           </div>
-          <a class="btnMini" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_223447%3A1914055_20260106_223434" target="_blank" rel="noreferrer">pump.fun</a>
-        </div>
-
-        <div class="streamItem">
-          <div class="streamLeft">
-            <b>REC STREAM 4</b>
-            <span>2025-12-14</span>
+          <div class="sActions">
+            <a class="btn btnPrimary btnSm" href="${recPlayerLink(idx)}">Play</a>
+            <a class="btn btnSm" href="${escapeHtml(s.url)}" target="_blank" rel="noreferrer">pump.fun</a>
           </div>
-          <a class="btnMini" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251214_014052%3A1848857_20251214_014035" target="_blank" rel="noreferrer">pump.fun</a>
         </div>
       </div>
-    </div>
-  </section>
+    `;
+  }
 
-  <footer>
-    <div>© SYNTHI</div>
-    <div>
-      <a href="./rec.html">REC</a> ·
-      <a href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a> ·
-      <a href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
-    </div>
-  </footer>
+  function mountCards(){
+    count.textContent = `${STREAMS.length} streams`;
+    grid.innerHTML = STREAMS.map(cardHtml).join("");
 
-</div>
+    // Load images with fallback rotation
+    grid.querySelectorAll("img[data-candidates]").forEach(img => {
+      let list = [];
+      try{ list = JSON.parse(decodeURIComponent(img.dataset.candidates || "[]")); }catch(_e){}
+      const wrap = img.closest(".sThumb");
+      const fallback = wrap?.querySelector(".fallback");
+
+      let i = 0;
+      function tryNext(){
+        const url = list[i];
+        if(!url){
+          // none worked, keep fallback
+          img.style.display = "none";
+          if(fallback) fallback.style.display = "flex";
+          return;
+        }
+        img.src = url;
+      }
+
+      img.onload = () => {
+        img.style.display = "block";
+        if(fallback) fallback.style.display = "none";
+      };
+      img.onerror = () => {
+        i++;
+        tryNext();
+      };
+
+      // start
+      if(list.length){
+        if(fallback) fallback.style.display = "flex";
+        tryNext();
+      }else{
+        img.style.display = "none";
+        if(fallback) fallback.style.display = "flex";
+      }
+    });
+  }
+
+  // init
+  (async () => {
+    // Try to prefetch thumbs from pump.fun API; if blocked by CORS, ignore.
+    try{ await loadThumbsFromApi(); }catch(_e){}
+    mountCards();
+  })();
+})();
+</script>
 </body>
 </html>
