@@ -141,7 +141,6 @@
     }
     .card:hover{transform: translateY(-3px); border-color: rgba(0,196,255,.22); box-shadow:0 24px 40px rgba(0,0,0,.7);}
 
-    /* square thumbs */
     .thumb{
       width:100%;
       aspect-ratio: 1/1;
@@ -189,6 +188,21 @@
     }
     .thumb .bottomline b{letter-spacing:.08em;text-transform:uppercase}
 
+    /* SYNTHI thumb logo */
+    .synthiThumb{
+      background: radial-gradient(circle at center, rgba(0,196,255,.15), rgba(0,0,0,.62));
+    }
+    .synthiThumb .tag{ /* keep tag visible on gradient */
+      border-color: rgba(0,196,255,.45);
+      background: rgba(0,196,255,.12);
+    }
+    .synthiLogo{
+      width:78px;
+      height:78px;
+      opacity:.92;
+      filter: drop-shadow(0 0 22px rgba(0,196,255,.35));
+    }
+
     .cardHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;}
     .cardHead b{font-size:18px;letter-spacing:.10em;text-transform:uppercase;}
     .chip{
@@ -214,7 +228,7 @@
     footer a{color: var(--accent); text-decoration:none}
     footer a:hover{text-decoration:underline}
 
-    /* Rewards Modal (unchanged) */
+    /* Rewards Modal */
     .modal{position:fixed;inset:0;background: rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:18px;z-index:9999;}
     .modal.open{display:flex;}
     .modalPanel{width:min(980px, 96vw);max-height: 92vh;overflow:auto;border-radius:18px;border:1px solid rgba(255,255,255,.14);background: rgba(10,12,18,.92);box-shadow: 0 30px 80px rgba(0,0,0,.75);backdrop-filter: blur(10px);}
@@ -250,13 +264,11 @@
       <div class="nav">
         <button class="btn btnRewardsTop btnPrimary" type="button" data-open-rewards="PIXELONKAS">REWARDS</button>
 
-        <!-- Viewer renamed -->
         <a class="btn" href="/viewer">NFTs</a>
 
         <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">Mint PIXELONKAS</a>
         <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">Mint SYKORA</a>
 
-        <!-- SYNTHI entry -->
         <a class="btn btnIcon btnGhost" href="/synthi/" title="SYNTHI">
           <img src="assets/img/logo.png" alt="SYNTHI">
           SYNTHI
@@ -269,12 +281,10 @@
 
     <section class="hero">
       <h1>PIXEL&nbsp;ON&nbsp;KASPA</h1>
-      <p class="sub"><b>$PIXEL</b>  KRC-20 utility token on Kaspa.</p>
-      
+      <p class="sub"><b>$PIXEL</b> KRC-20 utility token on Kaspa.</p>
 
       <div class="heroCtas">
         <a class="btn btnPrimary" href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">Open $PIXEL</a>
-        <a class="btn" href="/synthi/">Open SYNTHI</a>
       </div>
     </section>
 
@@ -326,11 +336,11 @@
         </div>
       </div>
 
-      <!-- optional third card: SYNTHI shortcut (keeps 3-column balanced on desktop) -->
       <div class="card">
-        <div class="thumb" style="background: radial-gradient(circle at top, rgba(0,196,255,.16), rgba(0,0,0,.55) 60%);">
+        <div class="thumb synthiThumb">
           <span class="tag">SYNTHI</span>
           <span class="hint">REC + token</span>
+          <img class="synthiLogo" src="assets/img/logo.png" alt="SYNTHI logo" loading="lazy">
           <div class="bottomline">
             <b>Sound system</b><br>
             REC streams → archive
@@ -340,7 +350,7 @@
           <b>SYNTHI</b>
           <span class="chip">KRC-20</span>
         </div>
-        <p>SYNTHI index — streams archive, links, and on-chain presence.</p>
+        <p>SYNTHI index — sound system, REC streams, and on-chain residue.</p>
         <div class="cardActions">
           <a class="btn btnPrimary" href="/synthi/">Open SYNTHI</a>
           <a class="btn" href="/synthi/rec.html">REC Streams</a>
@@ -352,7 +362,7 @@
       <div>© Pixel on Kaspa</div>
       <div>
         <a href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">$PIXEL</a> ·
-        <a href="/nfts">NFTs</a> ·
+        <a href="/viewer">NFTs</a> ·
         <a href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a> ·
         <a href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
       </div>
@@ -614,7 +624,6 @@
       const { url, ipfs } = extractImage(meta);
       if(!url) throw new Error("No image in metadata");
 
-      // preserve your bottom overlays (tag/hint/bottomline)
       const bottomline = thumb.querySelector(".bottomline")?.outerHTML || "";
       thumb.innerHTML = `
         <span class="tag">${tick}</span>
@@ -638,7 +647,7 @@
     }
   }
 
-  // Rewards modal (unchanged)
+  // Rewards modal
   const modal = qs("#rewardsModal");
   const closeBtn = qs("#rewardsClose");
 
