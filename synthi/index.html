@@ -67,9 +67,19 @@
     .hero h1{margin:0 0 8px;font-size:40px;letter-spacing:.18em;text-transform:uppercase;line-height:1.02;}
     .hero p{margin:0;opacity:.82;max-width:78ch}
     .hero .sub{margin-top:10px;opacity:.72;font-size:13px}
-    .heroCtas{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .heroCtas{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}
+    .statusRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .pill{
+      display:inline-flex;gap:8px;align-items:center;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      padding:10px 12px;border-radius:999px;
+      font-size:13px;opacity:.92;
+    }
+    .pill b{letter-spacing:.08em;text-transform:uppercase}
 
-    .grid{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;}
+    .grid{margin-top:16px;display:grid;grid-template-columns:1.2fr .8fr;gap:16px;align-items:start;}
+    .stack{display:grid;gap:16px}
     .panel{
       border:1px solid var(--border);border-radius:20px;
       background: rgba(0,0,0,.18);backdrop-filter: blur(10px);box-shadow: var(--shadow);
@@ -80,55 +90,44 @@
     .panelBody{padding:14px}
     .muted{opacity:.75}
 
-    .pillrow{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
-    .pill{
-      display:inline-flex;gap:8px;align-items:center;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
-      padding:10px 12px;border-radius:999px;
-      font-size:13px;opacity:.92;
-    }
-
-    .cards{
-      display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:12px;margin-top:10px;
-    }
-    .card{
+    /* Latest streams list */
+    .streamList{display:grid;gap:10px;margin-top:10px}
+    .streamItem{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
       border:1px solid rgba(255,255,255,.12);
-      background: rgba(0,0,0,.16);
-      border-radius:18px;
+      background: rgba(255,255,255,.05);
+      border-radius:16px;
+      padding:12px 12px;
+      transition: transform .15s, background .15s, border-color .15s;
+    }
+    .streamItem:hover{transform: translateY(-1px); background: rgba(255,255,255,.08);}
+    .streamLeft{display:flex;flex-direction:column;gap:3px}
+    .streamLeft b{letter-spacing:.10em;text-transform:uppercase}
+    .streamLeft span{opacity:.70;font-size:12px}
+    .miniActions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+    .btnMini{
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(0,0,0,.14);
+      color: rgba(255,255,255,.88);
+      text-decoration:none;
+      font-weight:800;
+      font-size:13px;
+      white-space:nowrap;
+    }
+    .btnMini:hover{background: rgba(255,255,255,.10);}
+
+    /* How it works */
+    .steps{display:grid;gap:10px;margin-top:10px}
+    .step{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      border-radius:16px;
       padding:12px;
     }
-    .thumb{
-      width:100%;aspect-ratio:1/1;border-radius:14px;
-      border:1px solid rgba(255,255,255,.10);
-      background:#000;overflow:hidden;
-      display:flex;align-items:center;justify-content:center;
-      position:relative;margin-bottom:10px;
-      color: rgba(255,255,255,.65);
-      font-size:12px;
-    }
-    .thumb .tag{
-      position:absolute;left:10px;top:10px;
-      padding:6px 10px;border-radius:999px;
-      border:1px solid rgba(0,196,255,.35);
-      background: rgba(0,196,255,.10);
-      color: var(--accent);
-      font-weight:900;
-      font-size:12px;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-    }
-    .thumb .bottomline{
-      position:absolute;left:10px;right:10px;bottom:10px;
-      padding:10px 12px;border-radius:14px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(0,0,0,.30);
-      backdrop-filter: blur(10px);
-      font-size:12px;line-height:1.35;opacity:.92;
-    }
-    .card b{letter-spacing:.10em;text-transform:uppercase}
-    .card p{margin:8px 0 10px;opacity:.78;font-size:13px;line-height:1.5}
-    .card .actions{display:flex;gap:10px;flex-wrap:wrap}
+    .step b{letter-spacing:.10em;text-transform:uppercase;font-size:12px;opacity:.95}
+    .step p{margin:8px 0 0;opacity:.78;line-height:1.55;font-size:13px}
 
     footer{margin-top:22px;opacity:.70;font-size:13px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;}
     footer a{color: var(--accent); text-decoration:none}
@@ -160,67 +159,145 @@
       <h1>SYNTHI</h1>
       <p class="muted">Sound-driven image generation inscribed on the Kaspa blockDAG.</p>
       <div class="sub">Early state. Live capture → archived residue.</div>
+
       <div class="heroCtas">
         <a class="btn btnPrimary" href="./rec.html">Open REC</a>
-        <!-- pokud máš link na $SYNTHI na kaspa.com, dej sem -->
-        <a class="btn" href="/viewer">Open NFTs</a>
+        <a class="btn btnGhost" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump" target="_blank" rel="noreferrer">Open on pump.fun</a>
+        <a class="btn btnGhost" href="/viewer">Open NFTs</a>
+      </div>
+
+      <div class="statusRow">
+        <span class="pill"><b>$SYNTHI</b> · KRC-20</span>
+        <span class="pill"><b>REC</b> · stream archive</span>
+        <span class="pill"><b>Latest</b> · REC STREAM 6</span>
       </div>
     </section>
 
     <section class="grid">
-      <div class="panel">
-        <div class="panelHead">
-          <b>On-chain</b>
-        </div>
-        <div class="panelBody">
-          <div class="pillrow">
-            <span class="pill"><b>$SYNTHI</b> · KRC-20</span>
-            <span class="pill"><b>$PIXEL</b> · KRC-20</span>
+      <!-- LEFT: main -->
+      <div class="stack">
+
+        <div class="panel">
+          <div class="panelHead">
+            <b>Latest REC</b>
+            <a class="btnMini" href="./rec.html">View all</a>
           </div>
-          <p class="muted" style="margin:12px 0 0;line-height:1.55">
-            SYNTHI is the sound system layer. PIXEL is the utility layer.
-            Streams get archived as REC residue.
-          </p>
+          <div class="panelBody">
+            <div class="muted">Proof that something is happening: recent live captures archived on pump.fun.</div>
+
+            <div class="streamList">
+              <div class="streamItem">
+                <div class="streamLeft">
+                  <b>REC STREAM 6</b>
+                  <span>2026-01-06 · clip archive</span>
+                </div>
+                <div class="miniActions">
+                  <a class="btnMini" href="./rec.html?s=0">Play here</a>
+                  <a class="btnMini" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_231554%3A1914159_20260106_231539" target="_blank" rel="noreferrer">pump.fun</a>
+                </div>
+              </div>
+
+              <div class="streamItem">
+                <div class="streamLeft">
+                  <b>REC STREAM 5</b>
+                  <span>2026-01-06 · clip archive</span>
+                </div>
+                <div class="miniActions">
+                  <a class="btnMini" href="./rec.html?s=1">Play here</a>
+                  <a class="btnMini" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_223447%3A1914055_20260106_223434" target="_blank" rel="noreferrer">pump.fun</a>
+                </div>
+              </div>
+
+              <div class="streamItem">
+                <div class="streamLeft">
+                  <b>REC STREAM 4</b>
+                  <span>2025-12-14 · clip archive</span>
+                </div>
+                <div class="miniActions">
+                  <a class="btnMini" href="./rec.html?s=2">Play here</a>
+                  <a class="btnMini" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251214_014052%3A1848857_20251214_014035" target="_blank" rel="noreferrer">pump.fun</a>
+                </div>
+              </div>
+            </div>
+
+          </div>
         </div>
+
+        <div class="panel">
+          <div class="panelHead">
+            <b>How it works</b>
+          </div>
+          <div class="panelBody">
+            <div class="steps">
+              <div class="step">
+                <b>1 · SOUND INPUT</b>
+                <p>Live sound drives the system (performance / capture / signal).</p>
+              </div>
+              <div class="step">
+                <b>2 · IMAGE STATE</b>
+                <p>The system outputs visual states — not “artworks”, but snapshots of a process.</p>
+              </div>
+              <div class="step">
+                <b>3 · ARCHIVE RESIDUE</b>
+                <p>Streams become REC residue: a public archive you can revisit and share.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      <div class="panel">
-        <div class="panelHead">
-          <b>NFT Collections</b>
+      <!-- RIGHT: side -->
+      <div class="stack">
+        <div class="panel">
+          <div class="panelHead">
+            <b>On-chain</b>
+          </div>
+          <div class="panelBody">
+            <div class="muted" style="line-height:1.55">
+              <b>$SYNTHI</b> is the sound system layer. <b>$PIXEL</b> is the utility layer.
+              REC streams act as the archive of live capture.
+            </div>
+
+            <div class="statusRow" style="margin-top:12px">
+              <span class="pill"><b>$SYNTHI</b> · KRC-20</span>
+              <span class="pill"><b>$PIXEL</b> · KRC-20</span>
+            </div>
+
+            <div class="heroCtas" style="margin-top:12px">
+              <a class="btn btnGhost" href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">Open $PIXEL</a>
+              <a class="btn btnGhost" href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump" target="_blank" rel="noreferrer">SYNTHI on pump.fun</a>
+            </div>
+          </div>
         </div>
-        <div class="panelBody">
-          <div class="muted" style="margin-bottom:10px">
-            Sound-driven image generation inscribed on the Kaspa blockDAG.
+
+        <div class="panel">
+          <div class="panelHead">
+            <b>Links</b>
           </div>
-
-          <div class="cards">
-            <div class="card">
-              <div class="thumb">
-                <span class="tag">PIXELONKAS</span>
-                <div class="bottomline"><b>System states</b><br>live captures → on-chain residue</div>
-              </div>
-              <b>PIXELONKAS</b>
-              <p>NFT collection on Kaspa — system states and rewards.</p>
-              <div class="actions">
-                <a class="btn btnPrimary" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">Mint</a>
-                <a class="btn btnGhost" href="/viewer">NFTs</a>
-              </div>
-            </div>
-
-            <div class="card">
-              <div class="thumb">
-                <span class="tag">SYKORA</span>
-                <div class="bottomline"><b>Entities</b><br>styles → instant perks</div>
-              </div>
-              <b>SYKORA</b>
-              <p>NFT collection on Kaspa — entities and perks.</p>
-              <div class="actions">
-                <a class="btn btnPrimary" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">Mint</a>
-                <a class="btn btnGhost" href="/viewer">NFTs</a>
-              </div>
+          <div class="panelBody">
+            <div class="muted">Fast exits. Keep it simple.</div>
+            <div class="statusRow" style="margin-top:12px">
+              <a class="btn btnGhost" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
+              <a class="btn btnGhost" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
+              <a class="btn btnGhost" href="/">PIXEL on Kaspa</a>
+              <a class="btn btnGhost" href="/viewer">NFTs</a>
             </div>
           </div>
+        </div>
 
+        <div class="panel">
+          <div class="panelHead">
+            <b>Next</b>
+          </div>
+          <div class="panelBody">
+            <div class="muted" style="line-height:1.55">
+              Minimal roadmap:
+              <br>• REC archive → stable hub
+              <br>• Shareable stills from streams
+              <br>• On-chain links between REC and minted states
+            </div>
+          </div>
         </div>
       </div>
     </section>
