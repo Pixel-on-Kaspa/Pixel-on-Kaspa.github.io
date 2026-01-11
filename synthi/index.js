@@ -1,8 +1,10 @@
 // synthi/index.js
-// Fix: "pořád stejné" -> true reseed + richer structure (PM + cross-warp) while keeping X:Y base ratio 1:2.
-// X base: f (sin+tri), Y base: 2f (sin+tri)
-// Extra: phase modulation + gentle nonlinear cross-warp (creates different attractors)
-// Drift: stable integrator (no irregular jumps)
+// 3 OSC version (X:Y base ratio stays 1:2)
+// - X base uses f, Y base uses 2f
+// - Add OSC3 with f3 = f * m3, and Y uses 2*f3 (still 1:2)
+// - Stable drift (integrator), no frame-skip jumps
+// - Rich structure: PM + cross-warp + phase diffusion + spray fill
+// - Shorter audio delays
 
 const TAU = Math.PI * 2;
 
@@ -27,6 +29,7 @@ function mulberry32(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
+
 function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
 function frac(x) { return x - Math.floor(x); }
 function triFromPhase(p) { return 1 - 4 * Math.abs(p - 0.5); }
@@ -36,7 +39,6 @@ function logUniform(rng, min, max) {
   return Math.exp(lo + (hi - lo) * rng());
 }
 function randU32() {
-  // strong reseed even without fxhash
   if (typeof crypto !== "undefined" && crypto.getRandomValues) {
     const a = new Uint32Array(1);
     crypto.getRandomValues(a);
@@ -45,14 +47,15 @@ function randU32() {
   return (Math.random() * 0xffffffff) >>> 0;
 }
 
-// If fxhash exists, use it. Otherwise reseed per rerender.
 let rerollCounter = 0;
 function getRand() {
   if (typeof window !== "undefined" && window.$fx && typeof window.$fx.rand === "function") {
     return () => window.$fx.rand();
   }
   const seedStr =
-    (typeof window !== "undefined" ? (window.location.pathname + window.location.search + window.location.hash) : "SYNTHI") +
+    (typeof window !== "undefined"
+      ? (window.location.pathname + window.location.search + window.location.hash)
+      : "SYNTHI") +
     `|SYNTHI|${rerollCounter}|${randU32()}`;
   const seedFn = xmur3(seedStr);
   return mulberry32(seedFn());
@@ -64,9 +67,9 @@ function makeParams(rng) {
   const f_vis = rare ? logUniform(rng, 5500, 7500) : logUniform(rng, 900, 5200);
 
   const phi = rng();
-  const phiOffset = 0.05 + rng() * 0.45; // not fixed 0.25 -> more variety while still "2f branch offset"
+  const phiOffset = 0.05 + rng() * 0.45;
 
-  // (sin+tri) weights
+  // osc1+2 weights (sin+tri)
   const xSin = 0.85 + rng() * 0.35;
   const xTri = 0.65 + rng() * 0.85;
   const ySin = 0.85 + rng() * 0.35;
@@ -80,20 +83,27 @@ function makeParams(rng) {
 
   const phaseJitter = (rng() - 0.5) * 0.30;
 
-  // ✅ NEW: Phase modulation (drives different attractors)
-  // PM freq is slow-ish relative to window sampling; used with (now) time too.
-  const pmHz = 0.08 + rng() * 0.65;      // 0.08–0.73 Hz
-  const pmDepth = 0.010 + rng() * 0.060; // cycles (0.01–0.07)
+  // PM
+  const pmHz = 0.08 + rng() * 0.65;
+  const pmDepth = 0.010 + rng() * 0.060; // cycles
   const pmPhase = rng();
 
-  // ✅ NEW: cross-warp nonlinearity (small, stable)
-  const warp = 0.08 + rng() * 0.22;      // 0.08–0.30
-  const warp2 = 0.02 + rng() * 0.10;     // extra term
+  // Cross-warp
+  const warp = 0.10 + rng() * 0.34;   // 0.10..0.44 (stronger than before)
+  const warp2 = 0.02 + rng() * 0.14;
+
+  // ✅ OSC3 (new)
+  const mChoices = [1.25, 1.3333333, 1.5, 1.6666667, 2.25, 2.5, 3.0, 1.6180339];
+  const osc3Mul = mChoices[(rng() * mChoices.length) | 0];
+  const osc3Phi = rng();
+  const osc3Mix = 0.12 + rng() * 0.30;     // strength
+  const osc3Tri = 0.60 + rng() * 0.90;     // tri weight inside osc3
+  const osc3Sin = 0.60 + rng() * 0.90;     // sin weight inside osc3
 
   // audio mix
   const a = 0.7, b = 0.4;
 
-  // shorter delays (tight)
+  // short delays
   const t1 = (2 + rng() * 6) / 1000;
   const t2 = (10 + rng() * 26) / 1000;
   const t3 = (45 + rng() * 140) / 1000;
@@ -105,18 +115,22 @@ function makeParams(rng) {
   // visual feedback baseline (avoid lock)
   const visFbBase = 0.82 + rng() * 0.12;
 
-  // micro transform stronger variety (still small)
-  const fbScale = 1.001 + rng() * 0.005;     // 1.001..1.006
-  const fbRotate = (rng() - 0.5) * 0.014;    // +/- 0.007 rad
-  const fbShift = (rng() - 0.5) * 2.2;
+  // micro transform
+  const fbScale = 1.001 + rng() * 0.006;
+  const fbRotate = (rng() - 0.5) * 0.016;
+  const fbShift = (rng() - 0.5) * 2.4;
 
   return {
     rare, f_vis, phi, phiOffset, phaseJitter,
     xSin, xTri, ySin, yTri,
     padFrac, gain,
     pixel, pointAlpha,
+
     pmHz, pmDepth, pmPhase,
     warp, warp2,
+
+    osc3Mul, osc3Phi, osc3Mix, osc3Tri, osc3Sin,
+
     a, b,
     t1, t2, t3, fb1, fb2, fb3,
     visFbBase, fbScale, fbRotate, fbShift
@@ -136,16 +150,15 @@ function ensureCanvasSize(canvas) {
   return false;
 }
 
-// Base signal: x at f, y at 2f, both sin+tri
-// Then: PM + gentle cross-warp -> new structures.
+// Base signal: x at f, y at 2f (sin+tri) + OSC3 layer + PM + cross-warp
 function xyAt(t, p, phiCycles, nowSec) {
   const f = p.f_vis;
 
   // phase modulation in cycles
   const pm = p.pmDepth * Math.sin(TAU * (p.pmHz * nowSec) + TAU * p.pmPhase);
-
   const phi = phiCycles + pm;
 
+  // osc1 (f) and osc2 branch (2f)
   const px = TAU * (f * t + phi);
   const py = TAU * (2 * f * t + (phi + p.phiOffset));
 
@@ -158,12 +171,30 @@ function xyAt(t, p, phiCycles, nowSec) {
   let x = (p.xSin * sx + p.xTri * tx);
   let y = (p.ySin * sy + p.yTri * ty);
 
+  // ✅ OSC3 layer: f3 and 2*f3 (keeps 1:2 relationship)
+  const f3 = f * p.osc3Mul;
+  const phi3 = phiCycles + p.osc3Phi + pm * 0.6;
+
+  const p3x = TAU * (f3 * t + phi3);
+  const p3y = TAU * (2 * f3 * t + (phi3 + p.phiOffset));
+
+  const s3x = Math.sin(p3x);
+  const s3y = Math.sin(p3y);
+
+  const t3x = triFromPhase(frac(f3 * t + phi3));
+  const t3y = triFromPhase(frac(2 * f3 * t + (phi3 + p.phiOffset)));
+
+  const osc3x = (p.osc3Sin * s3x + p.osc3Tri * t3x);
+  const osc3y = (p.osc3Sin * s3y + p.osc3Tri * t3y);
+
+  x += p.osc3Mix * osc3x;
+  y += p.osc3Mix * osc3y;
+
   // normalize-ish
   x = Math.tanh(0.80 * x);
   y = Math.tanh(0.80 * y);
 
-  // ✅ Cross-warp (nonlinear coupling) — makes it stop being the same "U"
-  // Keep small so it stays stable.
+  // cross-warp (nonlinear coupling)
   const wx = p.warp;
   const wy = p.warp * 0.85;
   const w2 = p.warp2;
@@ -217,7 +248,7 @@ function startAudio(pEff, fbOn) {
 
   const oscTri = ctx.createOscillator();
   oscTri.type = "triangle";
-  oscTri.frequency.value = f_aud * 2; // keep 1:2
+  oscTri.frequency.value = f_aud * 2;
 
   const gSin = ctx.createGain(); gSin.gain.value = pEff.a;
   const gTri = ctx.createGain(); gTri.gain.value = pEff.b;
@@ -262,16 +293,12 @@ function startAudio(pEff, fbOn) {
   audio = {
     ctx,
     muted: false,
-    setMute(on) {
-      post.gain.value = on ? 0.0 : 0.9;
-      this.muted = on;
-    },
+    setMute(on) { post.gain.value = on ? 0.0 : 0.9; this.muted = on; },
     stop() {
       try { oscSin.stop(); oscTri.stop(); } catch {}
       try { ctx.close(); } catch {}
     }
   };
-
   return audio;
 }
 
@@ -327,7 +354,6 @@ function $(id) { return document.getElementById(id); }
   const DT = 1000 / FPS;
   let last = 0;
 
-  // fill faster
   const SAMPLES_PER_FRAME = 70000;
 
   function clearHard() {
@@ -343,9 +369,8 @@ function $(id) { return document.getElementById(id); }
     const f_vis = clamp(base.f_vis * freqMul, 200, 12000);
     const fbScale = feedbackOn ? fbMul : 0.0;
 
-    // visual feedback: high but avoid lock
     const visFb = feedbackOn
-      ? clamp(0.76 + 0.16 * clamp(fbMul, 0, 1), 0.76, 0.93) * (base.visFbBase / 0.88)
+      ? clamp(0.74 + 0.18 * clamp(fbMul, 0, 1), 0.74, 0.93) * (base.visFbBase / 0.88)
       : 0.0;
 
     const fb1 = clamp(base.fb1 * fbScale, 0, 0.95);
@@ -367,7 +392,7 @@ function $(id) { return document.getElementById(id); }
     meta.textContent =
       `ratio 1:2 • x(f)=(sin+tri) • y(2f)=(sin+tri) • ` +
       `f_vis ${p.f_vis.toFixed(1)} Hz • f_aud ${f_aud.toFixed(1)} Hz • ` +
-      `drift ${phiDriftCycles().toFixed(3)} • visFB ${p.visFb.toFixed(3)} • warp ${p.warp.toFixed(2)}`;
+      `drift ${phiDriftCycles().toFixed(3)} • visFB ${p.visFb.toFixed(3)} • warp ${p.warp.toFixed(2)} • m3 ${p.osc3Mul.toFixed(2)}`;
 
     freqVal.textContent = `${freqMul.toFixed(2)}×`;
     fbVal.textContent = `${(feedbackOn ? fbMul : 0).toFixed(2)}×`;
@@ -415,10 +440,8 @@ function $(id) { return document.getElementById(id); }
     ctx.fillStyle = "rgba(221,221,221,1)";
 
     const nowSec = now / 1000;
-
     const phiBase = p.phi + p.phaseJitter + phiDriftCycles();
 
-    // diffusion + time window
     const PHI_SPREAD = 0.030;
     const TWIN = 0.18;
     const N = SAMPLES_PER_FRAME;
@@ -464,7 +487,6 @@ function $(id) { return document.getElementById(id); }
 
       projectFeedback(p);
 
-      // stronger decay prevents one band dominating
       ctx.save();
       ctx.globalCompositeOperation = "source-over";
       ctx.globalAlpha = 0.13;
