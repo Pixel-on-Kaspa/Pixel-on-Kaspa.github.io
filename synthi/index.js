@@ -6,7 +6,7 @@
 //   x uses frequency f:    x = mix( sin(f) + tri(f) )
 //   y uses frequency 2f:   y = mix( sin(2f) + tri(2f) )
 //   => X:Y ratio is strictly 1:2.
-// - Drift: very slow phase drift, optional.
+// - Drift: very slow phase drift, optional (STABLE INTEGRATOR, no frame-skip jumps).
 // - Controls (from your HTML):
 //   Start audio, Mute, Re-render, Drift ON/OFF, Feedback ON/OFF,
 //   Frequency slider (multiplies f), Feedback slider (scales BOTH: visual feedback and audio feedback scale).
@@ -62,22 +62,22 @@ function makeParams(rng) {
   // base phase in cycles
   const phi = rng();
 
-  // keep your 0.25 concept, but now it’s applied consistently (optional small offset)
+  // offset for 2f branch
   const phiOffset = 0.25;
 
-  // mix weights for sin/tri in X and Y (more structure comes from imbalance)
+  // mix weights for sin/tri in X and Y
   const xSin = 1.0;
-  const xTri = 0.85 + rng() * 0.35;   // 0.85..1.20
+  const xTri = 0.85 + rng() * 0.45;   // 0.85..1.30
   const ySin = 1.0;
-  const yTri = 0.85 + rng() * 0.35;
+  const yTri = 0.85 + rng() * 0.45;
 
   // scale framing
   const padFrac = 0.08 + rng() * 0.06; // 0.08..0.14
   const gain = 0.86 + rng() * 0.10;    // 0.86..0.96
 
-  // pixel style
-  const pixel = rng() < 0.55 ? 1 : 2;     // pixel size 1 or 2
-  const pointAlpha = 0.55;                // alpha per plotted sample (we also use globalCompositeOperation)
+  // pixel style: larger stamp -> fills faster
+  const pixel = rng() < 0.35 ? 2 : 3; // 2 or 3
+  const pointAlpha = 0.42;            // lower alpha; we draw MANY more points
 
   // drift variety
   const phaseJitter = (rng() - 0.5) * 0.20; // ±0.10 cycles
@@ -86,22 +86,23 @@ function makeParams(rng) {
   const a = 0.7;
   const b = 0.4;
 
-  // audio delays (kept)
-  const t1 = (5 + rng() * 15) / 1000;
-  const t2 = (40 + rng() * 80) / 1000;
-  const t3 = (180 + rng() * 420) / 1000;
+  // ✅ SHORTER delays (tight)
+  const t1 = (2 + rng() * 6) / 1000;      // 2–8 ms
+  const t2 = (12 + rng() * 28) / 1000;    // 12–40 ms
+  const t3 = (60 + rng() * 120) / 1000;   // 60–180 ms
 
-  const fb1 = 0.18 + rng() * 0.22;
-  const fb2 = 0.28 + rng() * 0.25;
-  const fb3 = 0.38 + rng() * 0.30;
+  // ✅ stronger feedback baseline (still safe due to softclip in loop)
+  const fb1 = 0.30 + rng() * 0.22; // ~0.30..0.52
+  const fb2 = 0.45 + rng() * 0.25; // ~0.45..0.70
+  const fb3 = 0.55 + rng() * 0.30; // ~0.55..0.85
 
-  // visual feedback baseline: already “high”
+  // visual feedback baseline (high)
   const visFbBase = 0.86 + rng() * 0.10; // 0.86..0.96
 
-  // micro transform per frame (video feedback) - tiny values = stability
-  const fbScale = 1.0015 + rng() * 0.0025;     // 1.0015..1.004
-  const fbRotate = (rng() - 0.5) * 0.006;      // ~ +/- 0.003 rad
-  const fbShift = (rng() - 0.5) * 1.4;         // px shift (applied in device pixels later)
+  // micro transform per frame
+  const fbScale = 1.0015 + rng() * 0.0025; // 1.0015..1.004
+  const fbRotate = (rng() - 0.5) * 0.006;  // ~ +/- 0.003 rad
+  const fbShift = (rng() - 0.5) * 1.4;     // px shift
 
   return {
     rare, f_vis, phi, phiOffset, phaseJitter,
@@ -131,23 +132,19 @@ function xyAt(t, p, phiCycles) {
   const f = p.f_vis;
   const phi = phiCycles;
 
-  // phase in radians
   const px = TAU * (f * t + phi);
-  const py = TAU * (2 * f * t + (phi + p.phiOffset)); // 2f with offset
+  const py = TAU * (2 * f * t + (phi + p.phiOffset));
 
-  // sin components
   const sx = Math.sin(px);
   const sy = Math.sin(py);
 
-  // tri components via phase (cycles)
   const tx = triFromPhase(frac(f * t + phi));
   const ty = triFromPhase(frac(2 * f * t + (phi + p.phiOffset)));
 
-  // sums
   const x = (p.xSin * sx + p.xTri * tx);
   const y = (p.ySin * sy + p.yTri * ty);
 
-  // normalize-ish: weights can exceed 1, so soft clamp
+  // soft clamp
   const xn = Math.tanh(0.85 * x);
   const yn = Math.tanh(0.85 * y);
 
@@ -197,7 +194,7 @@ function startAudio(pEff, fbOn) {
 
   const oscTri = ctx.createOscillator();
   oscTri.type = "triangle";
-  oscTri.frequency.value = f_aud * 2; // ratio 1:2 in audio too (consistent with visuals)
+  oscTri.frequency.value = f_aud * 2; // ratio 1:2
 
   const gSin = ctx.createGain(); gSin.gain.value = pEff.a;
   const gTri = ctx.createGain(); gTri.gain.value = pEff.b;
@@ -212,7 +209,6 @@ function startAudio(pEff, fbOn) {
   const pre = ctx.createGain();
   pre.gain.value = 0.25;
 
-  // If feedback toggle OFF => feedback gains forced to 0
   const fb1 = fbOn ? pEff.fb1 : 0.0;
   const fb2 = fbOn ? pEff.fb2 : 0.0;
   const fb3 = fbOn ? pEff.fb3 : 0.0;
@@ -235,7 +231,6 @@ function startAudio(pEff, fbOn) {
   masterClip.connect(ctx.destination);
 
   const now = ctx.currentTime + 0.02;
-  // Keep your "0.25 cycle" notion by starting tri delayed by quarter period
   const triOffset = 0.25 / (oscTri.frequency.value || 1);
 
   oscSin.start(now);
@@ -286,29 +281,35 @@ function $(id) { return document.getElementById(id); }
   let rng = getRand();
   let base = makeParams(rng);
 
-  // toggles
   let driftOn = true;
   let feedbackOn = true;
 
-  // sliders (you already have them)
-  let freqMul = parseFloat(freqSlider.value); // 0.5..2
-  let fbMul = parseFloat(fbSlider.value);     // 0..1.5
+  let freqMul = parseFloat(freqSlider.value);
+  let fbMul = parseFloat(fbSlider.value);
 
-  // MUCH slower drift than before
-  const DRIFT_CPS = 0.0016; // 1 cycle ~ 625s (very slow)
-  let driftStart = performance.now();
+  // ✅ Stable drift integrator (no irregular jumps)
+  const DRIFT_CPS = 0.0012; // cycles/sec (slow)
+  let driftPhase = 0;       // cycles
+  let lastTime = performance.now();
+
+  function stepDrift(now) {
+    const dt = Math.min(0.05, Math.max(0, (now - lastTime) / 1000)); // clamp 0..50ms
+    lastTime = now;
+    if (!driftOn) return;
+    driftPhase = (driftPhase + DRIFT_CPS * dt) % 1;
+  }
+  function phiDriftCycles() {
+    return driftOn ? driftPhase : 0;
+  }
 
   // frame scheduling
   const FPS = 30;
   const DT = 1000 / FPS;
   let last = 0;
 
-  // samples per frame (pixel fill look)
-  const SAMPLES_PER_FRAME = 14000; // raise if you want faster fill
+  // ✅ denser fill
+  const SAMPLES_PER_FRAME = 42000;
 
-  // “pixel filling” style
-  // Using additive blend for points makes the “screen fill” effect.
-  // We keep feedback projection in normal blend, then add points in "lighter".
   function clearHard() {
     ensureCanvasSize(canvas);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -318,28 +319,16 @@ function $(id) { return document.getElementById(id); }
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  function phiDriftCycles(now) {
-    if (!driftOn) return 0;
-    const t = (now - driftStart) / 1000;
-    return (t * DRIFT_CPS) % 1;
-  }
-
   function effective() {
-    // frequency multiplier affects f_vis; audio derived from f_vis/16
     const f_vis = clamp(base.f_vis * freqMul, 200, 12000);
 
-    // Feedback slider controls BOTH:
-    // - visual feedback (must be high for complexity)
-    // - audio feedback scaling (but still clamped)
     const fbScale = feedbackOn ? fbMul : 0.0;
 
-    // Visual feedback should be "over 0.8" per your ask.
-    // We'll map slider to [0.80..0.98] multiplied by base.
+    // visual feedback stays high (>0.8) but we clamp for stability
     const visFb = feedbackOn
-      ? clamp(0.80 + 0.12 * clamp(fbMul, 0, 1), 0.80, 0.98) * (base.visFbBase / 0.90)
+      ? clamp(0.82 + 0.14 * clamp(fbMul, 0, 1), 0.82, 0.985) * (base.visFbBase / 0.90)
       : 0.0;
 
-    // audio feedback scale -> clamp each stage <= 0.95
     const fb1 = clamp(base.fb1 * fbScale, 0, 0.95);
     const fb2 = clamp(base.fb2 * fbScale, 0, 0.95);
     const fb3 = clamp(base.fb3 * fbScale, 0, 0.95);
@@ -347,30 +336,26 @@ function $(id) { return document.getElementById(id); }
     return {
       ...base,
       f_vis,
-      visFb: clamp(visFb, 0, 0.985),
+      visFb: clamp(visFb, 0, 0.99),
       fb1, fb2, fb3,
-      // audio mix constants reused
       a: 0.7, b: 0.4
     };
   }
 
   function updateLabels(now) {
     const p = effective();
-    const drift = phiDriftCycles(now);
     const f_aud = p.f_vis / 16;
 
     meta.textContent =
       `ratio 1:2 • x(f)=(sin+tri) • y(2f)=(sin+tri) • ` +
       `f_vis ${p.f_vis.toFixed(1)} Hz • f_aud ${f_aud.toFixed(1)} Hz • ` +
-      `drift ${drift.toFixed(3)} • visFB ${p.visFb.toFixed(3)}`;
+      `drift ${phiDriftCycles().toFixed(3)} • visFB ${p.visFb.toFixed(3)}`;
 
     freqVal.textContent = `${freqMul.toFixed(2)}×`;
     fbVal.textContent = `${(feedbackOn ? fbMul : 0).toFixed(2)}×`;
   }
 
   function projectFeedback(p) {
-    // self-draw with tiny transform (video feedback). This is where complexity comes from.
-    // Use source-over with alpha = visFb (>= 0.8)
     if (!feedbackOn) return;
 
     const W = canvas.width;
@@ -380,14 +365,12 @@ function $(id) { return document.getElementById(id); }
     ctx.globalCompositeOperation = "source-over";
     ctx.globalAlpha = p.visFb;
 
-    // transform around center
     const cx = W / 2;
     const cy = H / 2;
 
     const rot = p.fbRotate;
     const sc = p.fbScale;
 
-    // shift in device pixels (scale with dpr feel)
     const shift = p.fbShift * Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
 
     ctx.translate(cx + shift, cy);
@@ -395,13 +378,11 @@ function $(id) { return document.getElementById(id); }
     ctx.scale(sc, sc);
     ctx.translate(-cx, -cy);
 
-    // draw current canvas onto itself
     ctx.drawImage(canvas, 0, 0);
-
     ctx.restore();
   }
 
-  function plotPoints(p, now) {
+  function plotPoints(p) {
     const W = canvas.width;
     const H = canvas.height;
 
@@ -411,38 +392,46 @@ function $(id) { return document.getElementById(id); }
     const sx = (W / 2 - pad) * p.gain;
     const sy = (H / 2 - pad) * p.gain;
 
-    // additive points for "pixel filling"
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     ctx.globalAlpha = p.pointAlpha;
-
-    // we draw filled rects (pixel look)
     ctx.fillStyle = "rgba(221,221,221,1)";
 
-    const phiCycles = p.phi + p.phaseJitter + phiDriftCycles(now);
+    const phiCycles = p.phi + p.phaseJitter + phiDriftCycles();
 
-    // fixed time window for each frame (stable): sample across a fixed T window
-    // (avoid using now directly in t mapping; only phase drifts)
-    const T = 0.02; // 20ms window
+    // ✅ Random sampling window (fills area), not a single sweep line
+    const TWIN = 0.06; // 60ms window
     const N = SAMPLES_PER_FRAME;
 
     for (let i = 0; i < N; i++) {
-      const t = (i * T) / (N - 1);
+      const t = Math.random() * TWIN;
       const { x, y } = xyAt(t, p, phiCycles);
 
-      const px = (cx + x * sx) | 0; // integer pixel for stability
-      const py = (cy - y * sy) | 0;
+      const px0 = (cx + x * sx) | 0;
+      const py0 = (cy - y * sy) | 0;
 
-      // bounds check
+      const s = p.pixel;
+
+      // ✅ spray around the point to create "filled plane"
+      const jx = ((Math.random() * 2 - 1) * (2.2 * s)) | 0;
+      const jy = ((Math.random() * 2 - 1) * (2.2 * s)) | 0;
+
+      const px = px0 + jx;
+      const py = py0 + jy;
+
       if (px < 0 || py < 0 || px >= W || py >= H) continue;
 
-      ctx.fillRect(px, py, p.pixel, p.pixel);
+      ctx.fillRect(px, py, s, s);
+      if ((i & 7) === 0) ctx.fillRect(px + s, py, s, s);
+      if ((i & 15) === 0) ctx.fillRect(px, py + s, s, s);
     }
 
     ctx.restore();
   }
 
   function tick(now) {
+    stepDrift(now);
+
     if (now - last >= DT) {
       last = now;
 
@@ -451,20 +440,19 @@ function $(id) { return document.getElementById(id); }
 
       const p = effective();
 
-      // 1) visual feedback projection (complexity)
+      // 1) video feedback projection
       projectFeedback(p);
 
-      // 2) slight darkening to prevent infinite burn-in (very subtle)
-      //    This avoids runaway brightness with "lighter".
+      // 2) slightly stronger decay (prevents one bright band dominating)
       ctx.save();
       ctx.globalCompositeOperation = "source-over";
-      ctx.globalAlpha = 0.06; // small decay per frame (tune)
+      ctx.globalAlpha = 0.085;
       ctx.fillStyle = "#000";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.restore();
 
-      // 3) draw new points (pixel fill)
-      plotPoints(p, now);
+      // 3) plot points
+      plotPoints(p);
 
       updateLabels(now);
     }
@@ -497,7 +485,8 @@ function $(id) { return document.getElementById(id); }
   btnReroll.addEventListener("click", () => {
     rng = getRand();
     base = makeParams(rng);
-    driftStart = performance.now();
+    driftPhase = 0;
+    lastTime = performance.now();
     clearHard();
     updateLabels(performance.now());
     restartAudioIfRunning();
@@ -507,26 +496,24 @@ function $(id) { return document.getElementById(id); }
   btnDrift.addEventListener("click", () => {
     driftOn = !driftOn;
     btnDrift.textContent = driftOn ? "Drift: ON" : "Drift: OFF";
-    driftStart = performance.now(); // reset baseline (no jump)
+    // keep phase continuity: do not reset driftPhase
+    lastTime = performance.now();
   });
 
   btnFb.addEventListener("click", () => {
     feedbackOn = !feedbackOn;
     btnFb.textContent = feedbackOn ? "Feedback: ON" : "Feedback: OFF";
-    // when turning feedback off, clear a bit to avoid “ghost domination”
     clearHard();
     restartAudioIfRunning();
   });
 
   freqSlider.addEventListener("input", () => {
     freqMul = parseFloat(freqSlider.value);
-    // no hard clear; let it morph
     restartAudioIfRunning();
   });
 
   fbSlider.addEventListener("input", () => {
     fbMul = parseFloat(fbSlider.value);
-    // no hard clear; let it morph
     restartAudioIfRunning();
   });
 
