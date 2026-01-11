@@ -106,7 +106,6 @@
     .hero .sub{margin-top:7px;opacity:.70;font-size:13px}
     .heroCtas{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
 
-    /* smaller decorative image */
     .heroArt{display:flex;justify-content:flex-end;align-items:center;}
     .heroArt .frame{
       width:min(200px, 44vw);
@@ -256,6 +255,27 @@
       font-weight:850;
     }
 
+    /* Controls */
+    .ctrlRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center}
+    .ctrl{
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      border-radius:14px;
+      padding:10px 12px;
+      width:100%;
+    }
+    .ctrlHead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .ctrlTitle{
+      font-size:12px;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      opacity:.9;
+      font-weight:900;
+      margin:0;
+    }
+    .ctrlVal{font-size:12px;opacity:.75;white-space:nowrap}
+    input[type="range"]{width:100%}
+
     footer{
       margin-top:18px;
       opacity:.70;
@@ -336,7 +356,7 @@
       <!-- RIGHT -->
       <div class="stack">
 
-        <!-- SYNTHI GENERATOR -->
+        <!-- GENERATOR -->
         <div class="panel">
           <div class="panelHead">
             <b>Generator</b>
@@ -347,14 +367,38 @@
             <canvas id="synthiCanvas"
               style="width:100%;aspect-ratio:1/1;display:block;border-radius:14px;border:1px solid rgba(255,255,255,.10);background:#000"></canvas>
 
-            <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+            <div class="ctrlRow">
               <button class="btn btnPrimary btnSm" id="synthiStart" type="button">Start audio</button>
               <button class="btn btnSm" id="synthiMute" type="button">Mute</button>
               <button class="btn btnSm" id="synthiReroll" type="button">Re-render</button>
+              <button class="btn btnSm" id="synthiDriftToggle" type="button">Drift: ON</button>
+              <button class="btn btnSm" id="synthiFbToggle" type="button">Feedback: ON</button>
             </div>
 
-            <div class="muted" style="margin-top:10px;line-height:1.55">
-              Auto phase drift is ON. XY: sin(f_vis, φ+drift) vs tri(f_vis·r, φ+0.25). Audio is derived (f_vis/16) through a 3-stage delay with feedback.
+            <div class="ctrl" style="margin-top:12px">
+              <div class="ctrlHead">
+                <div class="ctrlTitle">Frequency</div>
+                <div class="ctrlVal" id="freqVal">—</div>
+              </div>
+              <input id="freqSlider" type="range" min="0.50" max="2.00" step="0.01" value="1.00" />
+              <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
+                Multiplies both render f_vis and audio (audio is still f_vis/16). Range 0.50–2.00.
+              </div>
+            </div>
+
+            <div class="ctrl" style="margin-top:12px">
+              <div class="ctrlHead">
+                <div class="ctrlTitle">Feedback</div>
+                <div class="ctrlVal" id="fbVal">—</div>
+              </div>
+              <input id="fbSlider" type="range" min="0.00" max="1.50" step="0.01" value="1.00" />
+              <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
+                Scales fb1–fb3 (saturator keeps it safe). 0.00 = no feedback.
+              </div>
+            </div>
+
+            <div class="muted" style="margin-top:12px;line-height:1.55">
+              Smooth drift + persistence (no flicker). XY: sin vs tri with phase offset 0.25.
             </div>
           </div>
         </div>
@@ -479,7 +523,6 @@
 })();
 </script>
 
-<!-- SYNTHI GENERATOR -->
 <script type="module" src="./index.js"></script>
 </body>
 </html>
