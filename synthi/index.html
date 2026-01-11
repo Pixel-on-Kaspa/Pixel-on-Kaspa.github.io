@@ -329,16 +329,36 @@
           <span class="chip" id="streamCount">—</span>
         </div>
         <div class="panelBody">
-          <div class="muted" style="margin-bottom:12px;line-height:1.55">
-            
-          </div>
-
+          <div class="muted" style="margin-bottom:12px;line-height:1.55"></div>
           <div class="streamGrid" id="streamGrid"></div>
         </div>
       </div>
 
-      <!-- RIGHT: minimal info + exits -->
+      <!-- RIGHT: generator + minimal info + exits -->
       <div class="stack">
+
+        <!-- NEW: SYNTHI GENERATOR PANEL -->
+        <div class="panel">
+          <div class="panelHead">
+            <b>Generator</b>
+            <span class="chip" id="synthiMeta">—</span>
+          </div>
+          <div class="panelBody">
+            <canvas id="synthiCanvas"
+              style="width:100%;height:260px;display:block;border-radius:14px;border:1px solid rgba(255,255,255,.10);background:#000"></canvas>
+
+            <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn btnPrimary btnSm" id="synthiStart" type="button">Start audio</button>
+              <button class="btn btnSm" id="synthiMute" type="button">Mute</button>
+              <button class="btn btnSm" id="synthiReroll" type="button">Re-render</button>
+            </div>
+
+            <div class="muted" style="margin-top:10px;line-height:1.55">
+              XY trace: sin(f_vis, φ) vs tri(f_vis·r, φ+0.25). Audio is derived (f_vis/16) through a 3-stage delay with feedback.
+            </div>
+          </div>
+        </div>
+
         <div class="panel">
           <div class="panelHead"><b>On-chain</b></div>
           <div class="panelBody">
@@ -368,6 +388,7 @@
             </div>
           </div>
         </div>
+
       </div>
     </section>
 
@@ -463,5 +484,9 @@
   grid.innerHTML = STREAMS.map(cardHtml).join("");
 })();
 </script>
+
+<!-- NEW: SYNTHI GENERATOR SCRIPT (must exist as synthi/index.js) -->
+<script type="module" src="./index.js"></script>
+
 </body>
 </html>
