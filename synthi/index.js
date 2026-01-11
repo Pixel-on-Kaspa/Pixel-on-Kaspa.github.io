@@ -1,8 +1,8 @@
 // synthi/index.js
-// SYNTHI Generator – embed do existující stránky
-// Render (4A): XY polyline z osc1/osc2, fix T=20ms, N=80k
-// Audio: a*sin + b*tri -> 3× delay chain with feedback + softclip in loop
-// No switch: audio is always derived: f_aud = f_vis / 16
+// ✅ Square canvas (handled by CSS aspect-ratio in HTML)
+// ✅ Auto slow phase drift (animated redraw, lightweight)
+// ✅ HQ render on load / rerender
+// ✅ Audio: derived f_aud = f_vis / 16, 2 oscillators, delay chain w/ feedback + softclip loop
 
 function xmur3(str) {
   let h = 1779033703 ^ str.length;
@@ -41,7 +41,6 @@ const TAU = Math.PI * 2;
 function pick(rng, arr) { return arr[Math.floor(rng() * arr.length)]; }
 function frac(x) { return x - Math.floor(x); }
 function triFromPhase(p) { return 1 - 4 * Math.abs(p - 0.5); }
-
 function logUniform(rng, min, max) {
   const lo = Math.log(min);
   const hi = Math.log(max);
@@ -49,19 +48,31 @@ function logUniform(rng, min, max) {
 }
 
 function makeParams(rng) {
-  const T = 0.02;
-  const N = 80000;
-  const dphi = 0.25;
+  const T = 0.02;      // 20ms fixed window
+  const dphi = 0.25;   // triangle phase offset fixed
 
+  // Visible variety without breaking style
   const rare = rng() < 0.10;
   const f_vis = rare ? logUniform(rng, 6000, 7000) : logUniform(rng, 1000, 5000);
 
+  // ratio set
   const r = pick(rng, [1.25, 1.5, 1.75, 2.0]);
-  const phi = rng();
 
+  // base phase
+  const phi = rng(); // 0..1 cycles
+
+  // small per-token static jitter (so rerender looks more different)
+  const phaseJitter = (rng() - 0.5) * 0.18; // ±0.09 cycles
+
+  // render framing
+  const padFrac = 0.10;
+  const gain = 0.82 + rng() * 0.14;  // 0.82–0.96
+
+  // audio mix
   const a = 0.7;
   const b = 0.4;
 
+  // delay chain
   const t1 = (5 + rng() * 15) / 1000;
   const t2 = (40 + rng() * 80) / 1000;
   const t3 = (180 + rng() * 420) / 1000;
@@ -70,24 +81,24 @@ function makeParams(rng) {
   const fb2 = 0.15 + rng() * 0.25;
   const fb3 = 0.25 + rng() * 0.30;
 
-  const padFrac = 0.10;
-  const gain = 0.88;
-
-  return { T, N, dphi, f_vis, r, phi, a, b, t1, t2, t3, fb1, fb2, fb3, padFrac, gain, rare };
+  return { T, dphi, f_vis, r, phi, phaseJitter, padFrac, gain, a, b, t1, t2, t3, fb1, fb2, fb3, rare };
 }
 
-function renderXY(canvas, params) {
+function renderXY(canvas, params, phiExtraCycles, N) {
   const ctx = canvas.getContext("2d", { alpha: false });
 
+  // HiDPI
   const dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
   const W = Math.floor(canvas.clientWidth * dpr);
   const H = Math.floor(canvas.clientHeight * dpr);
   canvas.width = W;
   canvas.height = H;
 
+  // background
   ctx.fillStyle = "#000";
   ctx.fillRect(0, 0, W, H);
 
+  // stroke
   ctx.lineWidth = Math.max(1, Math.floor(1 * dpr));
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
@@ -99,22 +110,34 @@ function renderXY(canvas, params) {
   const sx = (W / 2 - pad) * params.gain;
   const sy = (H / 2 - pad) * params.gain;
 
-  const { T, N, f_vis, r, phi, dphi } = params;
+  const { T, f_vis, r, phi, dphi, phaseJitter } = params;
+
+  // effective phase (cycles)
+  const phiEff = phi + phaseJitter + phiExtraCycles;
 
   ctx.beginPath();
+
   for (let i = 0; i < N; i++) {
     const t = (i * T) / (N - 1);
-    const x = Math.sin(TAU * f_vis * t + TAU * phi);
-    const p = frac(f_vis * r * t + (phi + dphi));
+
+    // X = sin(f_vis, φ + drift)
+    const x = Math.sin(TAU * f_vis * t + TAU * phiEff);
+
+    // Y = tri(f_vis*r, φ + 0.25 + drift)
+    const p = frac(f_vis * r * t + (phiEff + dphi));
     const y = triFromPhase(p);
+
     const px = cx + x * sx;
     const py = cy - y * sy;
+
     if (i === 0) ctx.moveTo(px, py);
     else ctx.lineTo(px, py);
   }
+
   ctx.stroke();
 }
 
+// ---------- AUDIO ----------
 let audio = null;
 
 function makeSoftClipper(ctx, drive = 1.0) {
@@ -147,10 +170,11 @@ function buildDelayStage(ctx, delayTime, feedback, drive = 1.0) {
   return { delay, fbGain, clip };
 }
 
-function startAudio(params, postGainNode) {
+function startAudio(params) {
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   const ctx = new AudioContext();
 
+  // No switch: derived audio freq
   const f_aud = params.f_vis / 16;
 
   const oscSin = ctx.createOscillator();
@@ -191,9 +215,7 @@ function startAudio(params, postGainNode) {
   post.connect(masterClip);
   masterClip.connect(ctx.destination);
 
-  // Expose a "mute" control via provided node reference
-  if (postGainNode) postGainNode._post = post;
-
+  // phase offset 0.25 cycle for triangle oscillator start time
   const now = ctx.currentTime + 0.02;
   const triOffset = 0.25 / (oscTri.frequency.value || 1);
 
@@ -202,8 +224,6 @@ function startAudio(params, postGainNode) {
 
   audio = {
     ctx,
-    oscSin,
-    oscTri,
     muted: false,
     setMute(on) {
       post.gain.value = on ? 0.0 : 0.9;
@@ -218,6 +238,7 @@ function startAudio(params, postGainNode) {
   return audio;
 }
 
+// ---------- UI / DRIFT LOOP ----------
 function $(id) { return document.getElementById(id); }
 
 (function initSynthi() {
@@ -235,29 +256,54 @@ function $(id) { return document.getElementById(id); }
   let rng = getRand();
   let params = makeParams(rng);
 
-  function updateMeta() {
-    const f_aud = params.f_vis / 16;
-    meta.textContent =
-      `f_vis ${params.f_vis.toFixed(1)} Hz • f_aud ${f_aud.toFixed(1)} Hz • r ${params.r} • φ ${params.phi.toFixed(3)} • T ${(params.T*1000).toFixed(0)} ms • N ${params.N}`;
+  // Render quality settings:
+  const HQ_N = 80000;     // still render (nice)
+  const LIVE_N = 14000;   // animated drift render (fast)
+  const LIVE_MS = 120;    // redraw interval for drift (ms)
+
+  // Drift speed (cycles per second) – very slow
+  const DRIFT_CPS = 0.02; // 1 cycle per 50 seconds (gentle)
+
+  let driftStart = performance.now();
+  let lastLiveDraw = 0;
+
+  function phiDriftCycles(nowMs) {
+    const tSec = (nowMs - driftStart) / 1000;
+    return (tSec * DRIFT_CPS) % 1; // cycles
   }
 
-  function render() {
-    renderXY(canvas, params);
-    updateMeta();
+  function updateMeta(nowMs) {
+    const f_aud = params.f_vis / 16;
+    const drift = phiDriftCycles(nowMs);
+    meta.textContent =
+      `f_vis ${params.f_vis.toFixed(1)} Hz • f_aud ${f_aud.toFixed(1)} Hz • r ${params.r} • ` +
+      `φ ${params.phi.toFixed(3)} • drift ${(drift).toFixed(3)} • T 20 ms`;
+  }
+
+  function renderHQ() {
+    const now = performance.now();
+    renderXY(canvas, params, phiDriftCycles(now), HQ_N);
+    updateMeta(now);
     if (window.$fx && typeof window.$fx.preview === "function") window.$fx.preview();
   }
 
-  function reroll() {
-    rng = getRand();
-    params = makeParams(rng);
-    render();
-    // pokud už audio běží, nech ho běžet (nebo můžeš stopnout a startnout znovu)
+  function renderLive(now) {
+    // throttle for performance
+    if (now - lastLiveDraw < LIVE_MS) return;
+    lastLiveDraw = now;
+
+    renderXY(canvas, params, phiDriftCycles(now), LIVE_N);
+    updateMeta(now);
   }
 
-  window.addEventListener("resize", render);
+  function loop(now) {
+    renderLive(now);
+    requestAnimationFrame(loop);
+  }
 
+  // Buttons
   btnStart.addEventListener("click", async () => {
-    if (!audio) startAudio(params, {});
+    if (!audio) startAudio(params);
     if (audio && audio.ctx.state !== "running") await audio.ctx.resume();
   });
 
@@ -268,8 +314,30 @@ function $(id) { return document.getElementById(id); }
   });
 
   btnReroll.addEventListener("click", () => {
-    reroll();
+    // new params = visible new token
+    rng = getRand();
+    params = makeParams(rng);
+
+    // restart drift reference so it feels like a fresh object
+    driftStart = performance.now();
+    lastLiveDraw = 0;
+
+    // optional: restart audio too (recommended)
+    if (audio) {
+      audio.stop();
+      audio = null;
+      btnMute.textContent = "Mute";
+    }
+
+    renderHQ();
   });
 
-  render();
+  // Resize: do HQ rerender
+  window.addEventListener("resize", () => {
+    renderHQ();
+  });
+
+  // First render + start drift loop
+  renderHQ();
+  requestAnimationFrame(loop);
 })();
