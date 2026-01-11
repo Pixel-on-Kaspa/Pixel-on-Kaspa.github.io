@@ -1,15 +1,15 @@
 // synthi/index.js
 // Goal:
-// - NO SHAKE: no full redraw polylines; instead pixel accumulation + smooth visual feedback.
-// - More complex structure: visual feedback >= 0.8 (video feedback style).
+// - NO SHAKE: pixel accumulation + smooth video feedback (no polyline redraw).
+// - More complex structure: visual feedback high but NOT locking (avoid visFB ~ 0.99).
 // - Signal structure:
-//   x uses frequency f:    x = mix( sin(f) + tri(f) )
-//   y uses frequency 2f:   y = mix( sin(2f) + tri(2f) )
-//   => X:Y ratio is strictly 1:2.
-// - Drift: very slow phase drift, optional (STABLE INTEGRATOR, no frame-skip jumps).
-// - Controls (from your HTML):
-//   Start audio, Mute, Re-render, Drift ON/OFF, Feedback ON/OFF,
-//   Frequency slider (multiplies f), Feedback slider (scales BOTH: visual feedback and audio feedback scale).
+//   x uses frequency f:    x = (sin(f) + tri(f)) mix
+//   y uses frequency 2f:   y = (sin(2f) + tri(2f)) mix
+//   => X:Y ratio strictly 1:2.
+// - Drift: very slow, STABLE integrator (no irregular jumps on frame drops).
+// - Fill plane: random time sampling + spray + phase diffusion per point.
+// - Controls from HTML: Start audio, Mute, Re-render, Drift ON/OFF, Feedback ON/OFF,
+//   Frequency slider (multiplies f), Feedback slider (scales visual+audio feedback).
 
 function xmur3(str) {
   let h = 1779033703 ^ str.length;
@@ -67,17 +67,17 @@ function makeParams(rng) {
 
   // mix weights for sin/tri in X and Y
   const xSin = 1.0;
-  const xTri = 0.85 + rng() * 0.45;   // 0.85..1.30
+  const xTri = 0.85 + rng() * 0.55;   // 0.85..1.40
   const ySin = 1.0;
-  const yTri = 0.85 + rng() * 0.45;
+  const yTri = 0.85 + rng() * 0.55;
 
-  // scale framing
+  // framing
   const padFrac = 0.08 + rng() * 0.06; // 0.08..0.14
   const gain = 0.86 + rng() * 0.10;    // 0.86..0.96
 
-  // pixel style: larger stamp -> fills faster
-  const pixel = rng() < 0.35 ? 2 : 3; // 2 or 3
-  const pointAlpha = 0.42;            // lower alpha; we draw MANY more points
+  // pixel stamp (bigger fills faster)
+  const pixel = rng() < 0.40 ? 2 : 3; // 2 or 3
+  const pointAlpha = 0.40;            // lower alpha; we draw MANY more points
 
   // drift variety
   const phaseJitter = (rng() - 0.5) * 0.20; // ±0.10 cycles
@@ -86,7 +86,7 @@ function makeParams(rng) {
   const a = 0.7;
   const b = 0.4;
 
-  // ✅ SHORTER delays (tight)
+  // ✅ SHORTER delays (tight / metallic)
   const t1 = (2 + rng() * 6) / 1000;      // 2–8 ms
   const t2 = (12 + rng() * 28) / 1000;    // 12–40 ms
   const t3 = (60 + rng() * 120) / 1000;   // 60–180 ms
@@ -96,8 +96,8 @@ function makeParams(rng) {
   const fb2 = 0.45 + rng() * 0.25; // ~0.45..0.70
   const fb3 = 0.55 + rng() * 0.30; // ~0.55..0.85
 
-  // visual feedback baseline (high)
-  const visFbBase = 0.86 + rng() * 0.10; // 0.86..0.96
+  // visual feedback baseline
+  const visFbBase = 0.84 + rng() * 0.10; // 0.84..0.94 (lower than before)
 
   // micro transform per frame
   const fbScale = 1.0015 + rng() * 0.0025; // 1.0015..1.004
@@ -144,7 +144,6 @@ function xyAt(t, p, phiCycles) {
   const x = (p.xSin * sx + p.xTri * tx);
   const y = (p.ySin * sy + p.yTri * ty);
 
-  // soft clamp
   const xn = Math.tanh(0.85 * x);
   const yn = Math.tanh(0.85 * y);
 
@@ -182,6 +181,7 @@ function buildDelayStage(ctx, delayTime, feedback, drive = 1.0) {
 
   return { delay, fbGain, clip };
 }
+
 function startAudio(pEff, fbOn) {
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   const ctx = new AudioContext();
@@ -287,7 +287,7 @@ function $(id) { return document.getElementById(id); }
   let freqMul = parseFloat(freqSlider.value);
   let fbMul = parseFloat(fbSlider.value);
 
-  // ✅ Stable drift integrator (no irregular jumps)
+  // ✅ Stable drift integrator
   const DRIFT_CPS = 0.0012; // cycles/sec (slow)
   let driftPhase = 0;       // cycles
   let lastTime = performance.now();
@@ -308,7 +308,7 @@ function $(id) { return document.getElementById(id); }
   let last = 0;
 
   // ✅ denser fill
-  const SAMPLES_PER_FRAME = 42000;
+  const SAMPLES_PER_FRAME = 65000;
 
   function clearHard() {
     ensureCanvasSize(canvas);
@@ -321,12 +321,11 @@ function $(id) { return document.getElementById(id); }
 
   function effective() {
     const f_vis = clamp(base.f_vis * freqMul, 200, 12000);
-
     const fbScale = feedbackOn ? fbMul : 0.0;
 
-    // visual feedback stays high (>0.8) but we clamp for stability
+    // ✅ prevent “locking”: keep visFB away from ~0.99
     const visFb = feedbackOn
-      ? clamp(0.82 + 0.14 * clamp(fbMul, 0, 1), 0.82, 0.985) * (base.visFbBase / 0.90)
+      ? clamp(0.78 + 0.14 * clamp(fbMul, 0, 1), 0.78, 0.94) * (base.visFbBase / 0.90)
       : 0.0;
 
     const fb1 = clamp(base.fb1 * fbScale, 0, 0.95);
@@ -336,7 +335,7 @@ function $(id) { return document.getElementById(id); }
     return {
       ...base,
       f_vis,
-      visFb: clamp(visFb, 0, 0.99),
+      visFb: clamp(visFb, 0, 0.955),
       fb1, fb2, fb3,
       a: 0.7, b: 0.4
     };
@@ -397,24 +396,30 @@ function $(id) { return document.getElementById(id); }
     ctx.globalAlpha = p.pointAlpha;
     ctx.fillStyle = "rgba(221,221,221,1)";
 
-    const phiCycles = p.phi + p.phaseJitter + phiDriftCycles();
+    const phiBase = p.phi + p.phaseJitter + phiDriftCycles();
 
-    // ✅ Random sampling window (fills area), not a single sweep line
-    const TWIN = 0.06; // 60ms window
+    // ✅ key to “fill plane”
+    const PHI_SPREAD = 0.028; // 0.015..0.040 (more = more area)
+    const TWIN = 0.14;        // time window in seconds
     const N = SAMPLES_PER_FRAME;
+
+    const s = p.pixel;
+    const jitterK = 2.2 * s;
 
     for (let i = 0; i < N; i++) {
       const t = Math.random() * TWIN;
-      const { x, y } = xyAt(t, p, phiCycles);
+
+      // per-point phase diffusion
+      const phiPoint = phiBase + (Math.random() * 2 - 1) * PHI_SPREAD;
+
+      const { x, y } = xyAt(t, p, phiPoint);
 
       const px0 = (cx + x * sx) | 0;
       const py0 = (cy - y * sy) | 0;
 
-      const s = p.pixel;
-
-      // ✅ spray around the point to create "filled plane"
-      const jx = ((Math.random() * 2 - 1) * (2.2 * s)) | 0;
-      const jy = ((Math.random() * 2 - 1) * (2.2 * s)) | 0;
+      // spray around the point
+      const jx = ((Math.random() * 2 - 1) * jitterK) | 0;
+      const jy = ((Math.random() * 2 - 1) * jitterK) | 0;
 
       const px = px0 + jx;
       const py = py0 + jy;
@@ -443,10 +448,10 @@ function $(id) { return document.getElementById(id); }
       // 1) video feedback projection
       projectFeedback(p);
 
-      // 2) slightly stronger decay (prevents one bright band dominating)
+      // 2) stronger decay -> prevents “one bright band”
       ctx.save();
       ctx.globalCompositeOperation = "source-over";
-      ctx.globalAlpha = 0.085;
+      ctx.globalAlpha = 0.12;
       ctx.fillStyle = "#000";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.restore();
@@ -496,7 +501,6 @@ function $(id) { return document.getElementById(id); }
   btnDrift.addEventListener("click", () => {
     driftOn = !driftOn;
     btnDrift.textContent = driftOn ? "Drift: ON" : "Drift: OFF";
-    // keep phase continuity: do not reset driftPhase
     lastTime = performance.now();
   });
 
@@ -521,7 +525,6 @@ function $(id) { return document.getElementById(id); }
     clearHard();
   });
 
-  // init UI text
   btnDrift.textContent = driftOn ? "Drift: ON" : "Drift: OFF";
   btnFb.textContent = feedbackOn ? "Feedback: ON" : "Feedback: OFF";
 
