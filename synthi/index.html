@@ -310,7 +310,6 @@
           </div>
         </div>
 
-        <!-- Decorative image (smaller) -->
         <div class="heroArt">
           <div class="frame">
             <img src="../assets/img/synthi.png" alt="SYNTHI art" loading="lazy"
@@ -322,7 +321,7 @@
     </section>
 
     <section class="grid">
-      <!-- LEFT: streams -->
+      <!-- LEFT -->
       <div class="panel">
         <div class="panelHead">
           <b>Latest REC Streams</b>
@@ -334,18 +333,19 @@
         </div>
       </div>
 
-      <!-- RIGHT: generator + minimal info + exits -->
+      <!-- RIGHT -->
       <div class="stack">
 
-        <!-- NEW: SYNTHI GENERATOR PANEL -->
+        <!-- SYNTHI GENERATOR -->
         <div class="panel">
           <div class="panelHead">
             <b>Generator</b>
             <span class="chip" id="synthiMeta">—</span>
           </div>
           <div class="panelBody">
+            <!-- SQUARE CANVAS -->
             <canvas id="synthiCanvas"
-              style="width:100%;height:260px;display:block;border-radius:14px;border:1px solid rgba(255,255,255,.10);background:#000"></canvas>
+              style="width:100%;aspect-ratio:1/1;display:block;border-radius:14px;border:1px solid rgba(255,255,255,.10);background:#000"></canvas>
 
             <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
               <button class="btn btnPrimary btnSm" id="synthiStart" type="button">Start audio</button>
@@ -354,7 +354,7 @@
             </div>
 
             <div class="muted" style="margin-top:10px;line-height:1.55">
-              XY trace: sin(f_vis, φ) vs tri(f_vis·r, φ+0.25). Audio is derived (f_vis/16) through a 3-stage delay with feedback.
+              Auto phase drift is ON. XY: sin(f_vis, φ+drift) vs tri(f_vis·r, φ+0.25). Audio is derived (f_vis/16) through a 3-stage delay with feedback.
             </div>
           </div>
         </div>
@@ -405,12 +405,9 @@
 
 <script>
 (() => {
-  // pump.fun coin id
   const COIN_ID = "2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump";
   const PUMP_COIN_URL = `https://pump.fun/coin/${COIN_ID}`;
 
-  // ✅ Local thumbs are in: /assets/img/rec6.png ... rec3.png
-  // rec.html uses ?s= index (0-based) from your REC page.
   const STREAMS = [
     {
       title: "SYNTHI REC STREAM 6",
@@ -450,11 +447,9 @@
       "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
     }[m]));
   }
-
   function recPlayerLink(streamIdx){
     return `./rec.html?s=${encodeURIComponent(String(streamIdx))}`;
   }
-
   function cardHtml(s, idx){
     const badge = `REC ${String(idx+1).padStart(2,"0")}`;
     return `
@@ -479,14 +474,12 @@
     `;
   }
 
-  // render
   count.textContent = `${STREAMS.length} streams`;
   grid.innerHTML = STREAMS.map(cardHtml).join("");
 })();
 </script>
 
-<!-- NEW: SYNTHI GENERATOR SCRIPT (must exist as synthi/index.js) -->
+<!-- SYNTHI GENERATOR -->
 <script type="module" src="./index.js"></script>
-
 </body>
 </html>
