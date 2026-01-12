@@ -1,15 +1,13 @@
-// synthi/index.js
-// IMAGE/GENERATOR focus:
-// - NO WARP (no cross-coupling).
-// - Base structure:
-//    X: f  -> sin(f)+tri(f)
-//    Y: 2f -> sin(2f)+tri(2f)
-// - OSC3 detail layer is octave (2f) BUT slightly detuned:
-//    f3 = 2f * (1 + detune)
-//    and Y for osc3 uses 2*f3 (still 1:2 inside osc3).
-// - Stable drift integrator + gentle PM (very small) + pixel accumulation + video feedback.
+// SYNTHI / IMAGE GENERATOR
+// Stable oscilloscope-based generative image system
+// - strong visual feedback (video feedback style)
+// - no warp, no jitter chaos
+// - multi-ramp image shaping
+// - screenshot export
 
 const TAU = Math.PI * 2;
+
+/* ================= RNG ================= */
 
 function xmur3(str) {
   let h = 1779033703 ^ str.length;
@@ -24,549 +22,176 @@ function xmur3(str) {
     return h >>> 0;
   };
 }
-function mulberry32(seed) {
+function mulberry32(a) {
   return function () {
-    let t = (seed += 0x6D2B79F5);
+    let t = (a += 0x6D2B79F5);
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
-function frac(x) { return x - Math.floor(x); }
-function triFromPhase(p) { return 1 - 4 * Math.abs(p - 0.5); }
-function logUniform(rng, min, max) {
-  const lo = Math.log(min);
-  const hi = Math.log(max);
-  return Math.exp(lo + (hi - lo) * rng());
-}
-function randU32() {
-  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
-    const a = new Uint32Array(1);
-    crypto.getRandomValues(a);
-    return a[0] >>> 0;
-  }
-  return (Math.random() * 0xffffffff) >>> 0;
-}
 
-let rerollCounter = 0;
+let seedCounter = 0;
 function getRand() {
-  if (typeof window !== "undefined" && window.$fx && typeof window.$fx.rand === "function") {
-    return () => window.$fx.rand();
-  }
-  const seedStr =
-    (typeof window !== "undefined"
-      ? (window.location.pathname + window.location.search + window.location.hash)
-      : "SYNTHI") +
-    `|SYNTHI|${rerollCounter}|${randU32()}`;
-  const seedFn = xmur3(seedStr);
-  return mulberry32(seedFn());
+  const s = `${location.pathname}|SYNTHI|${seedCounter++}`;
+  return mulberry32(xmur3(s)());
 }
 
-// ---------- PARAMS ----------
+/* ================= MATH ================= */
+
+function frac(x) { return x - Math.floor(x); }
+function tri(p) { return 1 - 4 * Math.abs(p - 0.5); }
+function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
+
+/* ================= PARAMS ================= */
+
 function makeParams(rng) {
-  const rare = rng() < 0.10;
-  const f_vis = rare ? logUniform(rng, 4800, 7200) : logUniform(rng, 900, 5200);
+  return {
+    f: 900 + rng() * 4200,
 
-  const phi = rng();
-  const phiOffset = 0.25; // stable quarter-cycle relationship
+    // sin / tri balance
+    sinW: 1.0,
+    triW: 1.15,
 
-  // sin+tri weights
-  const xSin = 0.95;
-  const xTri = 0.85 + rng() * 0.55;
-  const ySin = 0.95;
-  const yTri = 0.85 + rng() * 0.55;
+    // osc3
+    detune: (rng() < 0.5 ? -1 : 1) * (0.0006 + rng() * 0.001),
+    osc3Mix: 0.12,
 
-  // frame
-  const padFrac = 0.06 + rng() * 0.09;
-  const gain = 0.84 + rng() * 0.14;
+    // frame LOCKED
+    gain: 0.92,
+    pad: 0.10,
 
-  // drawing
-  const pixel = rng() < 0.50 ? 2 : 3;
-  const pointAlpha = 0.36;
+    // geometry
+    rot: (rng() - 0.5) * 0.35,
+    shear: (rng() - 0.5) * 0.22,
 
-  // small random phase jitter base
-  const phaseJitter = (rng() - 0.5) * 0.12;
+    // feedback
+    feedback: 0.92,
 
-  // very gentle PM to avoid dead-static (optional, stays subtle)
-  const pmHz = 0.05 + rng() * 0.15;        // 0.05..0.20 Hz
-  const pmDepth = 0.002 + rng() * 0.010;   // cycles
-  const pmPhase = rng();
+    // ramps
+    ampRate: 0.025 + rng() * 0.05,
+    densRate: 0.018 + rng() * 0.04,
+    phaseRate: 0.008 + rng() * 0.02,
+  };
+}
 
-  // OSC3 (detail layer): octave but slightly detuned
-  // detune ~ +/-0.2% (slow drift, not chaos). You can tighten to 0.0005 if needed.
-  const detuneSign = rng() < 0.5 ? -1 : 1;
-  const detune = detuneSign * (0.0006 + rng() * 0.0016); // ~0.06% .. 0.22%
-  const osc3Phi = rng();
-  const osc3Mix = 0.06 + rng() * 0.14;
-  const osc3Sin = 0.70 + rng() * 0.60;
-  const osc3Tri = 0.70 + rng() * 0.60;
+/* ================= SIGNAL ================= */
 
-  // audio mix (kept from your earlier setup)
-  const a = 0.7, b = 0.4;
+function xyAt(t, p, phase) {
+  const f = p.f;
 
-  // audio delays (short)
-  const t1 = (2 + rng() * 6) / 1000;
-  const t2 = (10 + rng() * 26) / 1000;
-  const t3 = (45 + rng() * 140) / 1000;
+  const px = TAU * (f * t + phase);
+  const py = TAU * (2 * f * t + phase + 0.25);
 
-  const fb1 = 0.28 + rng() * 0.28;
-  const fb2 = 0.40 + rng() * 0.32;
-  const fb3 = 0.50 + rng() * 0.35;
+  let x = p.sinW * Math.sin(px) + p.triW * tri(frac(f * t + phase));
+  let y = p.sinW * Math.sin(py) + p.triW * tri(frac(2 * f * t + phase + 0.25));
 
-  // visual feedback
-  const visFbBase = 0.82 + rng() * 0.12;
+  // osc3 (detail)
+  const f3 = 2 * f * (1 + p.detune);
+  x += p.osc3Mix * Math.sin(TAU * (f3 * t));
+  y += p.osc3Mix * Math.sin(TAU * (2 * f3 * t));
 
-  // micro transform (small)
-  const fbScale = 1.001 + rng() * 0.004;
-  const fbRotate = (rng() - 0.5) * 0.010;
-  const fbShift = (rng() - 0.5) * 1.8;
+  // rotate + shear (NO warp)
+  const c = Math.cos(p.rot);
+  const s = Math.sin(p.rot);
+
+  let xr = x * c - y * s;
+  let yr = x * s + y * c;
+  xr += p.shear * yr;
 
   return {
-    rare, f_vis, phi, phiOffset,
-    xSin, xTri, ySin, yTri,
-    padFrac, gain,
-    pixel, pointAlpha,
-    phaseJitter,
-
-    pmHz, pmDepth, pmPhase,
-
-    detune, osc3Phi, osc3Mix, osc3Sin, osc3Tri,
-
-    a, b,
-    t1, t2, t3, fb1, fb2, fb3,
-    visFbBase, fbScale, fbRotate, fbShift
+    x: Math.tanh(0.9 * xr),
+    y: Math.tanh(0.9 * yr),
   };
 }
 
-// ---------- CANVAS ----------
-function ensureCanvasSize(canvas) {
-  const dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
-  const W = Math.floor(canvas.clientWidth * dpr);
-  const H = Math.floor(canvas.clientHeight * dpr);
-  if (canvas.width !== W || canvas.height !== H) {
-    canvas.width = W;
-    canvas.height = H;
-    return true;
+/* ================= INIT ================= */
+
+const canvas = document.getElementById("synthiCanvas");
+const ctx = canvas.getContext("2d", { alpha: false });
+
+let rng = getRand();
+let P = makeParams(rng);
+
+function resize() {
+  const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+  canvas.width = canvas.clientWidth * dpr;
+  canvas.height = canvas.clientHeight * dpr;
+}
+resize();
+window.addEventListener("resize", resize);
+
+/* ================= SCREENSHOT ================= */
+
+function savePNG() {
+  const a = document.createElement("a");
+  a.download = `synthi_${Date.now()}.png`;
+  a.href = canvas.toDataURL("image/png");
+  a.click();
+}
+window.addEventListener("keydown", e => {
+  if (e.key === "p") savePNG(); // press P
+});
+
+/* ================= RENDER ================= */
+
+let phase = 0;
+let t0 = performance.now();
+
+function render(now) {
+  const dt = (now - t0) / 1000;
+  t0 = now;
+
+  // ramps
+  const amp = 0.85 + 0.15 * Math.sin(TAU * P.ampRate * now / 1000);
+  const dens = 0.6 + 0.4 * Math.sin(TAU * P.densRate * now / 1000);
+  phase += dt * P.phaseRate;
+
+  // feedback pass (REAL)
+  ctx.save();
+  ctx.globalAlpha = P.feedback;
+  ctx.drawImage(canvas, 0, 0);
+  ctx.restore();
+
+  // decay
+  ctx.fillStyle = "rgba(0,0,0,0.08)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // draw points
+  ctx.fillStyle = "#ddd";
+  ctx.globalCompositeOperation = "lighter";
+
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  const sx = (cx - cx * P.pad) * P.gain * amp;
+  const sy = (cy - cy * P.pad) * P.gain * amp;
+
+  const N = Math.floor(40000 * dens);
+
+  for (let i = 0; i < N; i++) {
+    const t = Math.random() * 0.2;
+    const { x, y } = xyAt(t, P, phase);
+    const px = (cx + x * sx) | 0;
+    const py = (cy - y * sy) | 0;
+    if (px > 0 && py > 0 && px < canvas.width && py < canvas.height)
+      ctx.fillRect(px, py, 2, 2);
   }
-  return false;
+
+  ctx.globalCompositeOperation = "source-over";
+  requestAnimationFrame(render);
 }
 
-// xy signal (NO WARP)
-function xyAt(t, p, phiCycles, nowSec) {
-  const f = p.f_vis;
-
-  // tiny PM in cycles
-  const pm = p.pmDepth * Math.sin(TAU * (p.pmHz * nowSec) + TAU * p.pmPhase);
-  const phi = phiCycles + pm;
-
-  // Base layer: x(f), y(2f)
-  const px = TAU * (f * t + phi);
-  const py = TAU * (2 * f * t + (phi + p.phiOffset));
-
-  const sx = Math.sin(px);
-  const sy = Math.sin(py);
-
-  const tx = triFromPhase(frac(f * t + phi));
-  const ty = triFromPhase(frac(2 * f * t + (phi + p.phiOffset)));
-
-  let x = (p.xSin * sx + p.xTri * tx);
-  let y = (p.ySin * sy + p.yTri * ty);
-
-  // OSC3 detail layer: f3 = 2f*(1+detune), y3 uses 2*f3 (still 1:2 inside osc3)
-  const f3 = (2 * f) * (1 + p.detune);
-  const phi3 = phiCycles + p.osc3Phi + pm * 0.35;
-
-  const p3x = TAU * (f3 * t + phi3);
-  const p3y = TAU * (2 * f3 * t + (phi3 + p.phiOffset));
-
-  const s3x = Math.sin(p3x);
-  const s3y = Math.sin(p3y);
-
-  const t3x = triFromPhase(frac(f3 * t + phi3));
-  const t3y = triFromPhase(frac(2 * f3 * t + (phi3 + p.phiOffset)));
-
-  const osc3x = (p.osc3Sin * s3x + p.osc3Tri * t3x);
-  const osc3y = (p.osc3Sin * s3y + p.osc3Tri * t3y);
-
-  x += p.osc3Mix * osc3x;
-  y += p.osc3Mix * osc3y;
-
-  // soft clamp
-  x = Math.tanh(0.78 * x);
-  y = Math.tanh(0.78 * y);
-
-  return { x, y };
-}
-
-// ---------- AUDIO ----------
-let audio = null;
-
-function makeSoftClipper(ctx, drive = 1.0) {
-  const shaper = ctx.createWaveShaper();
-  const n = 2048;
-  const curve = new Float32Array(n);
-  for (let i = 0; i < n; i++) {
-    const x = (i / (n - 1)) * 2 - 1;
-    const k = 2.0 * drive;
-    curve[i] = Math.tanh(k * x);
-  }
-  shaper.curve = curve;
-  shaper.oversample = "2x";
-  return shaper;
-}
-function buildDelayStage(ctx, delayTime, feedback, drive = 1.0) {
-  const delay = ctx.createDelay(2.0);
-  delay.delayTime.value = delayTime;
-
-  const fbGain = ctx.createGain();
-  fbGain.gain.value = feedback;
-
-  const clip = makeSoftClipper(ctx, drive);
-
-  delay.connect(fbGain);
-  fbGain.connect(clip);
-  clip.connect(delay);
-
-  return { delay };
-}
-function startAudio(pEff, fbOn) {
-  const AudioContext = window.AudioContext || window.webkitAudioContext;
-  const ctx = new AudioContext();
-
-  const f_aud = pEff.f_vis / 16;
-
-  const oscSin = ctx.createOscillator();
-  oscSin.type = "sine";
-  oscSin.frequency.value = f_aud;
-
-  const oscTri = ctx.createOscillator();
-  oscTri.type = "triangle";
-  oscTri.frequency.value = f_aud * 2;
-
-  const gSin = ctx.createGain(); gSin.gain.value = pEff.a;
-  const gTri = ctx.createGain(); gTri.gain.value = pEff.b;
-
-  oscSin.connect(gSin);
-  oscTri.connect(gTri);
-
-  const sum = ctx.createGain();
-  gSin.connect(sum);
-  gTri.connect(sum);
-
-  const pre = ctx.createGain();
-  pre.gain.value = 0.25;
-
-  const fb1 = fbOn ? pEff.fb1 : 0.0;
-  const fb2 = fbOn ? pEff.fb2 : 0.0;
-  const fb3 = fbOn ? pEff.fb3 : 0.0;
-
-  const d1 = buildDelayStage(ctx, pEff.t1, fb1, 0.85);
-  const d2 = buildDelayStage(ctx, pEff.t2, fb2, 0.95);
-  const d3 = buildDelayStage(ctx, pEff.t3, fb3, 1.05);
-
-  const post = ctx.createGain();
-  post.gain.value = 0.9;
-
-  const masterClip = makeSoftClipper(ctx, 0.9);
-
-  sum.connect(pre);
-  pre.connect(d1.delay);
-  d1.delay.connect(d2.delay);
-  d2.delay.connect(d3.delay);
-  d3.delay.connect(post);
-  post.connect(masterClip);
-  masterClip.connect(ctx.destination);
-
-  const now = ctx.currentTime + 0.02;
-  const triOffset = 0.25 / (oscTri.frequency.value || 1);
-
-  oscSin.start(now);
-  oscTri.start(now + triOffset);
-
-  audio = {
-    ctx,
-    muted: false,
-    setMute(on) { post.gain.value = on ? 0.0 : 0.9; this.muted = on; },
-    stop() {
-      try { oscSin.stop(); oscTri.stop(); } catch {}
-      try { ctx.close(); } catch {}
-    }
-  };
-  return audio;
-}
-
-// ---------- UI / RENDER ----------
-function $(id) { return document.getElementById(id); }
-
-(function initSynthi() {
-  const canvas = $("synthiCanvas");
-  const meta = $("synthiMeta");
-
-  const btnStart = $("synthiStart");
-  const btnMute = $("synthiMute");
-  const btnReroll = $("synthiReroll");
-
-  const btnDrift = $("synthiDriftToggle");
-  const btnFb = $("synthiFbToggle");
-
-  const freqSlider = $("freqSlider");
-  const fbSlider = $("fbSlider");
-  const freqVal = $("freqVal");
-  const fbVal = $("fbVal");
-
-  if (!canvas || !meta || !btnStart || !btnMute || !btnReroll || !btnDrift || !btnFb || !freqSlider || !fbSlider) {
-    console.warn("SYNTHI: Missing UI elements.");
-    return;
-  }
-
-  const ctx = canvas.getContext("2d", { alpha: false });
-
-  let rng = getRand();
-  let base = makeParams(rng);
-
-  let driftOn = true;
-  let feedbackOn = true;
-
-  let freqMul = parseFloat(freqSlider.value);
-  let fbMul = parseFloat(fbSlider.value);
-
-  // stable drift
-  const DRIFT_CPS = 0.0010;
-  let driftPhase = 0;
-  let lastTime = performance.now();
-
-  function stepDrift(now) {
-    const dt = Math.min(0.05, Math.max(0, (now - lastTime) / 1000));
-    lastTime = now;
-    if (!driftOn) return;
-    driftPhase = (driftPhase + DRIFT_CPS * dt) % 1;
-  }
-  function phiDriftCycles() { return driftOn ? driftPhase : 0; }
-
-  const FPS = 30;
-  const DT = 1000 / FPS;
-  let last = 0;
-
-  const SAMPLES_PER_FRAME = 65000;
-
-  function clearHard() {
-    ensureCanvasSize(canvas);
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.globalCompositeOperation = "source-over";
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = "#000";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }
-
-  function effective() {
-    const f_vis = clamp(base.f_vis * freqMul, 200, 12000);
-    const fbScale = feedbackOn ? fbMul : 0.0;
-
-    // high but avoids lock
-    const visFb = feedbackOn
-      ? clamp(0.76 + 0.14 * clamp(fbMul, 0, 1), 0.76, 0.92) * (base.visFbBase / 0.88)
-      : 0.0;
-
-    const fb1 = clamp(base.fb1 * fbScale, 0, 0.95);
-    const fb2 = clamp(base.fb2 * fbScale, 0, 0.95);
-    const fb3 = clamp(base.fb3 * fbScale, 0, 0.95);
-
-    return {
-      ...base,
-      f_vis,
-      visFb: clamp(visFb, 0, 0.935),
-      fb1, fb2, fb3
-    };
-  }
-
-  function updateLabels(now) {
-    const p = effective();
-    const f_aud = p.f_vis / 16;
-    const detCents = 1200 * Math.log2(1 + p.detune);
-
-    meta.textContent =
-      `x=f(sin+tri) • y=2f(sin+tri) • osc3≈2f detune ${detCents.toFixed(2)} cents • ` +
-      `f_vis ${p.f_vis.toFixed(1)} Hz • f_aud ${f_aud.toFixed(1)} Hz • ` +
-      `drift ${phiDriftCycles().toFixed(3)} • visFB ${p.visFb.toFixed(3)}`;
-
-    freqVal.textContent = `${freqMul.toFixed(2)}×`;
-    fbVal.textContent = `${(feedbackOn ? fbMul : 0).toFixed(2)}×`;
-  }
-
-  function projectFeedback(p) {
-    if (!feedbackOn) return;
-
-    const W = canvas.width;
-    const H = canvas.height;
-
-    ctx.save();
-    ctx.globalCompositeOperation = "source-over";
-    ctx.globalAlpha = p.visFb;
-
-    const cx = W / 2;
-    const cy = H / 2;
-
-    const rot = p.fbRotate;
-    const sc = p.fbScale;
-    const shift = p.fbShift * Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
-
-    ctx.translate(cx + shift, cy);
-    ctx.rotate(rot);
-    ctx.scale(sc, sc);
-    ctx.translate(-cx, -cy);
-
-    ctx.drawImage(canvas, 0, 0);
-    ctx.restore();
-  }
-
-  function plotPoints(p, now) {
-    const W = canvas.width;
-    const H = canvas.height;
-
-    const cx = W / 2;
-    const cy = H / 2;
-    const pad = Math.min(W, H) * p.padFrac;
-    const sx = (W / 2 - pad) * p.gain;
-    const sy = (H / 2 - pad) * p.gain;
-
-    ctx.save();
-    ctx.globalCompositeOperation = "lighter";
-    ctx.globalAlpha = p.pointAlpha;
-    ctx.fillStyle = "rgba(221,221,221,1)";
-
-    const nowSec = now / 1000;
-    const phiBase = p.phi + p.phaseJitter + phiDriftCycles();
-
-    // small diffusion for fill, not noise
-    const PHI_SPREAD = 0.012;
-    const TWIN = 0.16;
-    const N = SAMPLES_PER_FRAME;
-
-    const s = p.pixel;
-    const jitterK = 2.2 * s;
-
-    for (let i = 0; i < N; i++) {
-      const t = Math.random() * TWIN;
-      const phiPoint = phiBase + (Math.random() * 2 - 1) * PHI_SPREAD;
-
-      const { x, y } = xyAt(t, p, phiPoint, nowSec);
-
-      const px0 = (cx + x * sx) | 0;
-      const py0 = (cy - y * sy) | 0;
-
-      const jx = ((Math.random() * 2 - 1) * jitterK) | 0;
-      const jy = ((Math.random() * 2 - 1) * jitterK) | 0;
-
-      const px = px0 + jx;
-      const py = py0 + jy;
-
-      if (px < 0 || py < 0 || px >= W || py >= H) continue;
-
-      ctx.fillRect(px, py, s, s);
-      if ((i & 7) === 0) ctx.fillRect(px + s, py, s, s);
-      if ((i & 15) === 0) ctx.fillRect(px, py + s, s, s);
-    }
-
-    ctx.restore();
-  }
-
-  function tick(now) {
-    stepDrift(now);
-
-    if (now - last >= DT) {
-      last = now;
-
-      const resized = ensureCanvasSize(canvas);
-      if (resized) clearHard();
-
-      const p = effective();
-
-      projectFeedback(p);
-
-      // decay
-      ctx.save();
-      ctx.globalCompositeOperation = "source-over";
-      ctx.globalAlpha = 0.14;
-      ctx.fillStyle = "#000";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.restore();
-
-      plotPoints(p, now);
-      updateLabels(now);
-    }
-
-    requestAnimationFrame(tick);
-  }
-
-  function restartAudioIfRunning() {
-    if (!audio) return;
-    const wasMuted = audio.muted;
-    audio.stop();
-    audio = null;
-    audio = startAudio(effective(), feedbackOn);
-    audio.setMute(wasMuted);
-    btnMute.textContent = wasMuted ? "Unmute" : "Mute";
-  }
-
-  // UI
-  btnStart.addEventListener("click", async () => {
-    if (!audio) startAudio(effective(), feedbackOn);
-    if (audio && audio.ctx.state !== "running") await audio.ctx.resume();
-  });
-
-  btnMute.addEventListener("click", () => {
-    if (!audio) return;
-    audio.setMute(!audio.muted);
-    btnMute.textContent = audio.muted ? "Unmute" : "Mute";
-  });
-
-  btnReroll.addEventListener("click", () => {
-    rerollCounter++;
-    rng = getRand();
-    base = makeParams(rng);
-
-    driftPhase = 0;
-    lastTime = performance.now();
-
-    clearHard();
-    updateLabels(performance.now());
-    restartAudioIfRunning();
-
-    if (window.$fx && typeof window.$fx.preview === "function") window.$fx.preview();
-  });
-
-  btnDrift.addEventListener("click", () => {
-    driftOn = !driftOn;
-    btnDrift.textContent = driftOn ? "Drift: ON" : "Drift: OFF";
-    lastTime = performance.now();
-  });
-
-  btnFb.addEventListener("click", () => {
-    feedbackOn = !feedbackOn;
-    btnFb.textContent = feedbackOn ? "Feedback: ON" : "Feedback: OFF";
-    clearHard();
-    restartAudioIfRunning();
-  });
-
-  freqSlider.addEventListener("input", () => {
-    freqMul = parseFloat(freqSlider.value);
-    restartAudioIfRunning();
-  });
-
-  fbSlider.addEventListener("input", () => {
-    fbMul = parseFloat(fbSlider.value);
-    restartAudioIfRunning();
-  });
-
-  window.addEventListener("resize", () => {
-    clearHard();
-  });
-
-  btnDrift.textContent = driftOn ? "Drift: ON" : "Drift: OFF";
-  btnFb.textContent = feedbackOn ? "Feedback: ON" : "Feedback: OFF";
-
-  clearHard();
-  updateLabels(performance.now());
-  requestAnimationFrame(tick);
-})();
+/* ================= START ================= */
+
+ctx.fillStyle = "#000";
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+requestAnimationFrame(render);
+
+/* ================= REROLL ================= */
+
+document.getElementById("synthiReroll")?.addEventListener("click", () => {
+  rng = getRand();
+  P = makeParams(rng);
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+});
