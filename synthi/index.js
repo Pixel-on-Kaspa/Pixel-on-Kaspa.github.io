@@ -1,5 +1,5 @@
-// synthi/index.js — PATCH A (Video-feedback sculpture) — FIXED SIZE + BRIGHTER FILL
-// Always works even if some UI elements are missing.
+// synthi/index.js — PATCH A + WARP (Video-feedback sculpture)
+// FIXED SIZE + BRIGHTER FILL + CONTROLLED WARP
 //
 // Keys:
 //  A = start/resume audio
@@ -10,6 +10,8 @@
 //  [ ] = density -/+
 //  - = = exposure -/+
 //  , . = feedback strength -/+
+//  W = warp on/off
+//  K / L = warp -/+
 //  P = screenshot PNG
 
 (() => {
@@ -61,7 +63,7 @@
     el.style.font = "12px ui-monospace, SFMono-Regular, Menlo, monospace";
     el.style.padding = "10px 12px";
     el.style.borderRadius = "12px";
-    el.style.maxWidth = "min(760px, 92vw)";
+    el.style.maxWidth = "min(860px, 92vw)";
     el.style.pointerEvents = "none";
     el.textContent = "SYNTHI boot…";
     document.body.appendChild(el);
@@ -102,15 +104,15 @@
   /* ---------- LOCKED square canvas sizing (with caps) ---------- */
   let _locked = { w: 0, h: 0, dpr: 1, css: 0 };
   function ensureCanvasSizeLocked() {
-    const dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
+    const dpr = Math.max(1, Math.min(2.25, window.devicePixelRatio || 1)); // keep sane
     const parent = canvas.parentElement;
     const rect = parent ? parent.getBoundingClientRect() : canvas.getBoundingClientRect();
 
     const maxByWidth = rect.width;
-    const maxByViewport = window.innerHeight * 0.72; // keeps it on one screen
-    const HARD_MAX = 860; // change: 720 / 860 / 980
+    const maxByViewport = window.innerHeight * 0.72; // keep it on one screen
+    const HARD_MAX = 860;
 
-    const sideCss = Math.max(320, Math.floor(Math.min(maxByWidth, maxByViewport, HARD_MAX)));
+    const sideCss = Math.max(240, Math.floor(Math.min(maxByWidth, maxByViewport, HARD_MAX)));
     const W = Math.floor(sideCss * dpr);
     const H = Math.floor(sideCss * dpr);
 
@@ -158,7 +160,7 @@
       padFrac: 0.10,
       gain: 0.92,
 
-      // gentle linear geometry (not warp)
+      // gentle linear geometry
       rot: (rng() - 0.5) * 0.35,
       shear: (rng() - 0.5) * 0.22,
 
@@ -189,6 +191,11 @@
       ampRate: 0.018 + rng() * 0.060,
       densRate: 0.012 + rng() * 0.050,
       phiSpreadBase: 0.010 + rng() * 0.012,
+
+      // ---- WARP (controlled cross-coupling) ----
+      warpBase: 0.06 + rng() * 0.18,     // 0.06..0.24 (safe default)
+      warpRate: 0.03 + rng() * 0.11,     // slow modulation
+      warpPhase: rng(),
 
       // audio
       a: 0.70,
@@ -239,8 +246,25 @@
     x += p.osc4Mix * (Math.sin(TAU * (f4 * t + phi4)) + 0.6 * triFromPhase(frac(f4 * t + phi4)));
     y += p.osc4Mix * (Math.sin(TAU * (2 * f4 * t + (phi4 + p.phiOffset))) + 0.6 * triFromPhase(frac(2 * f4 * t + (phi4 + p.phiOffset))));
 
+    // linear transform first
     ({ x, y } = applyLinear(x, y, p));
 
+    // ---- WARP (cross-coupling) ----
+    // Controlled & modulated: adds topology without chaos.
+    if (p.warpEff > 0) {
+      const w = p.warpEff;   // ~0..0.6
+      const x0 = x, y0 = y;
+
+      // symmetrical-ish mix
+      x = x0 + w * y0;
+      y = y0 - w * x0;
+
+      // soft clamp right after warp to prevent pulsing blowups
+      x = Math.tanh(0.92 * x);
+      y = Math.tanh(0.92 * y);
+    }
+
+    // final mastering clamp
     x = Math.tanh(0.78 * x);
     y = Math.tanh(0.78 * y);
     return { x, y };
@@ -358,6 +382,10 @@
   let densityMul = 1.25;
   let exposure = 1.25;
 
+  // ---- warp controls ----
+  let warpOn = true;
+  let warpMul = 1.0;   // scales warpBase; safe range 0..1.6
+
   // stable drift integrator
   let driftPhase = 0;
   let lastT = performance.now();
@@ -379,6 +407,11 @@
     const rotate = base.fbRotate * (0.35 + 2.0 * fb);
     const shift = base.fbShift * (0.35 + 2.4 * fb);
 
+    // WARP: slow modulation so it evolves (but not jittery)
+    const nowSec = nowMs / 1000;
+    const wMod = 0.65 + 0.35 * Math.sin(TAU * (base.warpRate * nowSec) + TAU * base.warpPhase);
+    const warpEff = (warpOn ? clamp(base.warpBase * warpMul * wMod, 0, 0.65) : 0);
+
     return {
       ...base,
       f_vis,
@@ -387,7 +420,8 @@
       fbScaleEff: scale,
       fbRotateEff: rotate,
       fbShiftEff: shift,
-      nowSec: nowMs / 1000,
+      nowSec,
+      warpEff,
     };
   }
 
@@ -435,6 +469,10 @@
 
     if (k === "-" ) exposure = clamp(exposure - 0.05, 0.4, 2.0);
     if (k === "=" ) exposure = clamp(exposure + 0.05, 0.4, 2.0);
+
+    if (k === "w" || k === "W") { warpOn = !warpOn; clearHard(); }
+    if (k === "k" || k === "K") warpMul = clamp(warpMul - 0.05, 0, 1.6);
+    if (k === "l" || k === "L") warpMul = clamp(warpMul + 0.05, 0, 1.6);
 
     if (k === "a" || k === "A") {
       try {
@@ -549,7 +587,7 @@
       ctx2d.fillRect(0, 0, canvas.width, canvas.height);
       ctx2d.restore();
 
-      // 3) point accumulation (MORE density + better alpha)
+      // 3) point accumulation
       const W = canvas.width, H = canvas.height;
       const cx = W / 2, cy = H / 2;
       const pad = Math.min(W, H) * p.padFrac;
@@ -562,21 +600,19 @@
       const phiSpread = p.phiSpreadBase * (0.55 + 1.05 * (1 - dens));
       const phiBase = p.phi + (driftOn ? driftPhase : 0);
 
-      const baseN = 68000; // higher baseline fill
+      const baseN = 68000;
       const N = Math.floor(baseN * dens * densityMul);
 
-      const TWIN = 0.30; // slightly longer window => more “volume”
+      const TWIN = 0.30;
       const s = p.pixel;
 
       ctx2d.save();
       ctx2d.globalCompositeOperation = "lighter";
 
-      // brighter output
       const alpha = clamp(0.34 * exposure, 0.10, 0.75);
       ctx2d.globalAlpha = alpha;
       ctx2d.fillStyle = "rgba(235,235,235,1)";
 
-      // mild diffusion
       const jitterK = 1.35 * s;
 
       for (let i = 0; i < N; i++) {
@@ -603,9 +639,10 @@
       // label
       const detCents = 1200 * Math.log2(1 + p.detune);
       const text =
-        `PATCH A • f ${p.f_vis.toFixed(1)}Hz • fb ${feedbackOn ? fbMul.toFixed(2) : "OFF"} • ` +
+        `PATCH A+WARP • f ${p.f_vis.toFixed(1)}Hz • fb ${feedbackOn ? fbMul.toFixed(2) : "OFF"} • ` +
+        `warp ${warpOn ? warpMul.toFixed(2) : "OFF"} (${p.warpEff.toFixed(3)}) • ` +
         `dens ${densityMul.toFixed(2)} • exp ${exposure.toFixed(2)} • drift ${driftOn ? driftPhase.toFixed(3) : "OFF"} • det ${detCents.toFixed(2)}c\n` +
-        `Keys: A audio, M mute, R reroll, F fb, D drift, [,] dens, -/= exp, ,/. fb, P png`;
+        `Keys: A audio, M mute, R reroll, F fb, D drift, W warp, K/L warp-,+, [,] dens, -/= exp, ,/. fb, P png`;
 
       log(text);
       if (meta) meta.textContent = text;
@@ -618,5 +655,5 @@
   }
 
   requestAnimationFrame(tick);
-  log("SYNTHI running. Use keys (R/F/D/[ ]/-/= ,/.). Press P for PNG.");
+  log("SYNTHI running. Press W to toggle warp. K/L adjust warp. P saves PNG.");
 })();
