@@ -1,21 +1,24 @@
-// synthi/index.js
-// PATCH A — "Video-feedback sculpture (2.5D)"
-// - Locked square canvas (NO jumping window)
-// - Strong visible video feedback (rotate/scale/shift) + controlled decay + exposure
-// - No nonlinear warp (no X<->Y coupling), only linear transforms + layered oscillators
-// - More functional parameters (Exposure, Density, Feedback, Spin, Scale, Grain, Drift)
-// - Screenshot: key P (+ optional button #synthiShot)
-// - Audio: sine + triangle + subtle detuned sine -> 3-stage delay w/ feedback + saturating clip
+// synthi/index.js — SAFE BOOT + PATCH A (Video-feedback sculpture)
+// If your UI IDs differ, this still runs.
+// Controls (always):
+//  A = start/stop audio
+//  M = mute
+//  R = reroll
+//  F = toggle feedback
+//  D = toggle drift
+//  [ ] = density -/+
+//  - = = exposure -/+
+//  , . = feedback strength -/+
+//  P = screenshot
 
 (() => {
+  "use strict";
   const TAU = Math.PI * 2;
 
-  /* ---------------- helpers ---------------- */
+  /* ---------- helpers ---------- */
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
   const frac = (x) => x - Math.floor(x);
   const triFromPhase = (p) => 1 - 4 * Math.abs(p - 0.5);
-
-  function $(id) { return document.getElementById(id); }
 
   function xmur3(str) {
     let h = 1779033703 ^ str.length;
@@ -43,7 +46,53 @@
     return Math.exp(lo + (hi - lo) * rng());
   }
 
-  /* ---------------- RNG ---------------- */
+  /* ---------- diagnostics overlay ---------- */
+  function makeOverlay() {
+    const el = document.createElement("div");
+    el.style.position = "fixed";
+    el.style.left = "12px";
+    el.style.bottom = "12px";
+    el.style.zIndex = "999999";
+    el.style.background = "rgba(0,0,0,.55)";
+    el.style.border = "1px solid rgba(255,255,255,.15)";
+    el.style.backdropFilter = "blur(8px)";
+    el.style.color = "rgba(255,255,255,.9)";
+    el.style.font = "12px ui-monospace, SFMono-Regular, Menlo, monospace";
+    el.style.padding = "10px 12px";
+    el.style.borderRadius = "12px";
+    el.style.maxWidth = "min(680px, 92vw)";
+    el.style.pointerEvents = "none";
+    el.textContent = "SYNTHI boot…";
+    document.body.appendChild(el);
+    return el;
+  }
+  const overlay = makeOverlay();
+  function log(msg) {
+    console.log("[SYNTHI]", msg);
+    overlay.textContent = msg;
+  }
+
+  /* ---------- find canvas + meta safely ---------- */
+  const canvas =
+    document.getElementById("synthiCanvas") ||
+    document.querySelector("canvas");
+
+  const meta =
+    document.getElementById("synthiMeta") ||
+    null;
+
+  if (!canvas) {
+    log("ERROR: canvas not found. Need <canvas id='synthiCanvas'> or any <canvas>.");
+    return;
+  }
+
+  const ctx2d = canvas.getContext("2d", { alpha: false });
+  if (!ctx2d) {
+    log("ERROR: cannot get 2D context.");
+    return;
+  }
+
+  /* ---------- RNG ---------- */
   let rerollCounter = 0;
   function getRand() {
     if (window.$fx && typeof window.$fx.rand === "function") return () => window.$fx.rand();
@@ -51,109 +100,92 @@
     return mulberry32(xmur3(s)());
   }
 
-  /* ---------------- LOCKED square canvas sizing ---------------- */
-  let _locked = { w: 0, h: 0, dpr: 1, sideCss: 0 };
-
-  function ensureCanvasSizeLocked(canvas) {
+  /* ---------- LOCKED square canvas sizing ---------- */
+  let _locked = { w: 0, h: 0, dpr: 1, css: 0 };
+  function ensureCanvasSizeLocked() {
     const dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
     const parent = canvas.parentElement;
     const rect = parent ? parent.getBoundingClientRect() : canvas.getBoundingClientRect();
-
-    // lock to square based on smaller side
     const sideCss = Math.max(1, Math.floor(Math.min(rect.width, rect.height)));
     const W = Math.floor(sideCss * dpr);
     const H = Math.floor(sideCss * dpr);
-
-    const changed = (W !== _locked.w) || (H !== _locked.h) || (dpr !== _locked.dpr) || (sideCss !== _locked.sideCss);
+    const changed = (W !== _locked.w) || (H !== _locked.h) || (dpr !== _locked.dpr) || (sideCss !== _locked.css);
     if (changed) {
-      _locked = { w: W, h: H, dpr, sideCss };
+      _locked = { w: W, h: H, dpr, css: sideCss };
       canvas.width = W;
       canvas.height = H;
-
-      // CSS lock prevents layout jitter
       canvas.style.width = `${sideCss}px`;
       canvas.style.height = `${sideCss}px`;
     }
     return changed;
   }
 
-  /* ---------------- params (patch A) ---------------- */
+  function clearHard() {
+    ensureCanvasSizeLocked();
+    ctx2d.setTransform(1, 0, 0, 1, 0, 0);
+    ctx2d.globalCompositeOperation = "source-over";
+    ctx2d.globalAlpha = 1;
+    ctx2d.fillStyle = "#000";
+    ctx2d.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  /* ---------- params ---------- */
   function makeParams(rng) {
     const rare = rng() < 0.12;
-    const f_vis = rare ? logUniform(rng, 4200, 7600) : logUniform(rng, 900, 5200);
-
-    // base weights
-    const xSin = 0.95;
-    const xTri = 0.95 + rng() * 0.55;
-    const ySin = 0.95;
-    const yTri = 0.95 + rng() * 0.55;
-
-    // LOCKED frame (no jump)
-    const padFrac = 0.10;
-    const gain = 0.92;
-
-    // linear transform only
-    const rot = (rng() - 0.5) * 0.35;
-    const shear = (rng() - 0.5) * 0.22;
-
-    const phi = rng();
-    const phiOffset = 0.25;
-
-    // drift + PM (very gentle)
-    const driftCps = 0.00075;           // cycles/sec
-    const pmHz = 0.04 + rng() * 0.12;
-    const pmDepth = 0.001 + rng() * 0.006; // cycles
-
-    // osc3 detail (detuned octave-ish)
-    const detune = (rng() < 0.5 ? -1 : 1) * (0.0004 + rng() * 0.0012);
-    const osc3Mix = 0.10 + rng() * 0.18;
-    const osc3Phi = rng();
-
-    // osc4 slow sculpt layer (adds "volume")
-    const osc4Mul = 0.10 + rng() * 0.30; // f*0.10..0.40
-    const osc4Mix = 0.05 + rng() * 0.12;
-    const osc4Phi = rng();
-
-    // visual feedback micro-transform baseline
-    const fbScale = 1.0009 + rng() * 0.0040;
-    const fbRotate = (rng() - 0.5) * 0.012;
-    const fbShift = (rng() - 0.5) * 2.6;
-
-    // drawing
-    const pixel = rng() < 0.55 ? 2 : 3;
-    const pointAlpha = 0.32;
-
-    // ramps (sculpt)
-    const ampRate = 0.016 + rng() * 0.050;
-    const densRate = 0.012 + rng() * 0.040;
-    const phiSpreadBase = 0.010 + rng() * 0.012;
-
-    // audio
-    const a = 0.70, b = 0.40;
-    const t1 = (2 + rng() * 6) / 1000;
-    const t2 = (10 + rng() * 26) / 1000;
-    const t3 = (45 + rng() * 140) / 1000;
-    const fb1 = 0.24 + rng() * 0.26;
-    const fb2 = 0.34 + rng() * 0.30;
-    const fb3 = 0.48 + rng() * 0.36;
+    const f_vis = rare ? logUniform(rng, 4200, 7800) : logUniform(rng, 900, 5200);
 
     return {
-      rare, f_vis, phi, phiOffset,
-      xSin, xTri, ySin, yTri,
-      padFrac, gain,
-      rot, shear,
-      driftCps, pmHz, pmDepth,
-      detune, osc3Mix, osc3Phi,
-      osc4Mul, osc4Mix, osc4Phi,
-      fbScale, fbRotate, fbShift,
-      pixel, pointAlpha,
-      ampRate, densRate, phiSpreadBase,
-      a, b, t1, t2, t3, fb1, fb2, fb3
+      rare,
+      f_vis,
+      phi: rng(),
+      phiOffset: 0.25,
+
+      xSin: 0.95,
+      ySin: 0.95,
+      xTri: 0.95 + rng() * 0.65,
+      yTri: 0.95 + rng() * 0.65,
+
+      padFrac: 0.10, // locked
+      gain: 0.92,
+
+      rot: (rng() - 0.5) * 0.35,
+      shear: (rng() - 0.5) * 0.22,
+
+      driftCps: 0.0007 + rng() * 0.0006,
+      pmHz: 0.04 + rng() * 0.14,
+      pmDepth: 0.001 + rng() * 0.006,
+
+      detune: (rng() < 0.5 ? -1 : 1) * (0.0004 + rng() * 0.0012),
+      osc3Mix: 0.10 + rng() * 0.20,
+      osc3Phi: rng(),
+
+      osc4Mul: 0.10 + rng() * 0.22,
+      osc4Mix: 0.06 + rng() * 0.14,
+      osc4Phi: rng(),
+
+      pixel: rng() < 0.5 ? 2 : 3,
+
+      fbScale: 1.001 + rng() * 0.004,
+      fbRotate: (rng() - 0.5) * 0.012,
+      fbShift: (rng() - 0.5) * 2.8,
+
+      ampRate: 0.018 + rng() * 0.060,
+      densRate: 0.012 + rng() * 0.050,
+      phiSpreadBase: 0.010 + rng() * 0.012,
+
+      // audio
+      a: 0.70,
+      b: 0.40,
+      t1: (2 + rng() * 7) / 1000,
+      t2: (10 + rng() * 30) / 1000,
+      t3: (45 + rng() * 150) / 1000,
+      fb1: 0.24 + rng() * 0.26,
+      fb2: 0.34 + rng() * 0.30,
+      fb3: 0.48 + rng() * 0.36,
     };
   }
 
-  /* ---------------- signal (NO warp) ---------------- */
-  function applyLinearTransform(x, y, p) {
+  function applyLinear(x, y, p) {
     const c = Math.cos(p.rot), s = Math.sin(p.rot);
     let xr = x * c - y * s;
     let yr = x * s + y * c;
@@ -163,51 +195,40 @@
 
   function xyAt(t, p, phiCycles, nowSec) {
     const f = p.f_vis;
-
-    // gentle PM
     const pm = p.pmDepth * Math.sin(TAU * (p.pmHz * nowSec));
     const phi = phiCycles + pm;
 
-    // base layer
     const px = TAU * (f * t + phi);
     const py = TAU * (2 * f * t + (phi + p.phiOffset));
 
     const sx = Math.sin(px);
     const sy = Math.sin(py);
-
     const tx = triFromPhase(frac(f * t + phi));
     const ty = triFromPhase(frac(2 * f * t + (phi + p.phiOffset)));
 
-    let x = (p.xSin * sx + p.xTri * tx);
-    let y = (p.ySin * sy + p.yTri * ty);
+    let x = p.xSin * sx + p.xTri * tx;
+    let y = p.ySin * sy + p.yTri * ty;
 
-    // osc3 detail (detuned octave-ish, still 1:2 inside)
+    // osc3 detail
     const f3 = (2 * f) * (1 + p.detune);
     const phi3 = phiCycles + p.osc3Phi + pm * 0.35;
-
     x += p.osc3Mix * Math.sin(TAU * (f3 * t + phi3));
     y += p.osc3Mix * Math.sin(TAU * (2 * f3 * t + (phi3 + p.phiOffset)));
 
-    // osc4 slow sculpt volume
+    // osc4 slow fill
     const f4 = f * p.osc4Mul;
     const phi4 = phiCycles + p.osc4Phi + pm * 0.15;
+    x += p.osc4Mix * (Math.sin(TAU * (f4 * t + phi4)) + 0.6 * triFromPhase(frac(f4 * t + phi4)));
+    y += p.osc4Mix * (Math.sin(TAU * (2 * f4 * t + (phi4 + p.phiOffset))) + 0.6 * triFromPhase(frac(2 * f4 * t + (phi4 + p.phiOffset))));
 
-    x += p.osc4Mix * (Math.sin(TAU * (f4 * t + phi4)) + 0.55 * triFromPhase(frac(f4 * t + phi4)));
-    y += p.osc4Mix * (Math.sin(TAU * (2 * f4 * t + (phi4 + p.phiOffset))) + 0.55 * triFromPhase(frac(2 * f4 * t + (phi4 + p.phiOffset))));
-
-    // linear transform only
-    ({ x, y } = applyLinearTransform(x, y, p));
-
-    // soft clamp
+    ({ x, y } = applyLinear(x, y, p));
     x = Math.tanh(0.78 * x);
     y = Math.tanh(0.78 * y);
-
     return { x, y };
   }
 
-  /* ---------------- audio ---------------- */
+  /* ---------- audio ---------- */
   let audio = null;
-
   function makeSoftClipper(ctx, drive = 1.0) {
     const shaper = ctx.createWaveShaper();
     const n = 2048;
@@ -220,29 +241,371 @@
     shaper.oversample = "2x";
     return shaper;
   }
-
   function buildDelayStage(ctx, delayTime, feedback, drive = 1.0) {
     const delay = ctx.createDelay(2.0);
     delay.delayTime.value = delayTime;
-
     const fbGain = ctx.createGain();
     fbGain.gain.value = feedback;
-
     const clip = makeSoftClipper(ctx, drive);
-
     delay.connect(fbGain);
     fbGain.connect(clip);
     clip.connect(delay);
-
-    return { delay };
+    return { delay, fbGain };
   }
-
   function startAudio(pEff, fbOn, fbMul) {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
-    const ctx = new AudioContext();
+    const actx = new AudioContext();
 
     const f_aud = pEff.f_vis / 16;
 
-    const oscSin = ctx.createOscillator();
+    const oscSin = actx.createOscillator();
     oscSin.type = "sine";
+    oscSin.frequency.value = f_aud;
 
+    const oscTri = actx.createOscillator();
+    oscTri.type = "triangle";
+    oscTri.frequency.value = f_aud * 2;
+
+    const oscDet = actx.createOscillator();
+    oscDet.type = "sine";
+    oscDet.frequency.value = f_aud * (1 + pEff.detune * 0.5);
+
+    const gSin = actx.createGain(); gSin.gain.value = pEff.a;
+    const gTri = actx.createGain(); gTri.gain.value = pEff.b;
+    const gDet = actx.createGain(); gDet.gain.value = 0.12;
+
+    oscSin.connect(gSin);
+    oscTri.connect(gTri);
+    oscDet.connect(gDet);
+
+    const sum = actx.createGain();
+    gSin.connect(sum); gTri.connect(sum); gDet.connect(sum);
+
+    const pre = actx.createGain();
+    pre.gain.value = 0.22;
+
+    const s = fbOn ? clamp(fbMul, 0, 1.2) : 0.0;
+    const fb1 = clamp(pEff.fb1 * s, 0, 0.95);
+    const fb2 = clamp(pEff.fb2 * s, 0, 0.95);
+    const fb3 = clamp(pEff.fb3 * s, 0, 0.95);
+
+    const d1 = buildDelayStage(actx, pEff.t1, fb1, 0.85);
+    const d2 = buildDelayStage(actx, pEff.t2, fb2, 0.95);
+    const d3 = buildDelayStage(actx, pEff.t3, fb3, 1.05);
+
+    const post = actx.createGain();
+    post.gain.value = 0.9;
+
+    const masterClip = makeSoftClipper(actx, 0.9);
+
+    sum.connect(pre);
+    pre.connect(d1.delay);
+    d1.delay.connect(d2.delay);
+    d2.delay.connect(d3.delay);
+    d3.delay.connect(post);
+    post.connect(masterClip);
+    masterClip.connect(actx.destination);
+
+    const now = actx.currentTime + 0.02;
+    const triOffset = 0.25 / (oscTri.frequency.value || 1);
+    oscSin.start(now);
+    oscTri.start(now + triOffset);
+    oscDet.start(now);
+
+    audio = {
+      ctx: actx,
+      muted: false,
+      setMute(on) { post.gain.value = on ? 0 : 0.9; this.muted = on; },
+      stop() {
+        try { oscSin.stop(); oscTri.stop(); oscDet.stop(); } catch {}
+        try { actx.close(); } catch {}
+      }
+    };
+    return audio;
+  }
+
+  /* ---------- state + controls (works without UI) ---------- */
+  let rng = getRand();
+  let base = makeParams(rng);
+
+  let driftOn = true;
+  let feedbackOn = true;
+
+  let freqMul = 1.0;
+  let fbMul = 1.0;
+  let densityMul = 1.0;
+  let exposure = 1.0;
+
+  // stable drift integrator
+  let driftPhase = 0;
+  let lastT = performance.now();
+
+  function stepDrift(now) {
+    const dt = Math.min(0.05, Math.max(0, (now - lastT) / 1000));
+    lastT = now;
+    if (!driftOn) return;
+    driftPhase = (driftPhase + base.driftCps * dt) % 1;
+  }
+
+  function effective(nowMs) {
+    const f_vis = clamp(base.f_vis * freqMul, 200, 12000);
+    const fb = feedbackOn ? clamp(fbMul, 0, 1.5) : 0;
+
+    // Make feedback clearly visible:
+    const visAlpha = feedbackOn ? clamp(0.55 + 0.35 * Math.min(1, fb), 0.55, 0.92) : 0;
+
+    const scale = 1 + (base.fbScale - 1) * (0.35 + 1.8 * fb);
+    const rotate = base.fbRotate * (0.35 + 2.0 * fb);
+    const shift = base.fbShift * (0.35 + 2.4 * fb);
+
+    return {
+      ...base,
+      f_vis,
+      fbMulEff: fb,
+      visAlpha,
+      fbScaleEff: scale,
+      fbRotateEff: rotate,
+      fbShiftEff: shift,
+      nowSec: nowMs / 1000,
+    };
+  }
+
+  function savePNG() {
+    const a = document.createElement("a");
+    a.download = `synthi_${Date.now()}.png`;
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+  }
+
+  // keyboard controls (always work)
+  window.addEventListener("keydown", async (e) => {
+    const k = e.key;
+
+    if (k === "p" || k === "P") savePNG();
+    if (k === "r" || k === "R") reroll();
+
+    if (k === "f" || k === "F") { feedbackOn = !feedbackOn; clearHard(); }
+    if (k === "d" || k === "D") { driftOn = !driftOn; }
+
+    if (k === "," ) fbMul = clamp(fbMul - 0.05, 0, 1.5);
+    if (k === "." ) fbMul = clamp(fbMul + 0.05, 0, 1.5);
+
+    if (k === "[" ) densityMul = clamp(densityMul - 0.05, 0.2, 2.0);
+    if (k === "]" ) densityMul = clamp(densityMul + 0.05, 0.2, 2.0);
+
+    if (k === "-" ) exposure = clamp(exposure - 0.05, 0.4, 2.0);
+    if (k === "=" ) exposure = clamp(exposure + 0.05, 0.4, 2.0);
+
+    if (k === "a" || k === "A") {
+      // start/stop audio
+      try {
+        if (!audio) audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
+        if (audio && audio.ctx.state !== "running") await audio.ctx.resume();
+      } catch (err) {
+        log("Audio error: " + (err?.message || err));
+      }
+    }
+    if (k === "m" || k === "M") {
+      if (audio) audio.setMute(!audio.muted);
+    }
+  });
+
+  function reroll() {
+    rerollCounter++;
+    rng = getRand();
+    base = makeParams(rng);
+    driftPhase = 0;
+    lastT = performance.now();
+    clearHard();
+
+    // restart audio if running
+    if (audio) {
+      const wasMuted = audio.muted;
+      audio.stop();
+      audio = null;
+      audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
+      audio.setMute(wasMuted);
+    }
+
+    if (window.$fx && typeof window.$fx.preview === "function") window.$fx.preview();
+  }
+
+  // optional button bindings (if IDs exist)
+  const btnStart = document.getElementById("synthiStart");
+  const btnMute  = document.getElementById("synthiMute");
+  const btnReroll = document.getElementById("synthiReroll");
+  const btnDrift  = document.getElementById("synthiDriftToggle");
+  const btnFb     = document.getElementById("synthiFbToggle");
+  const btnShot   = document.getElementById("synthiShot");
+  const freqSlider = document.getElementById("freqSlider");
+  const fbSlider = document.getElementById("fbSlider");
+
+  if (btnShot) btnShot.addEventListener("click", savePNG);
+  if (btnReroll) btnReroll.addEventListener("click", reroll);
+  if (btnDrift) btnDrift.addEventListener("click", () => { driftOn = !driftOn; });
+  if (btnFb) btnFb.addEventListener("click", () => { feedbackOn = !feedbackOn; clearHard(); });
+
+  if (btnStart) btnStart.addEventListener("click", async () => {
+    try {
+      if (!audio) audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
+      if (audio && audio.ctx.state !== "running") await audio.ctx.resume();
+    } catch (err) {
+      log("Audio error: " + (err?.message || err));
+    }
+  });
+
+  if (btnMute) btnMute.addEventListener("click", () => {
+    if (!audio) return;
+    audio.setMute(!audio.muted);
+  });
+
+  if (freqSlider) {
+    const v = parseFloat(freqSlider.value);
+    if (!Number.isNaN(v)) freqMul = v;
+    freqSlider.addEventListener("input", () => {
+      const nv = parseFloat(freqSlider.value);
+      if (!Number.isNaN(nv)) freqMul = nv;
+      if (audio) {
+        const wasMuted = audio.muted;
+        audio.stop();
+        audio = null;
+        audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
+        audio.setMute(wasMuted);
+      }
+    });
+  }
+
+  if (fbSlider) {
+    const v = parseFloat(fbSlider.value);
+    if (!Number.isNaN(v)) fbMul = v;
+    fbSlider.addEventListener("input", () => {
+      const nv = parseFloat(fbSlider.value);
+      if (!Number.isNaN(nv)) fbMul = nv;
+      if (audio) {
+        const wasMuted = audio.muted;
+        audio.stop();
+        audio = null;
+        audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
+        audio.setMute(wasMuted);
+      }
+    });
+  }
+
+  window.addEventListener("resize", () => clearHard());
+
+  /* ---------- render ---------- */
+  clearHard();
+
+  // draw buffers: we want feedback visible AND depthy
+  function projectFeedback(p) {
+    if (!feedbackOn) return;
+
+    const W = canvas.width, H = canvas.height;
+    const cx = W / 2, cy = H / 2;
+
+    ctx2d.save();
+    ctx2d.globalCompositeOperation = "source-over";
+    ctx2d.globalAlpha = p.visAlpha;
+
+    const dpr = _locked.dpr || 1;
+    const shift = p.fbShiftEff * dpr;
+
+    ctx2d.translate(cx + shift, cy);
+    ctx2d.rotate(p.fbRotateEff);
+    ctx2d.scale(p.fbScaleEff, p.fbScaleEff);
+    ctx2d.translate(-cx, -cy);
+
+    ctx2d.drawImage(canvas, 0, 0);
+    ctx2d.restore();
+  }
+
+  function tick(now) {
+    try {
+      stepDrift(now);
+      ensureCanvasSizeLocked();
+
+      const p = effective(now);
+
+      // 1) project feedback (creates sculpture depth)
+      projectFeedback(p);
+
+      // 2) decay + exposure (control burn-in & brightness)
+      ctx2d.save();
+      ctx2d.globalCompositeOperation = "source-over";
+      // stronger feedback => slightly stronger decay to prevent whiteout
+      const decay = feedbackOn ? (0.08 + 0.06 * Math.min(1, fbMul)) : 0.12;
+      ctx2d.globalAlpha = decay;
+      ctx2d.fillStyle = "#000";
+      ctx2d.fillRect(0, 0, canvas.width, canvas.height);
+      ctx2d.restore();
+
+      // 3) draw points (grain accumulation)
+      const W = canvas.width, H = canvas.height;
+      const cx = W / 2, cy = H / 2;
+      const pad = Math.min(W, H) * p.padFrac;
+      const sx = (W / 2 - pad) * p.gain;
+      const sy = (H / 2 - pad) * p.gain;
+
+      // ramps
+      const amp = (0.84 + 0.16 * Math.sin(TAU * (p.ampRate * p.nowSec)));
+      const dens = (0.55 + 0.45 * Math.sin(TAU * (p.densRate * p.nowSec + 0.2)));
+      const phiSpread = p.phiSpreadBase * (0.60 + 0.90 * (1 - dens));
+      const phiBase = p.phi + (driftOn ? driftPhase : 0);
+
+      const baseN = 55000;
+      const N = Math.floor(baseN * dens * densityMul);
+
+      const TWIN = 0.24; // time window for filling
+      const s = p.pixel;
+
+      // grain + exposure: alpha tuned for “sculpture”
+      ctx2d.save();
+      ctx2d.globalCompositeOperation = "lighter";
+      const alpha = clamp(0.26 * exposure, 0.08, 0.65);
+      ctx2d.globalAlpha = alpha;
+      ctx2d.fillStyle = "rgba(221,221,221,1)";
+
+      // mild pixel diffusion (not chaos)
+      const jitterK = 1.2 * s;
+
+      for (let i = 0; i < N; i++) {
+        const t = Math.random() * TWIN;
+        const phiPoint = phiBase + (Math.random() * 2 - 1) * phiSpread;
+
+        const { x, y } = xyAt(t, p, phiPoint, p.nowSec);
+
+        const px0 = (cx + x * sx * amp) | 0;
+        const py0 = (cy - y * sy * amp) | 0;
+
+        const px = (px0 + ((Math.random() * 2 - 1) * jitterK) | 0);
+        const py = (py0 + ((Math.random() * 2 - 1) * jitterK) | 0);
+
+        if (px <= 0 || py <= 0 || px >= W || py >= H) continue;
+
+        ctx2d.fillRect(px, py, s, s);
+        if ((i & 31) === 0) ctx2d.fillRect(px + s, py, s, s);
+        if ((i & 63) === 0) ctx2d.fillRect(px, py + s, s, s);
+      }
+
+      ctx2d.restore();
+
+      // label
+      const detCents = 1200 * Math.log2(1 + p.detune);
+      const text =
+        `PATCH A • f ${p.f_vis.toFixed(1)}Hz • fb ${feedbackOn ? fbMul.toFixed(2) : "OFF"} • ` +
+        `dens ${densityMul.toFixed(2)} • exp ${exposure.toFixed(2)} • drift ${driftOn ? driftPhase.toFixed(3) : "OFF"} • det ${detCents.toFixed(2)}c\n` +
+        `Keys: A audio, M mute, R reroll, F fb, D drift, [,] dens, -/= exp, ,/. fb, P png`;
+
+      log(text);
+      if (meta) meta.textContent = text;
+
+    } catch (err) {
+      log("RUNTIME ERROR: " + (err?.message || err));
+    }
+
+    requestAnimationFrame(tick);
+  }
+
+  requestAnimationFrame(tick);
+  log("SYNTHI running. If buttons don't work, use keys: R/F/D/[,]/- etc. Press P for PNG.");
+})();
