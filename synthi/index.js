@@ -1,12 +1,11 @@
-// synthi/index.js  — PATCH A: Video-feedback Sculpture (2.5D)
-// Goals:
-// - LOCKED square canvas => no layout "jump"
-// - Strong visible video feedback (self draw with rotate/scale/shift)
-// - No warp (no nonlinear X<->Y coupling); base ratio stays 1:2
-// - More interesting images: multi-layer signal + ramps + exposure + grain + stable drift
-// - Working UI (existing IDs) + extra controls via keyboard
-// - Screenshot (P) + optional button id="synthiShot"
-// - Audio: sine+triangle(+quiet detuned) -> 3 delays w/ feedback + soft clip
+// synthi/index.js
+// PATCH A — "Video-feedback sculpture (2.5D)"
+// - Locked square canvas (NO jumping window)
+// - Strong visible video feedback (rotate/scale/shift) + controlled decay + exposure
+// - No nonlinear warp (no X<->Y coupling), only linear transforms + layered oscillators
+// - More functional parameters (Exposure, Density, Feedback, Spin, Scale, Grain, Drift)
+// - Screenshot: key P (+ optional button #synthiShot)
+// - Audio: sine + triangle + subtle detuned sine -> 3-stage delay w/ feedback + saturating clip
 
 (() => {
   const TAU = Math.PI * 2;
@@ -44,92 +43,96 @@
     return Math.exp(lo + (hi - lo) * rng());
   }
 
+  /* ---------------- RNG ---------------- */
   let rerollCounter = 0;
   function getRand() {
     if (window.$fx && typeof window.$fx.rand === "function") return () => window.$fx.rand();
-    const seedStr = `${location.pathname}|${location.search}|${location.hash}|SYNTHI|${rerollCounter}|${Date.now()}`;
-    return mulberry32(xmur3(seedStr)());
+    const s = `${location.pathname}|${location.search}|${location.hash}|SYNTHI|${rerollCounter}|${Date.now()}`;
+    return mulberry32(xmur3(s)());
   }
 
-  /* ---------------- LOCKED canvas sizing (prevents "jump") ---------------- */
-  let _locked = { w: 0, h: 0, dpr: 1, css: 0 };
+  /* ---------------- LOCKED square canvas sizing ---------------- */
+  let _locked = { w: 0, h: 0, dpr: 1, sideCss: 0 };
 
   function ensureCanvasSizeLocked(canvas) {
     const dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
     const parent = canvas.parentElement;
     const rect = parent ? parent.getBoundingClientRect() : canvas.getBoundingClientRect();
 
-    // lock to square based on parent box
+    // lock to square based on smaller side
     const sideCss = Math.max(1, Math.floor(Math.min(rect.width, rect.height)));
     const W = Math.floor(sideCss * dpr);
     const H = Math.floor(sideCss * dpr);
 
-    const changed = (W !== _locked.w) || (H !== _locked.h) || (dpr !== _locked.dpr) || (sideCss !== _locked.css);
+    const changed = (W !== _locked.w) || (H !== _locked.h) || (dpr !== _locked.dpr) || (sideCss !== _locked.sideCss);
     if (changed) {
-      _locked = { w: W, h: H, dpr, css: sideCss };
+      _locked = { w: W, h: H, dpr, sideCss };
       canvas.width = W;
       canvas.height = H;
+
+      // CSS lock prevents layout jitter
       canvas.style.width = `${sideCss}px`;
       canvas.style.height = `${sideCss}px`;
     }
     return changed;
   }
 
-  /* ---------------- params (visual + audio) ---------------- */
+  /* ---------------- params (patch A) ---------------- */
   function makeParams(rng) {
     const rare = rng() < 0.12;
-    const f_vis = rare ? logUniform(rng, 4200, 7800) : logUniform(rng, 900, 5200);
+    const f_vis = rare ? logUniform(rng, 4200, 7600) : logUniform(rng, 900, 5200);
 
-    // base weights sin/tri
-    const xSin = 0.95, ySin = 0.95;
-    const xTri = 0.95 + rng() * 0.65;
-    const yTri = 0.95 + rng() * 0.65;
+    // base weights
+    const xSin = 0.95;
+    const xTri = 0.95 + rng() * 0.55;
+    const ySin = 0.95;
+    const yTri = 0.95 + rng() * 0.55;
 
-    // base phase relationship
-    const phi = rng();
-    const phiOffset = 0.25;
-
-    // LOCKED framing (no reroll zoom)
+    // LOCKED frame (no jump)
     const padFrac = 0.10;
     const gain = 0.92;
 
-    // linear geometry (not warp)
+    // linear transform only
     const rot = (rng() - 0.5) * 0.35;
     const shear = (rng() - 0.5) * 0.22;
 
-    // drift integrator + gentle PM (cycles)
-    const driftCps = 0.0007 + rng() * 0.0006;
-    const pmHz = 0.04 + rng() * 0.14;
-    const pmDepth = 0.001 + rng() * 0.006;
+    const phi = rng();
+    const phiOffset = 0.25;
 
-    // osc3 detail (octave-ish with slight detune)
+    // drift + PM (very gentle)
+    const driftCps = 0.00075;           // cycles/sec
+    const pmHz = 0.04 + rng() * 0.12;
+    const pmDepth = 0.001 + rng() * 0.006; // cycles
+
+    // osc3 detail (detuned octave-ish)
     const detune = (rng() < 0.5 ? -1 : 1) * (0.0004 + rng() * 0.0012);
-    const osc3Mix = 0.08 + rng() * 0.16;
+    const osc3Mix = 0.10 + rng() * 0.18;
     const osc3Phi = rng();
 
-    // osc4 slow "breathing" layer (fills surface, adds sculpture feel)
-    const osc4Mul = 0.10 + rng() * 0.22;  // f * 0.10..0.32
+    // osc4 slow sculpt layer (adds "volume")
+    const osc4Mul = 0.10 + rng() * 0.30; // f*0.10..0.40
     const osc4Mix = 0.05 + rng() * 0.12;
     const osc4Phi = rng();
 
-    // point style
-    const pixel = rng() < 0.5 ? 2 : 3;
+    // visual feedback micro-transform baseline
+    const fbScale = 1.0009 + rng() * 0.0040;
+    const fbRotate = (rng() - 0.5) * 0.012;
+    const fbShift = (rng() - 0.5) * 2.6;
 
-    // feedback micro-transform baseline (slider scales it)
-    const fbScale = 1.001 + rng() * 0.004;     // 1.001..1.005
-    const fbRotate = (rng() - 0.5) * 0.012;    // rad
-    const fbShift = (rng() - 0.5) * 2.8;       // px
+    // drawing
+    const pixel = rng() < 0.55 ? 2 : 3;
+    const pointAlpha = 0.32;
 
-    // ramps (visual shaping)
-    const ampRate = 0.018 + rng() * 0.060;
-    const densRate = 0.012 + rng() * 0.050;
+    // ramps (sculpt)
+    const ampRate = 0.016 + rng() * 0.050;
+    const densRate = 0.012 + rng() * 0.040;
     const phiSpreadBase = 0.010 + rng() * 0.012;
 
-    // audio delays (short-ish, sculptural)
+    // audio
     const a = 0.70, b = 0.40;
-    const t1 = (2 + rng() * 7) / 1000;
-    const t2 = (10 + rng() * 30) / 1000;
-    const t3 = (45 + rng() * 150) / 1000;
+    const t1 = (2 + rng() * 6) / 1000;
+    const t2 = (10 + rng() * 26) / 1000;
+    const t3 = (45 + rng() * 140) / 1000;
     const fb1 = 0.24 + rng() * 0.26;
     const fb2 = 0.34 + rng() * 0.30;
     const fb3 = 0.48 + rng() * 0.36;
@@ -142,8 +145,8 @@
       driftCps, pmHz, pmDepth,
       detune, osc3Mix, osc3Phi,
       osc4Mul, osc4Mix, osc4Phi,
-      pixel,
       fbScale, fbRotate, fbShift,
+      pixel, pointAlpha,
       ampRate, densRate, phiSpreadBase,
       a, b, t1, t2, t3, fb1, fb2, fb3
     };
@@ -161,11 +164,11 @@
   function xyAt(t, p, phiCycles, nowSec) {
     const f = p.f_vis;
 
-    // PM in cycles (gentle)
+    // gentle PM
     const pm = p.pmDepth * Math.sin(TAU * (p.pmHz * nowSec));
     const phi = phiCycles + pm;
 
-    // base 1:2
+    // base layer
     const px = TAU * (f * t + phi);
     const py = TAU * (2 * f * t + (phi + p.phiOffset));
 
@@ -178,21 +181,21 @@
     let x = (p.xSin * sx + p.xTri * tx);
     let y = (p.ySin * sy + p.yTri * ty);
 
-    // osc3: detuned octave-ish detail (still 1:2 within itself)
+    // osc3 detail (detuned octave-ish, still 1:2 inside)
     const f3 = (2 * f) * (1 + p.detune);
     const phi3 = phiCycles + p.osc3Phi + pm * 0.35;
 
     x += p.osc3Mix * Math.sin(TAU * (f3 * t + phi3));
     y += p.osc3Mix * Math.sin(TAU * (2 * f3 * t + (phi3 + p.phiOffset)));
 
-    // osc4: slow breathing fill layer
+    // osc4 slow sculpt volume
     const f4 = f * p.osc4Mul;
     const phi4 = phiCycles + p.osc4Phi + pm * 0.15;
 
-    x += p.osc4Mix * (Math.sin(TAU * (f4 * t + phi4)) + 0.6 * triFromPhase(frac(f4 * t + phi4)));
-    y += p.osc4Mix * (Math.sin(TAU * (2 * f4 * t + (phi4 + p.phiOffset))) + 0.6 * triFromPhase(frac(2 * f4 * t + (phi4 + p.phiOffset))));
+    x += p.osc4Mix * (Math.sin(TAU * (f4 * t + phi4)) + 0.55 * triFromPhase(frac(f4 * t + phi4)));
+    y += p.osc4Mix * (Math.sin(TAU * (2 * f4 * t + (phi4 + p.phiOffset))) + 0.55 * triFromPhase(frac(2 * f4 * t + (phi4 + p.phiOffset))));
 
-    // linear geometry only (no warp)
+    // linear transform only
     ({ x, y } = applyLinearTransform(x, y, p));
 
     // soft clamp
@@ -228,4 +231,18 @@
     const clip = makeSoftClipper(ctx, drive);
 
     delay.connect(fbGain);
-    fbGain.connect(
+    fbGain.connect(clip);
+    clip.connect(delay);
+
+    return { delay };
+  }
+
+  function startAudio(pEff, fbOn, fbMul) {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AudioContext();
+
+    const f_aud = pEff.f_vis / 16;
+
+    const oscSin = ctx.createOscillator();
+    oscSin.type = "sine";
+
