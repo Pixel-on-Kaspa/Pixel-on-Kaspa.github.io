@@ -1,7 +1,8 @@
-// synthi/index.js — SAFE BOOT + PATCH A (Video-feedback sculpture)
-// If your UI IDs differ, this still runs.
-// Controls (always):
-//  A = start/stop audio
+// synthi/index.js — PATCH A (Video-feedback sculpture) — FIXED SIZE + BRIGHTER FILL
+// Always works even if some UI elements are missing.
+//
+// Keys:
+//  A = start/resume audio
 //  M = mute
 //  R = reroll
 //  F = toggle feedback
@@ -9,7 +10,7 @@
 //  [ ] = density -/+
 //  - = = exposure -/+
 //  , . = feedback strength -/+
-//  P = screenshot
+//  P = screenshot PNG
 
 (() => {
   "use strict";
@@ -60,7 +61,7 @@
     el.style.font = "12px ui-monospace, SFMono-Regular, Menlo, monospace";
     el.style.padding = "10px 12px";
     el.style.borderRadius = "12px";
-    el.style.maxWidth = "min(680px, 92vw)";
+    el.style.maxWidth = "min(760px, 92vw)";
     el.style.pointerEvents = "none";
     el.textContent = "SYNTHI boot…";
     document.body.appendChild(el);
@@ -72,14 +73,12 @@
     overlay.textContent = msg;
   }
 
-  /* ---------- find canvas + meta safely ---------- */
+  /* ---------- find canvas/meta safely ---------- */
   const canvas =
     document.getElementById("synthiCanvas") ||
     document.querySelector("canvas");
 
-  const meta =
-    document.getElementById("synthiMeta") ||
-    null;
+  const meta = document.getElementById("synthiMeta") || null;
 
   if (!canvas) {
     log("ERROR: canvas not found. Need <canvas id='synthiCanvas'> or any <canvas>.");
@@ -100,22 +99,32 @@
     return mulberry32(xmur3(s)());
   }
 
-  /* ---------- LOCKED square canvas sizing ---------- */
+  /* ---------- LOCKED square canvas sizing (with caps) ---------- */
   let _locked = { w: 0, h: 0, dpr: 1, css: 0 };
   function ensureCanvasSizeLocked() {
     const dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
     const parent = canvas.parentElement;
     const rect = parent ? parent.getBoundingClientRect() : canvas.getBoundingClientRect();
-    const sideCss = Math.max(1, Math.floor(Math.min(rect.width, rect.height)));
+
+    const maxByWidth = rect.width;
+    const maxByViewport = window.innerHeight * 0.72; // keeps it on one screen
+    const HARD_MAX = 860; // change: 720 / 860 / 980
+
+    const sideCss = Math.max(320, Math.floor(Math.min(maxByWidth, maxByViewport, HARD_MAX)));
     const W = Math.floor(sideCss * dpr);
     const H = Math.floor(sideCss * dpr);
-    const changed = (W !== _locked.w) || (H !== _locked.h) || (dpr !== _locked.dpr) || (sideCss !== _locked.css);
+
+    const changed =
+      (W !== _locked.w) || (H !== _locked.h) || (dpr !== _locked.dpr) || (sideCss !== _locked.css);
+
     if (changed) {
       _locked = { w: W, h: H, dpr, css: sideCss };
       canvas.width = W;
       canvas.height = H;
       canvas.style.width = `${sideCss}px`;
       canvas.style.height = `${sideCss}px`;
+      canvas.style.display = "block";
+      canvas.style.maxWidth = "100%";
     }
     return changed;
   }
@@ -145,30 +154,38 @@
       xTri: 0.95 + rng() * 0.65,
       yTri: 0.95 + rng() * 0.65,
 
-      padFrac: 0.10, // locked
+      // stable framing
+      padFrac: 0.10,
       gain: 0.92,
 
+      // gentle linear geometry (not warp)
       rot: (rng() - 0.5) * 0.35,
       shear: (rng() - 0.5) * 0.22,
 
+      // drift + PM
       driftCps: 0.0007 + rng() * 0.0006,
       pmHz: 0.04 + rng() * 0.14,
       pmDepth: 0.001 + rng() * 0.006,
 
+      // osc3 detail (detuned octave-ish)
       detune: (rng() < 0.5 ? -1 : 1) * (0.0004 + rng() * 0.0012),
-      osc3Mix: 0.10 + rng() * 0.20,
+      osc3Mix: 0.10 + rng() * 0.22,
       osc3Phi: rng(),
 
+      // osc4 slow "breathing" fill
       osc4Mul: 0.10 + rng() * 0.22,
-      osc4Mix: 0.06 + rng() * 0.14,
+      osc4Mix: 0.08 + rng() * 0.16,
       osc4Phi: rng(),
 
+      // pixel
       pixel: rng() < 0.5 ? 2 : 3,
 
+      // feedback transform baseline (slider scales it)
       fbScale: 1.001 + rng() * 0.004,
       fbRotate: (rng() - 0.5) * 0.012,
       fbShift: (rng() - 0.5) * 2.8,
 
+      // ramps
       ampRate: 0.018 + rng() * 0.060,
       densRate: 0.012 + rng() * 0.050,
       phiSpreadBase: 0.010 + rng() * 0.012,
@@ -198,6 +215,7 @@
     const pm = p.pmDepth * Math.sin(TAU * (p.pmHz * nowSec));
     const phi = phiCycles + pm;
 
+    // base 1:2
     const px = TAU * (f * t + phi);
     const py = TAU * (2 * f * t + (phi + p.phiOffset));
 
@@ -209,19 +227,20 @@
     let x = p.xSin * sx + p.xTri * tx;
     let y = p.ySin * sy + p.yTri * ty;
 
-    // osc3 detail
+    // osc3 detail layer
     const f3 = (2 * f) * (1 + p.detune);
     const phi3 = phiCycles + p.osc3Phi + pm * 0.35;
     x += p.osc3Mix * Math.sin(TAU * (f3 * t + phi3));
     y += p.osc3Mix * Math.sin(TAU * (2 * f3 * t + (phi3 + p.phiOffset)));
 
-    // osc4 slow fill
+    // osc4 slow fill layer
     const f4 = f * p.osc4Mul;
     const phi4 = phiCycles + p.osc4Phi + pm * 0.15;
     x += p.osc4Mix * (Math.sin(TAU * (f4 * t + phi4)) + 0.6 * triFromPhase(frac(f4 * t + phi4)));
     y += p.osc4Mix * (Math.sin(TAU * (2 * f4 * t + (phi4 + p.phiOffset))) + 0.6 * triFromPhase(frac(2 * f4 * t + (phi4 + p.phiOffset))));
 
     ({ x, y } = applyLinear(x, y, p));
+
     x = Math.tanh(0.78 * x);
     y = Math.tanh(0.78 * y);
     return { x, y };
@@ -229,6 +248,7 @@
 
   /* ---------- audio ---------- */
   let audio = null;
+
   function makeSoftClipper(ctx, drive = 1.0) {
     const shaper = ctx.createWaveShaper();
     const n = 2048;
@@ -244,13 +264,17 @@
   function buildDelayStage(ctx, delayTime, feedback, drive = 1.0) {
     const delay = ctx.createDelay(2.0);
     delay.delayTime.value = delayTime;
+
     const fbGain = ctx.createGain();
     fbGain.gain.value = feedback;
+
     const clip = makeSoftClipper(ctx, drive);
+
     delay.connect(fbGain);
     fbGain.connect(clip);
     clip.connect(delay);
-    return { delay, fbGain };
+
+    return { delay };
   }
   function startAudio(pEff, fbOn, fbMul) {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -285,13 +309,10 @@
     pre.gain.value = 0.22;
 
     const s = fbOn ? clamp(fbMul, 0, 1.2) : 0.0;
-    const fb1 = clamp(pEff.fb1 * s, 0, 0.95);
-    const fb2 = clamp(pEff.fb2 * s, 0, 0.95);
-    const fb3 = clamp(pEff.fb3 * s, 0, 0.95);
 
-    const d1 = buildDelayStage(actx, pEff.t1, fb1, 0.85);
-    const d2 = buildDelayStage(actx, pEff.t2, fb2, 0.95);
-    const d3 = buildDelayStage(actx, pEff.t3, fb3, 1.05);
+    const d1 = buildDelayStage(actx, pEff.t1, clamp(pEff.fb1 * s, 0, 0.95), 0.85);
+    const d2 = buildDelayStage(actx, pEff.t2, clamp(pEff.fb2 * s, 0, 0.95), 0.95);
+    const d3 = buildDelayStage(actx, pEff.t3, clamp(pEff.fb3 * s, 0, 0.95), 1.05);
 
     const post = actx.createGain();
     post.gain.value = 0.9;
@@ -324,22 +345,22 @@
     return audio;
   }
 
-  /* ---------- state + controls (works without UI) ---------- */
+  /* ---------- state ---------- */
   let rng = getRand();
   let base = makeParams(rng);
 
   let driftOn = true;
   let feedbackOn = true;
 
+  // defaults tuned for “not dark”
   let freqMul = 1.0;
-  let fbMul = 1.0;
-  let densityMul = 1.0;
-  let exposure = 1.0;
+  let fbMul = 1.05;
+  let densityMul = 1.25;
+  let exposure = 1.25;
 
   // stable drift integrator
   let driftPhase = 0;
   let lastT = performance.now();
-
   function stepDrift(now) {
     const dt = Math.min(0.05, Math.max(0, (now - lastT) / 1000));
     lastT = now;
@@ -351,7 +372,7 @@
     const f_vis = clamp(base.f_vis * freqMul, 200, 12000);
     const fb = feedbackOn ? clamp(fbMul, 0, 1.5) : 0;
 
-    // Make feedback clearly visible:
+    // clearly visible feedback alpha
     const visAlpha = feedbackOn ? clamp(0.55 + 0.35 * Math.min(1, fb), 0.55, 0.92) : 0;
 
     const scale = 1 + (base.fbScale - 1) * (0.35 + 1.8 * fb);
@@ -377,7 +398,26 @@
     a.click();
   }
 
-  // keyboard controls (always work)
+  function reroll() {
+    rerollCounter++;
+    rng = getRand();
+    base = makeParams(rng);
+    driftPhase = 0;
+    lastT = performance.now();
+    clearHard();
+
+    if (audio) {
+      const wasMuted = audio.muted;
+      audio.stop();
+      audio = null;
+      audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
+      audio.setMute(wasMuted);
+    }
+
+    if (window.$fx && typeof window.$fx.preview === "function") window.$fx.preview();
+  }
+
+  /* ---------- keyboard controls (always) ---------- */
   window.addEventListener("keydown", async (e) => {
     const k = e.key;
 
@@ -397,7 +437,6 @@
     if (k === "=" ) exposure = clamp(exposure + 0.05, 0.4, 2.0);
 
     if (k === "a" || k === "A") {
-      // start/stop audio
       try {
         if (!audio) audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
         if (audio && audio.ctx.state !== "running") await audio.ctx.resume();
@@ -410,27 +449,7 @@
     }
   });
 
-  function reroll() {
-    rerollCounter++;
-    rng = getRand();
-    base = makeParams(rng);
-    driftPhase = 0;
-    lastT = performance.now();
-    clearHard();
-
-    // restart audio if running
-    if (audio) {
-      const wasMuted = audio.muted;
-      audio.stop();
-      audio = null;
-      audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
-      audio.setMute(wasMuted);
-    }
-
-    if (window.$fx && typeof window.$fx.preview === "function") window.$fx.preview();
-  }
-
-  // optional button bindings (if IDs exist)
+  /* ---------- optional UI bindings (if your IDs exist) ---------- */
   const btnStart = document.getElementById("synthiStart");
   const btnMute  = document.getElementById("synthiMute");
   const btnReroll = document.getElementById("synthiReroll");
@@ -453,11 +472,7 @@
       log("Audio error: " + (err?.message || err));
     }
   });
-
-  if (btnMute) btnMute.addEventListener("click", () => {
-    if (!audio) return;
-    audio.setMute(!audio.muted);
-  });
+  if (btnMute) btnMute.addEventListener("click", () => { if (audio) audio.setMute(!audio.muted); });
 
   if (freqSlider) {
     const v = parseFloat(freqSlider.value);
@@ -467,14 +482,12 @@
       if (!Number.isNaN(nv)) freqMul = nv;
       if (audio) {
         const wasMuted = audio.muted;
-        audio.stop();
-        audio = null;
+        audio.stop(); audio = null;
         audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
         audio.setMute(wasMuted);
       }
     });
   }
-
   if (fbSlider) {
     const v = parseFloat(fbSlider.value);
     if (!Number.isNaN(v)) fbMul = v;
@@ -483,8 +496,7 @@
       if (!Number.isNaN(nv)) fbMul = nv;
       if (audio) {
         const wasMuted = audio.muted;
-        audio.stop();
-        audio = null;
+        audio.stop(); audio = null;
         audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
         audio.setMute(wasMuted);
       }
@@ -496,7 +508,6 @@
   /* ---------- render ---------- */
   clearHard();
 
-  // draw buffers: we want feedback visible AND depthy
   function projectFeedback(p) {
     if (!feedbackOn) return;
 
@@ -526,20 +537,19 @@
 
       const p = effective(now);
 
-      // 1) project feedback (creates sculpture depth)
+      // 1) feedback projection
       projectFeedback(p);
 
-      // 2) decay + exposure (control burn-in & brightness)
+      // 2) decay (LESS aggressive => brighter)
       ctx2d.save();
       ctx2d.globalCompositeOperation = "source-over";
-      // stronger feedback => slightly stronger decay to prevent whiteout
-      const decay = feedbackOn ? (0.08 + 0.06 * Math.min(1, fbMul)) : 0.12;
+      const decay = feedbackOn ? (0.045 + 0.030 * Math.min(1, fbMul)) : 0.075;
       ctx2d.globalAlpha = decay;
       ctx2d.fillStyle = "#000";
       ctx2d.fillRect(0, 0, canvas.width, canvas.height);
       ctx2d.restore();
 
-      // 3) draw points (grain accumulation)
+      // 3) point accumulation (MORE density + better alpha)
       const W = canvas.width, H = canvas.height;
       const cx = W / 2, cy = H / 2;
       const pad = Math.min(W, H) * p.padFrac;
@@ -547,26 +557,27 @@
       const sy = (H / 2 - pad) * p.gain;
 
       // ramps
-      const amp = (0.84 + 0.16 * Math.sin(TAU * (p.ampRate * p.nowSec)));
-      const dens = (0.55 + 0.45 * Math.sin(TAU * (p.densRate * p.nowSec + 0.2)));
-      const phiSpread = p.phiSpreadBase * (0.60 + 0.90 * (1 - dens));
+      const amp = (0.86 + 0.16 * Math.sin(TAU * (p.ampRate * p.nowSec)));
+      const dens = (0.62 + 0.38 * Math.sin(TAU * (p.densRate * p.nowSec + 0.2)));
+      const phiSpread = p.phiSpreadBase * (0.55 + 1.05 * (1 - dens));
       const phiBase = p.phi + (driftOn ? driftPhase : 0);
 
-      const baseN = 55000;
+      const baseN = 68000; // higher baseline fill
       const N = Math.floor(baseN * dens * densityMul);
 
-      const TWIN = 0.24; // time window for filling
+      const TWIN = 0.30; // slightly longer window => more “volume”
       const s = p.pixel;
 
-      // grain + exposure: alpha tuned for “sculpture”
       ctx2d.save();
       ctx2d.globalCompositeOperation = "lighter";
-      const alpha = clamp(0.26 * exposure, 0.08, 0.65);
-      ctx2d.globalAlpha = alpha;
-      ctx2d.fillStyle = "rgba(221,221,221,1)";
 
-      // mild pixel diffusion (not chaos)
-      const jitterK = 1.2 * s;
+      // brighter output
+      const alpha = clamp(0.34 * exposure, 0.10, 0.75);
+      ctx2d.globalAlpha = alpha;
+      ctx2d.fillStyle = "rgba(235,235,235,1)";
+
+      // mild diffusion
+      const jitterK = 1.35 * s;
 
       for (let i = 0; i < N; i++) {
         const t = Math.random() * TWIN;
@@ -577,8 +588,8 @@
         const px0 = (cx + x * sx * amp) | 0;
         const py0 = (cy - y * sy * amp) | 0;
 
-        const px = (px0 + ((Math.random() * 2 - 1) * jitterK) | 0);
-        const py = (py0 + ((Math.random() * 2 - 1) * jitterK) | 0);
+        const px = (px0 + (((Math.random() * 2 - 1) * jitterK) | 0));
+        const py = (py0 + (((Math.random() * 2 - 1) * jitterK) | 0));
 
         if (px <= 0 || py <= 0 || px >= W || py >= H) continue;
 
@@ -607,5 +618,5 @@
   }
 
   requestAnimationFrame(tick);
-  log("SYNTHI running. If buttons don't work, use keys: R/F/D/[,]/- etc. Press P for PNG.");
+  log("SYNTHI running. Use keys (R/F/D/[ ]/-/= ,/.). Press P for PNG.");
 })();
