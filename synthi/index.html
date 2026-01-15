@@ -28,7 +28,6 @@
     a{color:inherit}
     .wrap{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
 
-    /* Topbar */
     .topbar{
       display:flex;align-items:center;justify-content:space-between;gap:14px;
       border:1px solid var(--border);
@@ -69,7 +68,6 @@
     .btnPrimary:hover{background: rgba(0,196,255,.18);}
     .btnSm{padding:8px 12px;font-size:13px}
 
-    /* Hero */
     .hero{
       margin-top:14px;
       border:1px solid var(--border);
@@ -139,7 +137,6 @@
       font-weight:900;
     }
 
-    /* Layout */
     .grid{
       margin-top:14px;
       display:grid;
@@ -178,7 +175,6 @@
       white-space:nowrap;
     }
 
-    /* Stream cards */
     .streamGrid{
       display:grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -244,29 +240,38 @@
       flex-wrap:wrap;
     }
 
-    /* Right column */
     .stack{display:flex;flex-direction:column;gap:14px}
     .linkRow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 
-    /* Audio module controls */
-    .ctrl{
+    /* Custom audio UI */
+    .audioTop{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+    .audioTitle{
+      font-weight:900;letter-spacing:.12em;text-transform:uppercase;
+    }
+    .audioTime{opacity:.75;font-size:12px;white-space:nowrap}
+    .bar{
+      width:100%;
       border:1px solid rgba(255,255,255,.12);
       background: rgba(255,255,255,.04);
       border-radius:14px;
       padding:10px 12px;
       margin-top:12px;
     }
-    .ctrlHead{display:flex;justify-content:space-between;align-items:center;gap:10px}
-    .ctrlTitle{
-      font-size:12px;
-      letter-spacing:.14em;
-      text-transform:uppercase;
-      opacity:.9;
-      font-weight:900;
-      margin:0;
-    }
-    .ctrlVal{font-size:12px;opacity:.75;white-space:nowrap}
+    .barHead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .barLabel{font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.9;font-weight:900}
+    .barVal{font-size:12px;opacity:.75;white-space:nowrap}
     input[type="range"]{width:100%}
+
+    /* Hide the iframe engine */
+    .scEngine{
+      position:absolute !important;
+      width:1px !important;
+      height:1px !important;
+      left:-9999px !important;
+      top:-9999px !important;
+      opacity:0 !important;
+      pointer-events:none !important;
+    }
 
     footer{
       margin-top:18px;
@@ -349,35 +354,52 @@
       <!-- RIGHT -->
       <div class="stack">
 
-        <!-- AUDIO (module-ready, no page rewrite needed later) -->
+        <!-- AUDIO (custom UI, no click-through) -->
         <div class="panel" id="synthiAudio">
           <div class="panelHead">
             <b>Audio</b>
             <span class="chip">SoundCloud</span>
           </div>
-          <div class="panelBody">
-            <div class="muted" style="margin-bottom:10px">dlouhý d</div>
+          <div class="panelBody" style="position:relative">
+            <div class="audioTop">
+              <div class="audioTitle">dlouhý d</div>
+              <div class="audioTime" id="synthiAudioTime">00:00 / 00:00</div>
+            </div>
 
+            <div class="linkRow">
+              <button class="btn btnPrimary btnSm" id="synthiAudioPlay" type="button">Play</button>
+              <button class="btn btnSm" id="synthiAudioPause" type="button">Pause</button>
+              <button class="btn btnSm" id="synthiAudioRew" type="button">Rewind</button>
+            </div>
+
+            <div class="bar">
+              <div class="barHead">
+                <div class="barLabel">Position</div>
+                <div class="barVal" id="synthiAudioPosVal">—</div>
+              </div>
+              <input id="synthiAudioPos" type="range" min="0" max="1000" step="1" value="0" />
+            </div>
+
+            <div class="bar">
+              <div class="barHead">
+                <div class="barLabel">Volume</div>
+                <div class="barVal" id="synthiAudioVolVal">—</div>
+              </div>
+              <input id="synthiAudioVol" type="range" min="0" max="100" step="1" value="80" />
+              <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
+                No click-through: the SoundCloud iframe is hidden, only used as an engine.
+              </div>
+            </div>
+
+            <!-- SoundCloud engine (hidden) -->
             <iframe
+              class="scEngine"
               id="synthiScIframe"
-              width="100%"
-              height="166"
               scrolling="no"
               frameborder="no"
               allow="autoplay"
               src="https://w.soundcloud.com/player/?url=https%3A//soundcloud.com/user-130810224/dlouhy-d&color=%2300c4ff&auto_play=false&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false&visual=false">
             </iframe>
-
-            <div class="ctrl">
-              <div class="ctrlHead">
-                <div class="ctrlTitle">Volume</div>
-                <div class="ctrlVal" id="synthiAudioVolVal">—</div>
-              </div>
-              <input id="synthiAudioVol" type="range" min="0" max="100" step="1" value="80" />
-              <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
-                Controls SoundCloud volume (0–100).
-              </div>
-            </div>
           </div>
         </div>
 
@@ -394,7 +416,7 @@
           </div>
         </div>
 
-        <!-- LINKS (no PIXEL link here) -->
+        <!-- LINKS -->
         <div class="panel">
           <div class="panelHead"><b>Links</b></div>
           <div class="panelBody">
@@ -424,7 +446,6 @@
 
   </div>
 
-  <!-- REC grid renderer -->
   <script>
   (() => {
     const COIN_ID = "2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump";
@@ -483,11 +504,9 @@
         "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
       }[m]));
     }
-
     function recPlayerLink(streamIdx){
       return `./rec.html?s=${encodeURIComponent(String(streamIdx))}`;
     }
-
     function cardHtml(s, idx){
       const badge = `REC ${String(idx+1).padStart(2,"0")}`;
       return `
@@ -516,17 +535,21 @@
   })();
   </script>
 
-  <!-- SoundCloud Widget API + SYNTHI audio module -->
   <script src="https://w.soundcloud.com/player/api.js"></script>
   <script src="./js/synthi-audio.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      // Init audio module on index — no need to rewrite index later
       if (window.SynthiAudio) {
         window.SynthiAudio.init({
           iframeId: "synthiScIframe",
-          sliderId: "synthiAudioVol",
-          labelId: "synthiAudioVolVal",
+          playBtnId: "synthiAudioPlay",
+          pauseBtnId: "synthiAudioPause",
+          rewindBtnId: "synthiAudioRew",
+          posSliderId: "synthiAudioPos",
+          posLabelId: "synthiAudioPosVal",
+          timeLabelId: "synthiAudioTime",
+          volSliderId: "synthiAudioVol",
+          volLabelId: "synthiAudioVolVal",
           initialVolume: 80
         });
       }
