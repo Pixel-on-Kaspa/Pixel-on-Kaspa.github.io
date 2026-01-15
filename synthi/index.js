@@ -1,18 +1,6 @@
 // synthi/index.js — PATCH A + WARP (Video-feedback sculpture)
-// FIXED SIZE + BRIGHTER FILL + CONTROLLED WARP
-//
-// Keys:
-//  A = start/resume audio
-//  M = mute
-//  R = reroll
-//  F = toggle feedback
-//  D = toggle drift
-//  [ ] = density -/+
-//  - = = exposure -/+
-//  , . = feedback strength -/+
-//  W = warp on/off
-//  K / L = warp -/+
-//  P = screenshot PNG
+// + MASTER VOLUME (UI slider + keys 9/0)
+// + NO FIXED OVERLAY (meta goes to #synthiMeta if exists)
 
 (() => {
   "use strict";
@@ -49,47 +37,26 @@
     return Math.exp(lo + (hi - lo) * rng());
   }
 
-  /* ---------- diagnostics overlay ---------- */
-  function makeOverlay() {
-    const el = document.createElement("div");
-    el.style.position = "fixed";
-    el.style.left = "12px";
-    el.style.bottom = "12px";
-    el.style.zIndex = "999999";
-    el.style.background = "rgba(0,0,0,.55)";
-    el.style.border = "1px solid rgba(255,255,255,.15)";
-    el.style.backdropFilter = "blur(8px)";
-    el.style.color = "rgba(255,255,255,.9)";
-    el.style.font = "12px ui-monospace, SFMono-Regular, Menlo, monospace";
-    el.style.padding = "10px 12px";
-    el.style.borderRadius = "12px";
-    el.style.maxWidth = "min(860px, 92vw)";
-    el.style.pointerEvents = "none";
-    el.textContent = "SYNTHI boot…";
-    document.body.appendChild(el);
-    return el;
-  }
-  const overlay = makeOverlay();
+  /* ---------- logging (no overlay) ---------- */
+  const meta = document.getElementById("synthiMeta") || null;
   function log(msg) {
     console.log("[SYNTHI]", msg);
-    overlay.textContent = msg;
+    if (meta) meta.textContent = msg;
   }
 
-  /* ---------- find canvas/meta safely ---------- */
+  /* ---------- canvas ---------- */
   const canvas =
     document.getElementById("synthiCanvas") ||
     document.querySelector("canvas");
 
-  const meta = document.getElementById("synthiMeta") || null;
-
   if (!canvas) {
-    log("ERROR: canvas not found. Need <canvas id='synthiCanvas'> or any <canvas>.");
+    console.error("[SYNTHI] ERROR: canvas not found. Need <canvas id='synthiCanvas'>.");
     return;
   }
 
   const ctx2d = canvas.getContext("2d", { alpha: false });
   if (!ctx2d) {
-    log("ERROR: cannot get 2D context.");
+    console.error("[SYNTHI] ERROR: cannot get 2D context.");
     return;
   }
 
@@ -104,13 +71,13 @@
   /* ---------- LOCKED square canvas sizing (with caps) ---------- */
   let _locked = { w: 0, h: 0, dpr: 1, css: 0 };
   function ensureCanvasSizeLocked() {
-    const dpr = Math.max(1, Math.min(2.25, window.devicePixelRatio || 1)); // keep sane
+    const dpr = Math.max(1, Math.min(2.25, window.devicePixelRatio || 1));
     const parent = canvas.parentElement;
     const rect = parent ? parent.getBoundingClientRect() : canvas.getBoundingClientRect();
 
     const maxByWidth = rect.width;
-    const maxByViewport = window.innerHeight * 0.72; // keep it on one screen
-    const HARD_MAX = 860;
+    const maxByViewport = window.innerHeight * 0.78;
+    const HARD_MAX = 920;
 
     const sideCss = Math.max(240, Math.floor(Math.min(maxByWidth, maxByViewport, HARD_MAX)));
     const W = Math.floor(sideCss * dpr);
@@ -156,48 +123,38 @@
       xTri: 0.95 + rng() * 0.65,
       yTri: 0.95 + rng() * 0.65,
 
-      // stable framing
       padFrac: 0.10,
       gain: 0.92,
 
-      // gentle linear geometry
       rot: (rng() - 0.5) * 0.35,
       shear: (rng() - 0.5) * 0.22,
 
-      // drift + PM
       driftCps: 0.0007 + rng() * 0.0006,
       pmHz: 0.04 + rng() * 0.14,
       pmDepth: 0.001 + rng() * 0.006,
 
-      // osc3 detail (detuned octave-ish)
       detune: (rng() < 0.5 ? -1 : 1) * (0.0004 + rng() * 0.0012),
       osc3Mix: 0.10 + rng() * 0.22,
       osc3Phi: rng(),
 
-      // osc4 slow "breathing" fill
       osc4Mul: 0.10 + rng() * 0.22,
       osc4Mix: 0.08 + rng() * 0.16,
       osc4Phi: rng(),
 
-      // pixel
       pixel: rng() < 0.5 ? 2 : 3,
 
-      // feedback transform baseline (slider scales it)
       fbScale: 1.001 + rng() * 0.004,
       fbRotate: (rng() - 0.5) * 0.012,
       fbShift: (rng() - 0.5) * 2.8,
 
-      // ramps
       ampRate: 0.018 + rng() * 0.060,
       densRate: 0.012 + rng() * 0.050,
       phiSpreadBase: 0.010 + rng() * 0.012,
 
-      // ---- WARP (controlled cross-coupling) ----
-      warpBase: 0.06 + rng() * 0.18,     // 0.06..0.24 (safe default)
-      warpRate: 0.03 + rng() * 0.11,     // slow modulation
+      warpBase: 0.06 + rng() * 0.18,
+      warpRate: 0.03 + rng() * 0.11,
       warpPhase: rng(),
 
-      // audio
       a: 0.70,
       b: 0.40,
       t1: (2 + rng() * 7) / 1000,
@@ -222,7 +179,6 @@
     const pm = p.pmDepth * Math.sin(TAU * (p.pmHz * nowSec));
     const phi = phiCycles + pm;
 
-    // base 1:2
     const px = TAU * (f * t + phi);
     const py = TAU * (2 * f * t + (phi + p.phiOffset));
 
@@ -234,37 +190,27 @@
     let x = p.xSin * sx + p.xTri * tx;
     let y = p.ySin * sy + p.yTri * ty;
 
-    // osc3 detail layer
     const f3 = (2 * f) * (1 + p.detune);
     const phi3 = phiCycles + p.osc3Phi + pm * 0.35;
     x += p.osc3Mix * Math.sin(TAU * (f3 * t + phi3));
     y += p.osc3Mix * Math.sin(TAU * (2 * f3 * t + (phi3 + p.phiOffset)));
 
-    // osc4 slow fill layer
     const f4 = f * p.osc4Mul;
     const phi4 = phiCycles + p.osc4Phi + pm * 0.15;
     x += p.osc4Mix * (Math.sin(TAU * (f4 * t + phi4)) + 0.6 * triFromPhase(frac(f4 * t + phi4)));
     y += p.osc4Mix * (Math.sin(TAU * (2 * f4 * t + (phi4 + p.phiOffset))) + 0.6 * triFromPhase(frac(2 * f4 * t + (phi4 + p.phiOffset))));
 
-    // linear transform first
     ({ x, y } = applyLinear(x, y, p));
 
-    // ---- WARP (cross-coupling) ----
-    // Controlled & modulated: adds topology without chaos.
     if (p.warpEff > 0) {
-      const w = p.warpEff;   // ~0..0.6
+      const w = p.warpEff;
       const x0 = x, y0 = y;
-
-      // symmetrical-ish mix
       x = x0 + w * y0;
       y = y0 - w * x0;
-
-      // soft clamp right after warp to prevent pulsing blowups
       x = Math.tanh(0.92 * x);
       y = Math.tanh(0.92 * y);
     }
 
-    // final mastering clamp
     x = Math.tanh(0.78 * x);
     y = Math.tanh(0.78 * y);
     return { x, y };
@@ -272,6 +218,7 @@
 
   /* ---------- audio ---------- */
   let audio = null;
+  let masterVol = 0.70; // 0..1
 
   function makeSoftClipper(ctx, drive = 1.0) {
     const shaper = ctx.createWaveShaper();
@@ -300,6 +247,7 @@
 
     return { delay };
   }
+
   function startAudio(pEff, fbOn, fbMul) {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const actx = new AudioContext();
@@ -343,13 +291,17 @@
 
     const masterClip = makeSoftClipper(actx, 0.9);
 
+    const masterGain = actx.createGain();
+    masterGain.gain.value = masterVol;
+
     sum.connect(pre);
     pre.connect(d1.delay);
     d1.delay.connect(d2.delay);
     d2.delay.connect(d3.delay);
     d3.delay.connect(post);
     post.connect(masterClip);
-    masterClip.connect(actx.destination);
+    masterClip.connect(masterGain);
+    masterGain.connect(actx.destination);
 
     const now = actx.currentTime + 0.02;
     const triOffset = 0.25 / (oscTri.frequency.value || 1);
@@ -360,7 +312,15 @@
     audio = {
       ctx: actx,
       muted: false,
-      setMute(on) { post.gain.value = on ? 0 : 0.9; this.muted = on; },
+      masterGain,
+      setMute(on) {
+        this.muted = on;
+        this.masterGain.gain.value = on ? 0 : masterVol;
+      },
+      setVolume(v01){
+        masterVol = clamp(v01, 0, 1);
+        if (!this.muted) this.masterGain.gain.value = masterVol;
+      },
       stop() {
         try { oscSin.stop(); oscTri.stop(); oscDet.stop(); } catch {}
         try { actx.close(); } catch {}
@@ -376,17 +336,14 @@
   let driftOn = true;
   let feedbackOn = true;
 
-  // defaults tuned for “not dark”
   let freqMul = 1.0;
   let fbMul = 1.05;
   let densityMul = 1.25;
   let exposure = 1.25;
 
-  // ---- warp controls ----
   let warpOn = true;
-  let warpMul = 1.0;   // scales warpBase; safe range 0..1.6
+  let warpMul = 1.0;
 
-  // stable drift integrator
   let driftPhase = 0;
   let lastT = performance.now();
   function stepDrift(now) {
@@ -399,15 +356,12 @@
   function effective(nowMs) {
     const f_vis = clamp(base.f_vis * freqMul, 200, 12000);
     const fb = feedbackOn ? clamp(fbMul, 0, 1.5) : 0;
-
-    // clearly visible feedback alpha
     const visAlpha = feedbackOn ? clamp(0.55 + 0.35 * Math.min(1, fb), 0.55, 0.92) : 0;
 
     const scale = 1 + (base.fbScale - 1) * (0.35 + 1.8 * fb);
     const rotate = base.fbRotate * (0.35 + 2.0 * fb);
     const shift = base.fbShift * (0.35 + 2.4 * fb);
 
-    // WARP: slow modulation so it evolves (but not jittery)
     const nowSec = nowMs / 1000;
     const wMod = 0.65 + 0.35 * Math.sin(TAU * (base.warpRate * nowSec) + TAU * base.warpPhase);
     const warpEff = (warpOn ? clamp(base.warpBase * warpMul * wMod, 0, 0.65) : 0);
@@ -446,12 +400,13 @@
       audio = null;
       audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
       audio.setMute(wasMuted);
+      audio.setVolume(masterVol);
     }
 
     if (window.$fx && typeof window.$fx.preview === "function") window.$fx.preview();
   }
 
-  /* ---------- keyboard controls (always) ---------- */
+  /* ---------- keyboard controls ---------- */
   window.addEventListener("keydown", async (e) => {
     const k = e.key;
 
@@ -474,12 +429,24 @@
     if (k === "k" || k === "K") warpMul = clamp(warpMul - 0.05, 0, 1.6);
     if (k === "l" || k === "L") warpMul = clamp(warpMul + 0.05, 0, 1.6);
 
+    if (k === "9") {
+      masterVol = clamp(masterVol - 0.05, 0, 1);
+      if (audio) audio.setVolume(masterVol);
+      updateVolUI();
+    }
+    if (k === "0") {
+      masterVol = clamp(masterVol + 0.05, 0, 1);
+      if (audio) audio.setVolume(masterVol);
+      updateVolUI();
+    }
+
     if (k === "a" || k === "A") {
       try {
         if (!audio) audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
         if (audio && audio.ctx.state !== "running") await audio.ctx.resume();
+        audio.setVolume(masterVol);
       } catch (err) {
-        log("Audio error: " + (err?.message || err));
+        console.error("[SYNTHI] Audio error:", err);
       }
     }
     if (k === "m" || k === "M") {
@@ -487,7 +454,7 @@
     }
   });
 
-  /* ---------- optional UI bindings (if your IDs exist) ---------- */
+  /* ---------- UI bindings ---------- */
   const btnStart = document.getElementById("synthiStart");
   const btnMute  = document.getElementById("synthiMute");
   const btnReroll = document.getElementById("synthiReroll");
@@ -496,6 +463,28 @@
   const btnShot   = document.getElementById("synthiShot");
   const freqSlider = document.getElementById("freqSlider");
   const fbSlider = document.getElementById("fbSlider");
+
+  const genVol = document.getElementById("genVol");
+  const genVolVal = document.getElementById("genVolVal");
+
+  function updateVolUI(){
+    if (!genVol || !genVolVal) return;
+    const v = Math.round(masterVol * 100);
+    genVol.value = String(v);
+    genVolVal.textContent = `${v}%`;
+  }
+
+  if (genVol) {
+    const init = parseInt(genVol.value, 10);
+    if (!Number.isNaN(init)) masterVol = clamp(init / 100, 0, 1);
+    updateVolUI();
+    genVol.addEventListener("input", () => {
+      const v = parseInt(genVol.value, 10);
+      masterVol = clamp((Number.isNaN(v) ? 70 : v) / 100, 0, 1);
+      if (audio) audio.setVolume(masterVol);
+      updateVolUI();
+    });
+  }
 
   if (btnShot) btnShot.addEventListener("click", savePNG);
   if (btnReroll) btnReroll.addEventListener("click", reroll);
@@ -506,11 +495,15 @@
     try {
       if (!audio) audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
       if (audio && audio.ctx.state !== "running") await audio.ctx.resume();
+      audio.setVolume(masterVol);
     } catch (err) {
-      log("Audio error: " + (err?.message || err));
+      console.error("[SYNTHI] Audio error:", err);
     }
   });
-  if (btnMute) btnMute.addEventListener("click", () => { if (audio) audio.setMute(!audio.muted); });
+
+  if (btnMute) btnMute.addEventListener("click", () => {
+    if (audio) audio.setMute(!audio.muted);
+  });
 
   if (freqSlider) {
     const v = parseFloat(freqSlider.value);
@@ -523,9 +516,11 @@
         audio.stop(); audio = null;
         audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
         audio.setMute(wasMuted);
+        audio.setVolume(masterVol);
       }
     });
   }
+
   if (fbSlider) {
     const v = parseFloat(fbSlider.value);
     if (!Number.isNaN(v)) fbMul = v;
@@ -537,6 +532,7 @@
         audio.stop(); audio = null;
         audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
         audio.setMute(wasMuted);
+        audio.setVolume(masterVol);
       }
     });
   }
@@ -575,10 +571,8 @@
 
       const p = effective(now);
 
-      // 1) feedback projection
       projectFeedback(p);
 
-      // 2) decay (LESS aggressive => brighter)
       ctx2d.save();
       ctx2d.globalCompositeOperation = "source-over";
       const decay = feedbackOn ? (0.045 + 0.030 * Math.min(1, fbMul)) : 0.075;
@@ -587,14 +581,12 @@
       ctx2d.fillRect(0, 0, canvas.width, canvas.height);
       ctx2d.restore();
 
-      // 3) point accumulation
       const W = canvas.width, H = canvas.height;
       const cx = W / 2, cy = H / 2;
       const pad = Math.min(W, H) * p.padFrac;
       const sx = (W / 2 - pad) * p.gain;
       const sy = (H / 2 - pad) * p.gain;
 
-      // ramps
       const amp = (0.86 + 0.16 * Math.sin(TAU * (p.ampRate * p.nowSec)));
       const dens = (0.62 + 0.38 * Math.sin(TAU * (p.densRate * p.nowSec + 0.2)));
       const phiSpread = p.phiSpreadBase * (0.55 + 1.05 * (1 - dens));
@@ -636,24 +628,33 @@
 
       ctx2d.restore();
 
-      // label
       const detCents = 1200 * Math.log2(1 + p.detune);
       const text =
         `PATCH A+WARP • f ${p.f_vis.toFixed(1)}Hz • fb ${feedbackOn ? fbMul.toFixed(2) : "OFF"} • ` +
         `warp ${warpOn ? warpMul.toFixed(2) : "OFF"} (${p.warpEff.toFixed(3)}) • ` +
-        `dens ${densityMul.toFixed(2)} • exp ${exposure.toFixed(2)} • drift ${driftOn ? driftPhase.toFixed(3) : "OFF"} • det ${detCents.toFixed(2)}c\n` +
-        `Keys: A audio, M mute, R reroll, F fb, D drift, W warp, K/L warp-,+, [,] dens, -/= exp, ,/. fb, P png`;
+        `dens ${densityMul.toFixed(2)} • exp ${exposure.toFixed(2)} • drift ${driftOn ? driftPhase.toFixed(3) : "OFF"} • det ${detCents.toFixed(2)}c • vol ${Math.round(masterVol*100)}%`;
 
       log(text);
-      if (meta) meta.textContent = text;
+
+      const driftBtn = document.getElementById("synthiDriftToggle");
+      if (driftBtn) driftBtn.textContent = `Drift: ${driftOn ? "ON" : "OFF"}`;
+      const fbBtn = document.getElementById("synthiFbToggle");
+      if (fbBtn) fbBtn.textContent = `Feedback: ${feedbackOn ? "ON" : "OFF"}`;
+
+      updateVolUI();
+
+      const freqVal = document.getElementById("freqVal");
+      if (freqVal) freqVal.textContent = `${freqMul.toFixed(2)}×`;
+      const fbVal = document.getElementById("fbVal");
+      if (fbVal) fbVal.textContent = feedbackOn ? fbMul.toFixed(2) : "OFF";
 
     } catch (err) {
-      log("RUNTIME ERROR: " + (err?.message || err));
+      console.error("[SYNTHI] RUNTIME ERROR:", err);
     }
 
     requestAnimationFrame(tick);
   }
 
   requestAnimationFrame(tick);
-  log("SYNTHI running. Press W to toggle warp. K/L adjust warp. P saves PNG.");
+  log("SYNTHI running.");
 })();
