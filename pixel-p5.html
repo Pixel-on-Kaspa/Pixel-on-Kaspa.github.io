@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PIXEL • p5 Generator</title>
+  <style>
+    :root{
+      --bg1:#121623;
+      --bg2:#050608;
+      --panel: rgba(0,0,0,.18);
+      --border: rgba(255,255,255,.12);
+      --muted: rgba(255,255,255,.70);
+      --accent:#00c4ff;
+      --shadow: 0 18px 35px rgba(0,0,0,.50);
+      --text:#f5f5f5;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
+      background: radial-gradient(circle at top, var(--bg1) 0, var(--bg2) 52%);
+      color:var(--text);
+      min-height:100vh;
+    }
+    a{color:inherit}
+    .wrap{max-width:1100px;margin:0 auto;padding:22px 16px 56px}
+
+    .topbar{
+      display:flex;align-items:center;justify-content:space-between;
+      gap:14px;
+      border:1px solid var(--border);
+      border-radius:16px;
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      padding:12px 14px;
+      box-shadow: var(--shadow);
+    }
+    .brand{
+      display:flex;align-items:baseline;gap:10px;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      font-weight:900;
+      white-space:nowrap;
+    }
+    .brand small{opacity:.7;font-weight:700;letter-spacing:.08em;text-transform:none;white-space:nowrap;}
+    .nav{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center;}
+
+    .btn{
+      text-decoration:none;
+      display:inline-flex;align-items:center;gap:8px;
+      padding:9px 14px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.88);
+      font-weight:750;
+      transition: background .15s, color .15s, transform .15s, border-color .15s;
+      white-space:nowrap;line-height:1;cursor:pointer;user-select:none;
+    }
+    .btn:hover{background: rgba(255,255,255,.12);color:#fff;transform: translateY(-1px);}
+    .btnPrimary{
+      border-color: rgba(0,196,255,.70);
+      color: var(--accent);
+      background: rgba(0,196,255,.08);
+    }
+    .btnPrimary:hover{background: var(--accent); color:#020308;}
+
+    .panel{
+      margin-top:18px;
+      border:1px solid var(--border);
+      border-radius:22px;
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .panelHead{
+      padding:12px 14px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      display:flex;justify-content:space-between;align-items:center;gap:10px;
+    }
+    .panelHead b{
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      font-weight:900;
+      font-size:14px;
+      opacity:.90;
+    }
+    .panelBody{padding:14px}
+    .muted{opacity:.76}
+
+    #p5host{
+      width:100%;
+      aspect-ratio: 1/1;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.10);
+      background:#000;
+      overflow:hidden;
+      display:flex;align-items:center;justify-content:center;
+    }
+
+    .ctrlRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center}
+
+    .ctrl{
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      border-radius:16px;
+      padding:12px;
+      margin-top:12px;
+    }
+    .ctrlHead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .ctrlTitle{font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.9;font-weight:900;margin:0;}
+    .ctrlVal{font-size:12px;opacity:.75;white-space:nowrap}
+    input[type="range"]{width:100%}
+
+    @media (max-width: 980px){
+      .brand small{display:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        PIXEL P5 <small>one-liner → generator</small>
+      </div>
+      <div class="nav">
+        <a class="btn" href="/">Home</a>
+        <a class="btn" href="/viewer">NFTs</a>
+        <a class="btn" href="/synthi/">SYNTHI</a>
+        <a class="btn" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
+        <a class="btn" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
+      </div>
+    </div>
+
+    <section class="panel">
+      <div class="panelHead">
+        <b>PIXEL generator</b>
+        <span class="muted">p5.js</span>
+      </div>
+      <div class="panelBody">
+        <div id="p5host"></div>
+
+        <div class="ctrlRow">
+          <button class="btn btnPrimary" id="pxPlay" type="button">Play</button>
+          <button class="btn" id="pxPause" type="button">Pause</button>
+          <button class="btn" id="pxPng" type="button">PNG</button>
+          <button class="btn" id="pxFs" type="button">Fullscreen</button>
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrlHead">
+            <div class="ctrlTitle">Speed</div>
+            <div class="ctrlVal" id="pxSpeedVal">1.00×</div>
+          </div>
+          <input id="pxSpeed" type="range" min="0.25" max="2.50" step="0.01" value="1.00" />
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrlHead">
+            <div class="ctrlTitle">Quality</div>
+            <div class="ctrlVal" id="pxQVal">400</div>
+          </div>
+          <input id="pxQ" type="range" min="260" max="900" step="1" value="400" />
+          <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
+            Bigger canvas = heavier CPU, sharper export.
+          </div>
+        </div>
+
+        <div class="muted" style="margin-top:12px;line-height:1.55">
+          Core loop stays faithful to your tweet. Controls are optional.
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
+  <script type="module" src="/js/pixel-p5.js"></script>
+</body>
+</html>
