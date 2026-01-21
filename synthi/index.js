@@ -1,6 +1,18 @@
-// synthi/index.js — PATCH A + WARP (Video-feedback sculpture)
-// + MASTER VOLUME (UI slider + keys 9/0)
-// + NO FIXED OVERLAY (meta goes to #synthiMeta if exists)
+// synthi/index.js — PATCH A + WARP + BEAT (no-samples drum synth)
+// Video-feedback sculpture + audio-reactive visuals + step sequencer
+//
+// Keys:
+//  A = start/resume audio
+//  M = mute
+//  R = reroll
+//  F = toggle feedback
+//  D = toggle drift
+//  [ ] = density -/+
+//  - = = exposure -/+
+//  , . = feedback strength -/+
+//  W = warp on/off
+//  K / L = warp -/+
+//  P = screenshot PNG
 
 (() => {
   "use strict";
@@ -37,26 +49,47 @@
     return Math.exp(lo + (hi - lo) * rng());
   }
 
-  /* ---------- logging (no overlay) ---------- */
-  const meta = document.getElementById("synthiMeta") || null;
+  /* ---------- diagnostics overlay ---------- */
+  function makeOverlay() {
+    const el = document.createElement("div");
+    el.style.position = "fixed";
+    el.style.left = "12px";
+    el.style.bottom = "12px";
+    el.style.zIndex = "999999";
+    el.style.background = "rgba(0,0,0,.55)";
+    el.style.border = "1px solid rgba(255,255,255,.15)";
+    el.style.backdropFilter = "blur(8px)";
+    el.style.color = "rgba(255,255,255,.9)";
+    el.style.font = "12px ui-monospace, SFMono-Regular, Menlo, monospace";
+    el.style.padding = "10px 12px";
+    el.style.borderRadius = "12px";
+    el.style.maxWidth = "min(920px, 92vw)";
+    el.style.pointerEvents = "none";
+    el.textContent = "SYNTHI boot…";
+    document.body.appendChild(el);
+    return el;
+  }
+  const overlay = makeOverlay();
   function log(msg) {
     console.log("[SYNTHI]", msg);
-    if (meta) meta.textContent = msg;
+    overlay.textContent = msg;
   }
 
-  /* ---------- canvas ---------- */
+  /* ---------- find canvas/meta safely ---------- */
   const canvas =
     document.getElementById("synthiCanvas") ||
     document.querySelector("canvas");
 
+  const meta = document.getElementById("synthiMeta") || null;
+
   if (!canvas) {
-    console.error("[SYNTHI] ERROR: canvas not found. Need <canvas id='synthiCanvas'>.");
+    log("ERROR: canvas not found. Need <canvas id='synthiCanvas'> or any <canvas>.");
     return;
   }
 
   const ctx2d = canvas.getContext("2d", { alpha: false });
   if (!ctx2d) {
-    console.error("[SYNTHI] ERROR: cannot get 2D context.");
+    log("ERROR: cannot get 2D context.");
     return;
   }
 
@@ -71,13 +104,13 @@
   /* ---------- LOCKED square canvas sizing (with caps) ---------- */
   let _locked = { w: 0, h: 0, dpr: 1, css: 0 };
   function ensureCanvasSizeLocked() {
-    const dpr = Math.max(1, Math.min(2.25, window.devicePixelRatio || 1));
+    const dpr = Math.max(1, Math.min(2.25, window.devicePixelRatio || 1)); // keep sane
     const parent = canvas.parentElement;
     const rect = parent ? parent.getBoundingClientRect() : canvas.getBoundingClientRect();
 
     const maxByWidth = rect.width;
-    const maxByViewport = window.innerHeight * 0.78;
-    const HARD_MAX = 920;
+    const maxByViewport = window.innerHeight * 0.72;
+    const HARD_MAX = 860;
 
     const sideCss = Math.max(240, Math.floor(Math.min(maxByWidth, maxByViewport, HARD_MAX)));
     const W = Math.floor(sideCss * dpr);
@@ -155,6 +188,7 @@
       warpRate: 0.03 + rng() * 0.11,
       warpPhase: rng(),
 
+      // audio
       a: 0.70,
       b: 0.40,
       t1: (2 + rng() * 7) / 1000,
@@ -216,9 +250,25 @@
     return { x, y };
   }
 
-  /* ---------- audio ---------- */
+  /* ---------- audio: master + limiter + analyser + drum synth ---------- */
   let audio = null;
-  let masterVol = 0.70; // 0..1
+
+  let masterVol = 0.70;
+  let analyser = null;
+  let fft = null;
+  let env = { level: 0, bass: 0, mid: 0, hi: 0 };
+
+  // beat seq
+  let seqOn = false;
+  let bpm = 120;
+  let seqStep = 0;
+  let seqNextTime = 0;
+  const seq = {
+    kick: new Array(16).fill(0),
+    snare: new Array(16).fill(0),
+    hat: new Array(16).fill(0),
+    perc: new Array(16).fill(0),
+  };
 
   function makeSoftClipper(ctx, drive = 1.0) {
     const shaper = ctx.createWaveShaper();
@@ -232,6 +282,7 @@
     shaper.oversample = "2x";
     return shaper;
   }
+
   function buildDelayStage(ctx, delayTime, feedback, drive = 1.0) {
     const delay = ctx.createDelay(2.0);
     delay.delayTime.value = delayTime;
@@ -248,9 +299,145 @@
     return { delay };
   }
 
+  // drum synth helpers
+  function noiseBuffer(actx, seconds = 1.0) {
+    const len = Math.max(1, Math.floor(actx.sampleRate * seconds));
+    const buf = actx.createBuffer(1, len, actx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * 0.9;
+    return buf;
+  }
+
+  function drumKick(actx, when, out, vel = 1.0) {
+    // sine pitch drop + short click
+    const osc = actx.createOscillator();
+    osc.type = "sine";
+
+    const g = actx.createGain();
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.exponentialRampToValueAtTime(0.9 * vel, when + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + 0.22);
+
+    osc.frequency.setValueAtTime(140, when);
+    osc.frequency.exponentialRampToValueAtTime(52, when + 0.08);
+    osc.frequency.exponentialRampToValueAtTime(38, when + 0.18);
+
+    const drive = makeSoftClipper(actx, 0.9);
+    osc.connect(g);
+    g.connect(drive);
+    drive.connect(out);
+
+    osc.start(when);
+    osc.stop(when + 0.30);
+  }
+
+  function drumSnare(actx, when, out, vel = 1.0) {
+    const nbuf = audio._noiseBuf || (audio._noiseBuf = noiseBuffer(actx, 1.0));
+    const n = actx.createBufferSource();
+    n.buffer = nbuf;
+
+    const hp = actx.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.setValueAtTime(900, when);
+
+    const bp = actx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.setValueAtTime(1900, when);
+    bp.Q.value = 0.9;
+
+    const g = actx.createGain();
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.exponentialRampToValueAtTime(0.65 * vel, when + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + 0.18);
+
+    n.connect(hp);
+    hp.connect(bp);
+    bp.connect(g);
+    g.connect(out);
+
+    n.start(when);
+    n.stop(when + 0.20);
+
+    // little tone body
+    const osc = actx.createOscillator();
+    osc.type = "triangle";
+    const tg = actx.createGain();
+    tg.gain.setValueAtTime(0.0001, when);
+    tg.gain.exponentialRampToValueAtTime(0.18 * vel, when + 0.004);
+    tg.gain.exponentialRampToValueAtTime(0.0001, when + 0.08);
+    osc.frequency.setValueAtTime(210, when);
+    osc.connect(tg);
+    tg.connect(out);
+    osc.start(when);
+    osc.stop(when + 0.12);
+  }
+
+  function drumHat(actx, when, out, vel = 1.0) {
+    const nbuf = audio._noiseBuf || (audio._noiseBuf = noiseBuffer(actx, 1.0));
+    const n = actx.createBufferSource();
+    n.buffer = nbuf;
+
+    const hp = actx.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.setValueAtTime(6500, when);
+
+    const g = actx.createGain();
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.exponentialRampToValueAtTime(0.35 * vel, when + 0.001);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + 0.06);
+
+    n.connect(hp);
+    hp.connect(g);
+    g.connect(out);
+
+    n.start(when);
+    n.stop(when + 0.08);
+  }
+
+  function drumPerc(actx, when, out, vel = 1.0) {
+    // metallic ping
+    const osc = actx.createOscillator();
+    osc.type = "sine";
+    const g = actx.createGain();
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.exponentialRampToValueAtTime(0.28 * vel, when + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + 0.14);
+
+    const f0 = 420 + Math.random() * 240;
+    osc.frequency.setValueAtTime(f0, when);
+    osc.frequency.exponentialRampToValueAtTime(f0 * 0.6, when + 0.12);
+
+    const bp = actx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.setValueAtTime(1600 + Math.random() * 900, when);
+    bp.Q.value = 6;
+
+    osc.connect(g);
+    g.connect(bp);
+    bp.connect(out);
+
+    osc.start(when);
+    osc.stop(when + 0.18);
+  }
+
   function startAudio(pEff, fbOn, fbMul) {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const actx = new AudioContext();
+
+    // master chain
+    const masterGain = actx.createGain();
+    masterGain.gain.value = masterVol;
+
+    const limiter = actx.createDynamicsCompressor();
+    limiter.threshold.value = -12;
+    limiter.knee.value = 6;
+    limiter.ratio.value = 12;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.12;
+
+    analyser = actx.createAnalyser();
+    analyser.fftSize = 2048;
+    fft = new Uint8Array(analyser.frequencyBinCount);
 
     const f_aud = pEff.f_vis / 16;
 
@@ -291,17 +478,18 @@
 
     const masterClip = makeSoftClipper(actx, 0.9);
 
-    const masterGain = actx.createGain();
-    masterGain.gain.value = masterVol;
-
     sum.connect(pre);
     pre.connect(d1.delay);
     d1.delay.connect(d2.delay);
     d2.delay.connect(d3.delay);
     d3.delay.connect(post);
     post.connect(masterClip);
+
+    // to master
     masterClip.connect(masterGain);
-    masterGain.connect(actx.destination);
+    masterGain.connect(limiter);
+    limiter.connect(analyser);
+    analyser.connect(actx.destination);
 
     const now = actx.currentTime + 0.02;
     const triOffset = 0.25 / (oscTri.frequency.value || 1);
@@ -311,14 +499,15 @@
 
     audio = {
       ctx: actx,
-      muted: false,
       masterGain,
+      muted: false,
+      _noiseBuf: null,
       setMute(on) {
         this.muted = on;
         this.masterGain.gain.value = on ? 0 : masterVol;
       },
-      setVolume(v01){
-        masterVol = clamp(v01, 0, 1);
+      setVol(v) {
+        masterVol = clamp(v, 0, 1);
         if (!this.muted) this.masterGain.gain.value = masterVol;
       },
       stop() {
@@ -326,7 +515,61 @@
         try { actx.close(); } catch {}
       }
     };
+
+    // init seq time
+    seqNextTime = actx.currentTime + 0.05;
+    seqStep = 0;
+
     return audio;
+  }
+
+  function scheduleBeat(nowSec) {
+    if (!audio || !seqOn) return;
+
+    const actx = audio.ctx;
+    const stepDur = 60 / Math.max(1, bpm) / 4; // 16th
+    const lookahead = 0.12;
+
+    while (seqNextTime < nowSec + lookahead) {
+      const s = seqStep & 15;
+
+      // default velocities can be tweaked
+      if (seq.kick[s])  drumKick(actx, seqNextTime, audio.masterGain, 1.0);
+      if (seq.snare[s]) drumSnare(actx, seqNextTime, audio.masterGain, 1.0);
+      if (seq.hat[s])   drumHat(actx, seqNextTime, audio.masterGain, 1.0);
+      if (seq.perc[s])  drumPerc(actx, seqNextTime, audio.masterGain, 1.0);
+
+      seqStep = (seqStep + 1) & 15;
+      seqNextTime += stepDur;
+    }
+  }
+
+  function updateAnalysis() {
+    if (!analyser || !fft) return env;
+
+    analyser.getByteFrequencyData(fft);
+
+    const N = fft.length;
+    const band = (a, b) => {
+      const i0 = Math.floor(clamp(a, 0, 1) * (N - 1));
+      const i1 = Math.floor(clamp(b, 0, 1) * (N - 1));
+      let s = 0, c = 0;
+      for (let i = i0; i <= i1; i++) { s += fft[i]; c++; }
+      return c ? (s / c) / 255 : 0;
+    };
+
+    const bass = band(0.00, 0.10);
+    const mid  = band(0.10, 0.35);
+    const hi   = band(0.35, 0.90);
+
+    const level = clamp(0.55 * bass + 0.35 * mid + 0.20 * hi, 0, 1);
+
+    env.level = env.level * 0.86 + level * 0.14;
+    env.bass  = env.bass  * 0.86 + bass  * 0.14;
+    env.mid   = env.mid   * 0.86 + mid   * 0.14;
+    env.hi    = env.hi    * 0.86 + hi    * 0.14;
+
+    return env;
   }
 
   /* ---------- state ---------- */
@@ -356,6 +599,7 @@
   function effective(nowMs) {
     const f_vis = clamp(base.f_vis * freqMul, 200, 12000);
     const fb = feedbackOn ? clamp(fbMul, 0, 1.5) : 0;
+
     const visAlpha = feedbackOn ? clamp(0.55 + 0.35 * Math.min(1, fb), 0.55, 0.92) : 0;
 
     const scale = 1 + (base.fbScale - 1) * (0.35 + 1.8 * fb);
@@ -400,7 +644,6 @@
       audio = null;
       audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
       audio.setMute(wasMuted);
-      audio.setVolume(masterVol);
     }
 
     if (window.$fx && typeof window.$fx.preview === "function") window.$fx.preview();
@@ -429,24 +672,12 @@
     if (k === "k" || k === "K") warpMul = clamp(warpMul - 0.05, 0, 1.6);
     if (k === "l" || k === "L") warpMul = clamp(warpMul + 0.05, 0, 1.6);
 
-    if (k === "9") {
-      masterVol = clamp(masterVol - 0.05, 0, 1);
-      if (audio) audio.setVolume(masterVol);
-      updateVolUI();
-    }
-    if (k === "0") {
-      masterVol = clamp(masterVol + 0.05, 0, 1);
-      if (audio) audio.setVolume(masterVol);
-      updateVolUI();
-    }
-
     if (k === "a" || k === "A") {
       try {
         if (!audio) audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
         if (audio && audio.ctx.state !== "running") await audio.ctx.resume();
-        audio.setVolume(masterVol);
       } catch (err) {
-        console.error("[SYNTHI] Audio error:", err);
+        log("Audio error: " + (err?.message || err));
       }
     }
     if (k === "m" || k === "M") {
@@ -454,7 +685,7 @@
     }
   });
 
-  /* ---------- UI bindings ---------- */
+  /* ---------- optional UI bindings (existing + new) ---------- */
   const btnStart = document.getElementById("synthiStart");
   const btnMute  = document.getElementById("synthiMute");
   const btnReroll = document.getElementById("synthiReroll");
@@ -464,45 +695,44 @@
   const freqSlider = document.getElementById("freqSlider");
   const fbSlider = document.getElementById("fbSlider");
 
-  const genVol = document.getElementById("genVol");
-  const genVolVal = document.getElementById("genVolVal");
-
-  function updateVolUI(){
-    if (!genVol || !genVolVal) return;
-    const v = Math.round(masterVol * 100);
-    genVol.value = String(v);
-    genVolVal.textContent = `${v}%`;
-  }
-
-  if (genVol) {
-    const init = parseInt(genVol.value, 10);
-    if (!Number.isNaN(init)) masterVol = clamp(init / 100, 0, 1);
-    updateVolUI();
-    genVol.addEventListener("input", () => {
-      const v = parseInt(genVol.value, 10);
-      masterVol = clamp((Number.isNaN(v) ? 70 : v) / 100, 0, 1);
-      if (audio) audio.setVolume(masterVol);
-      updateVolUI();
-    });
-  }
+  // NEW UI
+  const volSlider = document.getElementById("volSlider");
+  const bpmSlider = document.getElementById("bpmSlider");
+  const volVal = document.getElementById("volVal");
+  const bpmVal = document.getElementById("bpmVal");
+  const seqToggle = document.getElementById("seqToggle");
+  const seqGrid = document.getElementById("seqGrid");
+  const padKick = document.getElementById("padKick");
+  const padSnare = document.getElementById("padSnare");
+  const padHat = document.getElementById("padHat");
+  const padPerc = document.getElementById("padPerc");
 
   if (btnShot) btnShot.addEventListener("click", savePNG);
   if (btnReroll) btnReroll.addEventListener("click", reroll);
-  if (btnDrift) btnDrift.addEventListener("click", () => { driftOn = !driftOn; });
-  if (btnFb) btnFb.addEventListener("click", () => { feedbackOn = !feedbackOn; clearHard(); });
+
+  if (btnDrift) btnDrift.addEventListener("click", () => {
+    driftOn = !driftOn;
+    btnDrift.textContent = `Drift: ${driftOn ? "ON" : "OFF"}`;
+  });
+  if (btnFb) btnFb.addEventListener("click", () => {
+    feedbackOn = !feedbackOn;
+    btnFb.textContent = `Feedback: ${feedbackOn ? "ON" : "OFF"}`;
+    clearHard();
+  });
 
   if (btnStart) btnStart.addEventListener("click", async () => {
     try {
       if (!audio) audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
       if (audio && audio.ctx.state !== "running") await audio.ctx.resume();
-      audio.setVolume(masterVol);
     } catch (err) {
-      console.error("[SYNTHI] Audio error:", err);
+      log("Audio error: " + (err?.message || err));
     }
   });
-
   if (btnMute) btnMute.addEventListener("click", () => {
-    if (audio) audio.setMute(!audio.muted);
+    if (audio) {
+      audio.setMute(!audio.muted);
+      btnMute.textContent = audio.muted ? "Unmute" : "Mute";
+    }
   });
 
   if (freqSlider) {
@@ -516,11 +746,9 @@
         audio.stop(); audio = null;
         audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
         audio.setMute(wasMuted);
-        audio.setVolume(masterVol);
       }
     });
   }
-
   if (fbSlider) {
     const v = parseFloat(fbSlider.value);
     if (!Number.isNaN(v)) fbMul = v;
@@ -532,10 +760,125 @@
         audio.stop(); audio = null;
         audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
         audio.setMute(wasMuted);
-        audio.setVolume(masterVol);
       }
     });
   }
+
+  // volume
+  function syncVolUI() {
+    if (volVal) volVal.textContent = masterVol.toFixed(2);
+    if (volSlider) volSlider.value = String(masterVol);
+  }
+  if (volSlider) {
+    masterVol = clamp(parseFloat(volSlider.value) || masterVol, 0, 1);
+    syncVolUI();
+    volSlider.addEventListener("input", () => {
+      masterVol = clamp(parseFloat(volSlider.value) || 0, 0, 1);
+      if (audio) audio.setVol(masterVol);
+      syncVolUI();
+    });
+  }
+
+  // bpm
+  function syncBpmUI() {
+    if (bpmVal) bpmVal.textContent = `${Math.round(bpm)} BPM`;
+    if (bpmSlider) bpmSlider.value = String(Math.round(bpm));
+  }
+  if (bpmSlider) {
+    bpm = clamp(parseFloat(bpmSlider.value) || bpm, 30, 240);
+    syncBpmUI();
+    bpmSlider.addEventListener("input", () => {
+      bpm = clamp(parseFloat(bpmSlider.value) || 120, 30, 240);
+      syncBpmUI();
+    });
+  }
+
+  function refreshSeqBtn() {
+    if (seqToggle) seqToggle.textContent = seqOn ? "Beat: ON" : "Beat: OFF";
+  }
+
+  // 4x16 grid (tracks x steps)
+  function drawSeqGrid() {
+    if (!seqGrid) return;
+    seqGrid.innerHTML = "";
+    seqGrid.style.gridTemplateColumns = "80px repeat(16, 1fr)";
+    seqGrid.style.gap = "6px";
+
+    const tracks = [
+      { key: "kick",  label: "Kick" },
+      { key: "snare", label: "Snare" },
+      { key: "hat",   label: "Hat" },
+      { key: "perc",  label: "Perc" },
+    ];
+
+    for (const tr of tracks) {
+      const lab = document.createElement("div");
+      lab.textContent = tr.label;
+      lab.style.font = "12px ui-monospace, Menlo, monospace";
+      lab.style.opacity = "0.75";
+      lab.style.alignSelf = "center";
+      seqGrid.appendChild(lab);
+
+      for (let i = 0; i < 16; i++) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "btn btnSm";
+        b.style.padding = "8px 0";
+        b.style.justifyContent = "center";
+        b.textContent = String(i + 1);
+        const on = !!seq[tr.key][i];
+        b.style.opacity = on ? "1" : "0.35";
+        b.addEventListener("click", () => {
+          seq[tr.key][i] = seq[tr.key][i] ? 0 : 1;
+          b.style.opacity = seq[tr.key][i] ? "1" : "0.35";
+        });
+        seqGrid.appendChild(b);
+      }
+    }
+  }
+
+  // default pattern (musical instantly)
+  function setDefaultPattern() {
+    // kick on 1, 9
+    [0, 8].forEach(i => seq.kick[i] = 1);
+    // snare on 5, 13
+    [4, 12].forEach(i => seq.snare[i] = 1);
+    // hats 1/8
+    for (let i = 0; i < 16; i += 2) seq.hat[i] = 1;
+    // perc occasional
+    [7, 15].forEach(i => seq.perc[i] = 1);
+  }
+  setDefaultPattern();
+  drawSeqGrid();
+
+  if (seqToggle) {
+    refreshSeqBtn();
+    seqToggle.addEventListener("click", async () => {
+      try {
+        if (!audio) audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
+        if (audio && audio.ctx.state !== "running") await audio.ctx.resume();
+      } catch {}
+      seqOn = !seqOn;
+      if (audio) {
+        seqStep = 0;
+        seqNextTime = audio.ctx.currentTime + 0.05;
+      }
+      refreshSeqBtn();
+    });
+  }
+
+  function firePad(kind) {
+    if (!audio) return;
+    const t = audio.ctx.currentTime + 0.005;
+    if (kind === "kick") drumKick(audio.ctx, t, audio.masterGain, 1.0);
+    if (kind === "snare") drumSnare(audio.ctx, t, audio.masterGain, 1.0);
+    if (kind === "hat") drumHat(audio.ctx, t, audio.masterGain, 1.0);
+    if (kind === "perc") drumPerc(audio.ctx, t, audio.masterGain, 1.0);
+  }
+  if (padKick) padKick.addEventListener("click", () => firePad("kick"));
+  if (padSnare) padSnare.addEventListener("click", () => firePad("snare"));
+  if (padHat) padHat.addEventListener("click", () => firePad("hat"));
+  if (padPerc) padPerc.addEventListener("click", () => firePad("perc"));
 
   window.addEventListener("resize", () => clearHard());
 
@@ -569,10 +912,31 @@
       stepDrift(now);
       ensureCanvasSizeLocked();
 
-      const p = effective(now);
+      // beat + analysis
+      if (audio) {
+        scheduleBeat(audio.ctx.currentTime);
+        updateAnalysis();
+      }
 
+      // audio-reactive multipliers (subtle but visible)
+      const aL = env.level;
+      const aB = env.bass;
+      const aH = env.hi;
+
+      const densityMulEff = clamp(densityMul * (0.85 + 0.90 * aL), 0.2, 2.0);
+      const exposureEff   = clamp(exposure   * (0.95 + 0.70 * aB), 0.4, 2.0);
+      const warpMulEff    = clamp(warpMul    * (0.85 + 1.10 * aH), 0, 1.6);
+
+      // temporary override for effective() warp computation
+      const warpMulUser = warpMul;
+      if (audio && warpOn) warpMul = warpMulEff;
+      const p = effective(now);
+      warpMul = warpMulUser;
+
+      // 1) feedback projection
       projectFeedback(p);
 
+      // 2) decay (less aggressive => brighter)
       ctx2d.save();
       ctx2d.globalCompositeOperation = "source-over";
       const decay = feedbackOn ? (0.045 + 0.030 * Math.min(1, fbMul)) : 0.075;
@@ -581,6 +945,7 @@
       ctx2d.fillRect(0, 0, canvas.width, canvas.height);
       ctx2d.restore();
 
+      // 3) point accumulation
       const W = canvas.width, H = canvas.height;
       const cx = W / 2, cy = H / 2;
       const pad = Math.min(W, H) * p.padFrac;
@@ -593,7 +958,7 @@
       const phiBase = p.phi + (driftOn ? driftPhase : 0);
 
       const baseN = 68000;
-      const N = Math.floor(baseN * dens * densityMul);
+      const N = Math.floor(baseN * dens * densityMulEff);
 
       const TWIN = 0.30;
       const s = p.pixel;
@@ -601,11 +966,11 @@
       ctx2d.save();
       ctx2d.globalCompositeOperation = "lighter";
 
-      const alpha = clamp(0.34 * exposure, 0.10, 0.75);
+      const alpha = clamp(0.34 * exposureEff, 0.10, 0.75);
       ctx2d.globalAlpha = alpha;
       ctx2d.fillStyle = "rgba(235,235,235,1)";
 
-      const jitterK = 1.35 * s;
+      const jitterK = 1.35 * s * (0.90 + 0.70 * env.hi);
 
       for (let i = 0; i < N; i++) {
         const t = Math.random() * TWIN;
@@ -630,31 +995,22 @@
 
       const detCents = 1200 * Math.log2(1 + p.detune);
       const text =
-        `PATCH A+WARP • f ${p.f_vis.toFixed(1)}Hz • fb ${feedbackOn ? fbMul.toFixed(2) : "OFF"} • ` +
+        `PATCH A+WARP+BEAT • f ${p.f_vis.toFixed(1)}Hz • fb ${feedbackOn ? fbMul.toFixed(2) : "OFF"} • ` +
         `warp ${warpOn ? warpMul.toFixed(2) : "OFF"} (${p.warpEff.toFixed(3)}) • ` +
-        `dens ${densityMul.toFixed(2)} • exp ${exposure.toFixed(2)} • drift ${driftOn ? driftPhase.toFixed(3) : "OFF"} • det ${detCents.toFixed(2)}c • vol ${Math.round(masterVol*100)}%`;
+        `dens ${densityMul.toFixed(2)}→${densityMulEff.toFixed(2)} • exp ${exposure.toFixed(2)}→${exposureEff.toFixed(2)} • ` +
+        `beat ${seqOn ? "ON" : "OFF"} ${Math.round(bpm)}bpm • lvl ${env.level.toFixed(2)} • det ${detCents.toFixed(2)}c\n` +
+        `Keys: A audio, M mute, R reroll, F fb, D drift, W warp, K/L warp-,+, [,] dens, -/= exp, ,/. fb, P png`;
 
       log(text);
-
-      const driftBtn = document.getElementById("synthiDriftToggle");
-      if (driftBtn) driftBtn.textContent = `Drift: ${driftOn ? "ON" : "OFF"}`;
-      const fbBtn = document.getElementById("synthiFbToggle");
-      if (fbBtn) fbBtn.textContent = `Feedback: ${feedbackOn ? "ON" : "OFF"}`;
-
-      updateVolUI();
-
-      const freqVal = document.getElementById("freqVal");
-      if (freqVal) freqVal.textContent = `${freqMul.toFixed(2)}×`;
-      const fbVal = document.getElementById("fbVal");
-      if (fbVal) fbVal.textContent = feedbackOn ? fbMul.toFixed(2) : "OFF";
+      if (meta) meta.textContent = text;
 
     } catch (err) {
-      console.error("[SYNTHI] RUNTIME ERROR:", err);
+      log("RUNTIME ERROR: " + (err?.message || err));
     }
 
     requestAnimationFrame(tick);
   }
 
   requestAnimationFrame(tick);
-  log("SYNTHI running.");
+  log("SYNTHI running. Press A for audio. Beat toggle in UI.");
 })();
