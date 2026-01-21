@@ -168,7 +168,7 @@
           </div>
 
           <div class="muted" style="margin-top:10px;line-height:1.55">
-            Exact Shadertoy adaptation. Sliders write to URL params.
+            Form controls change the actual geometry + texture: FOV, step scale, swirl, cap, FBM bias/amp.
           </div>
 
           <pre id="err" style="display:none"></pre>
@@ -182,6 +182,7 @@
         </div>
         <div class="panelBody">
 
+          <!-- camera-ish -->
           <div class="ctrl">
             <div class="ctrlHead"><div class="ctrlTitle">Time speed</div><div class="ctrlVal" id="vSpeed">—</div></div>
             <input id="speed" type="range" min="0.00" max="3.00" step="0.01" value="1.00"/>
@@ -202,6 +203,61 @@
             <input id="oy" type="range" min="-1.50" max="1.50" step="0.01" value="0.00"/>
           </div>
 
+          <!-- form -->
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">FOV (ray Z)</div><div class="ctrlVal" id="vFov">—</div></div>
+            <input id="fov" type="range" min="0.20" max="1.20" step="0.01" value="0.50"/>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Step scale</div><div class="ctrlVal" id="vStepK">—</div></div>
+            <input id="stepk" type="range" min="0.05" max="0.80" step="0.01" value="0.30"/>
+            <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
+              Strong shape control (how the ray advances): lower = tighter, higher = wilder.
+            </div>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Swirl</div><div class="ctrlVal" id="vSwirl">—</div></div>
+            <input id="swirl" type="range" min="0.00" max="2.00" step="0.01" value="0.80"/>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Swirl speed</div><div class="ctrlVal" id="vSwSpd">—</div></div>
+            <input id="swspd" type="range" min="0.00" max="2.00" step="0.01" value="0.50"/>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Surface cap</div><div class="ctrlVal" id="vCap">—</div></div>
+            <input id="cap" type="range" min="0.10" max="1.20" step="0.01" value="0.40"/>
+            <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
+              Changes the “surface” threshold: lower = sharper, higher = thicker forms.
+            </div>
+          </div>
+
+          <!-- texture -->
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">FBM bias</div><div class="ctrlVal" id="vBias">—</div></div>
+            <input id="bias" type="range" min="-1.00" max="1.00" step="0.01" value="0.40"/>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">FBM amp</div><div class="ctrlVal" id="vAmp">—</div></div>
+            <input id="amp" type="range" min="0.05" max="0.80" step="0.01" value="0.30"/>
+          </div>
+
+          <!-- quality -->
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Outer steps</div><div class="ctrlVal" id="vSteps">—</div></div>
+            <input id="steps" type="range" min="20" max="140" step="1" value="99"/>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">FBM steps</div><div class="ctrlVal" id="vFbm">—</div></div>
+            <input id="fbm" type="range" min="5" max="12" step="1" value="9"/>
+          </div>
+
+          <!-- color -->
           <div class="ctrl">
             <div class="ctrlHead"><div class="ctrlTitle">Hue</div><div class="ctrlVal" id="vHue">—</div></div>
             <input id="hue" type="range" min="-0.50" max="0.50" step="0.001" value="0.00"/>
@@ -222,19 +278,6 @@
             <input id="gamma" type="range" min="0.60" max="2.40" step="0.01" value="1.00"/>
           </div>
 
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Outer steps</div><div class="ctrlVal" id="vSteps">—</div></div>
-            <input id="steps" type="range" min="20" max="140" step="1" value="99"/>
-          </div>
-
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">FBM steps</div><div class="ctrlVal" id="vFbm">—</div></div>
-            <input id="fbm" type="range" min="5" max="12" step="1" value="9"/>
-            <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
-              Fewer steps = faster. More = denser texture.
-            </div>
-          </div>
-
         </div>
       </div>
     </section>
@@ -243,8 +286,14 @@
 <script>
 (() => {
   // ---------------- params ----------------
-  const KEY = "yohei_params_shadertoy_v1";
-  const ids = ["speed","zoom","ox","oy","hue","sat","gain","gamma","steps","fbm"];
+  const KEY = "yohei_params_forms_v2";
+  const ids = [
+    "speed","zoom","ox","oy",
+    "fov","stepk","swirl","swspd","cap","bias","amp",
+    "steps","fbm",
+    "hue","sat","gain","gamma"
+  ];
+
   const el = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
   const status = document.getElementById("status");
   const shareHint = document.getElementById("shareHint");
@@ -255,9 +304,23 @@
 
   const defaults = {
     speed:1.00, zoom:1.00, ox:0.00, oy:0.00,
+
+    // form
+    fov:0.50,     // ray Z (FOV-ish)
+    stepk:0.30,   // d * e * R * stepk
+    swirl:0.80,   // cos(t*swspd)*swirl
+    swspd:0.50,
+    cap:0.40,     // uForm.z in min(e*s, cap-e)
+    bias:0.40,    // FBM bias (was .4)
+    amp:0.30,     // FBM amplitude (was .3)
+
+    // quality
+    steps:99, fbm:9,
+
+    // color
     hue:0.00, sat:0.20, gain:1.00, gamma:1.00,
-    steps:99, fbm:9
   };
+
   const params = Object.assign({}, defaults);
 
   function readUrl(){
@@ -294,18 +357,30 @@
     const x = document.getElementById(id);
     if(x) x.textContent = txt;
   }
+
   function renderVals(){
     setTxt("vSpeed", params.speed.toFixed(2));
     setTxt("vZoom", params.zoom.toFixed(2));
     setTxt("vOx", params.ox.toFixed(2));
     setTxt("vOy", params.oy.toFixed(2));
+
+    setTxt("vFov", params.fov.toFixed(2));
+    setTxt("vStepK", params.stepk.toFixed(2));
+    setTxt("vSwirl", params.swirl.toFixed(2));
+    setTxt("vSwSpd", params.swspd.toFixed(2));
+    setTxt("vCap", params.cap.toFixed(2));
+    setTxt("vBias", params.bias.toFixed(2));
+    setTxt("vAmp", params.amp.toFixed(2));
+
+    setTxt("vSteps", String(params.steps));
+    setTxt("vFbm", String(params.fbm));
+
     setTxt("vHue", params.hue.toFixed(3));
     setTxt("vSat", params.sat.toFixed(3));
     setTxt("vGain", params.gain.toFixed(2));
     setTxt("vGam", params.gamma.toFixed(2));
-    setTxt("vSteps", String(params.steps));
-    setTxt("vFbm", String(params.fbm));
   }
+
   function commit(){
     ids.forEach(id=>{
       const v = num(el[id]?.value);
@@ -315,6 +390,7 @@
     writeUrl();
     renderVals();
   }
+
   Object.assign(params, readStore(), readUrl());
   ids.forEach(id=>{ if(el[id]) el[id].value = String(params[id]); });
   commit();
@@ -369,17 +445,20 @@ precision highp float;
 attribute vec2 aPos;
 void main(){ gl_Position = vec4(aPos,0.0,1.0); }`;
 
-  // Fragment: YOUR Shadertoy adaptation (kept), with ONLY stability clamps + controls
-  const FRAG = isWebGL2 ? `#version 300 es
+  const FRAG_WEBGL2 = `#version 300 es
 precision highp float;
 
 uniform vec3 iResolution;
 uniform float iTime;
 
-// controls
+// camera + color + steps
 uniform vec4 uCam;     // zoom, ox, oy, speed
 uniform vec4 uCol;     // hue, sat, gain, gamma
 uniform vec4 uSteps;   // steps, fbmSteps, unused, unused
+
+// form/texture controls (actually change geometry)
+uniform vec4 uForm;    // fovZ, stepK, cap, unused
+uniform vec4 uTex;     // swirl, swirlSpeed, bias, amp
 
 out vec4 fragColor;
 
@@ -394,9 +473,11 @@ void main(){
 
   float t = iTime * uCam.w;
 
-  // apply zoom + offsets in same spirit as Shadertoy (0..1 space)
+  // normalized 0..1
   vec2 uv01 = FC.xy / max(r, vec2(1.0));
+  // zoom around center
   uv01 = (uv01 - 0.5) / max(1e-6, uCam.x) + 0.5;
+  // offsets in 0..1 space
   uv01 += vec2(uCam.y, uCam.z);
 
   fragColor = vec4(0.0);
@@ -404,54 +485,59 @@ void main(){
   float e=0.0, R=0.0, s=0.0;
   vec3 q=vec3(0.0), p;
 
-  vec3 d = vec3(uv01 - vec2(.3), .5);
+  // FOV (ray Z) + original centering vec2(.3)
+  vec3 d = vec3(uv01 - vec2(.3), uForm.x);
   q.zx -= 1.0;
 
-  int STEPS = int(clamp(uSteps.x, 1.0, 200.0));
+  int STEPS = int(clamp(uSteps.x, 1.0, 220.0));
   int FBM   = int(clamp(uSteps.y, 1.0, 16.0));
 
-  for(int it=0; it<200; it++){
+  for(int it=0; it<220; it++){
     if(it>=STEPS) break;
 
-    // EXACT original accumulation term
-    float v = min(e*s, .4 - e) / 20.0;
+    // surface cap (true form control)
+    float v = min(e*s, uForm.z - e) / 20.0;
     fragColor.rgb += hsv(.1 + uCol.x, uCol.y, v);
 
     s = 1.0;
-    p = q += d * e * R * .3;
+    // step scale (true form control)
+    p = q += d * e * R * uForm.y;
 
     // stability clamp
-    R = length(p);
-    R = max(R, 1e-6);
-
+    R = max(length(p), 1e-6);
     float invR = 1.0 / R;
     float zTerm = clamp(-p.z * invR + 1.0, -40.0, 40.0);
+
+    // swirl controls (true form control)
+    float ang = atan(p.x, p.y) + cos(t * uTex.y) * uTex.x;
 
     p = vec3(
       log2(R) - t,
       exp2(zTerm),
-      atan(p.x, p.y) + cos(t*.5)*.8
+      ang
     );
 
     e = --p.y;
 
-    // inner FBM loop: s *= 2
+    // inner FBM loop: ss *= 2
     float ss = 1.0;
     for(int j=0; j<16; j++){
       if(j>=FBM) break;
-      e += dot(sin(p.xzx*ss)-.4, sin(p.zyy*ss+e))/ss*.3;
+      // bias + amplitude controls (true texture/form control)
+      e += dot(sin(p.xzx*ss)-uTex.z, sin(p.zyy*ss+e))/ss*uTex.w;
       ss += ss;
     }
     s = ss;
   }
 
-  // post color controls
-  vec3 col = fragColor.rgb * uCol.z;          // gain
+  // post color
+  vec3 col = fragColor.rgb * uCol.z;                 // gain
   col = max(col, 0.0);
-  col = pow(col, vec3(1.0 / max(0.01, uCol.w))); // gamma
+  col = pow(col, vec3(1.0 / max(0.01, uCol.w)));     // gamma
   fragColor = vec4(col, 1.0);
-}`
-: `
+}`;
+
+  const FRAG_WEBGL1 = `
 precision highp float;
 
 uniform vec3 iResolution;
@@ -460,6 +546,8 @@ uniform float iTime;
 uniform vec4 uCam;
 uniform vec4 uCol;
 uniform vec4 uSteps;
+uniform vec4 uForm;
+uniform vec4 uTex;
 
 vec3 hsv(float h, float s, float v) {
   vec3 p = abs(fract(vec3(h) + vec3(1.0, 2.0/3.0, 1.0/3.0)) * 6.0 - 3.0);
@@ -481,31 +569,31 @@ void main(){
   float e=0.0, R=0.0, s=0.0;
   vec3 q=vec3(0.0), p;
 
-  vec3 d = vec3(uv01 - vec2(.3), .5);
+  vec3 d = vec3(uv01 - vec2(.3), uForm.x);
   q.zx -= 1.0;
 
-  int STEPS = int(clamp(uSteps.x, 1.0, 200.0));
+  int STEPS = int(clamp(uSteps.x, 1.0, 220.0));
   int FBM   = int(clamp(uSteps.y, 1.0, 16.0));
 
-  for(int it=0; it<200; it++){
+  for(int it=0; it<220; it++){
     if(it>=STEPS) break;
 
-    float v = min(e*s, .4 - e) / 20.0;
+    float v = min(e*s, uForm.z - e) / 20.0;
     fragColor.rgb += hsv(.1 + uCol.x, uCol.y, v);
 
     s = 1.0;
-    p = q += d * e * R * .3;
+    p = q += d * e * R * uForm.y;
 
-    R = length(p);
-    R = max(R, 1e-6);
-
+    R = max(length(p), 1e-6);
     float invR = 1.0 / R;
     float zTerm = clamp(-p.z * invR + 1.0, -40.0, 40.0);
+
+    float ang = atan(p.x, p.y) + cos(t * uTex.y) * uTex.x;
 
     p = vec3(
       log2(R) - t,
       exp2(zTerm),
-      atan(p.x, p.y) + cos(t*.5)*.8
+      ang
     );
 
     e = --p.y;
@@ -513,7 +601,7 @@ void main(){
     float ss = 1.0;
     for(int j=0; j<16; j++){
       if(j>=FBM) break;
-      e += dot(sin(p.xzx*ss)-.4, sin(p.zyy*ss+e))/ss*.3;
+      e += dot(sin(p.xzx*ss)-uTex.z, sin(p.zyy*ss+e))/ss*uTex.w;
       ss += ss;
     }
     s = ss;
@@ -537,13 +625,13 @@ void main(){
     return sh;
   }
 
-  let prog, locRes, locTime, locCam, locCol, locSteps;
+  let prog, locRes, locTime, locCam, locCol, locSteps, locForm, locTex;
   let vao=null, vbo=null;
 
   function build(){
     try{
       const vs = compile(gl.VERTEX_SHADER, VERT);
-      const fs = compile(gl.FRAGMENT_SHADER, FRAG);
+      const fs = compile(gl.FRAGMENT_SHADER, isWebGL2 ? FRAG_WEBGL2 : FRAG_WEBGL1);
       prog = gl.createProgram();
       gl.attachShader(prog, vs);
       gl.attachShader(prog, fs);
@@ -561,6 +649,8 @@ void main(){
       locCam   = gl.getUniformLocation(prog, "uCam");
       locCol   = gl.getUniformLocation(prog, "uCol");
       locSteps = gl.getUniformLocation(prog, "uSteps");
+      locForm  = gl.getUniformLocation(prog, "uForm");
+      locTex   = gl.getUniformLocation(prog, "uTex");
 
       if(isWebGL2){
         vao = gl.createVertexArray();
@@ -581,6 +671,13 @@ void main(){
       showErr(String(e?.message || e));
     }
   }
+
+  function showErr(msg){
+    errEl.style.display = "block";
+    errEl.textContent = msg;
+    status.textContent = "shader error";
+  }
+
   build();
 
   // Pause + screenshot
@@ -620,6 +717,9 @@ void main(){
     gl.uniform4f(locCol, params.hue, params.sat, params.gain, params.gamma);
     gl.uniform4f(locSteps, params.steps, params.fbm, 0.0, 0.0);
 
+    gl.uniform4f(locForm, params.fov, params.stepk, params.cap, 0.0);
+    gl.uniform4f(locTex, params.swirl, params.swspd, params.bias, params.amp);
+
     if(isWebGL2){
       gl.bindVertexArray(vao);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -630,6 +730,8 @@ void main(){
     requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
+
+  window.addEventListener("resize", resize);
 
 })();
 </script>
