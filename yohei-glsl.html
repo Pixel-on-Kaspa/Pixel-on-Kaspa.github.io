@@ -95,7 +95,7 @@
       opacity:.85;
       font-size:12px;
       white-space:nowrap;
-      max-width: 44ch;
+      max-width: 50ch;
       overflow:hidden;
       text-overflow: ellipsis;
     }
@@ -126,7 +126,7 @@
       border:1px solid rgba(255,255,255,.10);
       background: rgba(0,0,0,.30);
       overflow:auto;
-      max-height: 180px;
+      max-height: 220px;
       font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
       color: rgba(255,255,255,.86);
     }
@@ -216,7 +216,7 @@
           </div>
 
           <div class="muted" style="margin-top:10px;line-height:1.55">
-            If canvas is black: check error log below the shader panel.
+            If canvas is black: open the error log under the shader panel.
           </div>
         </div>
       </div>
@@ -226,7 +226,7 @@
 <script>
 (() => {
   // --------- Params (URL + localStorage) ----------
-  const KEY = "yohei_params_v1";
+  const KEY = "yohei_params_v2";
   const ids = ["speed","zoom","ox","oy","hue","inten","gamma"];
   const el = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
   const status = document.getElementById("status");
@@ -234,7 +234,7 @@
 
   const num = (v)=>{ const x = parseFloat(v); return Number.isFinite(x) ? x : null; };
 
-  const defaults = { speed:1.00, zoom:1.00, ox:0.00, oy:0.00, hue:0.00, inten:1.00, gamma:1.00 };
+  const defaults = { speed:1.00, zoom:1.00, ox:0.00, oy:0.00, hue:0.00, inten:1.20, gamma:1.00 };
   const params = Object.assign({}, defaults);
 
   function readUrl(){
@@ -315,11 +315,9 @@
     status.textContent = "shader error";
   }
 
-  // Try WebGL2, fallback WebGL1
   const gl2 = canvas.getContext("webgl2", { antialias:true, alpha:false, preserveDrawingBuffer:true });
   const gl = gl2 || canvas.getContext("webgl", { antialias:true, alpha:false, preserveDrawingBuffer:true });
   if(!gl){ showErr("WebGL not available in this browser."); return; }
-
   const isWebGL2 = !!gl2;
 
   function resize(){
@@ -334,147 +332,173 @@
   }
 
   const VERT = isWebGL2 ? `#version 300 es
-    precision highp float;
-    out vec2 vUv;
-    void main(){
-      vec2 p = vec2((gl_VertexID==1)?3.0:-1.0, (gl_VertexID==2)?3.0:-1.0);
-      vUv = 0.5*(p+1.0);
-      gl_Position = vec4(p,0.0,1.0);
-    }`
-  : `
-    precision highp float;
-    attribute vec2 aPos;
-    varying vec2 vUv;
-    void main(){
-      vUv = 0.5*(aPos+1.0);
-      gl_Position = vec4(aPos,0.0,1.0);
-    }`;
+precision highp float;
+out vec2 vUv;
+void main(){
+  vec2 p = vec2((gl_VertexID==1)?3.0:-1.0, (gl_VertexID==2)?3.0:-1.0);
+  vUv = 0.5*(p+1.0);
+  gl_Position = vec4(p,0.0,1.0);
+}`
+: `
+precision highp float;
+attribute vec2 aPos;
+varying vec2 vUv;
+void main(){
+  vUv = 0.5*(aPos+1.0);
+  gl_Position = vec4(aPos,0.0,1.0);
+}`;
 
-  // Yohei tweet-shader adapted: provides FC, r, t, o and hsv()
+  // ---- FIXED/BRIGHTENED Yohei fragment (kills negative energy => not black) ----
   const FRAG = isWebGL2 ? `#version 300 es
-    precision highp float;
-    uniform vec3 iResolution;
-    uniform float iTime;
-    uniform vec4 iMouse;
-    uniform vec4 uParams;  // speed, zoom, hueShift, intensity
-    uniform vec4 uParams2; // ox, oy, gamma, _
+precision highp float;
+uniform vec3 iResolution;
+uniform float iTime;
+uniform vec4 iMouse;
+uniform vec4 uParams;   // speed, zoom, hueShift, intensity
+uniform vec4 uParams2;  // ox, oy, gamma, debug(0/1)
+out vec4 fragColor;
 
-    out vec4 fragColor;
+vec3 hsv(float h, float s, float v){
+  vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+  vec3 p = abs(fract(vec3(h) + K.xyz) * 6.0 - K.www);
+  return v * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), s);
+}
 
-    vec3 hsv(float h, float s, float v){
-      vec3 c = vec3(h, s, v);
-      vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
-      vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-      return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+void main(){
+  vec2 FC = gl_FragCoord.xy;
+  vec2 r = iResolution.xy;
+  float t = iTime * uParams.x;
+
+  // debug gradient if needed
+  if(uParams2.w > 0.5){
+    fragColor = vec4(FC.xy / max(r, vec2(1.0)), 0.0, 1.0);
+    return;
+  }
+
+  float e = 0.0;
+  float R = 0.0;
+  float s = 0.0;
+  vec4 o = vec4(0.0);
+
+  // parameterized UV
+  vec2 uv = (FC.xy / max(r, vec2(1.0))) - vec2(0.3);
+  uv = (uv - 0.5) / max(1e-6, uParams.y) + 0.5;        // zoom
+  uv += vec2(uParams2.x, uParams2.y);                   // offsets
+
+  vec3 d = vec3(uv, 0.5);
+  vec3 q = vec3(0.0);
+  q.zx -= 1.0;
+
+  for(int k=0;k<99;k++){
+    // --- accumulate: make it always non-negative (key fix) ---
+    float raw = min(e*s, 0.4 - e);
+    float vv = max(raw, 0.0);      // kill negatives
+    vv = vv / 12.0;                // brighter than /20
+    vv = vv + 0.006;               // floor bias
+    float hh = 0.1 + uParams.z * 0.25;
+
+    o.rgb += hsv(hh, 0.25, vv) * uParams.w;
+
+    s = 1.0;
+
+    vec3 p = q += d * e * R * 0.3;
+
+    R = length(p);
+    R = max(R, 1e-6);
+
+    p = vec3(
+      log2(R) - t,
+      exp2(-p.z / R + 1.0),
+      atan(p.x, p.y) + cos(t * 0.5) * 0.8
+    );
+
+    e = -p.y;
+    for(float ss=1.0; ss<5e2; ss+=ss){
+      e += dot(sin(p.xzx*ss)-0.4, sin(p.zyy*ss + e)) / ss * 0.3;
+      s = ss;
     }
+  }
 
-    void main(){
-      vec2 FC = gl_FragCoord.xy;
-      vec2 r = iResolution.xy;
-      float t = iTime * uParams.x;
+  float g = max(0.05, uParams2.z);
+  vec3 col = max(o.rgb, 0.0);
+  col *= 1.35;     // global gain
+  col += 0.01;     // lift so it’s never fully black
+  col = pow(col, vec3(1.0 / g));
+  fragColor = vec4(col, 1.0);
+}`
+: `
+precision highp float;
+uniform vec3 iResolution;
+uniform float iTime;
+uniform vec4 iMouse;
+uniform vec4 uParams;
+uniform vec4 uParams2;
+varying vec2 vUv;
 
-      // ----- original core (with mild parameter hooks) -----
-      float i=0.0, e=0.0, R=0.0, s=0.0;
-      vec4 o = vec4(0.0);
+vec3 hsv(float h, float s, float v){
+  vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+  vec3 p = abs(fract(vec3(h) + K.xyz) * 6.0 - K.www);
+  return v * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), s);
+}
 
-      vec2 uv = (FC.xy / r) - vec2(0.3);
-      uv = (uv - 0.5) / max(1e-6, uParams.y) + 0.5; // zoom
-      uv += vec2(uParams2.x, uParams2.y); // offsets
+void main(){
+  vec2 FC = gl_FragCoord.xy;
+  vec2 r = iResolution.xy;
+  float t = iTime * uParams.x;
 
-      vec3 d = vec3(uv, 0.5);
-      vec3 q = vec3(0.0);
-      q.zx -= 1.0;
+  if(uParams2.w > 0.5){
+    gl_FragColor = vec4(FC.xy / max(r, vec2(1.0)), 0.0, 1.0);
+    return;
+  }
 
-      for(int k=0;k<99;k++){
-        // hue shift + intensity
-        float hh = 0.1 + uParams.z * 0.25;
-        o.rgb += hsv(hh, 0.2, (min(e*s, 0.4-e) / 20.0) * uParams.w);
+  float e = 0.0;
+  float R = 0.0;
+  float s = 0.0;
+  vec4 o = vec4(0.0);
 
-        s = 1.0;
-        vec3 p = q += d * e * R * 0.3;
+  vec2 uv = (FC.xy / max(r, vec2(1.0))) - vec2(0.3);
+  uv = (uv - 0.5) / max(1e-6, uParams.y) + 0.5;
+  uv += vec2(uParams2.x, uParams2.y);
 
-        R = length(p);
-        R = max(R, 1e-6);
+  vec3 d = vec3(uv, 0.5);
+  vec3 q = vec3(0.0);
+  q.zx -= 1.0;
 
-        p = vec3(
-          log2(R) - t,
-          exp2(-p.z/R + 1.0),
-          atan(p.x, p.y) + cos(t*0.5)*0.8
-        );
+  for(int k=0;k<99;k++){
+    float raw = min(e*s, 0.4 - e);
+    float vv = max(raw, 0.0);
+    vv = vv / 12.0;
+    vv = vv + 0.006;
+    float hh = 0.1 + uParams.z * 0.25;
 
-        e = -p.y;
-        for(float ss=1.0; ss<5e2; ss+=ss){
-          e += dot(sin(p.xzx*ss)-0.4, sin(p.zyy*ss + e)) / ss * 0.3;
-          s = ss;
-        }
-      }
+    o.rgb += hsv(hh, 0.25, vv) * uParams.w;
 
-      // gamma
-      float g = max(0.05, uParams2.z);
-      vec3 col = o.rgb;
-      col = pow(max(col, 0.0), vec3(1.0/g));
-      fragColor = vec4(col, 1.0);
-    }`
-  : `
-    precision highp float;
-    uniform vec3 iResolution;
-    uniform float iTime;
-    uniform vec4 iMouse;
-    uniform vec4 uParams;
-    uniform vec4 uParams2;
-    varying vec2 vUv;
+    s = 1.0;
+    vec3 p = q += d * e * R * 0.3;
 
-    vec3 hsv(float h, float s, float v){
-      vec3 c = vec3(h, s, v);
-      vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
-      vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-      return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+    R = length(p);
+    R = max(R, 1e-6);
+
+    p = vec3(
+      log2(R) - t,
+      exp2(-p.z / R + 1.0),
+      atan(p.x, p.y) + cos(t * 0.5) * 0.8
+    );
+
+    e = -p.y;
+    for(float ss=1.0; ss<5e2; ss+=ss){
+      e += dot(sin(p.xzx*ss)-0.4, sin(p.zyy*ss + e)) / ss * 0.3;
+      s = ss;
     }
+  }
 
-    void main(){
-      vec2 FC = gl_FragCoord.xy;
-      vec2 r = iResolution.xy;
-      float t = iTime * uParams.x;
-
-      float i=0.0, e=0.0, R=0.0, s=0.0;
-      vec4 o = vec4(0.0);
-
-      vec2 uv = (FC.xy / r) - vec2(0.3);
-      uv = (uv - 0.5) / max(1e-6, uParams.y) + 0.5;
-      uv += vec2(uParams2.x, uParams2.y);
-
-      vec3 d = vec3(uv, 0.5);
-      vec3 q = vec3(0.0);
-      q.zx -= 1.0;
-
-      for(int k=0;k<99;k++){
-        float hh = 0.1 + uParams.z * 0.25;
-        o.rgb += hsv(hh, 0.2, (min(e*s, 0.4-e) / 20.0) * uParams.w);
-
-        s = 1.0;
-        vec3 p = q += d * e * R * 0.3;
-
-        R = length(p);
-        R = max(R, 1e-6);
-
-        p = vec3(
-          log2(R) - t,
-          exp2(-p.z/R + 1.0),
-          atan(p.x, p.y) + cos(t*0.5)*0.8
-        );
-
-        e = -p.y;
-        for(float ss=1.0; ss<5e2; ss+=ss){
-          e += dot(sin(p.xzx*ss)-0.4, sin(p.zyy*ss + e)) / ss * 0.3;
-          s = ss;
-        }
-      }
-
-      float g = max(0.05, uParams2.z);
-      vec3 col = o.rgb;
-      col = pow(max(col, 0.0), vec3(1.0/g));
-      gl_FragColor = vec4(col, 1.0);
-    }`;
+  float g = max(0.05, uParams2.z);
+  vec3 col = max(o.rgb, 0.0);
+  col *= 1.35;
+  col += 0.01;
+  col = pow(col, vec3(1.0 / g));
+  gl_FragColor = vec4(col, 1.0);
+}`;
 
   function compile(type, src){
     const sh = gl.createShader(type);
@@ -500,7 +524,6 @@
       gl.attachShader(prog, fs);
 
       if(!isWebGL2){
-        // WebGL1 needs aPos attribute
         gl.bindAttribLocation(prog, 0, "aPos");
       }
 
@@ -520,7 +543,6 @@
         vao = gl.createVertexArray();
         gl.bindVertexArray(vao);
       }else{
-        // fullscreen tri as 2 triangles (quad)
         vbo = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
@@ -531,7 +553,7 @@
         gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
       }
 
-      status.textContent = isWebGL2 ? "WebGL2 OK" : "WebGL1 OK";
+      status.textContent = (isWebGL2 ? "WebGL2 OK" : "WebGL1 OK") + " • running";
     }catch(e){
       showErr(String(e?.message || e));
     }
@@ -578,7 +600,6 @@
     if(!paused){
       last = now;
     }else{
-      // freeze time
       t0 += (now - last);
       last = now;
     }
@@ -592,7 +613,7 @@
 
     // uParams: speed, zoom, hueShift, intensity
     gl.uniform4f(locP, params.speed, params.zoom, params.hue, params.inten);
-    // uParams2: ox, oy, gamma, _
+    // uParams2: ox, oy, gamma, debug(0)
     gl.uniform4f(locP2, params.ox, params.oy, params.gamma, 0.0);
 
     if(isWebGL2){
