@@ -110,7 +110,6 @@
       line-height:1.02;
     }
     .sub{margin:0 auto 0;opacity:.86;font-size:16px;max-width: 78ch;}
-    .sub2{margin:10px auto 0;opacity:.72;font-size:13px;max-width: 78ch;}
     .heroCtas{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:14px;}
 
     .sectionTitle{
@@ -188,6 +187,7 @@
     }
     .thumb .bottomline b{letter-spacing:.08em;text-transform:uppercase}
 
+    /* SYNTHI thumb logo */
     .synthiThumb{
       background: radial-gradient(circle at center, rgba(0,196,255,.15), rgba(0,0,0,.62));
     }
@@ -200,15 +200,6 @@
       height:78px;
       opacity:.92;
       filter: drop-shadow(0 0 22px rgba(0,196,255,.35));
-    }
-
-    /* PIXEL P5 thumb */
-    .p5Thumb{
-      background: radial-gradient(circle at center, rgba(0,196,255,.10), rgba(0,0,0,.70));
-    }
-    .p5Thumb .tag{
-      border-color: rgba(0,196,255,.45);
-      background: rgba(0,196,255,.12);
     }
 
     .cardHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;}
@@ -272,9 +263,8 @@
       <div class="nav">
         <button class="btn btnRewardsTop btnPrimary" type="button" data-open-rewards="PIXELONKAS">REWARDS</button>
 
+        <a class="btn" href="/artists.html">ARTISTS</a>
         <a class="btn" href="/viewer">NFTs</a>
-
-        <a class="btn" href="/pixel-p5.html">P5</a>
 
         <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">Mint PIXELONKAS</a>
         <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">Mint SYKORA</a>
@@ -366,27 +356,6 @@
           <a class="btn" href="/synthi/rec.html">REC Streams</a>
         </div>
       </div>
-
-      <!-- NEW: PIXEL P5 GENERATOR CARD -->
-      <div class="card">
-        <div class="thumb p5Thumb">
-          <span class="tag">PIXEL</span>
-          <span class="hint">p5.js</span>
-          <div class="bottomline">
-            <b>One-liner</b><br>
-            tweet sketch → live generator
-          </div>
-        </div>
-        <div class="cardHead">
-          <b>PIXEL • P5</b>
-          <span class="chip">generator</span>
-        </div>
-        <p>Minimal p5 generator based on your one-liner. Play/pause, PNG export, fullscreen.</p>
-        <div class="cardActions">
-          <a class="btn btnPrimary" href="/pixel-p5.html">Open generator</a>
-          <a class="btn" href="/synthi/" title="bridge">Open SYNTHI</a>
-        </div>
-      </div>
     </section>
 
     <footer>
@@ -394,7 +363,7 @@
       <div>
         <a href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">$PIXEL</a> ·
         <a href="/viewer">NFTs</a> ·
-        <a href="/pixel-p5.html">P5</a> ·
+        <a href="/artists.html">Artists</a> ·
         <a href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a> ·
         <a href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
       </div>
@@ -402,7 +371,7 @@
 
   </div>
 
-  <!-- Rewards Modal (your original content) -->
+  <!-- Rewards Modal -->
   <div class="modal" id="rewardsModal" aria-hidden="true">
     <div class="modalPanel" role="dialog" aria-modal="true">
       <div class="modalTop">
