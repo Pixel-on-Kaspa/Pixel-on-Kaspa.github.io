@@ -1,19 +1,19 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PIXEL • Yohei GLSL</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Yohei • GLSL • Pixel on Kaspa</title>
   <style>
     :root{
-      --bg1:#121623;
-      --bg2:#050608;
+      --bg1:#121623; --bg2:#050608;
       --panel: rgba(0,0,0,.18);
       --border: rgba(255,255,255,.12);
       --muted: rgba(255,255,255,.70);
       --accent:#00c4ff;
       --shadow: 0 18px 35px rgba(0,0,0,.50);
       --text:#f5f5f5;
+      --radius: 18px;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -25,10 +25,10 @@
       min-height:100vh;
     }
     a{color:inherit}
-    .wrap{max-width:1100px;margin:0 auto;padding:22px 16px 56px}
+    .wrap{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
+
     .topbar{
-      display:flex;align-items:center;justify-content:space-between;
-      gap:14px;
+      display:flex;align-items:center;justify-content:space-between;gap:14px;
       border:1px solid var(--border);
       border-radius:16px;
       background: var(--panel);
@@ -49,7 +49,7 @@
       border:1px solid rgba(255,255,255,.16);
       background: rgba(255,255,255,.06);
       color: rgba(255,255,255,.88);
-      font-weight:750;
+      font-weight:850;
       transition: background .15s, color .15s, transform .15s, border-color .15s;
       white-space:nowrap;line-height:1;cursor:pointer;user-select:none;
     }
@@ -60,12 +60,19 @@
       background: rgba(0,196,255,.08);
     }
     .btnPrimary:hover{background: var(--accent); color:#020308;}
+    .btnGhost{ background: transparent; border-color: rgba(255,255,255,.16); opacity:.95; }
 
+    .grid{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:14px;
+      align-items:start;
+    }
     .panel{
-      margin-top:18px;
       border:1px solid var(--border);
-      border-radius:22px;
-      background: var(--panel);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.18);
       backdrop-filter: blur(10px);
       box-shadow: var(--shadow);
       overflow:hidden;
@@ -73,39 +80,60 @@
     .panelHead{
       padding:12px 14px;
       border-bottom:1px solid rgba(255,255,255,.10);
-      display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;
+      display:flex;justify-content:space-between;align-items:center;gap:10px;
     }
-    .panelHead b{letter-spacing:.14em;text-transform:uppercase;font-weight:900;font-size:14px;opacity:.90;}
-    .chip{padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background: rgba(255,255,255,.06);opacity:.85;font-size:12px;white-space:nowrap;}
+    .panelHead b{
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      font-size:12px;
+      opacity:.92;
+    }
+    .chip{
+      padding:6px 10px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      opacity:.85;
+      font-size:12px;
+      white-space:nowrap;
+      max-width: 44ch;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
     .panelBody{padding:14px}
-    .muted{opacity:.76}
 
-    #glslHost{
+    canvas{
       width:100%;
-      aspect-ratio: 1/1;
-      border-radius:16px;
+      aspect-ratio:1/1;
+      display:block;
+      border-radius:14px;
       border:1px solid rgba(255,255,255,.10);
       background:#000;
-      overflow:hidden;
-      position:relative;
     }
-    canvas{width:100%;height:100%;display:block}
 
-    .ctrlRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center}
-    .ctrl{
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.04);
-      border-radius:16px;
-      padding:12px;
-      margin-top:12px;
-    }
+    .ctrl{border:1px solid rgba(255,255,255,.12);background: rgba(255,255,255,.04);border-radius:14px;padding:10px 12px;margin-top:10px;}
     .ctrlHead{display:flex;justify-content:space-between;align-items:center;gap:10px}
     .ctrlTitle{font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.9;font-weight:900;margin:0;}
     .ctrlVal{font-size:12px;opacity:.75;white-space:nowrap}
     input[type="range"]{width:100%}
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .btnSm{padding:8px 12px;font-size:13px}
+
+    .muted{opacity:.76}
+    pre{
+      margin:10px 0 0;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.30);
+      overflow:auto;
+      max-height: 180px;
+      font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: rgba(255,255,255,.86);
+    }
 
     @media (max-width: 980px){
-      .brand small{display:none}
+      .grid{grid-template-columns:1fr}
+      canvas{aspect-ratio: 16/10;}
     }
   </style>
 </head>
@@ -113,52 +141,471 @@
   <div class="wrap">
     <div class="topbar">
       <div class="brand">
-        YOHEI GLSL <small>@YoheiNishitsuji</small>
+        YOHEI <small>@YoheiNishitsuji • GLSL</small>
       </div>
       <div class="nav">
         <a class="btn" href="/">Home</a>
-        <a class="btn" href="/pixel-p5.html">P5</a>
-        <a class="btn" href="/viewer">NFTs</a>
-        <a class="btn" href="/synthi/">SYNTHI</a>
-        <a class="btn" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
-        <a class="btn" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
+        <a class="btn" href="/artists">Artists</a>
+        <a class="btn btnPrimary" href="/yohei-glsl.html">Shader</a>
+        <a class="btn btnGhost" href="https://x.com/YoheiNishitsuji" target="_blank" rel="noreferrer">X profile</a>
       </div>
     </div>
 
-    <section class="panel">
-      <div class="panelHead">
-        <b>Artist shader</b>
-        <span class="chip">GLSL • fragment</span>
+    <section class="grid">
+      <div class="panel">
+        <div class="panelHead">
+          <b>Shader</b>
+          <span class="chip" id="status">boot…</span>
+        </div>
+        <div class="panelBody">
+          <canvas id="c"></canvas>
+          <div class="row">
+            <button class="btn btnPrimary btnSm" id="btnPause" type="button">Pause</button>
+            <button class="btn btnSm" id="btnShot" type="button">PNG</button>
+            <button class="btn btnSm" id="btnReset" type="button">Reset</button>
+            <button class="btn btnPrimary btnSm" id="btnCopy" type="button">Copy share URL</button>
+          </div>
+
+          <div class="muted" style="margin-top:10px;line-height:1.55">
+            Mouse drives iMouse. Sliders write to URL params (LAB mode B).
+          </div>
+          <pre id="err" style="display:none"></pre>
+        </div>
       </div>
-      <div class="panelBody">
-        <div id="glslHost">
-          <canvas id="glslCanvas"></canvas>
-        </div>
 
-        <div class="ctrlRow">
-          <button class="btn btnPrimary" id="gPlay" type="button">Play</button>
-          <button class="btn" id="gPause" type="button">Pause</button>
-          <button class="btn" id="gPng" type="button">PNG</button>
+      <div class="panel">
+        <div class="panelHead">
+          <b>Controls</b>
+          <span class="chip" id="shareHint">share: URL params</span>
         </div>
+        <div class="panelBody">
 
-        <div class="ctrl">
-          <div class="ctrlHead">
-            <div class="ctrlTitle">Quality</div>
-            <div class="ctrlVal" id="gQVal">1.00×</div>
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Time speed</div><div class="ctrlVal" id="vSpeed">—</div></div>
+            <input id="speed" type="range" min="0.00" max="2.50" step="0.01" value="1.00"/>
           </div>
-          <input id="gQ" type="range" min="0.50" max="2.00" step="0.01" value="1.00" />
-          <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
-            Higher quality = higher resolution render (more GPU).
-          </div>
-        </div>
 
-        <div class="muted" style="margin-top:12px;line-height:1.55">
-          Credit: <b>@YoheiNishitsuji</b>. Minimal viewer, no external libs.
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Zoom</div><div class="ctrlVal" id="vZoom">—</div></div>
+            <input id="zoom" type="range" min="0.25" max="2.50" step="0.01" value="1.00"/>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Offset X</div><div class="ctrlVal" id="vOx">—</div></div>
+            <input id="ox" type="range" min="-1.50" max="1.50" step="0.01" value="0.00"/>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Offset Y</div><div class="ctrlVal" id="vOy">—</div></div>
+            <input id="oy" type="range" min="-1.50" max="1.50" step="0.01" value="0.00"/>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Hue shift</div><div class="ctrlVal" id="vHue">—</div></div>
+            <input id="hue" type="range" min="-1.00" max="1.00" step="0.01" value="0.00"/>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Intensity</div><div class="ctrlVal" id="vInt">—</div></div>
+            <input id="inten" type="range" min="0.10" max="3.00" step="0.01" value="1.00"/>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Gamma</div><div class="ctrlVal" id="vGam">—</div></div>
+            <input id="gamma" type="range" min="0.70" max="2.20" step="0.01" value="1.00"/>
+          </div>
+
+          <div class="muted" style="margin-top:10px;line-height:1.55">
+            If canvas is black: check error log below the shader panel.
+          </div>
         </div>
       </div>
     </section>
   </div>
 
-  <script type="module" src="/js/yohei-glsl.js"></script>
+<script>
+(() => {
+  // --------- Params (URL + localStorage) ----------
+  const KEY = "yohei_params_v1";
+  const ids = ["speed","zoom","ox","oy","hue","inten","gamma"];
+  const el = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
+  const status = document.getElementById("status");
+  const shareHint = document.getElementById("shareHint");
+
+  const num = (v)=>{ const x = parseFloat(v); return Number.isFinite(x) ? x : null; };
+
+  const defaults = { speed:1.00, zoom:1.00, ox:0.00, oy:0.00, hue:0.00, inten:1.00, gamma:1.00 };
+  const params = Object.assign({}, defaults);
+
+  function readUrl(){
+    const u = new URL(location.href);
+    const out = {};
+    ids.forEach(id=>{
+      const v = num(u.searchParams.get(id));
+      if(v != null) out[id]=v;
+    });
+    return out;
+  }
+  function readStore(){
+    try{ return JSON.parse(localStorage.getItem(KEY) || "{}"); }catch{ return {}; }
+  }
+  function writeStore(){
+    try{ localStorage.setItem(KEY, JSON.stringify(params)); }catch{}
+  }
+  function writeUrl(){
+    const u = new URL(location.href);
+    ids.forEach(id=>u.searchParams.delete(id));
+    ids.forEach(id=>u.searchParams.set(id, String(params[id])));
+    history.replaceState(null,"",u.toString());
+  }
+  function clampToSlider(id, v){
+    const e = el[id];
+    if(!e) return v;
+    const mn = num(e.min), mx = num(e.max);
+    if(mn != null) v = Math.max(mn, v);
+    if(mx != null) v = Math.min(mx, v);
+    return v;
+  }
+  function renderVals(){
+    const set=(id,txt)=>{ const x=document.getElementById(id); if(x) x.textContent=txt; };
+    set("vSpeed", params.speed.toFixed(2));
+    set("vZoom", params.zoom.toFixed(2));
+    set("vOx", params.ox.toFixed(2));
+    set("vOy", params.oy.toFixed(2));
+    set("vHue", params.hue.toFixed(2));
+    set("vInt", params.inten.toFixed(2));
+    set("vGam", params.gamma.toFixed(2));
+  }
+  function commit(){
+    ids.forEach(id=>{
+      const v = num(el[id]?.value);
+      params[id] = clampToSlider(id, v == null ? defaults[id] : v);
+    });
+    writeStore();
+    writeUrl();
+    renderVals();
+  }
+  Object.assign(params, readStore(), readUrl());
+  ids.forEach(id=>{ if(el[id]) el[id].value = String(params[id]); });
+  commit();
+  ids.forEach(id=> el[id]?.addEventListener("input", commit));
+
+  document.getElementById("btnReset").addEventListener("click", ()=>{
+    Object.assign(params, defaults);
+    ids.forEach(id=>{ if(el[id]) el[id].value = String(params[id]); });
+    commit();
+  });
+  document.getElementById("btnCopy").addEventListener("click", async ()=>{
+    try{
+      await navigator.clipboard.writeText(location.href);
+      shareHint.textContent = "Copied!";
+      setTimeout(()=>shareHint.textContent="share: URL params", 900);
+    }catch{
+      shareHint.textContent = "Copy failed";
+    }
+  });
+
+  // --------- WebGL wrapper for Shadertoy-style fragment ----------
+  const canvas = document.getElementById("c");
+  const errEl = document.getElementById("err");
+
+  function showErr(msg){
+    errEl.style.display = "block";
+    errEl.textContent = msg;
+    status.textContent = "shader error";
+  }
+
+  // Try WebGL2, fallback WebGL1
+  const gl2 = canvas.getContext("webgl2", { antialias:true, alpha:false, preserveDrawingBuffer:true });
+  const gl = gl2 || canvas.getContext("webgl", { antialias:true, alpha:false, preserveDrawingBuffer:true });
+  if(!gl){ showErr("WebGL not available in this browser."); return; }
+
+  const isWebGL2 = !!gl2;
+
+  function resize(){
+    const dpr = Math.max(1, Math.min(2.25, window.devicePixelRatio || 1));
+    const rect = canvas.getBoundingClientRect();
+    const w = Math.max(2, Math.floor(rect.width * dpr));
+    const h = Math.max(2, Math.floor(rect.height * dpr));
+    if(canvas.width !== w || canvas.height !== h){
+      canvas.width = w; canvas.height = h;
+      gl.viewport(0,0,w,h);
+    }
+  }
+
+  const VERT = isWebGL2 ? `#version 300 es
+    precision highp float;
+    out vec2 vUv;
+    void main(){
+      vec2 p = vec2((gl_VertexID==1)?3.0:-1.0, (gl_VertexID==2)?3.0:-1.0);
+      vUv = 0.5*(p+1.0);
+      gl_Position = vec4(p,0.0,1.0);
+    }`
+  : `
+    precision highp float;
+    attribute vec2 aPos;
+    varying vec2 vUv;
+    void main(){
+      vUv = 0.5*(aPos+1.0);
+      gl_Position = vec4(aPos,0.0,1.0);
+    }`;
+
+  // Yohei tweet-shader adapted: provides FC, r, t, o and hsv()
+  const FRAG = isWebGL2 ? `#version 300 es
+    precision highp float;
+    uniform vec3 iResolution;
+    uniform float iTime;
+    uniform vec4 iMouse;
+    uniform vec4 uParams;  // speed, zoom, hueShift, intensity
+    uniform vec4 uParams2; // ox, oy, gamma, _
+
+    out vec4 fragColor;
+
+    vec3 hsv(float h, float s, float v){
+      vec3 c = vec3(h, s, v);
+      vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+      vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+      return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+    }
+
+    void main(){
+      vec2 FC = gl_FragCoord.xy;
+      vec2 r = iResolution.xy;
+      float t = iTime * uParams.x;
+
+      // ----- original core (with mild parameter hooks) -----
+      float i=0.0, e=0.0, R=0.0, s=0.0;
+      vec4 o = vec4(0.0);
+
+      vec2 uv = (FC.xy / r) - vec2(0.3);
+      uv = (uv - 0.5) / max(1e-6, uParams.y) + 0.5; // zoom
+      uv += vec2(uParams2.x, uParams2.y); // offsets
+
+      vec3 d = vec3(uv, 0.5);
+      vec3 q = vec3(0.0);
+      q.zx -= 1.0;
+
+      for(int k=0;k<99;k++){
+        // hue shift + intensity
+        float hh = 0.1 + uParams.z * 0.25;
+        o.rgb += hsv(hh, 0.2, (min(e*s, 0.4-e) / 20.0) * uParams.w);
+
+        s = 1.0;
+        vec3 p = q += d * e * R * 0.3;
+
+        R = length(p);
+        R = max(R, 1e-6);
+
+        p = vec3(
+          log2(R) - t,
+          exp2(-p.z/R + 1.0),
+          atan(p.x, p.y) + cos(t*0.5)*0.8
+        );
+
+        e = -p.y;
+        for(float ss=1.0; ss<5e2; ss+=ss){
+          e += dot(sin(p.xzx*ss)-0.4, sin(p.zyy*ss + e)) / ss * 0.3;
+          s = ss;
+        }
+      }
+
+      // gamma
+      float g = max(0.05, uParams2.z);
+      vec3 col = o.rgb;
+      col = pow(max(col, 0.0), vec3(1.0/g));
+      fragColor = vec4(col, 1.0);
+    }`
+  : `
+    precision highp float;
+    uniform vec3 iResolution;
+    uniform float iTime;
+    uniform vec4 iMouse;
+    uniform vec4 uParams;
+    uniform vec4 uParams2;
+    varying vec2 vUv;
+
+    vec3 hsv(float h, float s, float v){
+      vec3 c = vec3(h, s, v);
+      vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+      vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+      return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+    }
+
+    void main(){
+      vec2 FC = gl_FragCoord.xy;
+      vec2 r = iResolution.xy;
+      float t = iTime * uParams.x;
+
+      float i=0.0, e=0.0, R=0.0, s=0.0;
+      vec4 o = vec4(0.0);
+
+      vec2 uv = (FC.xy / r) - vec2(0.3);
+      uv = (uv - 0.5) / max(1e-6, uParams.y) + 0.5;
+      uv += vec2(uParams2.x, uParams2.y);
+
+      vec3 d = vec3(uv, 0.5);
+      vec3 q = vec3(0.0);
+      q.zx -= 1.0;
+
+      for(int k=0;k<99;k++){
+        float hh = 0.1 + uParams.z * 0.25;
+        o.rgb += hsv(hh, 0.2, (min(e*s, 0.4-e) / 20.0) * uParams.w);
+
+        s = 1.0;
+        vec3 p = q += d * e * R * 0.3;
+
+        R = length(p);
+        R = max(R, 1e-6);
+
+        p = vec3(
+          log2(R) - t,
+          exp2(-p.z/R + 1.0),
+          atan(p.x, p.y) + cos(t*0.5)*0.8
+        );
+
+        e = -p.y;
+        for(float ss=1.0; ss<5e2; ss+=ss){
+          e += dot(sin(p.xzx*ss)-0.4, sin(p.zyy*ss + e)) / ss * 0.3;
+          s = ss;
+        }
+      }
+
+      float g = max(0.05, uParams2.z);
+      vec3 col = o.rgb;
+      col = pow(max(col, 0.0), vec3(1.0/g));
+      gl_FragColor = vec4(col, 1.0);
+    }`;
+
+  function compile(type, src){
+    const sh = gl.createShader(type);
+    gl.shaderSource(sh, src);
+    gl.compileShader(sh);
+    if(!gl.getShaderParameter(sh, gl.COMPILE_STATUS)){
+      const log = gl.getShaderInfoLog(sh) || "Unknown shader compile error";
+      gl.deleteShader(sh);
+      throw new Error(log);
+    }
+    return sh;
+  }
+
+  let prog, locRes, locTime, locMouse, locP, locP2;
+  let vao = null, vbo = null;
+
+  function build(){
+    try{
+      const vs = compile(gl.VERTEX_SHADER, VERT);
+      const fs = compile(gl.FRAGMENT_SHADER, FRAG);
+      prog = gl.createProgram();
+      gl.attachShader(prog, vs);
+      gl.attachShader(prog, fs);
+
+      if(!isWebGL2){
+        // WebGL1 needs aPos attribute
+        gl.bindAttribLocation(prog, 0, "aPos");
+      }
+
+      gl.linkProgram(prog);
+      if(!gl.getProgramParameter(prog, gl.LINK_STATUS)){
+        throw new Error(gl.getProgramInfoLog(prog) || "Program link error");
+      }
+
+      gl.useProgram(prog);
+      locRes = gl.getUniformLocation(prog, "iResolution");
+      locTime = gl.getUniformLocation(prog, "iTime");
+      locMouse = gl.getUniformLocation(prog, "iMouse");
+      locP = gl.getUniformLocation(prog, "uParams");
+      locP2 = gl.getUniformLocation(prog, "uParams2");
+
+      if(isWebGL2){
+        vao = gl.createVertexArray();
+        gl.bindVertexArray(vao);
+      }else{
+        // fullscreen tri as 2 triangles (quad)
+        vbo = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+          -1,-1,  1,-1, -1, 1,
+          -1, 1,  1,-1,  1, 1
+        ]), gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+      }
+
+      status.textContent = isWebGL2 ? "WebGL2 OK" : "WebGL1 OK";
+    }catch(e){
+      showErr(String(e?.message || e));
+    }
+  }
+
+  build();
+
+  // Mouse -> iMouse (x,y, clickX, clickY)
+  const mouse = { x:0, y:0, cx:0, cy:0, down:false };
+  canvas.addEventListener("mousemove", (e)=>{
+    const rect = canvas.getBoundingClientRect();
+    const dpr = canvas.width / rect.width;
+    mouse.x = (e.clientX - rect.left) * dpr;
+    mouse.y = (rect.height - (e.clientY - rect.top)) * dpr;
+  });
+  canvas.addEventListener("mousedown", ()=>{
+    mouse.down = true;
+    mouse.cx = mouse.x; mouse.cy = mouse.y;
+  });
+  window.addEventListener("mouseup", ()=> mouse.down = false);
+
+  // Pause + screenshot
+  let paused = false;
+  const btnPause = document.getElementById("btnPause");
+  btnPause.addEventListener("click", ()=>{
+    paused = !paused;
+    btnPause.textContent = paused ? "Resume" : "Pause";
+  });
+  document.getElementById("btnShot").addEventListener("click", ()=>{
+    const a = document.createElement("a");
+    a.download = `yohei_${Date.now()}.png`;
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+  });
+
+  // Render loop
+  let t0 = performance.now();
+  let last = t0;
+
+  function tick(now){
+    resize();
+    if(!prog){ requestAnimationFrame(tick); return; }
+
+    if(!paused){
+      last = now;
+    }else{
+      // freeze time
+      t0 += (now - last);
+      last = now;
+    }
+
+    const time = (now - t0) / 1000;
+
+    gl.useProgram(prog);
+    gl.uniform3f(locRes, canvas.width, canvas.height, 1.0);
+    gl.uniform1f(locTime, time);
+    gl.uniform4f(locMouse, mouse.x, mouse.y, mouse.down ? mouse.cx : 0.0, mouse.down ? mouse.cy : 0.0);
+
+    // uParams: speed, zoom, hueShift, intensity
+    gl.uniform4f(locP, params.speed, params.zoom, params.hue, params.inten);
+    // uParams2: ox, oy, gamma, _
+    gl.uniform4f(locP2, params.ox, params.oy, params.gamma, 0.0);
+
+    if(isWebGL2){
+      gl.bindVertexArray(vao);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }else{
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+</script>
 </body>
 </html>
