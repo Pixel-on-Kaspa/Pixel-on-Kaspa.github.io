@@ -126,7 +126,7 @@
       border:1px solid rgba(255,255,255,.10);
       background: rgba(0,0,0,.30);
       overflow:auto;
-      max-height: 220px;
+      max-height: 240px;
       font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
       color: rgba(255,255,255,.86);
     }
@@ -207,12 +207,20 @@
 
           <div class="ctrl">
             <div class="ctrlHead"><div class="ctrlTitle">Intensity</div><div class="ctrlVal" id="vInt">—</div></div>
-            <input id="inten" type="range" min="0.10" max="3.00" step="0.01" value="1.00"/>
+            <input id="inten" type="range" min="0.10" max="3.00" step="0.01" value="1.20"/>
           </div>
 
           <div class="ctrl">
             <div class="ctrlHead"><div class="ctrlTitle">Gamma</div><div class="ctrlVal" id="vGam">—</div></div>
             <input id="gamma" type="range" min="0.70" max="2.20" step="0.01" value="1.00"/>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Micro chaos</div><div class="ctrlVal" id="vChaos">—</div></div>
+            <input id="chaos" type="range" min="0.00" max="0.010" step="0.0001" value="0.0007"/>
+            <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
+              Breaks uniform collapse. If image is flat, raise this slightly.
+            </div>
           </div>
 
           <div class="muted" style="margin-top:10px;line-height:1.55">
@@ -226,15 +234,15 @@
 <script>
 (() => {
   // --------- Params (URL + localStorage) ----------
-  const KEY = "yohei_params_v2";
-  const ids = ["speed","zoom","ox","oy","hue","inten","gamma"];
+  const KEY = "yohei_params_v3";
+  const ids = ["speed","zoom","ox","oy","hue","inten","gamma","chaos"];
   const el = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
   const status = document.getElementById("status");
   const shareHint = document.getElementById("shareHint");
 
   const num = (v)=>{ const x = parseFloat(v); return Number.isFinite(x) ? x : null; };
 
-  const defaults = { speed:1.00, zoom:1.00, ox:0.00, oy:0.00, hue:0.00, inten:1.20, gamma:1.00 };
+  const defaults = { speed:1.00, zoom:1.00, ox:0.00, oy:0.00, hue:0.00, inten:1.20, gamma:1.00, chaos:0.0007 };
   const params = Object.assign({}, defaults);
 
   function readUrl(){
@@ -275,6 +283,7 @@
     set("vHue", params.hue.toFixed(2));
     set("vInt", params.inten.toFixed(2));
     set("vGam", params.gamma.toFixed(2));
+    set("vChaos", params.chaos.toFixed(4));
   }
   function commit(){
     ids.forEach(id=>{
@@ -305,7 +314,7 @@
     }
   });
 
-  // --------- WebGL wrapper for Shadertoy-style fragment ----------
+  // --------- WebGL wrapper ----------
   const canvas = document.getElementById("c");
   const errEl = document.getElementById("err");
 
@@ -348,14 +357,14 @@ void main(){
   gl_Position = vec4(aPos,0.0,1.0);
 }`;
 
-  // ---- FIXED/BRIGHTENED Yohei fragment (kills negative energy => not black) ----
+  // ---- YOHEI (adapted) + UV FIX + MICRO CHAOS ----
   const FRAG = isWebGL2 ? `#version 300 es
 precision highp float;
 uniform vec3 iResolution;
 uniform float iTime;
 uniform vec4 iMouse;
 uniform vec4 uParams;   // speed, zoom, hueShift, intensity
-uniform vec4 uParams2;  // ox, oy, gamma, debug(0/1)
+uniform vec4 uParams2;  // ox, oy, gamma, chaos
 out vec4 fragColor;
 
 vec3 hsv(float h, float s, float v){
@@ -369,38 +378,39 @@ void main(){
   vec2 r = iResolution.xy;
   float t = iTime * uParams.x;
 
-  // debug gradient if needed
-  if(uParams2.w > 0.5){
-    fragColor = vec4(FC.xy / max(r, vec2(1.0)), 0.0, 1.0);
-    return;
-  }
-
   float e = 0.0;
   float R = 0.0;
   float s = 0.0;
   vec4 o = vec4(0.0);
 
-  // parameterized UV
-  vec2 uv = (FC.xy / max(r, vec2(1.0))) - vec2(0.3);
-  uv = (uv - 0.5) / max(1e-6, uParams.y) + 0.5;        // zoom
-  uv += vec2(uParams2.x, uParams2.y);                   // offsets
+  // --- KEY FIX: aspect-correct signed space (prevents uniform collapse) ---
+  vec2 uv = (FC.xy - 0.5 * r) / max(r.y, 1.0);
+  uv *= 1.25;
+  uv -= vec2(0.3);
+
+  // zoom + offsets
+  uv = uv / max(1e-6, uParams.y);
+  uv += vec2(uParams2.x, uParams2.y);
+
+  // micro chaos (slider)
+  float ch = clamp(uParams2.w, 0.0, 0.02);
+  uv += ch * sin(vec2(uv.y, uv.x) * 40.0 + t);
 
   vec3 d = vec3(uv, 0.5);
   vec3 q = vec3(0.0);
   q.zx -= 1.0;
 
   for(int k=0;k<99;k++){
-    // --- accumulate: make it always non-negative (key fix) ---
+    // keep it positive so it doesn't go black
     float raw = min(e*s, 0.4 - e);
-    float vv = max(raw, 0.0);      // kill negatives
-    vv = vv / 12.0;                // brighter than /20
-    vv = vv + 0.006;               // floor bias
-    float hh = 0.1 + uParams.z * 0.25;
+    float vv = max(raw, 0.0);
+    vv = vv / 12.0;
+    vv = vv + 0.006;
 
+    float hh = 0.1 + uParams.z * 0.25;
     o.rgb += hsv(hh, 0.25, vv) * uParams.w;
 
     s = 1.0;
-
     vec3 p = q += d * e * R * 0.3;
 
     R = length(p);
@@ -421,8 +431,8 @@ void main(){
 
   float g = max(0.05, uParams2.z);
   vec3 col = max(o.rgb, 0.0);
-  col *= 1.35;     // global gain
-  col += 0.01;     // lift so it’s never fully black
+  col *= 1.35;
+  col += 0.01;
   col = pow(col, vec3(1.0 / g));
   fragColor = vec4(col, 1.0);
 }`
@@ -446,19 +456,20 @@ void main(){
   vec2 r = iResolution.xy;
   float t = iTime * uParams.x;
 
-  if(uParams2.w > 0.5){
-    gl_FragColor = vec4(FC.xy / max(r, vec2(1.0)), 0.0, 1.0);
-    return;
-  }
-
   float e = 0.0;
   float R = 0.0;
   float s = 0.0;
   vec4 o = vec4(0.0);
 
-  vec2 uv = (FC.xy / max(r, vec2(1.0))) - vec2(0.3);
-  uv = (uv - 0.5) / max(1e-6, uParams.y) + 0.5;
+  vec2 uv = (FC.xy - 0.5 * r) / max(r.y, 1.0);
+  uv *= 1.25;
+  uv -= vec2(0.3);
+
+  uv = uv / max(1e-6, uParams.y);
   uv += vec2(uParams2.x, uParams2.y);
+
+  float ch = clamp(uParams2.w, 0.0, 0.02);
+  uv += ch * sin(vec2(uv.y, uv.x) * 40.0 + t);
 
   vec3 d = vec3(uv, 0.5);
   vec3 q = vec3(0.0);
@@ -469,8 +480,8 @@ void main(){
     float vv = max(raw, 0.0);
     vv = vv / 12.0;
     vv = vv + 0.006;
-    float hh = 0.1 + uParams.z * 0.25;
 
+    float hh = 0.1 + uParams.z * 0.25;
     o.rgb += hsv(hh, 0.25, vv) * uParams.w;
 
     s = 1.0;
@@ -561,7 +572,7 @@ void main(){
 
   build();
 
-  // Mouse -> iMouse (x,y, clickX, clickY)
+  // Mouse -> iMouse (x,y, clickX, clickY)  (not used yet but wired)
   const mouse = { x:0, y:0, cx:0, cy:0, down:false };
   canvas.addEventListener("mousemove", (e)=>{
     const rect = canvas.getBoundingClientRect();
@@ -613,8 +624,8 @@ void main(){
 
     // uParams: speed, zoom, hueShift, intensity
     gl.uniform4f(locP, params.speed, params.zoom, params.hue, params.inten);
-    // uParams2: ox, oy, gamma, debug(0)
-    gl.uniform4f(locP2, params.ox, params.oy, params.gamma, 0.0);
+    // uParams2: ox, oy, gamma, chaos
+    gl.uniform4f(locP2, params.ox, params.oy, params.gamma, params.chaos);
 
     if(isWebGL2){
       gl.bindVertexArray(vao);
