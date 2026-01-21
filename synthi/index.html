@@ -245,9 +245,7 @@
 
     /* Custom audio UI */
     .audioTop{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
-    .audioTitle{
-      font-weight:900;letter-spacing:.12em;text-transform:uppercase;
-    }
+    .audioTitle{font-weight:900;letter-spacing:.12em;text-transform:uppercase;}
     .audioTime{opacity:.75;font-size:12px;white-space:nowrap}
     .bar{
       width:100%;
@@ -325,14 +323,13 @@
           <div class="heroCtas">
             <a class="btn btnPrimary" href="./rec.html">REC Streams</a>
             <a class="btn" href="./generator.html">Open Generator</a>
-           
+            <a class="btn" id="btnPumpCoin" href="#" target="_blank" rel="noreferrer">pump.fun</a>
           </div>
         </div>
 
         <div class="heroArt">
           <div class="frame">
-            <img src="../assets/img/synthi.png" alt="SYNTHI art" loading="lazy"
-                 onerror="this.style.display='none'">
+            <img src="../assets/img/synthi.png" alt="SYNTHI art" loading="lazy" onerror="this.style.display='none'">
             <div class="label">live → rec</div>
           </div>
         </div>
@@ -386,9 +383,6 @@
                 <div class="barVal" id="synthiAudioVolVal">—</div>
               </div>
               <input id="synthiAudioVol" type="range" min="0" max="100" step="1" value="80" />
-              <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
-                
-              </div>
             </div>
 
             <!-- SoundCloud engine (hidden) -->
@@ -452,42 +446,12 @@
     const PUMP_COIN_URL = `https://pump.fun/coin/${COIN_ID}`;
 
     const STREAMS = [
-      {
-        title: "SYNTHI REC STREAM 8",
-        date: "2026-01-14",
-        url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260114_002147%3A1940516_20260114_002127",
-        thumb: "../assets/img/rec8.png"
-      },
-      {
-        title: "SYNTHI REC STREAM 7",
-        date: "2026-01-14",
-        url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260114_000728%3A1940453_20260114_000715",
-        thumb: "../assets/img/rec7.png"
-      },
-      {
-        title: "SYNTHI REC STREAM 6",
-        date: "2026-01-06",
-        url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_231554%3A1914159_20260106_231539",
-        thumb: "../assets/img/rec6.png"
-      },
-      {
-        title: "SYNTHI REC STREAM 5",
-        date: "2026-01-06",
-        url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_223447%3A1914055_20260106_223434",
-        thumb: "../assets/img/rec5.png"
-      },
-      {
-        title: "SYNTHI REC STREAM 4",
-        date: "2025-12-14",
-        url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251214_014052%3A1848857_20251214_014035",
-        thumb: "../assets/img/rec4.png"
-      },
-      {
-        title: "SYNTHI REC STREAM 3",
-        date: "2025-12-13",
-        url: "https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251213_003042%3A1845633_20251213_003028",
-        thumb: "../assets/img/rec3.png"
-      }
+      { title:"SYNTHI REC STREAM 8", date:"2026-01-14", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260114_002147%3A1940516_20260114_002127", thumb:"../assets/img/rec8.png" },
+      { title:"SYNTHI REC STREAM 7", date:"2026-01-14", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260114_000728%3A1940453_20260114_000715", thumb:"../assets/img/rec7.png" },
+      { title:"SYNTHI REC STREAM 6", date:"2026-01-06", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_231554%3A1914159_20260106_231539", thumb:"../assets/img/rec6.png" },
+      { title:"SYNTHI REC STREAM 5", date:"2026-01-06", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_223447%3A1914055_20260106_223434", thumb:"../assets/img/rec5.png" },
+      { title:"SYNTHI REC STREAM 4", date:"2025-12-14", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251214_014052%3A1848857_20251214_014035", thumb:"../assets/img/rec4.png" },
+      { title:"SYNTHI REC STREAM 3", date:"2025-12-13", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251213_003042%3A1845633_20251213_003028", thumb:"../assets/img/rec3.png" }
     ];
 
     const qs = (s)=>document.querySelector(s);
