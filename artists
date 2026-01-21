@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Artists • Pixel on Kaspa</title>
+  <style>
+    :root{
+      --bg1:#121623;
+      --bg2:#050608;
+      --panel: rgba(0,0,0,.18);
+      --border: rgba(255,255,255,.12);
+      --muted: rgba(255,255,255,.70);
+      --accent:#00c4ff;
+      --shadow: 0 18px 35px rgba(0,0,0,.50);
+      --text:#f5f5f5;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
+      background: radial-gradient(circle at top, var(--bg1) 0, var(--bg2) 52%);
+      color:var(--text);
+      min-height:100vh;
+    }
+    a{color:inherit}
+    .wrap{max-width:1100px;margin:0 auto;padding:22px 16px 56px}
+
+    .topbar{
+      display:flex;align-items:center;justify-content:space-between;
+      gap:14px;
+      border:1px solid var(--border);
+      border-radius:16px;
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      padding:12px 14px;
+      box-shadow: var(--shadow);
+    }
+    .brand{
+      display:flex;align-items:baseline;gap:10px;
+      letter-spacing:.14em;text-transform:uppercase;font-weight:900;white-space:nowrap;
+    }
+    .brand small{opacity:.7;font-weight:700;letter-spacing:.08em;text-transform:none;white-space:nowrap;}
+    .nav{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center;}
+
+    .btn{
+      text-decoration:none;
+      display:inline-flex;align-items:center;gap:8px;
+      padding:9px 14px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.88);
+      font-weight:750;
+      transition: background .15s, color .15s, transform .15s, border-color .15s;
+      white-space:nowrap;line-height:1;cursor:pointer;user-select:none;
+    }
+    .btn:hover{background: rgba(255,255,255,.12);color:#fff;transform: translateY(-1px);}
+    .btnPrimary{
+      border-color: rgba(0,196,255,.70);
+      color: var(--accent);
+      background: rgba(0,196,255,.08);
+    }
+    .btnPrimary:hover{background: var(--accent); color:#020308;}
+    .btnGhost{ background: transparent; border-color: rgba(255,255,255,.16); opacity:.95; }
+    .btnIcon{ padding:8px 12px; }
+    .btnIcon img{ width:22px;height:22px;display:block;border-radius:7px; }
+
+    .hero{
+      margin-top:18px;
+      border:1px solid var(--border);
+      border-radius:22px;
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      padding:22px 18px 18px;
+      position:relative;
+      overflow:hidden;
+    }
+    .hero::before{
+      content:"";
+      position:absolute;inset:-140px -160px auto auto;
+      width:340px;height:340px;
+      background: radial-gradient(circle at center, rgba(0,196,255,.22), transparent 60%);
+      filter: blur(2px);
+      transform: rotate(10deg);
+      pointer-events:none;
+    }
+    .hero h1{
+      margin:0 0 10px;
+      font-size:44px;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      line-height:1.02;
+    }
+    .hero p{margin:0;opacity:.82;max-width:80ch;line-height:1.55}
+    .muted{opacity:.76}
+
+    .sectionTitle{
+      margin:22px 0 12px;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      font-weight:900;
+      font-size:14px;
+      opacity:.85;
+      display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    }
+    .sectionTitle span{opacity:.65;font-weight:700;letter-spacing:.08em;text-transform:none;font-size:12px}
+
+    .cards{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:16px;
+    }
+    .card{
+      border:1px solid var(--border);
+      border-radius:20px;
+      background: rgba(0,0,0,.18);
+      backdrop-filter: blur(10px);
+      padding:16px;
+      box-shadow: var(--shadow);
+      transition: transform .15s ease-out, border-color .15s, box-shadow .15s;
+      overflow:hidden;
+    }
+    .card:hover{transform: translateY(-3px); border-color: rgba(0,196,255,.22); box-shadow:0 24px 40px rgba(0,0,0,.7);}
+
+    .thumb{
+      width:100%;
+      aspect-ratio: 1/1;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.10);
+      background: radial-gradient(circle at center, rgba(0,196,255,.12), rgba(0,0,0,.72));
+      overflow:hidden;
+      margin-bottom:12px;
+      position:relative;
+    }
+    .thumb .tag{
+      position:absolute;left:10px;top:10px;
+      padding:6px 10px;border-radius:999px;
+      border:1px solid rgba(0,196,255,.45);
+      background: rgba(0,196,255,.12);
+      color: var(--accent);
+      font-weight:900;
+      font-size:12px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      backdrop-filter: blur(10px);
+    }
+    .thumb .hint{
+      position:absolute;right:10px;top:10px;
+      padding:6px 10px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.22);
+      opacity:.88;
+      font-size:12px;
+      backdrop-filter: blur(10px);
+    }
+    .thumb .bottomline{
+      position:absolute;left:10px;right:10px;bottom:10px;
+      padding:10px 12px;border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.30);
+      backdrop-filter: blur(10px);
+      font-size:12px;
+      line-height:1.35;
+      opacity:.92;
+    }
+    .thumb .bottomline b{letter-spacing:.08em;text-transform:uppercase}
+
+    .cardHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;}
+    .cardHead b{font-size:18px;letter-spacing:.10em;text-transform:uppercase;}
+    .chip{
+      padding:6px 10px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      opacity:.85;
+      font-size:12px;
+      white-space:nowrap;
+    }
+    .card p{margin:0 0 14px;opacity:.78;line-height:1.5}
+    .cardActions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+
+    footer{
+      margin-top:22px;
+      opacity:.70;
+      font-size:13px;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    footer a{color: var(--accent); text-decoration:none}
+    footer a:hover{text-decoration:underline}
+
+    @media (max-width: 980px){
+      .cards{grid-template-columns:1fr}
+      .brand small{display:none}
+      .hero h1{font-size:36px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <div class="topbar">
+      <div class="brand">
+        ARTISTS <small>guest generators</small>
+      </div>
+      <div class="nav">
+        <a class="btn" href="/">Home</a>
+        <a class="btn btnPrimary" href="/artists.html">Artists</a>
+        <a class="btn" href="/viewer">NFTs</a>
+        <a class="btn btnIcon btnGhost" href="/synthi/" title="SYNTHI">
+          <img src="assets/img/logo.png" alt="SYNTHI">
+          SYNTHI
+        </a>
+        <a class="btn btnGhost" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
+        <a class="btn btnGhost" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
+      </div>
+    </div>
+
+    <section class="hero">
+      <h1>ARTIST GENERATORS</h1>
+      <p>
+        Curated sketches by guest artists — running as live generators. Credits are explicit.
+        If you want a slot, ping on X/TG.
+      </p>
+      <p class="muted" style="margin-top:10px">
+        Current artists: <b>@KomaTebe</b> (p5) · <b>@YoheiNishitsuji</b> (GLSL)
+      </p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+        <a class="btn btnPrimary" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">Submit on X</a>
+        <a class="btn" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">Submit on TG</a>
+      </div>
+    </section>
+
+    <div class="sectionTitle">
+      GENERATORS
+      <span>Each card opens a dedicated page.</span>
+    </div>
+
+    <section class="cards">
+      <div class="card">
+        <div class="thumb">
+          <span class="tag">P5</span>
+          <span class="hint">@KomaTebe</span>
+          <div class="bottomline">
+            <b>Koma Tebe</b><br>
+            p5 one-liner → live generator
+          </div>
+        </div>
+        <div class="cardHead">
+          <b>KOMA • P5</b>
+          <span class="chip">artist</span>
+        </div>
+        <p>p5 generator created by <b>Koma Tebe</b> (<b>@KomaTebe</b>).</p>
+        <div class="cardActions">
+          <a class="btn btnPrimary" href="/pixel-p5.html">Open generator</a>
+          <a class="btn btnGhost" href="https://x.com/KomaTebe" target="_blank" rel="noreferrer">X profile</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="thumb" style="background: radial-gradient(circle at center, rgba(0,196,255,.10), rgba(0,0,0,.78));">
+          <span class="tag">GLSL</span>
+          <span class="hint">@YoheiNishitsuji</span>
+          <div class="bottomline">
+            <b>Yohei Nishitsuji</b><br>
+            fragment shader → live viewer
+          </div>
+        </div>
+        <div class="cardHead">
+          <b>YOHEI • GLSL</b>
+          <span class="chip">artist</span>
+        </div>
+        <p>GLSL fragment by <b>@YoheiNishitsuji</b> (tweet shader style).</p>
+        <div class="cardActions">
+          <a class="btn btnPrimary" href="/yohei-glsl.html">Open shader</a>
+          <a class="btn btnGhost" href="https://x.com/YoheiNishitsuji" target="_blank" rel="noreferrer">X profile</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="thumb" style="opacity:.92">
+          <span class="tag">OPEN</span>
+          <span class="hint">submit</span>
+          <div class="bottomline">
+            <b>Guest slot</b><br>
+            next artist → soon
+          </div>
+        </div>
+        <div class="cardHead">
+          <b>NEXT</b>
+          <span class="chip">tba</span>
+        </div>
+        <p>If you’re a generative artist and want a slot here, ping us on X/TG.</p>
+        <div class="cardActions">
+          <a class="btn btnPrimary" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">Contact on X</a>
+          <a class="btn" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">Contact on TG</a>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div>© Pixel on Kaspa</div>
+      <div>
+        <a href="/">Home</a> ·
+        <a href="/artists.html">Artists</a> ·
+        <a href="/viewer">NFTs</a> ·
+        <a href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a> ·
+        <a href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
+      </div>
+    </footer>
+
+  </div>
+</body>
+</html>
