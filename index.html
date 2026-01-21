@@ -187,7 +187,6 @@
     }
     .thumb .bottomline b{letter-spacing:.08em;text-transform:uppercase}
 
-    /* SYNTHI thumb logo */
     .synthiThumb{
       background: radial-gradient(circle at center, rgba(0,196,255,.15), rgba(0,0,0,.62));
     }
@@ -200,6 +199,14 @@
       height:78px;
       opacity:.92;
       filter: drop-shadow(0 0 22px rgba(0,196,255,.35));
+    }
+
+    .artistThumb{
+      background: radial-gradient(circle at center, rgba(0,196,255,.12), rgba(0,0,0,.74));
+    }
+    .artistThumb .tag{
+      border-color: rgba(0,196,255,.45);
+      background: rgba(0,196,255,.12);
     }
 
     .cardHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;}
@@ -227,7 +234,6 @@
     footer a{color: var(--accent); text-decoration:none}
     footer a:hover{text-decoration:underline}
 
-    /* Rewards Modal */
     .modal{position:fixed;inset:0;background: rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:18px;z-index:9999;}
     .modal.open{display:flex;}
     .modalPanel{width:min(980px, 96vw);max-height: 92vh;overflow:auto;border-radius:18px;border:1px solid rgba(255,255,255,.14);background: rgba(10,12,18,.92);box-shadow: 0 30px 80px rgba(0,0,0,.75);backdrop-filter: blur(10px);}
@@ -263,13 +269,14 @@
       <div class="nav">
         <button class="btn btnRewardsTop btnPrimary" type="button" data-open-rewards="PIXELONKAS">REWARDS</button>
 
-        <a class="btn" href="/artists.html">ARTISTS</a>
-        <a class="btn" href="/viewer">NFTs</a>
+        <!-- RELATIVE LINKS (robust) -->
+        <a class="btn" href="artists.html">ARTISTS</a>
+        <a class="btn" href="viewer">NFTs</a>
 
         <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">Mint PIXELONKAS</a>
         <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">Mint SYKORA</a>
 
-        <a class="btn btnIcon btnGhost" href="/synthi/" title="SYNTHI">
+        <a class="btn btnIcon btnGhost" href="synthi/" title="SYNTHI">
           <img src="assets/img/logo.png" alt="SYNTHI">
           SYNTHI
         </a>
@@ -282,7 +289,6 @@
     <section class="hero">
       <h1>PIXEL&nbsp;ON&nbsp;KASPA</h1>
       <p class="sub"><b>$PIXEL</b> KRC-20 utility token on Kaspa.</p>
-
       <div class="heroCtas">
         <a class="btn btnPrimary" href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">Open $PIXEL</a>
       </div>
@@ -309,7 +315,7 @@
         </div>
         <p>NFT collection — sound-driven image generation inscribed on the Kaspa blockDAG.</p>
         <div class="cardActions">
-          <a class="btn btnPrimary" href="/viewer">Open NFTs</a>
+          <a class="btn btnPrimary" href="viewer">Open NFTs</a>
           <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
           <button class="btn btnGhost" type="button" data-open-rewards="PIXELONKAS">Rewards</button>
         </div>
@@ -330,7 +336,7 @@
         </div>
         <p>NFT collection — sound-driven image generation inscribed on the Kaspa blockDAG.</p>
         <div class="cardActions">
-          <a class="btn btnPrimary" href="/viewer">Open NFTs</a>
+          <a class="btn btnPrimary" href="viewer">Open NFTs</a>
           <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
           <button class="btn btnGhost" type="button" data-open-rewards="SYKORA">Rewards</button>
         </div>
@@ -352,8 +358,75 @@
         </div>
         <p>SYNTHI index — sound system, REC streams, and on-chain residue.</p>
         <div class="cardActions">
-          <a class="btn btnPrimary" href="/synthi/">Open SYNTHI</a>
-          <a class="btn" href="/synthi/rec.html">REC Streams</a>
+          <a class="btn btnPrimary" href="synthi/">Open SYNTHI</a>
+          <a class="btn" href="synthi/rec.html">REC Streams</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="sectionTitle">
+      ARTIST GENERATORS
+      <span>Quick entry → dedicated pages.</span>
+    </div>
+
+    <section class="cards">
+      <div class="card">
+        <div class="thumb artistThumb">
+          <span class="tag">P5</span>
+          <span class="hint">@KomaTebe</span>
+          <div class="bottomline">
+            <b>Koma Tebe</b><br>
+            p5 one-liner → live generator
+          </div>
+        </div>
+        <div class="cardHead">
+          <b>KOMA • P5</b>
+          <span class="chip">artist</span>
+        </div>
+        <p>p5 generator created by <b>Koma Tebe</b> (<b>@KomaTebe</b>).</p>
+        <div class="cardActions">
+          <a class="btn btnPrimary" href="pixel-p5.html">Open generator</a>
+          <a class="btn btnGhost" href="artists.html">Artists page</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="thumb artistThumb" style="background: radial-gradient(circle at center, rgba(0,196,255,.10), rgba(0,0,0,.78));">
+          <span class="tag">GLSL</span>
+          <span class="hint">@YoheiNishitsuji</span>
+          <div class="bottomline">
+            <b>Yohei Nishitsuji</b><br>
+            fragment shader → live viewer
+          </div>
+        </div>
+        <div class="cardHead">
+          <b>YOHEI • GLSL</b>
+          <span class="chip">artist</span>
+        </div>
+        <p>GLSL fragment by <b>@YoheiNishitsuji</b>.</p>
+        <div class="cardActions">
+          <a class="btn btnPrimary" href="yohei-glsl.html">Open shader</a>
+          <a class="btn btnGhost" href="artists.html">Artists page</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="thumb artistThumb" style="opacity:.92">
+          <span class="tag">OPEN</span>
+          <span class="hint">submit</span>
+          <div class="bottomline">
+            <b>Guest slot</b><br>
+            next artist → soon
+          </div>
+        </div>
+        <div class="cardHead">
+          <b>NEXT</b>
+          <span class="chip">tba</span>
+        </div>
+        <p>Want a slot here? Ping us on X/TG.</p>
+        <div class="cardActions">
+          <a class="btn btnPrimary" href="artists.html">Open Artists</a>
+          <a class="btn" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">Contact on X</a>
         </div>
       </div>
     </section>
@@ -362,8 +435,8 @@
       <div>© Pixel on Kaspa</div>
       <div>
         <a href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">$PIXEL</a> ·
-        <a href="/viewer">NFTs</a> ·
-        <a href="/artists.html">Artists</a> ·
+        <a href="viewer">NFTs</a> ·
+        <a href="artists.html">Artists</a> ·
         <a href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a> ·
         <a href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
       </div>
@@ -371,7 +444,6 @@
 
   </div>
 
-  <!-- Rewards Modal -->
   <div class="modal" id="rewardsModal" aria-hidden="true">
     <div class="modalPanel" role="dialog" aria-modal="true">
       <div class="modalTop">
