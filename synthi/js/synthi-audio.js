@@ -1,138 +1,151 @@
 // synthi/js/synthi-audio.js
-// SYNTHI Audio Module — custom UI (no click-through)
-// Uses SoundCloud Widget API with a hidden iframe engine.
+// SoundCloud audio-only controller (hidden iframe, no click-through)
+(() => {
+  "use strict";
 
-window.SynthiAudio = (() => {
-  let widget = null;
-  let ready = false;
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 
-  let durationMs = 0;
-  let lastPosMs = 0;
-  let isSeeking = false;
-
-  function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
-
-  function fmtTime(ms) {
-    ms = Math.max(0, ms|0);
+  function fmt(ms) {
+    ms = Math.max(0, ms | 0);
     const s = Math.floor(ms / 1000);
     const m = Math.floor(s / 60);
-    const r = s % 60;
-    return `${String(m).padStart(2,"0")}:${String(r).padStart(2,"0")}`;
+    const ss = String(s % 60).padStart(2, "0");
+    return `${String(m).padStart(2, "0")}:${ss}`;
   }
 
-  function setText(el, txt){ if (el) el.textContent = txt; }
+  function safeQS(id) {
+    return id ? document.getElementById(id) : null;
+  }
 
-  function init(cfg) {
-    const iframe = document.getElementById(cfg.iframeId);
-    if (!iframe || !window.SC) {
-      console.warn("[SynthiAudio] Missing iframe or SoundCloud API.");
-      return;
+  function makeSynthiAudio() {
+    let widget = null;
+    let duration = 0;
+    let isSeeking = false;
+    let lastPos = 0;
+
+    let els = {};
+
+    function setText(el, txt) {
+      if (el) el.textContent = txt;
     }
 
-    const btnPlay   = document.getElementById(cfg.playBtnId);
-    const btnPause  = document.getElementById(cfg.pauseBtnId);
-    const btnRew    = document.getElementById(cfg.rewindBtnId);
+    function syncTimeUI(posMs) {
+      const pos = clamp(posMs || 0, 0, duration || 0);
+      const d = duration || 0;
 
-    const posSlider = document.getElementById(cfg.posSliderId);
-    const posLabel  = document.getElementById(cfg.posLabelId);
-    const timeLabel = document.getElementById(cfg.timeLabelId);
+      setText(els.timeLabel, `${fmt(pos)} / ${fmt(d)}`);
+      setText(els.posLabel, fmt(pos));
 
-    const volSlider = document.getElementById(cfg.volSliderId);
-    const volLabel  = document.getElementById(cfg.volLabelId);
-
-    widget = window.SC.Widget(iframe);
-
-    // initial UI defaults
-    const initVol = clamp(parseInt(cfg.initialVolume ?? 80, 10) || 80, 0, 100);
-    if (volSlider) volSlider.value = String(initVol);
-    setText(volLabel, `${initVol}%`);
-    if (posSlider) posSlider.value = "0";
-    setText(posLabel, "0%");
-    setText(timeLabel, "00:00 / 00:00");
-
-    widget.bind(window.SC.Widget.Events.READY, () => {
-      ready = true;
-
-      // volume
-      try { widget.setVolume(initVol); } catch {}
-
-      // duration
-      widget.getDuration((d) => {
-        durationMs = d || 0;
-        setText(timeLabel, `${fmtTime(lastPosMs)} / ${fmtTime(durationMs)}`);
-      });
-
-      // keep duration updated (some tracks load duration late)
-      widget.getCurrentSound((sound) => {
-        if (sound && sound.duration) durationMs = sound.duration;
-        setText(timeLabel, `${fmtTime(lastPosMs)} / ${fmtTime(durationMs)}`);
-      });
-    });
-
-    // Progress updates
-    widget.bind(window.SC.Widget.Events.PLAY_PROGRESS, (e) => {
-      if (!e) return;
-      lastPosMs = e.currentPosition || 0;
-      if (!durationMs && e.duration) durationMs = e.duration;
-
-      if (!isSeeking && posSlider && durationMs > 0) {
-        const t = clamp(lastPosMs / durationMs, 0, 1);
-        posSlider.value = String(Math.round(t * 1000));
-        setText(posLabel, `${Math.round(t * 100)}%`);
+      if (els.posSlider && !isSeeking) {
+        const max = Number(els.posSlider.max || 1000);
+        const v = d > 0 ? Math.round((pos / d) * max) : 0;
+        els.posSlider.value = String(v);
       }
-      setText(timeLabel, `${fmtTime(lastPosMs)} / ${fmtTime(durationMs)}`);
-    });
+    }
 
-    // Buttons
-    if (btnPlay) btnPlay.addEventListener("click", () => {
-      if (!ready) return;
-      try { widget.play(); } catch {}
-    });
-    if (btnPause) btnPause.addEventListener("click", () => {
-      if (!ready) return;
-      try { widget.pause(); } catch {}
-    });
-    if (btnRew) btnRew.addEventListener("click", () => {
-      if (!ready) return;
-      try { widget.seekTo(0); } catch {}
-    });
+    function syncVolUI(vol) {
+      if (!els.volSlider) return;
+      const v = clamp(Math.round(vol), 0, 100);
+      els.volSlider.value = String(v);
+      setText(els.volLabel, `${v}%`);
+    }
 
-    // Position slider (0..1000)
-    if (posSlider) {
-      posSlider.addEventListener("pointerdown", () => { isSeeking = true; });
-      posSlider.addEventListener("pointerup", () => {
-        isSeeking = false;
-        if (!ready || durationMs <= 0) return;
-        const v = clamp(parseInt(posSlider.value, 10) || 0, 0, 1000) / 1000;
-        const toMs = Math.round(v * durationMs);
-        try { widget.seekTo(toMs); } catch {}
+    function bindUI(cfg) {
+      els.playBtn = safeQS(cfg.playBtnId);
+      els.pauseBtn = safeQS(cfg.pauseBtnId);
+      els.rewBtn = safeQS(cfg.rewindBtnId);
+
+      els.posSlider = safeQS(cfg.posSliderId);
+      els.posLabel = safeQS(cfg.posLabelId);
+      els.timeLabel = safeQS(cfg.timeLabelId);
+
+      els.volSlider = safeQS(cfg.volSliderId);
+      els.volLabel = safeQS(cfg.volLabelId);
+
+      if (els.playBtn) els.playBtn.addEventListener("click", () => widget && widget.play());
+      if (els.pauseBtn) els.pauseBtn.addEventListener("click", () => widget && widget.pause());
+      if (els.rewBtn) els.rewBtn.addEventListener("click", () => widget && widget.seekTo(0));
+
+      if (els.posSlider) {
+        els.posSlider.addEventListener("input", () => {
+          // show preview time while dragging
+          isSeeking = true;
+          const max = Number(els.posSlider.max || 1000);
+          const v = Number(els.posSlider.value || 0);
+          const target = duration > 0 ? (v / max) * duration : 0;
+          setText(els.posLabel, fmt(target));
+        });
+
+        const commitSeek = () => {
+          if (!widget) return;
+          const max = Number(els.posSlider.max || 1000);
+          const v = Number(els.posSlider.value || 0);
+          const target = duration > 0 ? (v / max) * duration : 0;
+          widget.seekTo(target);
+          isSeeking = false;
+        };
+
+        els.posSlider.addEventListener("change", commitSeek);
+        els.posSlider.addEventListener("pointerup", commitSeek);
+        els.posSlider.addEventListener("touchend", commitSeek);
+      }
+
+      if (els.volSlider) {
+        els.volSlider.addEventListener("input", () => {
+          const v = clamp(Number(els.volSlider.value || 0), 0, 100);
+          setText(els.volLabel, `${Math.round(v)}%`);
+          if (widget) widget.setVolume(v);
+        });
+      }
+
+      // init label
+      syncTimeUI(0);
+      if (els.volSlider) syncVolUI(cfg.initialVolume ?? 80);
+    }
+
+    function hookWidgetEvents() {
+      if (!widget) return;
+
+      widget.bind(SC.Widget.Events.READY, () => {
+        widget.getDuration((d) => {
+          duration = Number(d || 0);
+          syncTimeUI(lastPos);
+        });
+
+        // set initial volume
+        if (els.volSlider) {
+          const v = clamp(Number(els.volSlider.value || 80), 0, 100);
+          widget.setVolume(v);
+          syncVolUI(v);
+        }
       });
-      posSlider.addEventListener("input", () => {
-        if (durationMs <= 0) return;
-        const v = clamp(parseInt(posSlider.value, 10) || 0, 0, 1000) / 1000;
-        setText(posLabel, `${Math.round(v * 100)}%`);
-        const previewMs = Math.round(v * durationMs);
-        setText(timeLabel, `${fmtTime(previewMs)} / ${fmtTime(durationMs)}`);
+
+      widget.bind(SC.Widget.Events.PLAY_PROGRESS, (e) => {
+        lastPos = Number(e?.currentPosition || 0);
+        syncTimeUI(lastPos);
       });
-      // if pointerup doesn’t fire (mobile), also commit on change
-      posSlider.addEventListener("change", () => {
-        isSeeking = false;
-        if (!ready || durationMs <= 0) return;
-        const v = clamp(parseInt(posSlider.value, 10) || 0, 0, 1000) / 1000;
-        try { widget.seekTo(Math.round(v * durationMs)); } catch {}
+
+      widget.bind(SC.Widget.Events.FINISH, () => {
+        lastPos = duration || 0;
+        syncTimeUI(lastPos);
       });
     }
 
-    // Volume slider
-    if (volSlider) {
-      volSlider.addEventListener("input", () => {
-        const v = clamp(parseInt(volSlider.value, 10) || 0, 0, 100);
-        setText(volLabel, `${v}%`);
-        if (!ready) return;
-        try { widget.setVolume(v); } catch {}
-      });
-    }
+    return {
+      init(cfg) {
+        const iframe = safeQS(cfg.iframeId);
+        if (!iframe || !window.SC || !window.SC.Widget) {
+          console.warn("[SynthiAudio] missing iframe or SoundCloud Widget API");
+          return;
+        }
+
+        widget = window.SC.Widget(iframe);
+
+        bindUI(cfg);
+        hookWidgetEvents();
+      }
+    };
   }
 
-  return { init };
+  window.SynthiAudio = makeSynthiAudio();
 })();
