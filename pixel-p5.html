@@ -1,19 +1,19 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PIXEL • p5 Generator</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Koma Tebe • p5 • Pixel on Kaspa</title>
   <style>
     :root{
-      --bg1:#121623;
-      --bg2:#050608;
+      --bg1:#121623; --bg2:#050608;
       --panel: rgba(0,0,0,.18);
       --border: rgba(255,255,255,.12);
       --muted: rgba(255,255,255,.70);
       --accent:#00c4ff;
       --shadow: 0 18px 35px rgba(0,0,0,.50);
       --text:#f5f5f5;
+      --radius: 18px;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -25,11 +25,10 @@
       min-height:100vh;
     }
     a{color:inherit}
-    .wrap{max-width:1100px;margin:0 auto;padding:22px 16px 56px}
+    .wrap{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
 
     .topbar{
-      display:flex;align-items:center;justify-content:space-between;
-      gap:14px;
+      display:flex;align-items:center;justify-content:space-between;gap:14px;
       border:1px solid var(--border);
       border-radius:16px;
       background: var(--panel);
@@ -39,14 +38,10 @@
     }
     .brand{
       display:flex;align-items:baseline;gap:10px;
-      letter-spacing:.14em;
-      text-transform:uppercase;
-      font-weight:900;
-      white-space:nowrap;
+      letter-spacing:.14em;text-transform:uppercase;font-weight:900;white-space:nowrap;
     }
     .brand small{opacity:.7;font-weight:700;letter-spacing:.08em;text-transform:none;white-space:nowrap;}
     .nav{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center;}
-
     .btn{
       text-decoration:none;
       display:inline-flex;align-items:center;gap:8px;
@@ -54,7 +49,7 @@
       border:1px solid rgba(255,255,255,.16);
       background: rgba(255,255,255,.06);
       color: rgba(255,255,255,.88);
-      font-weight:750;
+      font-weight:850;
       transition: background .15s, color .15s, transform .15s, border-color .15s;
       white-space:nowrap;line-height:1;cursor:pointer;user-select:none;
     }
@@ -65,12 +60,19 @@
       background: rgba(0,196,255,.08);
     }
     .btnPrimary:hover{background: var(--accent); color:#020308;}
+    .btnGhost{ background: transparent; border-color: rgba(255,255,255,.16); opacity:.95; }
 
+    .grid{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:14px;
+      align-items:start;
+    }
     .panel{
-      margin-top:18px;
       border:1px solid var(--border);
-      border-radius:22px;
-      background: var(--panel);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.18);
       backdrop-filter: blur(10px);
       box-shadow: var(--shadow);
       overflow:hidden;
@@ -83,39 +85,56 @@
     .panelHead b{
       letter-spacing:.14em;
       text-transform:uppercase;
-      font-weight:900;
-      font-size:14px;
-      opacity:.90;
+      font-size:12px;
+      opacity:.92;
+    }
+    .chip{
+      padding:6px 10px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      opacity:.85;
+      font-size:12px;
+      white-space:nowrap;
+      max-width: 52ch;
+      overflow:hidden;
+      text-overflow: ellipsis;
     }
     .panelBody{padding:14px}
-    .muted{opacity:.76}
 
-    #p5host{
+    #sketchWrap{
       width:100%;
-      aspect-ratio: 1/1;
-      border-radius:16px;
+      aspect-ratio:1/1;
+      border-radius:14px;
       border:1px solid rgba(255,255,255,.10);
       background:#000;
       overflow:hidden;
-      display:flex;align-items:center;justify-content:center;
     }
+    canvas{display:block;width:100%;height:100%}
 
-    .ctrlRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center}
-
-    .ctrl{
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.04);
-      border-radius:16px;
-      padding:12px;
-      margin-top:12px;
-    }
+    .ctrl{border:1px solid rgba(255,255,255,.12);background: rgba(255,255,255,.04);border-radius:14px;padding:10px 12px;margin-top:10px;}
     .ctrlHead{display:flex;justify-content:space-between;align-items:center;gap:10px}
     .ctrlTitle{font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.9;font-weight:900;margin:0;}
     .ctrlVal{font-size:12px;opacity:.75;white-space:nowrap}
     input[type="range"]{width:100%}
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .btnSm{padding:8px 12px;font-size:13px}
+
+    .muted{opacity:.76}
+    pre{
+      margin:10px 0 0;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.30);
+      overflow:auto;
+      max-height: 240px;
+      font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: rgba(255,255,255,.86);
+    }
 
     @media (max-width: 980px){
-      .brand small{display:none}
+      .grid{grid-template-columns:1fr}
+      #sketchWrap{aspect-ratio: 16/10;}
     }
   </style>
 </head>
@@ -123,59 +142,395 @@
   <div class="wrap">
     <div class="topbar">
       <div class="brand">
-        PIXEL P5 <small>one-liner → generator</small>
+        KOMA <small>@KomaTebe • p5</small>
       </div>
       <div class="nav">
         <a class="btn" href="/">Home</a>
-        <a class="btn" href="/viewer">NFTs</a>
-        <a class="btn" href="/synthi/">SYNTHI</a>
-        <a class="btn" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
-        <a class="btn" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
+        <a class="btn" href="/artists">Artists</a>
+        <a class="btn btnPrimary" href="/pixel-p5.html">p5</a>
+        <a class="btn btnGhost" href="https://x.com/KomaTebe" target="_blank" rel="noreferrer">X profile</a>
       </div>
     </div>
 
-    <section class="panel">
-      <div class="panelHead">
-        <b>PIXEL generator</b>
-        <span class="muted">p5.js</span>
+    <section class="grid">
+      <div class="panel">
+        <div class="panelHead">
+          <b>Generator</b>
+          <span class="chip" id="status">boot…</span>
+        </div>
+        <div class="panelBody">
+          <div id="sketchWrap"></div>
+
+          <div class="row">
+            <button class="btn btnPrimary btnSm" id="btnPause" type="button">Pause</button>
+            <button class="btn btnSm" id="btnShot" type="button">PNG</button>
+            <button class="btn btnSm" id="btnReset" type="button">Reset</button>
+            <button class="btn btnPrimary btnSm" id="btnRand" type="button">Randomize</button>
+            <button class="btn btnSm" id="btnCopy" type="button">Copy share URL</button>
+          </div>
+
+          <div class="muted" style="margin-top:10px;line-height:1.55">
+            Original one-liner by <b>Koma Tebe</b> (@KomaTebe). Controls affect real geometry: step, warp, rotation, zoom, persistence.
+          </div>
+
+          <pre class="muted" id="creditCode"></pre>
+        </div>
       </div>
-      <div class="panelBody">
-        <div id="p5host"></div>
 
-        <div class="ctrlRow">
-          <button class="btn btnPrimary" id="pxPlay" type="button">Play</button>
-          <button class="btn" id="pxPause" type="button">Pause</button>
-          <button class="btn" id="pxPng" type="button">PNG</button>
-          <button class="btn" id="pxFs" type="button">Fullscreen</button>
+      <div class="panel">
+        <div class="panelHead">
+          <b>Controls</b>
+          <span class="chip" id="shareHint">share: URL params</span>
         </div>
+        <div class="panelBody">
 
-        <div class="ctrl">
-          <div class="ctrlHead">
-            <div class="ctrlTitle">Speed</div>
-            <div class="ctrlVal" id="pxSpeedVal">1.00×</div>
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Speed</div><div class="ctrlVal" id="vSpeed">—</div></div>
+            <input id="speed" type="range" min="0.00" max="3.00" step="0.01" value="1.00">
           </div>
-          <input id="pxSpeed" type="range" min="0.25" max="2.50" step="0.01" value="1.00" />
-        </div>
 
-        <div class="ctrl">
-          <div class="ctrlHead">
-            <div class="ctrlTitle">Quality</div>
-            <div class="ctrlVal" id="pxQVal">400</div>
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Zoom</div><div class="ctrlVal" id="vZoom">—</div></div>
+            <input id="zoom" type="range" min="0.60" max="2.20" step="0.01" value="1.00">
           </div>
-          <input id="pxQ" type="range" min="260" max="900" step="1" value="400" />
-          <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
-            Bigger canvas = heavier CPU, sharper export.
-          </div>
-        </div>
 
-        <div class="muted" style="margin-top:12px;line-height:1.55">
-          Core loop stays faithful to your tweet. Controls are optional.
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Step</div><div class="ctrlVal" id="vStep">—</div></div>
+            <input id="step" type="range" min="0.010" max="0.120" step="0.001" value="0.049">
+            <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
+              Angular sampling step (PI/64 originally ≈ 0.0491). Smaller = denser structure.
+            </div>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Dot size</div><div class="ctrlVal" id="vDot">—</div></div>
+            <input id="dot" type="range" min="1.0" max="10.0" step="0.1" value="4.0">
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Warp</div><div class="ctrlVal" id="vWarp">—</div></div>
+            <input id="warp" type="range" min="0.0" max="2.4" step="0.01" value="1.0">
+            <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
+              Multiplies the sin/cos deformation terms (changes forms a lot).
+            </div>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Rotation</div><div class="ctrlVal" id="vRot">—</div></div>
+            <input id="rot" type="range" min="-3.14" max="3.14" step="0.01" value="0.0">
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Persistence (fade)</div><div class="ctrlVal" id="vFade">—</div></div>
+            <input id="fade" type="range" min="0" max="255" step="1" value="8">
+            <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
+              Lower = longer trails. Higher = cleaner frames.
+            </div>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Invert XY</div><div class="ctrlVal" id="vInv">—</div></div>
+            <input id="invert" type="range" min="0" max="1" step="1" value="1">
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Seed</div><div class="ctrlVal" id="vSeed">—</div></div>
+            <input id="seed" type="range" min="0" max="9999" step="1" value="1337">
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Canvas size</div><div class="ctrlVal" id="vSize">—</div></div>
+            <input id="size" type="range" min="260" max="760" step="10" value="400">
+          </div>
+
         </div>
       </div>
     </section>
   </div>
 
+  <!-- p5 (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
-  <script type="module" src="/js/pixel-p5.js"></script>
+
+<script>
+(() => {
+  const KEY = "koma_p5_params_v2";
+  const ids = ["speed","zoom","step","dot","warp","rot","fade","invert","seed","size"];
+
+  const el = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
+  const status = document.getElementById("status");
+  const shareHint = document.getElementById("shareHint");
+
+  const num = (v)=>{ const x = parseFloat(v); return Number.isFinite(x) ? x : null; };
+
+  const defaults = {
+    speed: 1.00,
+    zoom:  1.00,
+    step:  0.049,   // ~ PI/64
+    dot:   4.0,
+    warp:  1.00,
+    rot:   0.00,
+    fade:  8,
+    invert: 1,
+    seed:  1337,
+    size:  400
+  };
+
+  const params = Object.assign({}, defaults);
+
+  function readUrl(){
+    const u = new URL(location.href);
+    const out = {};
+    ids.forEach(id=>{
+      const v = num(u.searchParams.get(id));
+      if(v != null) out[id]=v;
+    });
+    return out;
+  }
+  function readStore(){
+    try{ return JSON.parse(localStorage.getItem(KEY) || "{}"); }catch{ return {}; }
+  }
+  function writeStore(){
+    try{ localStorage.setItem(KEY, JSON.stringify(params)); }catch{}
+  }
+  function writeUrl(){
+    const u = new URL(location.href);
+    ids.forEach(id=>u.searchParams.delete(id));
+    ids.forEach(id=>u.searchParams.set(id, String(params[id])));
+    history.replaceState(null,"",u.toString());
+  }
+
+  function clampToSlider(id, v){
+    const e = el[id];
+    if(!e) return v;
+    const mn = num(e.min), mx = num(e.max);
+    if(mn != null) v = Math.max(mn, v);
+    if(mx != null) v = Math.min(mx, v);
+    if(id==="fade" || id==="invert" || id==="seed" || id==="size") v = Math.round(v);
+    return v;
+  }
+
+  function setTxt(id, txt){
+    const x = document.getElementById(id);
+    if(x) x.textContent = txt;
+  }
+
+  function renderVals(){
+    setTxt("vSpeed", params.speed.toFixed(2));
+    setTxt("vZoom",  params.zoom.toFixed(2));
+    setTxt("vStep",  params.step.toFixed(3));
+    setTxt("vDot",   params.dot.toFixed(1));
+    setTxt("vWarp",  params.warp.toFixed(2));
+    setTxt("vRot",   params.rot.toFixed(2));
+    setTxt("vFade",  String(params.fade));
+    setTxt("vInv",   params.invert ? "ON" : "OFF");
+    setTxt("vSeed",  String(params.seed));
+    setTxt("vSize",  `${params.size}px`);
+  }
+
+  function commit(){
+    ids.forEach(id=>{
+      const v = num(el[id]?.value);
+      params[id] = clampToSlider(id, v == null ? defaults[id] : v);
+    });
+    writeStore();
+    writeUrl();
+    renderVals();
+  }
+
+  Object.assign(params, readStore(), readUrl());
+  ids.forEach(id=>{ if(el[id]) el[id].value = String(params[id]); });
+  commit();
+  ids.forEach(id=> el[id]?.addEventListener("input", commit));
+
+  document.getElementById("btnCopy").addEventListener("click", async ()=>{
+    try{
+      await navigator.clipboard.writeText(location.href);
+      shareHint.textContent = "Copied!";
+      setTimeout(()=>shareHint.textContent="share: URL params", 900);
+    }catch{
+      shareHint.textContent = "Copy failed";
+    }
+  });
+
+  document.getElementById("btnReset").addEventListener("click", ()=>{
+    Object.assign(params, defaults);
+    ids.forEach(id=>{ if(el[id]) el[id].value = String(params[id]); });
+    commit();
+  });
+
+  document.getElementById("btnRand").addEventListener("click", ()=>{
+    // randomize only "form" parameters (keep size sane)
+    params.seed = Math.floor(Math.random()*10000);
+    params.step = clampToSlider("step", 0.020 + Math.random()*0.070);
+    params.warp = clampToSlider("warp", Math.random()*2.2);
+    params.rot  = clampToSlider("rot", -3.14 + Math.random()*6.28);
+    params.zoom = clampToSlider("zoom", 0.80 + Math.random()*1.20);
+    params.dot  = clampToSlider("dot", 2.0 + Math.random()*6.0);
+    params.fade = clampToSlider("fade", Math.floor(2 + Math.random()*26));
+    ids.forEach(id=>{ if(el[id]) el[id].value = String(params[id]); });
+    commit();
+  });
+
+  // ----- p5 sketch -----
+  const wrap = document.getElementById("sketchWrap");
+
+  const originalOneLiner =
+`f=0,draw=o=>{for(f||createCanvas(W=400,W),background(B=PI/64),noStroke(P=PI),j=-P;j<TAU;j+=B)
+for(i=0;i<P;i+=B)n=(f+cos(j+f))%B,g=f+cos(i+n),x=(i+n)*(W/P),y=(j+2*sin(g))*(W/P),
+circle(y,x,4*cos(g));f+=B/8}`;
+
+  document.getElementById("creditCode").textContent =
+`Original by Koma Tebe (@KomaTebe)\n${originalOneLiner}\n\nAdapted: added UI + parameters (zoom/step/warp/rot/fade/seed).`;
+
+  let p5instance = null;
+
+  function makeSketch(p){
+    let W = params.size;
+    let t = 0;
+    let paused = false;
+
+    p.setup = () => {
+      W = params.size;
+      const cnv = p.createCanvas(W, W);
+      cnv.parent(wrap);
+      p.pixelDensity(Math.min(2, window.devicePixelRatio || 1));
+      p.noStroke();
+      p.background(0);
+      status.textContent = `running • seed ${params.seed}`;
+    };
+
+    function ensureSize(){
+      if(params.size !== W){
+        W = params.size;
+        p.resizeCanvas(W, W);
+        p.background(0);
+      }
+    }
+
+    function softFade(){
+      // draw black rectangle with alpha = fade
+      const a = params.fade;
+      if(a <= 0) return;
+      p.push();
+      p.blendMode(p.BLEND);
+      p.fill(0, a);
+      p.rect(0, 0, p.width, p.height);
+      p.pop();
+    }
+
+    p.draw = () => {
+      ensureSize();
+
+      if(paused){
+        softFade(); // still allow slow decay
+        return;
+      }
+
+      // time
+      t += (params.step * 0.25) * params.speed;
+
+      // persistence
+      softFade();
+
+      // deterministic randomness
+      p.randomSeed(params.seed);
+      p.noiseSeed(params.seed);
+
+      const B = params.step;     // angular step
+      const P = Math.PI;         // PI
+      const TAU = Math.PI * 2;
+
+      // mapping
+      const S = p.width;         // canvas size
+      const z = params.zoom;
+      const dotBase = params.dot;
+      const warp = params.warp;
+
+      // center + rotate
+      p.push();
+      p.translate(S/2, S/2);
+      p.rotate(params.rot);
+      p.translate(-S/2, -S/2);
+
+      // brightness slightly tied to warp for nicer presence
+      p.blendMode(p.ADD);
+      p.fill(235, 235, 235, 22);
+
+      // loops (same topology as original)
+      for(let j = -P; j < TAU; j += B){
+        for(let i = 0; i < P; i += B){
+          const n = (t + Math.cos(j + t)) % B;
+          const g = t + Math.cos(i + n);
+
+          // original mapping (x,y swapped in circle call)
+          let x = (i + n) * (S / P);
+          let y = (j + 2 * Math.sin(g) * warp) * (S / P);
+
+          // apply zoom around center
+          x = (x - S/2) * z + S/2;
+          y = (y - S/2) * z + S/2;
+
+          // invert (original did circle(y,x,...))
+          const px = params.invert ? y : x;
+          const py = params.invert ? x : y;
+
+          const r = Math.max(0.4, dotBase * Math.abs(Math.cos(g)));
+          p.circle(px, py, r);
+        }
+      }
+
+      p.pop();
+      p.blendMode(p.BLEND);
+
+      status.textContent = `running • seed ${params.seed} • step ${params.step.toFixed(3)} • warp ${params.warp.toFixed(2)}`;
+    };
+
+    // expose controls to buttons
+    p._togglePause = () => { paused = !paused; };
+    p._isPaused = () => paused;
+
+    p.windowResized = () => {
+      // keep canvas square but fill wrap
+      // (we keep fixed pixel size slider, so no auto resize here)
+    };
+  }
+
+  function rebuildSketch(){
+    if(p5instance){
+      try{ p5instance.remove(); }catch{}
+      p5instance = null;
+    }
+    p5instance = new p5(makeSketch);
+  }
+
+  // build once
+  rebuildSketch();
+
+  // pause / shot
+  const btnPause = document.getElementById("btnPause");
+  btnPause.addEventListener("click", ()=>{
+    if(!p5instance) return;
+    p5instance._togglePause();
+    btnPause.textContent = p5instance._isPaused() ? "Resume" : "Pause";
+  });
+
+  document.getElementById("btnShot").addEventListener("click", ()=>{
+    if(!p5instance) return;
+    // p5 saves via built-in
+    p5instance.saveCanvas(`koma_${Date.now()}`, "png");
+  });
+
+  // if canvas size changes, rebuild for crispness
+  let lastSize = params.size;
+  setInterval(()=>{
+    if(params.size !== lastSize){
+      lastSize = params.size;
+      rebuildSketch();
+      btnPause.textContent = "Pause";
+    }
+  }, 250);
+
+})();
+</script>
 </body>
 </html>
