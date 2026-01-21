@@ -63,7 +63,7 @@
     el.style.font = "12px ui-monospace, SFMono-Regular, Menlo, monospace";
     el.style.padding = "10px 12px";
     el.style.borderRadius = "12px";
-    el.style.maxWidth = "min(920px, 92vw)";
+    el.style.maxWidth = "min(980px, 94vw)";
     el.style.pointerEvents = "none";
     el.textContent = "SYNTHI boot…";
     document.body.appendChild(el);
@@ -75,26 +75,26 @@
     overlay.textContent = msg;
   }
 
-  /* ---------- find canvas/meta safely ---------- */
+  /* ---------- canvas/meta ---------- */
   const canvas =
     document.getElementById("synthiCanvas") ||
     document.querySelector("canvas");
-
   const meta = document.getElementById("synthiMeta") || null;
 
   if (!canvas) {
     log("ERROR: canvas not found. Need <canvas id='synthiCanvas'> or any <canvas>.");
     return;
   }
-
   const ctx2d = canvas.getContext("2d", { alpha: false });
   if (!ctx2d) {
     log("ERROR: cannot get 2D context.");
     return;
   }
 
-  /* ---------- RNG ---------- */
+  /* ---------- RNG / reroll ---------- */
   let rerollCounter = 0;
+  let renderSeed = 123456;
+
   function getRand() {
     if (window.$fx && typeof window.$fx.rand === "function") return () => window.$fx.rand();
     const s = `${location.pathname}|${location.search}|${location.hash}|SYNTHI|${rerollCounter}|${Date.now()}`;
@@ -188,7 +188,7 @@
       warpRate: 0.03 + rng() * 0.11,
       warpPhase: rng(),
 
-      // audio
+      // audio “space” parameters (delays)
       a: 0.70,
       b: 0.40,
       t1: (2 + rng() * 7) / 1000,
@@ -296,7 +296,7 @@
     fbGain.connect(clip);
     clip.connect(delay);
 
-    return { delay };
+    return { delay, fbGain };
   }
 
   // drum synth helpers
@@ -309,7 +309,6 @@
   }
 
   function drumKick(actx, when, out, vel = 1.0) {
-    // sine pitch drop + short click
     const osc = actx.createOscillator();
     osc.type = "sine";
 
@@ -358,7 +357,6 @@
     n.start(when);
     n.stop(when + 0.20);
 
-    // little tone body
     const osc = actx.createOscillator();
     osc.type = "triangle";
     const tg = actx.createGain();
@@ -395,7 +393,6 @@
   }
 
   function drumPerc(actx, when, out, vel = 1.0) {
-    // metallic ping
     const osc = actx.createOscillator();
     osc.type = "sine";
     const g = actx.createGain();
@@ -424,7 +421,6 @@
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const actx = new AudioContext();
 
-    // master chain
     const masterGain = actx.createGain();
     masterGain.gain.value = masterVol;
 
@@ -485,7 +481,6 @@
     d3.delay.connect(post);
     post.connect(masterClip);
 
-    // to master
     masterClip.connect(masterGain);
     masterGain.connect(limiter);
     limiter.connect(analyser);
@@ -502,6 +497,10 @@
       masterGain,
       muted: false,
       _noiseBuf: null,
+
+      oscSin, oscTri, oscDet,
+      d1, d2, d3,
+
       setMute(on) {
         this.muted = on;
         this.masterGain.gain.value = on ? 0 : masterVol;
@@ -510,13 +509,25 @@
         masterVol = clamp(v, 0, 1);
         if (!this.muted) this.masterGain.gain.value = masterVol;
       },
+      setFreqMul(pEffNow) {
+        // update osc freqs live
+        const f_aud2 = pEffNow.f_vis / 16;
+        this.oscSin.frequency.setTargetAtTime(f_aud2, this.ctx.currentTime, 0.015);
+        this.oscTri.frequency.setTargetAtTime(f_aud2 * 2, this.ctx.currentTime, 0.015);
+        this.oscDet.frequency.setTargetAtTime(f_aud2 * (1 + pEffNow.detune * 0.5), this.ctx.currentTime, 0.015);
+      },
+      setFeedback(pEffNow, fbOnNow, fbMulNow) {
+        const s2 = fbOnNow ? clamp(fbMulNow, 0, 1.2) : 0.0;
+        this.d1.fbGain.gain.setTargetAtTime(clamp(pEffNow.fb1 * s2, 0, 0.95), this.ctx.currentTime, 0.02);
+        this.d2.fbGain.gain.setTargetAtTime(clamp(pEffNow.fb2 * s2, 0, 0.95), this.ctx.currentTime, 0.02);
+        this.d3.fbGain.gain.setTargetAtTime(clamp(pEffNow.fb3 * s2, 0, 0.95), this.ctx.currentTime, 0.02);
+      },
       stop() {
-        try { oscSin.stop(); oscTri.stop(); oscDet.stop(); } catch {}
+        try { this.oscSin.stop(); this.oscTri.stop(); this.oscDet.stop(); } catch {}
         try { actx.close(); } catch {}
       }
     };
 
-    // init seq time
     seqNextTime = actx.currentTime + 0.05;
     seqStep = 0;
 
@@ -533,7 +544,6 @@
     while (seqNextTime < nowSec + lookahead) {
       const s = seqStep & 15;
 
-      // default velocities can be tweaked
       if (seq.kick[s])  drumKick(actx, seqNextTime, audio.masterGain, 1.0);
       if (seq.snare[s]) drumSnare(actx, seqNextTime, audio.masterGain, 1.0);
       if (seq.hat[s])   drumHat(actx, seqNextTime, audio.masterGain, 1.0);
@@ -548,8 +558,8 @@
     if (!analyser || !fft) return env;
 
     analyser.getByteFrequencyData(fft);
-
     const N = fft.length;
+
     const band = (a, b) => {
       const i0 = Math.floor(clamp(a, 0, 1) * (N - 1));
       const i1 = Math.floor(clamp(b, 0, 1) * (N - 1));
@@ -561,7 +571,6 @@
     const bass = band(0.00, 0.10);
     const mid  = band(0.10, 0.35);
     const hi   = band(0.35, 0.90);
-
     const level = clamp(0.55 * bass + 0.35 * mid + 0.20 * hi, 0, 1);
 
     env.level = env.level * 0.86 + level * 0.14;
@@ -587,6 +596,17 @@
   let warpOn = true;
   let warpMul = 1.0;
 
+  // extra “form knobs” (default = base values)
+  let ui = {
+    rot: null,
+    shear: null,
+    phiOffset: null,
+    pmDepth: null,
+    osc3Mix: null,
+    osc4Mul: null,
+    warpBase: null,
+  };
+
   let driftPhase = 0;
   let lastT = performance.now();
   function stepDrift(now) {
@@ -598,21 +618,39 @@
 
   function effective(nowMs) {
     const f_vis = clamp(base.f_vis * freqMul, 200, 12000);
-    const fb = feedbackOn ? clamp(fbMul, 0, 1.5) : 0;
 
+    const nowSec = nowMs / 1000;
+    const wMod = 0.65 + 0.35 * Math.sin(TAU * (base.warpRate * nowSec) + TAU * base.warpPhase);
+
+    // apply UI overrides (if set)
+    const rot = (ui.rot !== null) ? ui.rot : base.rot;
+    const shear = (ui.shear !== null) ? ui.shear : base.shear;
+    const phiOffset = (ui.phiOffset !== null) ? ui.phiOffset : base.phiOffset;
+    const pmDepth = (ui.pmDepth !== null) ? ui.pmDepth : base.pmDepth;
+    const osc3Mix = (ui.osc3Mix !== null) ? ui.osc3Mix : base.osc3Mix;
+    const osc4Mul = (ui.osc4Mul !== null) ? ui.osc4Mul : base.osc4Mul;
+    const warpBase = (ui.warpBase !== null) ? ui.warpBase : base.warpBase;
+
+    const fb = feedbackOn ? clamp(fbMul, 0, 1.5) : 0;
     const visAlpha = feedbackOn ? clamp(0.55 + 0.35 * Math.min(1, fb), 0.55, 0.92) : 0;
 
     const scale = 1 + (base.fbScale - 1) * (0.35 + 1.8 * fb);
     const rotate = base.fbRotate * (0.35 + 2.0 * fb);
     const shift = base.fbShift * (0.35 + 2.4 * fb);
 
-    const nowSec = nowMs / 1000;
-    const wMod = 0.65 + 0.35 * Math.sin(TAU * (base.warpRate * nowSec) + TAU * base.warpPhase);
-    const warpEff = (warpOn ? clamp(base.warpBase * warpMul * wMod, 0, 0.65) : 0);
+    const warpEff = (warpOn ? clamp(warpBase * warpMul * wMod, 0, 0.65) : 0);
 
     return {
       ...base,
       f_vis,
+      rot,
+      shear,
+      phiOffset,
+      pmDepth,
+      osc3Mix,
+      osc4Mul,
+      warpBase,
+
       fbMulEff: fb,
       visAlpha,
       fbScaleEff: scale,
@@ -634,16 +672,21 @@
     rerollCounter++;
     rng = getRand();
     base = makeParams(rng);
+
+    // keep UI knobs as “manual overrides” (don’t wipe)
     driftPhase = 0;
     lastT = performance.now();
+
+    // new render seed so the “point cloud” changes
+    renderSeed = xmur3(`${Date.now()}|${Math.random()}|${rerollCounter}`)();
+
     clearHard();
 
+    // keep audio running; just retune live if already running
     if (audio) {
-      const wasMuted = audio.muted;
-      audio.stop();
-      audio = null;
-      audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
-      audio.setMute(wasMuted);
+      const p = effective(performance.now());
+      audio.setFreqMul(p);
+      audio.setFeedback(p, feedbackOn, fbMul);
     }
 
     if (window.$fx && typeof window.$fx.preview === "function") window.$fx.preview();
@@ -656,11 +699,11 @@
     if (k === "p" || k === "P") savePNG();
     if (k === "r" || k === "R") reroll();
 
-    if (k === "f" || k === "F") { feedbackOn = !feedbackOn; clearHard(); }
+    if (k === "f" || k === "F") { feedbackOn = !feedbackOn; clearHard(); if (audio) audio.setFeedback(effective(performance.now()), feedbackOn, fbMul); }
     if (k === "d" || k === "D") { driftOn = !driftOn; }
 
-    if (k === "," ) fbMul = clamp(fbMul - 0.05, 0, 1.5);
-    if (k === "." ) fbMul = clamp(fbMul + 0.05, 0, 1.5);
+    if (k === "," ) { fbMul = clamp(fbMul - 0.05, 0, 1.5); if (audio) audio.setFeedback(effective(performance.now()), feedbackOn, fbMul); }
+    if (k === "." ) { fbMul = clamp(fbMul + 0.05, 0, 1.5); if (audio) audio.setFeedback(effective(performance.now()), feedbackOn, fbMul); }
 
     if (k === "[" ) densityMul = clamp(densityMul - 0.05, 0.2, 2.0);
     if (k === "]" ) densityMul = clamp(densityMul + 0.05, 0.2, 2.0);
@@ -685,21 +728,21 @@
     }
   });
 
-  /* ---------- optional UI bindings (existing + new) ---------- */
+  /* ---------- UI bindings ---------- */
   const btnStart = document.getElementById("synthiStart");
   const btnMute  = document.getElementById("synthiMute");
   const btnReroll = document.getElementById("synthiReroll");
   const btnDrift  = document.getElementById("synthiDriftToggle");
   const btnFb     = document.getElementById("synthiFbToggle");
-  const btnShot   = document.getElementById("synthiShot");
+
   const freqSlider = document.getElementById("freqSlider");
   const fbSlider = document.getElementById("fbSlider");
 
-  // NEW UI
   const volSlider = document.getElementById("volSlider");
   const bpmSlider = document.getElementById("bpmSlider");
   const volVal = document.getElementById("volVal");
   const bpmVal = document.getElementById("bpmVal");
+
   const seqToggle = document.getElementById("seqToggle");
   const seqGrid = document.getElementById("seqGrid");
   const padKick = document.getElementById("padKick");
@@ -707,9 +750,37 @@
   const padHat = document.getElementById("padHat");
   const padPerc = document.getElementById("padPerc");
 
-  if (btnShot) btnShot.addEventListener("click", savePNG);
-  if (btnReroll) btnReroll.addEventListener("click", reroll);
+  // NEW optional “form” sliders
+  const rotSlider = document.getElementById("rotSlider");
+  const shearSlider = document.getElementById("shearSlider");
+  const phiOffSlider = document.getElementById("phiOffsetSlider");
+  const pmDepthSlider = document.getElementById("pmDepthSlider");
+  const osc3MixSlider = document.getElementById("osc3MixSlider");
+  const osc4MulSlider = document.getElementById("osc4MulSlider");
+  const warpBaseSlider = document.getElementById("warpBaseSlider");
 
+  const setUIFloat = (slider, key, fallback) => {
+    if (!slider) return;
+    // init from base unless slider already has value set in HTML
+    const v0 = parseFloat(slider.value);
+    ui[key] = Number.isFinite(v0) ? v0 : fallback;
+
+    slider.addEventListener("input", () => {
+      const nv = parseFloat(slider.value);
+      if (Number.isFinite(nv)) ui[key] = nv;
+      // no need to clear; just continuous morph
+    });
+  };
+
+  setUIFloat(rotSlider, "rot", base.rot);
+  setUIFloat(shearSlider, "shear", base.shear);
+  setUIFloat(phiOffSlider, "phiOffset", base.phiOffset);
+  setUIFloat(pmDepthSlider, "pmDepth", base.pmDepth);
+  setUIFloat(osc3MixSlider, "osc3Mix", base.osc3Mix);
+  setUIFloat(osc4MulSlider, "osc4Mul", base.osc4Mul);
+  setUIFloat(warpBaseSlider, "warpBase", base.warpBase);
+
+  if (btnReroll) btnReroll.addEventListener("click", reroll);
   if (btnDrift) btnDrift.addEventListener("click", () => {
     driftOn = !driftOn;
     btnDrift.textContent = `Drift: ${driftOn ? "ON" : "OFF"}`;
@@ -718,6 +789,7 @@
     feedbackOn = !feedbackOn;
     btnFb.textContent = `Feedback: ${feedbackOn ? "ON" : "OFF"}`;
     clearHard();
+    if (audio) audio.setFeedback(effective(performance.now()), feedbackOn, fbMul);
   });
 
   if (btnStart) btnStart.addEventListener("click", async () => {
@@ -735,32 +807,25 @@
     }
   });
 
+  // freq
   if (freqSlider) {
     const v = parseFloat(freqSlider.value);
     if (!Number.isNaN(v)) freqMul = v;
     freqSlider.addEventListener("input", () => {
       const nv = parseFloat(freqSlider.value);
       if (!Number.isNaN(nv)) freqMul = nv;
-      if (audio) {
-        const wasMuted = audio.muted;
-        audio.stop(); audio = null;
-        audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
-        audio.setMute(wasMuted);
-      }
+      if (audio) audio.setFreqMul(effective(performance.now()));
     });
   }
+
+  // fb
   if (fbSlider) {
     const v = parseFloat(fbSlider.value);
     if (!Number.isNaN(v)) fbMul = v;
     fbSlider.addEventListener("input", () => {
       const nv = parseFloat(fbSlider.value);
       if (!Number.isNaN(nv)) fbMul = nv;
-      if (audio) {
-        const wasMuted = audio.muted;
-        audio.stop(); audio = null;
-        audio = startAudio(effective(performance.now()), feedbackOn, fbMul);
-        audio.setMute(wasMuted);
-      }
+      if (audio) audio.setFeedback(effective(performance.now()), feedbackOn, fbMul);
     });
   }
 
@@ -797,7 +862,6 @@
     if (seqToggle) seqToggle.textContent = seqOn ? "Beat: ON" : "Beat: OFF";
   }
 
-  // 4x16 grid (tracks x steps)
   function drawSeqGrid() {
     if (!seqGrid) return;
     seqGrid.innerHTML = "";
@@ -837,15 +901,10 @@
     }
   }
 
-  // default pattern (musical instantly)
   function setDefaultPattern() {
-    // kick on 1, 9
     [0, 8].forEach(i => seq.kick[i] = 1);
-    // snare on 5, 13
     [4, 12].forEach(i => seq.snare[i] = 1);
-    // hats 1/8
     for (let i = 0; i < 16; i += 2) seq.hat[i] = 1;
-    // perc occasional
     [7, 15].forEach(i => seq.perc[i] = 1);
   }
   setDefaultPattern();
@@ -912,7 +971,6 @@
       stepDrift(now);
       ensureCanvasSizeLocked();
 
-      // beat + analysis
       if (audio) {
         scheduleBeat(audio.ctx.currentTime);
         updateAnalysis();
@@ -927,16 +985,22 @@
       const exposureEff   = clamp(exposure   * (0.95 + 0.70 * aB), 0.4, 2.0);
       const warpMulEff    = clamp(warpMul    * (0.85 + 1.10 * aH), 0, 1.6);
 
-      // temporary override for effective() warp computation
+      // temporary warp strength audio-react
       const warpMulUser = warpMul;
       if (audio && warpOn) warpMul = warpMulEff;
       const p = effective(now);
       warpMul = warpMulUser;
 
+      // keep audio parameters synced live
+      if (audio) {
+        audio.setFreqMul(p);
+        audio.setFeedback(p, feedbackOn, fbMul);
+      }
+
       // 1) feedback projection
       projectFeedback(p);
 
-      // 2) decay (less aggressive => brighter)
+      // 2) decay
       ctx2d.save();
       ctx2d.globalCompositeOperation = "source-over";
       const decay = feedbackOn ? (0.045 + 0.030 * Math.min(1, fbMul)) : 0.075;
@@ -945,7 +1009,7 @@
       ctx2d.fillRect(0, 0, canvas.width, canvas.height);
       ctx2d.restore();
 
-      // 3) point accumulation
+      // 3) point accumulation (seeded RNG per frame)
       const W = canvas.width, H = canvas.height;
       const cx = W / 2, cy = H / 2;
       const pad = Math.min(W, H) * p.padFrac;
@@ -963,6 +1027,10 @@
       const TWIN = 0.30;
       const s = p.pixel;
 
+      // seeded RNG for stability of “form”
+      const frameSeed = (renderSeed ^ (now | 0) ^ (N * 2654435761)) >>> 0;
+      const rr = mulberry32(frameSeed);
+
       ctx2d.save();
       ctx2d.globalCompositeOperation = "lighter";
 
@@ -973,16 +1041,16 @@
       const jitterK = 1.35 * s * (0.90 + 0.70 * env.hi);
 
       for (let i = 0; i < N; i++) {
-        const t = Math.random() * TWIN;
-        const phiPoint = phiBase + (Math.random() * 2 - 1) * phiSpread;
+        const t = rr() * TWIN;
+        const phiPoint = phiBase + (rr() * 2 - 1) * phiSpread;
 
         const { x, y } = xyAt(t, p, phiPoint, p.nowSec);
 
         const px0 = (cx + x * sx * amp) | 0;
         const py0 = (cy - y * sy * amp) | 0;
 
-        const px = (px0 + (((Math.random() * 2 - 1) * jitterK) | 0));
-        const py = (py0 + (((Math.random() * 2 - 1) * jitterK) | 0));
+        const px = (px0 + (((rr() * 2 - 1) * jitterK) | 0));
+        const py = (py0 + (((rr() * 2 - 1) * jitterK) | 0));
 
         if (px <= 0 || py <= 0 || px >= W || py >= H) continue;
 
@@ -999,6 +1067,7 @@
         `warp ${warpOn ? warpMul.toFixed(2) : "OFF"} (${p.warpEff.toFixed(3)}) • ` +
         `dens ${densityMul.toFixed(2)}→${densityMulEff.toFixed(2)} • exp ${exposure.toFixed(2)}→${exposureEff.toFixed(2)} • ` +
         `beat ${seqOn ? "ON" : "OFF"} ${Math.round(bpm)}bpm • lvl ${env.level.toFixed(2)} • det ${detCents.toFixed(2)}c\n` +
+        `Form: rot ${p.rot.toFixed(3)} shear ${p.shear.toFixed(3)} phiOff ${p.phiOffset.toFixed(3)} pm ${p.pmDepth.toFixed(4)} osc3 ${p.osc3Mix.toFixed(3)} osc4Mul ${p.osc4Mul.toFixed(3)} warpBase ${p.warpBase.toFixed(3)}\n` +
         `Keys: A audio, M mute, R reroll, F fb, D drift, W warp, K/L warp-,+, [,] dens, -/= exp, ,/. fb, P png`;
 
       log(text);
