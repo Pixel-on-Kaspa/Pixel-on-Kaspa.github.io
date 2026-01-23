@@ -94,6 +94,9 @@
       font-size:12px;
       opacity:.88;
       white-space:nowrap;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .muted{opacity:.76}
 
@@ -112,6 +115,13 @@
     }
     .ctrlVal{font-size:12px;opacity:.75;white-space:nowrap}
     input[type="range"]{width:100%}
+
+    /* nice section separators */
+    .divider{
+      height:1px;
+      background: rgba(255,255,255,.08);
+      margin:14px 0;
+    }
 
     @media (max-width: 980px){
       .grid{grid-template-columns:1fr}
@@ -165,8 +175,46 @@
           <b>Controls</b>
           <span class="chip">Beat + Audio-react</span>
         </div>
+
         <div class="panelBody">
 
+          <!-- NEW: Visual reactivity controls -->
+          <div class="ctrl">
+            <div class="ctrlHead">
+              <div class="ctrlTitle">React</div>
+              <div class="ctrlVal" id="reactVal">—</div>
+            </div>
+            <input id="reactSlider" type="range" min="0.00" max="2.00" step="0.01" value="1.00" />
+            <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
+              Multiplies how much audio pushes density/exposure/warp/alpha. 1.0 is default.
+            </div>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead">
+              <div class="ctrlTitle">Color</div>
+              <div class="ctrlVal" id="colorVal">—</div>
+            </div>
+            <input id="colorSlider" type="range" min="0.00" max="1.00" step="0.01" value="0.65" />
+            <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
+              0 = monochrome, 1 = full RGB (bass/mid/hi mapped to RGB).
+            </div>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead">
+              <div class="ctrlTitle">Quality</div>
+              <div class="ctrlVal" id="qualityVal">—</div>
+            </div>
+            <input id="qualitySlider" type="range" min="0.20" max="1.20" step="0.01" value="1.00" />
+            <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
+              Controls point count + pixel size. Auto-adjusts if FPS drops (anti-freeze).
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Existing controls (kept) -->
           <div class="ctrl">
             <div class="ctrlHead">
               <div class="ctrlTitle">Frequency</div>
@@ -197,6 +245,7 @@
             <input id="volSlider" type="range" min="0.00" max="1.00" step="0.01" value="0.70" />
           </div>
 
+          <!-- PART 1 ends here. PART 2 continues with Beat section + scripts. -->
           <div class="ctrl">
             <div class="ctrlHead">
               <div class="ctrlTitle">Beat</div>
@@ -219,11 +268,11 @@
             </div>
           </div>
 
-        </div>
-      </div>
+        </div> <!-- /panelBody -->
+      </div> <!-- /panel -->
     </section>
 
-  </div>
+  </div> <!-- /wrap -->
 
   <script type="module" src="./index.js"></script>
 </body>
