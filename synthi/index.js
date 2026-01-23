@@ -1,19 +1,5 @@
 // synthi/index.js — PATCH A + WARP + BEAT (no-samples drum synth)
-// Video-feedback sculpture + audio-reactive visuals + step sequencer
-//
-// Keys:
-//  A = start/resume audio
-//  M = mute
-//  R = reroll
-//  F = toggle feedback
-//  D = toggle drift
-//  [ ] = density -/+
-//  - = = exposure -/+
-//  , . = feedback strength -/+
-//  W = warp on/off
-//  K / L = warp -/+
-//  P = screenshot PNG
-
+// v2 refactor: stronger audio-react + anti-freeze controls (quality cap), optional color
 (() => {
   "use strict";
   const TAU = Math.PI * 2;
@@ -254,9 +240,15 @@
   let audio = null;
 
   let masterVol = 0.70;
-  let analyser = null;
+
+  // TWO analysers: freq + time-domain (stronger reaction)
+  let analyserF = null;
+  let analyserT = null;
   let fft = null;
-  let env = { level: 0, bass: 0, mid: 0, hi: 0 };
+  let tbuf = null;
+
+  // env now includes transient for punch
+  let env = { level: 0, bass: 0, mid: 0, hi: 0, rms: 0, transient: 0 };
 
   // beat seq
   let seqOn = false;
@@ -395,6 +387,7 @@
   function drumPerc(actx, when, out, vel = 1.0) {
     const osc = actx.createOscillator();
     osc.type = "sine";
+
     const g = actx.createGain();
     g.gain.setValueAtTime(0.0001, when);
     g.gain.exponentialRampToValueAtTime(0.28 * vel, when + 0.002);
@@ -431,9 +424,13 @@
     limiter.attack.value = 0.003;
     limiter.release.value = 0.12;
 
-    analyser = actx.createAnalyser();
-    analyser.fftSize = 2048;
-    fft = new Uint8Array(analyser.frequencyBinCount);
+    analyserF = actx.createAnalyser();
+    analyserF.fftSize = 2048;
+    fft = new Uint8Array(analyserF.frequencyBinCount);
+
+    analyserT = actx.createAnalyser();
+    analyserT.fftSize = 1024;
+    tbuf = new Uint8Array(analyserT.fftSize);
 
     const f_aud = pEff.f_vis / 16;
 
@@ -481,10 +478,14 @@
     d3.delay.connect(post);
     post.connect(masterClip);
 
+    // master chain
     masterClip.connect(masterGain);
     masterGain.connect(limiter);
-    limiter.connect(analyser);
-    analyser.connect(actx.destination);
+
+    // split to both analysers, then destination
+    limiter.connect(analyserF);
+    limiter.connect(analyserT);
+    analyserF.connect(actx.destination);
 
     const now = actx.currentTime + 0.02;
     const triOffset = 0.25 / (oscTri.frequency.value || 1);
@@ -510,11 +511,14 @@
         if (!this.muted) this.masterGain.gain.value = masterVol;
       },
       setFreqMul(pEffNow) {
-        // update osc freqs live
         const f_aud2 = pEffNow.f_vis / 16;
         this.oscSin.frequency.setTargetAtTime(f_aud2, this.ctx.currentTime, 0.015);
         this.oscTri.frequency.setTargetAtTime(f_aud2 * 2, this.ctx.currentTime, 0.015);
-        this.oscDet.frequency.setTargetAtTime(f_aud2 * (1 + pEffNow.detune * 0.5), this.ctx.currentTime, 0.015);
+        this.oscDet.frequency.setTargetAtTime(
+          f_aud2 * (1 + pEffNow.detune * 0.5),
+          this.ctx.currentTime,
+          0.015
+        );
       },
       setFeedback(pEffNow, fbOnNow, fbMulNow) {
         const s2 = fbOnNow ? clamp(fbMulNow, 0, 1.2) : 0.0;
@@ -528,6 +532,7 @@
       }
     };
 
+    // init seq time
     seqNextTime = actx.currentTime + 0.05;
     seqStep = 0;
 
@@ -554,12 +559,16 @@
     }
   }
 
+  // stronger analysis: freq bands + time-domain RMS + transient (onsets)
+  let _prevRms = 0;
   function updateAnalysis() {
-    if (!analyser || !fft) return env;
+    if (!analyserF || !fft || !analyserT || !tbuf) return env;
 
-    analyser.getByteFrequencyData(fft);
+    analyserF.getByteFrequencyData(fft);
+    analyserT.getByteTimeDomainData(tbuf);
+
+    // --- freq bands ---
     const N = fft.length;
-
     const band = (a, b) => {
       const i0 = Math.floor(clamp(a, 0, 1) * (N - 1));
       const i1 = Math.floor(clamp(b, 0, 1) * (N - 1));
@@ -567,21 +576,36 @@
       for (let i = i0; i <= i1; i++) { s += fft[i]; c++; }
       return c ? (s / c) / 255 : 0;
     };
-
     const bass = band(0.00, 0.10);
     const mid  = band(0.10, 0.35);
     const hi   = band(0.35, 0.90);
-    const level = clamp(0.55 * bass + 0.35 * mid + 0.20 * hi, 0, 1);
 
-    env.level = env.level * 0.86 + level * 0.14;
-    env.bass  = env.bass  * 0.86 + bass  * 0.14;
-    env.mid   = env.mid   * 0.86 + mid   * 0.14;
-    env.hi    = env.hi    * 0.86 + hi    * 0.14;
+    // --- time-domain RMS (0..1) ---
+    let acc = 0;
+    for (let i = 0; i < tbuf.length; i++) {
+      const v = (tbuf[i] - 128) / 128; // -1..1
+      acc += v * v;
+    }
+    const rms = Math.sqrt(acc / tbuf.length); // 0..~1
+
+    // transient = positive change in RMS (punch detector)
+    const trans = clamp((rms - _prevRms) * 6.0, 0, 1);
+    _prevRms = _prevRms * 0.92 + rms * 0.08;
+
+    const level = clamp(0.45 * rms + 0.30 * bass + 0.20 * mid + 0.20 * hi, 0, 1);
+
+    // smoothing (keeps motion but still reacts)
+    env.level = env.level * 0.84 + level * 0.16;
+    env.bass  = env.bass  * 0.84 + bass  * 0.16;
+    env.mid   = env.mid   * 0.84 + mid   * 0.16;
+    env.hi    = env.hi    * 0.84 + hi    * 0.16;
+    env.rms   = env.rms   * 0.82 + rms   * 0.18;
+    env.transient = env.transient * 0.70 + trans * 0.30;
 
     return env;
   }
 
-  /* ---------- state ---------- */
+  /* ---------- state (render + ui knobs) ---------- */
   let rng = getRand();
   let base = makeParams(rng);
 
@@ -595,6 +619,11 @@
 
   let warpOn = true;
   let warpMul = 1.0;
+
+  // NEW: sliders added in generator.html
+  let reactMul = 0.85;  // strength of audio-react (0..2)
+  let colorAmt = 0.35;  // 0 mono .. 1 rgb bands
+  let quality  = 0.80;  // particle cap scaling (0.2..1)
 
   // extra “form knobs” (default = base values)
   let ui = {
@@ -635,7 +664,7 @@
     const visAlpha = feedbackOn ? clamp(0.55 + 0.35 * Math.min(1, fb), 0.55, 0.92) : 0;
 
     const scale = 1 + (base.fbScale - 1) * (0.35 + 1.8 * fb);
-    const rotate = base.fbRotate * (0.35 + 2.0 * fb);
+    const rotate2 = base.fbRotate * (0.35 + 2.0 * fb);
     const shift = base.fbShift * (0.35 + 2.4 * fb);
 
     const warpEff = (warpOn ? clamp(warpBase * warpMul * wMod, 0, 0.65) : 0);
@@ -654,13 +683,17 @@
       fbMulEff: fb,
       visAlpha,
       fbScaleEff: scale,
-      fbRotateEff: rotate,
+      fbRotateEff: rotate2,
       fbShiftEff: shift,
       nowSec,
       warpEff,
     };
   }
 
+  // (PART 3 continues: reroll, keyboard + full UI bindings, sequencer grid, render loop, colors, freeze-safe caps)
+  // ---
+})();
+  /* ---------- screenshot ---------- */
   function savePNG() {
     const a = document.createElement("a");
     a.download = `synthi_${Date.now()}.png`;
@@ -668,12 +701,13 @@
     a.click();
   }
 
+  /* ---------- reroll (NO audio restart) ---------- */
   function reroll() {
     rerollCounter++;
     rng = getRand();
     base = makeParams(rng);
 
-    // keep UI knobs as “manual overrides” (don’t wipe)
+    // keep UI overrides (do NOT wipe ui[])
     driftPhase = 0;
     lastT = performance.now();
 
@@ -682,7 +716,7 @@
 
     clearHard();
 
-    // keep audio running; just retune live if already running
+    // keep audio running; just retune + update delay feedback live
     if (audio) {
       const p = effective(performance.now());
       audio.setFreqMul(p);
@@ -699,19 +733,32 @@
     if (k === "p" || k === "P") savePNG();
     if (k === "r" || k === "R") reroll();
 
-    if (k === "f" || k === "F") { feedbackOn = !feedbackOn; clearHard(); if (audio) audio.setFeedback(effective(performance.now()), feedbackOn, fbMul); }
-    if (k === "d" || k === "D") { driftOn = !driftOn; }
+    if (k === "f" || k === "F") {
+      feedbackOn = !feedbackOn;
+      clearHard();
+      if (audio) audio.setFeedback(effective(performance.now()), feedbackOn, fbMul);
+    }
+    if (k === "d" || k === "D") driftOn = !driftOn;
 
-    if (k === "," ) { fbMul = clamp(fbMul - 0.05, 0, 1.5); if (audio) audio.setFeedback(effective(performance.now()), feedbackOn, fbMul); }
-    if (k === "." ) { fbMul = clamp(fbMul + 0.05, 0, 1.5); if (audio) audio.setFeedback(effective(performance.now()), feedbackOn, fbMul); }
+    if (k === ",") {
+      fbMul = clamp(fbMul - 0.05, 0, 1.5);
+      if (audio) audio.setFeedback(effective(performance.now()), feedbackOn, fbMul);
+    }
+    if (k === ".") {
+      fbMul = clamp(fbMul + 0.05, 0, 1.5);
+      if (audio) audio.setFeedback(effective(performance.now()), feedbackOn, fbMul);
+    }
 
-    if (k === "[" ) densityMul = clamp(densityMul - 0.05, 0.2, 2.0);
-    if (k === "]" ) densityMul = clamp(densityMul + 0.05, 0.2, 2.0);
+    if (k === "[") densityMul = clamp(densityMul - 0.05, 0.2, 2.0);
+    if (k === "]") densityMul = clamp(densityMul + 0.05, 0.2, 2.0);
 
-    if (k === "-" ) exposure = clamp(exposure - 0.05, 0.4, 2.0);
-    if (k === "=" ) exposure = clamp(exposure + 0.05, 0.4, 2.0);
+    if (k === "-") exposure = clamp(exposure - 0.05, 0.4, 2.0);
+    if (k === "=") exposure = clamp(exposure + 0.05, 0.4, 2.0);
 
-    if (k === "w" || k === "W") { warpOn = !warpOn; clearHard(); }
+    if (k === "w" || k === "W") {
+      warpOn = !warpOn;
+      clearHard();
+    }
     if (k === "k" || k === "K") warpMul = clamp(warpMul - 0.05, 0, 1.6);
     if (k === "l" || k === "L") warpMul = clamp(warpMul + 0.05, 0, 1.6);
 
@@ -734,9 +781,12 @@
   const btnReroll = document.getElementById("synthiReroll");
   const btnDrift  = document.getElementById("synthiDriftToggle");
   const btnFb     = document.getElementById("synthiFbToggle");
+  const btnShot   = document.getElementById("synthiShot");
 
   const freqSlider = document.getElementById("freqSlider");
   const fbSlider = document.getElementById("fbSlider");
+  const freqVal = document.getElementById("freqVal");
+  const fbVal = document.getElementById("fbVal");
 
   const volSlider = document.getElementById("volSlider");
   const bpmSlider = document.getElementById("bpmSlider");
@@ -750,7 +800,7 @@
   const padHat = document.getElementById("padHat");
   const padPerc = document.getElementById("padPerc");
 
-  // NEW optional “form” sliders
+  // optional “form” sliders (if present in generator.html later)
   const rotSlider = document.getElementById("rotSlider");
   const shearSlider = document.getElementById("shearSlider");
   const phiOffSlider = document.getElementById("phiOffsetSlider");
@@ -759,28 +809,17 @@
   const osc4MulSlider = document.getElementById("osc4MulSlider");
   const warpBaseSlider = document.getElementById("warpBaseSlider");
 
-  const setUIFloat = (slider, key, fallback) => {
-    if (!slider) return;
-    // init from base unless slider already has value set in HTML
-    const v0 = parseFloat(slider.value);
-    ui[key] = Number.isFinite(v0) ? v0 : fallback;
+  // NEW: react + color + quality sliders (add to generator.html in later part)
+  const reactSlider = document.getElementById("reactSlider");
+  const colorSlider = document.getElementById("colorSlider");
+  const qualitySlider = document.getElementById("qualitySlider");
+  const reactVal = document.getElementById("reactVal");
+  const colorVal = document.getElementById("colorVal");
+  const qualityVal = document.getElementById("qualityVal");
 
-    slider.addEventListener("input", () => {
-      const nv = parseFloat(slider.value);
-      if (Number.isFinite(nv)) ui[key] = nv;
-      // no need to clear; just continuous morph
-    });
-  };
-
-  setUIFloat(rotSlider, "rot", base.rot);
-  setUIFloat(shearSlider, "shear", base.shear);
-  setUIFloat(phiOffSlider, "phiOffset", base.phiOffset);
-  setUIFloat(pmDepthSlider, "pmDepth", base.pmDepth);
-  setUIFloat(osc3MixSlider, "osc3Mix", base.osc3Mix);
-  setUIFloat(osc4MulSlider, "osc4Mul", base.osc4Mul);
-  setUIFloat(warpBaseSlider, "warpBase", base.warpBase);
-
+  if (btnShot) btnShot.addEventListener("click", savePNG);
   if (btnReroll) btnReroll.addEventListener("click", reroll);
+
   if (btnDrift) btnDrift.addEventListener("click", () => {
     driftOn = !driftOn;
     btnDrift.textContent = `Drift: ${driftOn ? "ON" : "OFF"}`;
@@ -807,24 +846,36 @@
     }
   });
 
-  // freq
+  // freq slider -> live retune (no restart)
+  function syncFreqUI() {
+    if (freqVal) freqVal.textContent = `×${freqMul.toFixed(2)}`;
+    if (freqSlider) freqSlider.value = String(freqMul);
+  }
   if (freqSlider) {
     const v = parseFloat(freqSlider.value);
     if (!Number.isNaN(v)) freqMul = v;
+    syncFreqUI();
     freqSlider.addEventListener("input", () => {
       const nv = parseFloat(freqSlider.value);
       if (!Number.isNaN(nv)) freqMul = nv;
+      syncFreqUI();
       if (audio) audio.setFreqMul(effective(performance.now()));
     });
   }
 
-  // fb
+  // feedback slider -> live delay feedback
+  function syncFbUI() {
+    if (fbVal) fbVal.textContent = feedbackOn ? fbMul.toFixed(2) : "OFF";
+    if (fbSlider) fbSlider.value = String(fbMul);
+  }
   if (fbSlider) {
     const v = parseFloat(fbSlider.value);
     if (!Number.isNaN(v)) fbMul = v;
+    syncFbUI();
     fbSlider.addEventListener("input", () => {
       const nv = parseFloat(fbSlider.value);
       if (!Number.isNaN(nv)) fbMul = nv;
+      syncFbUI();
       if (audio) audio.setFeedback(effective(performance.now()), feedbackOn, fbMul);
     });
   }
@@ -858,6 +909,65 @@
     });
   }
 
+  // react / color / quality (optional)
+  function syncReactUI() {
+    if (reactVal) reactVal.textContent = reactMul.toFixed(2);
+    if (reactSlider) reactSlider.value = String(reactMul);
+  }
+  if (reactSlider) {
+    reactMul = clamp(parseFloat(reactSlider.value) || reactMul, 0, 2);
+    syncReactUI();
+    reactSlider.addEventListener("input", () => {
+      reactMul = clamp(parseFloat(reactSlider.value) || 0, 0, 2);
+      syncReactUI();
+    });
+  }
+
+  function syncColorUI() {
+    if (colorVal) colorVal.textContent = colorAmt.toFixed(2);
+    if (colorSlider) colorSlider.value = String(colorAmt);
+  }
+  if (colorSlider) {
+    colorAmt = clamp(parseFloat(colorSlider.value) || colorAmt, 0, 1);
+    syncColorUI();
+    colorSlider.addEventListener("input", () => {
+      colorAmt = clamp(parseFloat(colorSlider.value) || 0, 0, 1);
+      syncColorUI();
+    });
+  }
+
+  function syncQualityUI() {
+    if (qualityVal) qualityVal.textContent = quality.toFixed(2);
+    if (qualitySlider) qualitySlider.value = String(quality);
+  }
+  if (qualitySlider) {
+    quality = clamp(parseFloat(qualitySlider.value) || quality, 0.2, 1);
+    syncQualityUI();
+    qualitySlider.addEventListener("input", () => {
+      quality = clamp(parseFloat(qualitySlider.value) || 0.8, 0.2, 1);
+      syncQualityUI();
+    });
+  }
+
+  // “form” sliders
+  const setUIFloat = (slider, key, fallback) => {
+    if (!slider) return;
+    const v0 = parseFloat(slider.value);
+    ui[key] = Number.isFinite(v0) ? v0 : fallback;
+    slider.addEventListener("input", () => {
+      const nv = parseFloat(slider.value);
+      if (Number.isFinite(nv)) ui[key] = nv;
+    });
+  };
+  setUIFloat(rotSlider, "rot", base.rot);
+  setUIFloat(shearSlider, "shear", base.shear);
+  setUIFloat(phiOffSlider, "phiOffset", base.phiOffset);
+  setUIFloat(pmDepthSlider, "pmDepth", base.pmDepth);
+  setUIFloat(osc3MixSlider, "osc3Mix", base.osc3Mix);
+  setUIFloat(osc4MulSlider, "osc4Mul", base.osc4Mul);
+  setUIFloat(warpBaseSlider, "warpBase", base.warpBase);
+
+  /* ---------- sequencer UI ---------- */
   function refreshSeqBtn() {
     if (seqToggle) seqToggle.textContent = seqOn ? "Beat: ON" : "Beat: OFF";
   }
@@ -890,23 +1000,35 @@
         b.style.padding = "8px 0";
         b.style.justifyContent = "center";
         b.textContent = String(i + 1);
+        b.dataset.track = tr.key;
+        b.dataset.step = String(i);
+
         const on = !!seq[tr.key][i];
         b.style.opacity = on ? "1" : "0.35";
+
         b.addEventListener("click", () => {
           seq[tr.key][i] = seq[tr.key][i] ? 0 : 1;
           b.style.opacity = seq[tr.key][i] ? "1" : "0.35";
         });
+
         seqGrid.appendChild(b);
       }
     }
   }
 
+  function clearPattern() {
+    for (let i = 0; i < 16; i++) {
+      seq.kick[i] = 0; seq.snare[i] = 0; seq.hat[i] = 0; seq.perc[i] = 0;
+    }
+  }
   function setDefaultPattern() {
+    clearPattern();
     [0, 8].forEach(i => seq.kick[i] = 1);
     [4, 12].forEach(i => seq.snare[i] = 1);
     for (let i = 0; i < 16; i += 2) seq.hat[i] = 1;
     [7, 15].forEach(i => seq.perc[i] = 1);
   }
+
   setDefaultPattern();
   drawSeqGrid();
 
@@ -941,9 +1063,13 @@
 
   window.addEventListener("resize", () => clearHard());
 
-  /* ---------- render ---------- */
+  /* ---------- init render ---------- */
   clearHard();
+  syncFreqUI(); syncFbUI(); syncVolUI(); syncBpmUI();
+  syncReactUI(); syncColorUI(); syncQualityUI();
 
+  // (PART 4 continues: render loop with stronger audio-react + color bands + particle quality cap + meta throttle)
+  /* ---------- render helpers ---------- */
   function projectFeedback(p) {
     if (!feedbackOn) return;
 
@@ -966,32 +1092,117 @@
     ctx2d.restore();
   }
 
+  // simple RGB from bands (0..1)
+  function rgbFromBands(bass, mid, hi, amt) {
+    // amp boost (stronger separation)
+    const r = clamp(0.15 + 1.20 * bass, 0, 1);
+    const g = clamp(0.12 + 1.05 * mid, 0, 1);
+    const b = clamp(0.10 + 1.35 * hi, 0, 1);
+
+    if (amt <= 0.001) return "rgba(235,235,235,1)";
+    const mix = clamp(amt, 0, 1);
+
+    const R = Math.round(235 * (1 - mix) + (255 * r) * mix);
+    const G = Math.round(235 * (1 - mix) + (255 * g) * mix);
+    const B = Math.round(235 * (1 - mix) + (255 * b) * mix);
+    return `rgba(${R},${G},${B},1)`;
+  }
+
+  /* ---------- anti-freeze adaptive quality ---------- */
+  let fpsAvg = 60;
+  let lastFpsT = performance.now();
+  let frames = 0;
+
+  // internal effective draw quality (multiplies "quality" slider)
+  let qAuto = 1.0; // 0.35..1.25
+
+  function updateFps(now) {
+    frames++;
+    const dt = now - lastFpsT;
+    if (dt >= 500) {
+      const fps = (frames * 1000) / dt;
+      fpsAvg = fpsAvg * 0.85 + fps * 0.15;
+      frames = 0;
+      lastFpsT = now;
+
+      // if struggling, reduce; if plenty, slightly raise (slowly)
+      if (fpsAvg < 40) qAuto = clamp(qAuto * 0.92, 0.35, 1.10);
+      else if (fpsAvg > 56) qAuto = clamp(qAuto * 1.02, 0.35, 1.25);
+    }
+  }
+
+  /* ---------- beat transient for stronger visuals ---------- */
+  let lastBeatStep = -1;
+  let kickFlash = 0;   // 0..1
+  let snareFlash = 0;  // 0..1
+
+  function updateBeatFlash() {
+    if (!audio || !seqOn) return;
+    // when seqStep advances (scheduleBeat increments seqStep), catch it here:
+    const s = seqStep & 15;
+    if (s !== lastBeatStep) {
+      lastBeatStep = s;
+      if (seq.kick[s]) kickFlash = 1.0;
+      if (seq.snare[s]) snareFlash = 1.0;
+    }
+    kickFlash *= 0.86;
+    snareFlash *= 0.84;
+  }
+
+  /* ---------- meta/overlay throttle (fix “freeze”) ---------- */
+  let lastMeta = "";
+  let lastMetaAt = 0;
+
+  function setMetaThrottled(text, nowMs) {
+    if (text === lastMeta) return;
+    // update max 8x/sec
+    if (nowMs - lastMetaAt < 125) return;
+    lastMetaAt = nowMs;
+    lastMeta = text;
+    log(text);
+    if (meta) meta.textContent = text;
+  }
+
+  /* ---------- render loop ---------- */
   function tick(now) {
     try {
+      updateFps(now);
       stepDrift(now);
+
+      // keep canvas sized (locked square)
       ensureCanvasSizeLocked();
 
+      // beat + analysis
       if (audio) {
         scheduleBeat(audio.ctx.currentTime);
         updateAnalysis();
       }
+      updateBeatFlash();
 
-      // audio-reactive multipliers (subtle but visible)
+      // base bands
       const aL = env.level;
       const aB = env.bass;
+      const aM = env.mid;
       const aH = env.hi;
 
-      const densityMulEff = clamp(densityMul * (0.85 + 0.90 * aL), 0.2, 2.0);
-      const exposureEff   = clamp(exposure   * (0.95 + 0.70 * aB), 0.4, 2.0);
-      const warpMulEff    = clamp(warpMul    * (0.85 + 1.10 * aH), 0, 1.6);
+      // global “reactiveness” scale (0..2)
+      const R = reactMul;
 
-      // temporary warp strength audio-react
+      // stronger visual coupling
+      const densReact = clamp(0.75 + (1.40 * aL + 0.55 * kickFlash) * R, 0.30, 2.50);
+      const expoReact = clamp(0.85 + (1.60 * aB + 0.35 * snareFlash) * R, 0.40, 3.00);
+      const warpReact = clamp(0.80 + (1.85 * aH) * R, 0.00, 2.40);
+
+      const densityMulEff = clamp(densityMul * densReact, 0.2, 2.8);
+      const exposureEff   = clamp(exposure   * expoReact, 0.4, 3.2);
+
+      // temporary override for warp computation inside effective()
       const warpMulUser = warpMul;
-      if (audio && warpOn) warpMul = warpMulEff;
+      if (audio && warpOn) warpMul = clamp(warpMul * warpReact, 0, 2.0);
       const p = effective(now);
       warpMul = warpMulUser;
 
-      // keep audio parameters synced live
+      // keep audio params synced live (cheap + safe)
       if (audio) {
         audio.setFreqMul(p);
         audio.setFeedback(p, feedbackOn, fbMul);
@@ -1000,16 +1211,20 @@
       // 1) feedback projection
       projectFeedback(p);
 
-      // 2) decay
+      // 2) decay (make it breathe with audio)
       ctx2d.save();
       ctx2d.globalCompositeOperation = "source-over";
-      const decay = feedbackOn ? (0.045 + 0.030 * Math.min(1, fbMul)) : 0.075;
+
+      // lower decay when loud -> brighter trails
+      const decayBase = feedbackOn ? (0.040 + 0.030 * Math.min(1, fbMul)) : 0.070;
+      const decay = clamp(decayBase * (1.05 - 0.55 * aL * R), 0.012, 0.11);
+
       ctx2d.globalAlpha = decay;
       ctx2d.fillStyle = "#000";
       ctx2d.fillRect(0, 0, canvas.width, canvas.height);
       ctx2d.restore();
 
-      // 3) point accumulation (seeded RNG per frame)
+      // 3) point accumulation
       const W = canvas.width, H = canvas.height;
       const cx = W / 2, cy = H / 2;
       const pad = Math.min(W, H) * p.padFrac;
@@ -1021,24 +1236,39 @@
       const phiSpread = p.phiSpreadBase * (0.55 + 1.05 * (1 - dens));
       const phiBase = p.phi + (driftOn ? driftPhase : 0);
 
-      const baseN = 68000;
-      const N = Math.floor(baseN * dens * densityMulEff);
+      // QUALITY: cap N so it never explodes
+      const q = clamp(quality * qAuto, 0.20, 1.20);
+
+      // note: baseN was 68000; that’s heavy. scale by q^1.2 and by pixel size.
+      const baseN = 52000;
+      const Nraw = baseN * dens * densityMulEff * Math.pow(q, 1.20);
+      const Ncap = 92000; // hard cap (anti-freeze)
+      const N = Math.max(2000, Math.min(Ncap, Math.floor(Nraw)));
 
       const TWIN = 0.30;
-      const s = p.pixel;
 
-      // seeded RNG for stability of “form”
+      // scale pixel size with quality (lower quality -> slightly bigger pixels)
+      const pix = p.pixel;
+      const s = Math.max(1, Math.round(pix * (1.0 + (1.0 - q) * 0.65)));
+
+      // seeded RNG per frame (stable-ish)
       const frameSeed = (renderSeed ^ (now | 0) ^ (N * 2654435761)) >>> 0;
       const rr = mulberry32(frameSeed);
 
       ctx2d.save();
       ctx2d.globalCompositeOperation = "lighter";
 
-      const alpha = clamp(0.34 * exposureEff, 0.10, 0.75);
+      // ALPHA: much more reactive (level + beat flashes)
+      const beatLift = 0.55 * kickFlash + 0.25 * snareFlash;
+      const alphaBase = 0.24 + 0.38 * aL * R + 0.22 * beatLift;
+      const alpha = clamp(alphaBase * exposureEff, 0.08, 0.95);
       ctx2d.globalAlpha = alpha;
-      ctx2d.fillStyle = "rgba(235,235,235,1)";
 
-      const jitterK = 1.35 * s * (0.90 + 0.70 * env.hi);
+      // COLOR: optional RGB mode
+      ctx2d.fillStyle = rgbFromBands(aB, aM, aH, colorAmt);
+
+      // jitter reacts mostly to hi + beat
+      const jitterK = (1.20 + 0.95 * aH * R + 0.55 * beatLift) * s;
 
       for (let i = 0; i < N; i++) {
         const t = rr() * TWIN;
@@ -1055,23 +1285,24 @@
         if (px <= 0 || py <= 0 || px >= W || py >= H) continue;
 
         ctx2d.fillRect(px, py, s, s);
-        if ((i & 31) === 0) ctx2d.fillRect(px + s, py, s, s);
-        if ((i & 63) === 0) ctx2d.fillRect(px, py + s, s, s);
+
+        // “sparkle” more when hi is strong
+        if ((i & 31) === 0 && (rr() < 0.65 + 0.30 * aH)) ctx2d.fillRect(px + s, py, s, s);
+        if ((i & 63) === 0 && (rr() < 0.55 + 0.35 * aH)) ctx2d.fillRect(px, py + s, s, s);
       }
 
       ctx2d.restore();
 
+      // meta text (throttled, avoids stutter)
       const detCents = 1200 * Math.log2(1 + p.detune);
       const text =
-        `PATCH A+WARP+BEAT • f ${p.f_vis.toFixed(1)}Hz • fb ${feedbackOn ? fbMul.toFixed(2) : "OFF"} • ` +
+        `SYNTHI • f ${p.f_vis.toFixed(0)}Hz • fb ${feedbackOn ? fbMul.toFixed(2) : "OFF"} • ` +
         `warp ${warpOn ? warpMul.toFixed(2) : "OFF"} (${p.warpEff.toFixed(3)}) • ` +
         `dens ${densityMul.toFixed(2)}→${densityMulEff.toFixed(2)} • exp ${exposure.toFixed(2)}→${exposureEff.toFixed(2)} • ` +
-        `beat ${seqOn ? "ON" : "OFF"} ${Math.round(bpm)}bpm • lvl ${env.level.toFixed(2)} • det ${detCents.toFixed(2)}c\n` +
-        `Form: rot ${p.rot.toFixed(3)} shear ${p.shear.toFixed(3)} phiOff ${p.phiOffset.toFixed(3)} pm ${p.pmDepth.toFixed(4)} osc3 ${p.osc3Mix.toFixed(3)} osc4Mul ${p.osc4Mul.toFixed(3)} warpBase ${p.warpBase.toFixed(3)}\n` +
-        `Keys: A audio, M mute, R reroll, F fb, D drift, W warp, K/L warp-,+, [,] dens, -/= exp, ,/. fb, P png`;
+        `beat ${seqOn ? "ON" : "OFF"} ${Math.round(bpm)}bpm • lvl ${env.level.toFixed(2)} • ` +
+        `react ${reactMul.toFixed(2)} • col ${colorAmt.toFixed(2)} • q ${q.toFixed(2)} • fps~${fpsAvg.toFixed(0)} • det ${detCents.toFixed(1)}c`;
 
-      log(text);
-      if (meta) meta.textContent = text;
+      setMetaThrottled(text, now);
 
     } catch (err) {
       log("RUNTIME ERROR: " + (err?.message || err));
