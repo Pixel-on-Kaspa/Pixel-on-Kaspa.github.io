@@ -291,6 +291,13 @@
     .rewardList b{color:var(--text);}
     .miniNote{color:var(--muted);font-size:12px;margin-top:10px;opacity:.7;}
 
+    /* ── ARTIST PREVIEW CANVASES ── */
+    .artistPreview{
+      position:absolute;inset:0;
+      width:100%;height:100%;
+      display:block;
+    }
+
     @media(max-width:900px){
       .topbar{padding:0 16px;}
       .wrap{padding:0 16px 60px;}
@@ -422,7 +429,8 @@
 
     <section class="cards">
       <div class="card">
-        <div class="thumb artistThumb">
+        <div class="thumb artistThumb" id="komaThumb">
+          <canvas id="komaPreview" class="artistPreview"></canvas>
           <span class="tag">P5</span>
           <span class="hint">@KomaTebe</span>
           <div class="bottomline">
@@ -442,7 +450,8 @@
       </div>
 
       <div class="card">
-        <div class="thumb artistThumb" style="background:radial-gradient(circle at center,rgba(73,234,203,.05),#070c0c 65%)">
+        <div class="thumb artistThumb" id="yoheiThumb">
+          <canvas id="yoheiPreview" class="artistPreview"></canvas>
           <span class="tag">GLSL</span>
           <span class="hint">@YoheiNishitsuji</span>
           <div class="bottomline">
@@ -857,6 +866,167 @@
 
   loadCover("PIXELONKAS");
   loadCover("SYKORA");
+})();
+</script>
+
+<script>
+// ── KOMA PREVIEW — p5-style particle sketch ──
+(function(){
+  const canvas = document.getElementById("komaPreview");
+  const thumb  = document.getElementById("komaThumb");
+  if(!canvas || !thumb) return;
+  const ctx = canvas.getContext("2d");
+
+  const particles = [];
+  const N = 70;
+
+  function resize(){
+    const r = thumb.getBoundingClientRect();
+    canvas.width  = Math.round(r.width)  || 300;
+    canvas.height = Math.round(r.height) || 300;
+  }
+
+  function init(){
+    particles.length = 0;
+    for(let i=0;i<N;i++){
+      particles.push({
+        x:  Math.random() * canvas.width,
+        y:  Math.random() * canvas.height,
+        vx: (Math.random() - .5) * 1.1,
+        vy: (Math.random() - .5) * 1.1,
+        size: Math.random() * 2 + .6,
+        hue:  155 + Math.random() * 35,
+        phase: Math.random() * Math.PI * 2,
+      });
+    }
+    // Start with a dark fill so trail effect has a base
+    ctx.fillStyle = "#070c0c";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  function draw(){
+    // Soft fade trail
+    ctx.fillStyle = "rgba(7,12,12,0.07)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const t = performance.now() * .001;
+
+    for(const p of particles){
+      // Noise-like steering via slow sine offsets
+      p.vx += Math.sin(p.y * .018 + t * .6 + p.phase) * .06;
+      p.vy += Math.cos(p.x * .018 + t * .5 + p.phase) * .06;
+      // Speed limit
+      const spd = Math.sqrt(p.vx*p.vx + p.vy*p.vy);
+      if(spd > 1.8){ p.vx = p.vx/spd*1.8; p.vy = p.vy/spd*1.8; }
+      p.x += p.vx;
+      p.y += p.vy;
+      // Wrap
+      if(p.x < 0) p.x += canvas.width;
+      if(p.x > canvas.width)  p.x -= canvas.width;
+      if(p.y < 0) p.y += canvas.height;
+      if(p.y > canvas.height) p.y -= canvas.height;
+    }
+
+    // Connection lines
+    for(let i=0;i<particles.length;i++){
+      for(let j=i+1;j<particles.length;j++){
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const d  = Math.sqrt(dx*dx + dy*dy);
+        if(d < 55){
+          ctx.strokeStyle = `rgba(73,234,203,${(1-d/55)*.18})`;
+          ctx.lineWidth = .6;
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Dots
+    for(const p of particles){
+      const pulse = .45 + .2 * Math.sin(t * 1.4 + p.phase);
+      ctx.fillStyle = `hsla(${p.hue},88%,65%,${pulse})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    requestAnimationFrame(draw);
+  }
+
+  new ResizeObserver(()=>{ resize(); }).observe(thumb);
+  resize(); init(); draw();
+})();
+</script>
+
+<script>
+// ── YOHEI PREVIEW — GLSL fragment shader simulation ──
+(function(){
+  const canvas = document.getElementById("yoheiPreview");
+  const thumb  = document.getElementById("yoheiThumb");
+  if(!canvas || !thumb) return;
+  const ctx = canvas.getContext("2d");
+
+  function resize(){
+    const r = thumb.getBoundingClientRect();
+    // Half-res, scaled via CSS — good for performance
+    canvas.width  = Math.round((r.width  || 300) / 2);
+    canvas.height = Math.round((r.height || 300) / 2);
+  }
+
+  function draw(){
+    const w = canvas.width, h = canvas.height;
+    const t = performance.now() * .001;
+
+    // Dark base
+    ctx.fillStyle = "#020a08";
+    ctx.fillRect(0, 0, w, h);
+
+    // Three animated radial light blobs — simulates fragment shader light fields
+    const blobs = [
+      { x: .28 + .18*Math.sin(t*.55),      y: .38 + .15*Math.cos(t*.70),      r: w*.62, h: 168, a: .52 },
+      { x: .72 + .14*Math.cos(t*.40),      y: .62 + .18*Math.sin(t*.50),      r: w*.55, h: 195, a: .40 },
+      { x: .50 + .22*Math.sin(t*.30+1.2),  y: .28 + .20*Math.cos(t*.65+.8),   r: w*.48, h: 145, a: .35 },
+    ];
+
+    for(const b of blobs){
+      const grd = ctx.createRadialGradient(b.x*w, b.y*h, 0, b.x*w, b.y*h, b.r);
+      const hue = b.h + 12*Math.sin(t*.3 + b.h);
+      grd.addColorStop(0,   `hsla(${hue},90%,52%,${b.a})`);
+      grd.addColorStop(.45, `hsla(${hue+18},70%,30%,${b.a*.45})`);
+      grd.addColorStop(1,   "transparent");
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    // Interference rings — gives the shader wave look
+    const cx = (.5 + .1*Math.sin(t*.4)) * w;
+    const cy = (.5 + .1*Math.cos(t*.5)) * h;
+    const maxR = Math.sqrt(w*w + h*h);
+    for(let r=4; r<maxR; r+=10){
+      const phase = r*.22 - t*2.2;
+      const amp = Math.sin(phase);
+      if(amp > .3){
+        const a = (amp - .3) * .12;
+        ctx.strokeStyle = `rgba(73,234,203,${a})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI*2);
+        ctx.stroke();
+      }
+    }
+
+    // Scanline overlay (CSS pixel art / shader aesthetic)
+    ctx.fillStyle = "rgba(0,0,0,0.18)";
+    for(let y=0;y<h;y+=2) ctx.fillRect(0, y, w, 1);
+
+    requestAnimationFrame(draw);
+  }
+
+  new ResizeObserver(()=>{ resize(); }).observe(thumb);
+  resize(); draw();
 })();
 </script>
 </body>
