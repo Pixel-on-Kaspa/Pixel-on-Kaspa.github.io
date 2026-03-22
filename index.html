@@ -6,293 +6,342 @@
   <title>PIXEL on Kaspa</title>
   <style>
     :root{
-      --bg1:#121623;
-      --bg2:#050608;
-      --panel: rgba(0,0,0,.18);
-      --border: rgba(255,255,255,.12);
-      --muted: rgba(255,255,255,.70);
-      --accent:#00c4ff;
-      --shadow: 0 18px 35px rgba(0,0,0,.50);
-      --text:#f5f5f5;
+      --bg:     #050a0a;
+      --bg2:    #0a0f0f;
+      --card:   #0d1117;
+      --border: rgba(255,255,255,.08);
+      --border-hover: rgba(73,234,203,.35);
+      --muted:  rgba(255,255,255,.50);
+      --accent: #49EACB;
+      --accent-dim: rgba(73,234,203,.10);
+      --text:   #f0f0f0;
     }
-    *{box-sizing:border-box}
+    *{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%}
     body{
-      margin:0;
-      font-family: system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
-      background: radial-gradient(circle at top, var(--bg1) 0, var(--bg2) 52%);
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
+      background:var(--bg);
       color:var(--text);
       min-height:100vh;
     }
-    a{color:inherit}
-    .wrap{max-width:1100px;margin:0 auto;padding:22px 16px 56px}
+    a{color:inherit;text-decoration:none}
 
+    /* ── NAVBAR ── */
     .topbar{
+      position:sticky;top:0;z-index:100;
       display:flex;align-items:center;justify-content:space-between;
       gap:14px;
-      border:1px solid var(--border);
-      border-radius:16px;
-      background: var(--panel);
-      backdrop-filter: blur(10px);
-      padding:12px 14px;
-      box-shadow: var(--shadow);
+      background:rgba(5,10,10,.97);
+      border-bottom:1px solid var(--border);
+      padding:0 32px;
+      height:60px;
     }
     .brand{
       display:flex;align-items:baseline;gap:10px;
       letter-spacing:.14em;
       text-transform:uppercase;
       font-weight:900;
+      font-size:15px;
       white-space:nowrap;
     }
     .brand small{
-      opacity:.7;font-weight:700;letter-spacing:.08em;text-transform:none;
+      color:var(--muted);
+      font-weight:600;
+      letter-spacing:.06em;
+      text-transform:none;
+      font-size:12px;
       white-space:nowrap;
     }
     .nav{
-      display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center;
+      display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center;
     }
 
+    /* ── BUTTONS ── */
     .btn{
       text-decoration:none;
-      display:inline-flex;align-items:center;gap:8px;
-      padding:9px 14px;border-radius:999px;
-      border:1px solid rgba(255,255,255,.16);
-      background: rgba(255,255,255,.06);
-      color: rgba(255,255,255,.88);
-      font-weight:750;
-      transition: background .15s, color .15s, transform .15s, border-color .15s;
+      display:inline-flex;align-items:center;gap:6px;
+      padding:8px 14px;
+      border-radius:4px;
+      border:1px solid var(--border);
+      background:transparent;
+      color:var(--muted);
+      font-weight:700;
+      font-size:13px;
+      letter-spacing:.04em;
+      transition:color .15s,border-color .15s,background .15s;
       white-space:nowrap;line-height:1;cursor:pointer;user-select:none;
     }
-    .btn:hover{background: rgba(255,255,255,.12);color:#fff;transform: translateY(-1px);}
+    .btn:hover{color:var(--text);border-color:rgba(255,255,255,.22);}
     .btnPrimary{
-      border-color: rgba(0,196,255,.70);
-      color: var(--accent);
-      background: rgba(0,196,255,.08);
+      border-color:var(--accent);
+      color:var(--accent);
+      background:var(--accent-dim);
+      font-weight:800;
     }
-    .btnPrimary:hover{background: var(--accent); color:#020308;}
-    .btnGhost{ background: transparent; border-color: rgba(255,255,255,.16); opacity:.95; }
-    .btnIcon{ padding:8px 12px; }
-    .btnIcon img{ width:22px;height:22px;display:block;border-radius:7px; }
-
+    .btnPrimary:hover{background:var(--accent);color:#020a08;}
+    .btnGhost{border-color:var(--border);color:var(--muted);}
+    .btnGhost:hover{color:var(--text);border-color:rgba(255,255,255,.22);}
+    .btnIcon{padding:7px 12px;}
+    .btnIcon img{width:18px;height:18px;display:block;border-radius:3px;}
     .btnRewardsTop{
-      font-size: 1.02rem;
-      font-weight: 900;
-      letter-spacing: .06em;
-      padding: 10px 16px;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
     }
 
+    /* ── LAYOUT ── */
+    .wrap{max-width:1200px;margin:0 auto;padding:0 32px 80px;}
+
+    /* ── HERO ── */
     .hero{
-      margin-top:18px;
-      border:1px solid var(--border);
-      border-radius:22px;
-      background: var(--panel);
-      backdrop-filter: blur(10px);
-      box-shadow: var(--shadow);
-      padding:22px 18px 18px;
       position:relative;
+      padding:110px 0 90px;
       overflow:hidden;
-      text-align:center;
     }
-    .hero::before{
-      content:"";
-      position:absolute;inset:-140px -160px auto auto;
-      width:340px;height:340px;
-      background: radial-gradient(circle at center, rgba(0,196,255,.22), transparent 60%);
-      filter: blur(2px);
-      transform: rotate(10deg);
+    #heroCanvas{
+      position:absolute;
+      inset:0;
+      width:100%;height:100%;
       pointer-events:none;
     }
-    h1{
-      margin:0 0 10px;
-      font-size:54px;
+    .heroContent{
+      position:relative;
+      z-index:1;
+      max-width:880px;
+    }
+    .heroEyebrow{
+      font-size:11px;
+      font-weight:700;
       letter-spacing:.22em;
       text-transform:uppercase;
-      line-height:1.02;
+      color:var(--accent);
+      margin-bottom:22px;
     }
-    .sub{margin:0 auto 0;opacity:.86;font-size:16px;max-width: 78ch;}
-    .heroCtas{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:14px;}
+    h1{
+      font-size:clamp(60px,8.5vw,96px);
+      font-weight:900;
+      letter-spacing:-.02em;
+      text-transform:uppercase;
+      line-height:.93;
+      margin-bottom:28px;
+      color:#fff;
+    }
+    h1 .teal{color:var(--accent);}
+    .sub{
+      font-size:17px;
+      color:var(--muted);
+      max-width:50ch;
+      line-height:1.65;
+      margin-bottom:36px;
+    }
+    .heroCtas{display:flex;gap:12px;flex-wrap:wrap;}
 
+    /* ── DIVIDER ── */
+    .divider{
+      height:1px;
+      background:var(--border);
+      margin:60px 0 44px;
+    }
+
+    /* ── SECTION TITLE ── */
     .sectionTitle{
-      margin:22px 0 12px;
+      margin:0 0 20px;
       letter-spacing:.14em;
       text-transform:uppercase;
-      font-weight:900;
-      font-size:14px;
-      opacity:.85;
+      font-weight:800;
+      font-size:11px;
+      color:var(--muted);
       display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;
+      border-left:2px solid var(--accent);
+      padding-left:12px;
     }
-    .sectionTitle span{opacity:.65;font-weight:700;letter-spacing:.08em;text-transform:none;font-size:12px}
+    .sectionTitle span{color:var(--muted);font-weight:500;letter-spacing:.04em;text-transform:none;font-size:11px;opacity:.65}
 
+    /* ── CARDS GRID ── */
     .cards{
       display:grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap:16px;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:1px;
+      background:var(--border);
+      border:1px solid var(--border);
     }
     .card{
-      border:1px solid var(--border);
-      border-radius:20px;
-      background: rgba(0,0,0,.18);
-      backdrop-filter: blur(10px);
-      padding:16px;
-      box-shadow: var(--shadow);
-      transition: transform .15s ease-out, border-color .15s, box-shadow .15s;
+      background:var(--card);
+      padding:24px;
+      transition:background .15s;
+      position:relative;
       overflow:hidden;
     }
-    .card:hover{transform: translateY(-3px); border-color: rgba(0,196,255,.22); box-shadow:0 24px 40px rgba(0,0,0,.7);}
+    .card::after{
+      content:"";
+      position:absolute;
+      bottom:0;left:0;right:0;
+      height:2px;
+      background:var(--accent);
+      transform:scaleX(0);
+      transform-origin:left;
+      transition:transform .22s ease;
+    }
+    .card:hover{background:#0b1219;}
+    .card:hover::after{transform:scaleX(1);}
 
     .thumb{
       width:100%;
-      aspect-ratio: 1/1;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.10);
-      background: #000;
+      aspect-ratio:1/1;
+      background:#070c0c;
+      border:1px solid var(--border);
       overflow:hidden;
       display:flex;align-items:center;justify-content:center;
-      color: rgba(255,255,255,.70);
-      font-size: 12px;
-      margin-bottom:12px;
+      color:var(--muted);
+      font-size:12px;
+      margin-bottom:20px;
       position:relative;
     }
     .thumb img{width:100%;height:100%;object-fit:cover;display:block}
     .thumb .tag{
       position:absolute;left:10px;top:10px;
-      padding:6px 10px;border-radius:999px;
-      border:1px solid rgba(0,196,255,.35);
-      background: rgba(0,196,255,.10);
-      color: var(--accent);
-      font-weight:900;
-      font-size:12px;
-      letter-spacing:.08em;
+      padding:5px 10px;
+      border:1px solid rgba(73,234,203,.38);
+      background:rgba(73,234,203,.07);
+      color:var(--accent);
+      font-weight:800;
+      font-size:11px;
+      letter-spacing:.1em;
       text-transform:uppercase;
-      backdrop-filter: blur(10px);
     }
     .thumb .hint{
       position:absolute;right:10px;top:10px;
-      padding:6px 10px;border-radius:999px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(0,0,0,.22);
-      opacity:.88;
-      font-size:12px;
-      backdrop-filter: blur(10px);
+      padding:5px 10px;
+      border:1px solid var(--border);
+      background:rgba(0,0,0,.55);
+      font-size:11px;
+      color:var(--muted);
     }
     .thumb .bottomline{
-      position:absolute;left:10px;right:10px;bottom:10px;
-      padding:10px 12px;border-radius:14px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(0,0,0,.30);
-      backdrop-filter: blur(10px);
+      position:absolute;left:0;right:0;bottom:0;
+      padding:12px 14px;
+      background:rgba(5,10,10,.88);
+      border-top:1px solid var(--border);
       font-size:12px;
-      line-height:1.35;
-      opacity:.92;
+      line-height:1.4;
+      color:var(--muted);
     }
-    .thumb .bottomline b{letter-spacing:.08em;text-transform:uppercase}
+    .thumb .bottomline b{color:var(--text);letter-spacing:.06em;text-transform:uppercase;}
 
     .synthiThumb{
-      background: radial-gradient(circle at center, rgba(0,196,255,.15), rgba(0,0,0,.62));
+      background:radial-gradient(circle at center,rgba(73,234,203,.07) 0,#070c0c 65%);
     }
-    .synthiThumb .tag{
-      border-color: rgba(0,196,255,.45);
-      background: rgba(0,196,255,.12);
+    .artistThumb{
+      background:radial-gradient(circle at center,rgba(73,234,203,.05) 0,#070c0c 65%);
     }
     .synthiLogo{
-      width:78px;
-      height:78px;
-      opacity:.92;
-      filter: drop-shadow(0 0 22px rgba(0,196,255,.35));
-    }
-
-    .artistThumb{
-      background: radial-gradient(circle at center, rgba(0,196,255,.12), rgba(0,0,0,.74));
-    }
-    .artistThumb .tag{
-      border-color: rgba(0,196,255,.45);
-      background: rgba(0,196,255,.12);
+      width:64px;height:64px;
+      opacity:.85;
+      filter:drop-shadow(0 0 16px rgba(73,234,203,.28));
     }
 
     .cardHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;}
-    .cardHead b{font-size:18px;letter-spacing:.10em;text-transform:uppercase;}
+    .cardHead b{font-size:15px;letter-spacing:.1em;text-transform:uppercase;font-weight:900;}
     .chip{
-      padding:6px 10px;border-radius:999px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
-      opacity:.85;
-      font-size:12px;
+      padding:4px 10px;
+      border:1px solid var(--border);
+      background:transparent;
+      color:var(--muted);
+      font-size:11px;
+      font-weight:700;
+      letter-spacing:.06em;
       white-space:nowrap;
     }
-    .card p{margin:0 0 14px;opacity:.78;line-height:1.5}
-    .cardActions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+    .card p{margin:0 0 18px;color:var(--muted);line-height:1.6;font-size:14px;}
+    .cardActions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
 
+    /* ── FOOTER ── */
     footer{
-      margin-top:22px;
-      opacity:.70;
-      font-size:13px;
+      margin-top:80px;
+      padding-top:24px;
+      border-top:1px solid var(--border);
+      color:var(--muted);
+      font-size:12px;
       display:flex;
       justify-content:space-between;
       gap:12px;
       flex-wrap:wrap;
     }
-    footer a{color: var(--accent); text-decoration:none}
-    footer a:hover{text-decoration:underline}
+    footer a{color:var(--accent);}
+    footer a:hover{color:#fff;}
 
-    .modal{position:fixed;inset:0;background: rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:18px;z-index:9999;}
+    /* ── MODAL ── */
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;padding:18px;z-index:9999;}
     .modal.open{display:flex;}
-    .modalPanel{width:min(980px, 96vw);max-height: 92vh;overflow:auto;border-radius:18px;border:1px solid rgba(255,255,255,.14);background: rgba(10,12,18,.92);box-shadow: 0 30px 80px rgba(0,0,0,.75);backdrop-filter: blur(10px);}
-    .modalTop{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.10);position:sticky;top:0;background: rgba(10,12,18,.92);z-index:1;}
+    .modalPanel{width:min(980px,96vw);max-height:92vh;overflow:auto;border:1px solid rgba(255,255,255,.1);background:#080e0e;box-shadow:0 30px 80px rgba(0,0,0,.85);}
+    .modalTop{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#080e0e;z-index:1;}
     .modalTitle{display:flex;flex-direction:column;gap:2px;}
-    .modalTitle b{letter-spacing:.10em;text-transform:uppercase}
-    .modalTitle span{opacity:.70;font-size:12px}
-    .modalBody{padding:14px}
-    .modalTabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-    .tabBtn{border:1px solid rgba(255,255,255,.16);background: rgba(255,255,255,.06);color: rgba(255,255,255,.90);padding:8px 12px;border-radius:999px;cursor:pointer;font-weight:800;}
-    .tabBtn.active{border-color: rgba(0,196,255,.70);color: var(--accent);background: rgba(0,196,255,.10);}
-    .rewardBlock{border:1px solid rgba(255,255,255,.10);background: rgba(255,255,255,.04);border-radius:16px;padding:14px;margin-bottom:12px;}
-    .rewardBlock h3{margin:0 0 10px;letter-spacing:.10em;text-transform:uppercase;font-size:13px;opacity:.92;}
-    .rewardBlock p{margin:0 0 10px;opacity:.78;line-height:1.55}
-    .rewardList{margin:0;padding-left:18px;opacity:.86}
-    .rewardList li{margin:6px 0}
-    .miniNote{opacity:.65;font-size:12px;margin-top:10px}
+    .modalTitle b{letter-spacing:.10em;text-transform:uppercase;font-weight:900;}
+    .modalTitle span{color:var(--muted);font-size:12px}
+    .modalBody{padding:20px}
+    .modalTabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+    .tabBtn{border:1px solid var(--border);background:transparent;color:var(--muted);padding:8px 14px;cursor:pointer;font-weight:800;font-size:12px;letter-spacing:.06em;text-transform:uppercase;transition:color .15s,border-color .15s,background .15s;}
+    .tabBtn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+    .rewardBlock{border:1px solid var(--border);background:rgba(255,255,255,.02);padding:16px;margin-bottom:12px;}
+    .rewardBlock h3{margin:0 0 12px;letter-spacing:.10em;text-transform:uppercase;font-size:11px;color:var(--muted);font-weight:800;}
+    .rewardBlock p{margin:0 0 10px;color:var(--muted);line-height:1.55;font-size:14px;}
+    .rewardList{margin:0;padding-left:18px;color:var(--muted);font-size:14px;}
+    .rewardList li{margin:6px 0;line-height:1.5;}
+    .rewardList b{color:var(--text);}
+    .miniNote{color:var(--muted);font-size:12px;margin-top:10px;opacity:.7;}
 
-    @media (max-width: 980px){
-      h1{font-size:40px;letter-spacing:.18em}
-      .cards{grid-template-columns:1fr}
-      .brand small{display:none}
+    @media(max-width:900px){
+      .topbar{padding:0 16px;}
+      .wrap{padding:0 16px 60px;}
+      h1{font-size:clamp(44px,10vw,72px);}
+      .cards{grid-template-columns:1fr;}
+      .brand small{display:none;}
+    }
+    @media(max-width:600px){
+      .hero{padding:64px 0 52px;}
+      .nav .btn:not(.btnRewardsTop):not(.btnPrimary){display:none;}
     }
   </style>
 </head>
 <body>
+
+  <!-- NAVBAR -->
+  <nav class="topbar">
+    <div class="brand">
+      PIXEL ON KASPA <small>sound → image → chain</small>
+    </div>
+    <div class="nav">
+      <button class="btn btnRewardsTop btnPrimary" type="button" data-open-rewards="PIXELONKAS">REWARDS</button>
+      <a class="btn" href="artists.html">ARTISTS</a>
+      <a class="btn" href="viewer">NFTs</a>
+      <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">Mint PIXELONKAS</a>
+      <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">Mint SYKORA</a>
+      <a class="btn btnIcon btnGhost" href="synthi/" title="SYNTHI">
+        <img src="assets/img/logo.png" alt="SYNTHI">
+        SYNTHI
+      </a>
+      <a class="btn btnGhost" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
+      <a class="btn btnGhost" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
+    </div>
+  </nav>
+
   <div class="wrap">
 
-    <div class="topbar">
-      <div class="brand">
-        PIXEL ON KASPA <small>sound → image → chain</small>
-      </div>
-      <div class="nav">
-        <button class="btn btnRewardsTop btnPrimary" type="button" data-open-rewards="PIXELONKAS">REWARDS</button>
-
-        <!-- RELATIVE LINKS (robust) -->
-        <a class="btn" href="artists.html">ARTISTS</a>
-        <a class="btn" href="viewer">NFTs</a>
-
-        <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">Mint PIXELONKAS</a>
-        <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">Mint SYKORA</a>
-
-        <a class="btn btnIcon btnGhost" href="synthi/" title="SYNTHI">
-          <img src="assets/img/logo.png" alt="SYNTHI">
-          SYNTHI
-        </a>
-
-        <a class="btn btnGhost" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
-        <a class="btn btnGhost" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
-      </div>
-    </div>
-
+    <!-- HERO -->
     <section class="hero">
-      <h1>PIXEL&nbsp;ON&nbsp;KASPA</h1>
-      <p class="sub"><b>$PIXEL</b> KRC-20 utility token on Kaspa.</p>
-      <div class="heroCtas">
-        <a class="btn btnPrimary" href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">Open $PIXEL</a>
+      <canvas id="heroCanvas"></canvas>
+      <div class="heroContent">
+        <div class="heroEyebrow">KRC-20 · Kaspa BlockDAG</div>
+        <h1>PIXEL<br>ON <span class="teal">KASPA</span></h1>
+        <p class="sub"><b>$PIXEL</b> KRC-20 utility token on Kaspa.</p>
+        <div class="heroCtas">
+          <a class="btn btnPrimary" href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">Open $PIXEL</a>
+        </div>
       </div>
     </section>
+
+    <div class="divider"></div>
 
     <div class="sectionTitle">
       NFT COLLECTIONS
@@ -364,6 +413,8 @@
       </div>
     </section>
 
+    <div class="divider"></div>
+
     <div class="sectionTitle">
       ARTIST GENERATORS
       <span>Quick entry → dedicated pages.</span>
@@ -391,7 +442,7 @@
       </div>
 
       <div class="card">
-        <div class="thumb artistThumb" style="background: radial-gradient(circle at center, rgba(0,196,255,.10), rgba(0,0,0,.78));">
+        <div class="thumb artistThumb" style="background:radial-gradient(circle at center,rgba(73,234,203,.05),#070c0c 65%)">
           <span class="tag">GLSL</span>
           <span class="hint">@YoheiNishitsuji</span>
           <div class="bottomline">
@@ -411,7 +462,7 @@
       </div>
 
       <div class="card">
-        <div class="thumb artistThumb" style="opacity:.92">
+        <div class="thumb artistThumb" style="opacity:.9">
           <span class="tag">OPEN</span>
           <span class="hint">submit</span>
           <div class="bottomline">
@@ -444,6 +495,7 @@
 
   </div>
 
+  <!-- REWARDS MODAL -->
   <div class="modal" id="rewardsModal" aria-hidden="true">
     <div class="modalPanel" role="dialog" aria-modal="true">
       <div class="modalTop">
@@ -515,6 +567,69 @@
   </div>
 
 <script>
+// ── HERO CANVAS — animated dot network ──
+(function(){
+  const canvas = document.getElementById("heroCanvas");
+  const ctx    = canvas.getContext("2d");
+  const ACCENT = "73,234,203";
+  const N      = 55;
+  const DIST   = 160;
+  const dots   = [];
+
+  function resize(){
+    canvas.width  = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+  }
+  function init(){
+    dots.length = 0;
+    for(let i=0;i<N;i++){
+      dots.push({
+        x:  Math.random() * canvas.width,
+        y:  Math.random() * canvas.height,
+        vx: (Math.random() - .5) * .32,
+        vy: (Math.random() - .5) * .32,
+        r:  Math.random() * 1.4 + 0.8,
+      });
+    }
+  }
+  function draw(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for(const d of dots){
+      d.x += d.vx;
+      d.y += d.vy;
+      if(d.x < 0 || d.x > canvas.width)  d.vx *= -1;
+      if(d.y < 0 || d.y > canvas.height) d.vy *= -1;
+    }
+    for(let i=0;i<dots.length;i++){
+      for(let j=i+1;j<dots.length;j++){
+        const dx   = dots[i].x - dots[j].x;
+        const dy   = dots[i].y - dots[j].y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if(dist < DIST){
+          ctx.strokeStyle = `rgba(${ACCENT},${(1-dist/DIST)*.22})`;
+          ctx.lineWidth   = .7;
+          ctx.beginPath();
+          ctx.moveTo(dots[i].x, dots[i].y);
+          ctx.lineTo(dots[j].x, dots[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+    for(const d of dots){
+      ctx.fillStyle = `rgba(${ACCENT},0.50)`;
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, d.r, 0, Math.PI*2);
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener("resize", ()=>{ resize(); init(); });
+  resize(); init(); draw();
+})();
+</script>
+
+<script>
+// ── NFT COVER LOADING + REWARDS MODAL ──
 (() => {
   const STREAM_API = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
   const KASPA_API  = "https://api.kaspa.com/api";
@@ -537,7 +652,7 @@
     }
   };
 
-  const qs = (s)=>document.querySelector(s);
+  const qs  = (s)=>document.querySelector(s);
   const qsa = (s)=>Array.from(document.querySelectorAll(s));
 
   function ipfsPath(ipfsUrl){
@@ -633,7 +748,6 @@
 
   async function tryGetLastMintFromKaspaApi(ticker){
     const endpoint = `${KASPA_API}/krc721/tokens`;
-
     const candidates = [
       { ticker: String(ticker), page: 1, pageSize: 1, sortBy: "mintedAt", sortDirection: "desc" },
       { ticker: String(ticker), offset: 0, limit: 1, sort: "mintedAt", order: "desc" },
@@ -641,7 +755,6 @@
       { ticker: String(ticker), page: 1, pageSize: 1, sortBy: "createdAt", sortDirection: "desc" },
       { ticker: String(ticker), page: 1, pageSize: 1, sortBy: "timestamp", sortDirection: "desc" },
     ];
-
     for(const body of candidates){
       try{
         const res = await fetchJson(endpoint, {
@@ -649,13 +762,11 @@
           headers: { "content-type": "application/json" },
           body: JSON.stringify(body)
         });
-
         const items =
           Array.isArray(res?.items) ? res.items :
-          Array.isArray(res?.data) ? res.data :
-          Array.isArray(res) ? res :
+          Array.isArray(res?.data)  ? res.data  :
+          Array.isArray(res)        ? res        :
           [];
-
         if(items.length){
           const it = items[0];
           const tokenId = it?.tokenId ?? it?.id ?? it?.nftId ?? it?.token_id;
@@ -667,13 +778,12 @@
   }
 
   async function loadCover(tick){
-    const cfg = COLLECTIONS[tick];
+    const cfg   = COLLECTIONS[tick];
     const thumb = qs(`#thumb${tick}`);
-    const hint = qs(`#hint${tick}`);
+    const hint  = qs(`#hint${tick}`);
     if(!cfg || !thumb || !hint) return;
 
     let coverId = null;
-
     try{ coverId = await tryGetLastMintFromKaspaApi(tick); }catch(_e){}
     if(!Number.isFinite(coverId)){
       try{
@@ -710,9 +820,7 @@
         let gw = 0;
         img.onerror = () => {
           gw++;
-          if(gw < IPFS_GATEWAYS.length){
-            img.src = IPFS_GATEWAYS[gw] + ipfs;
-          }
+          if(gw < IPFS_GATEWAYS.length) img.src = IPFS_GATEWAYS[gw] + ipfs;
         };
       }
     }catch(_e){
@@ -721,7 +829,7 @@
   }
 
   // Rewards modal
-  const modal = qs("#rewardsModal");
+  const modal    = qs("#rewardsModal");
   const closeBtn = qs("#rewardsClose");
 
   function openModal(tab){
@@ -736,7 +844,7 @@
   function setTab(tab){
     qsa(".tabBtn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
     qs("#tabPIXELONKAS").style.display = (tab === "PIXELONKAS") ? "block" : "none";
-    qs("#tabSYKORA").style.display = (tab === "SYKORA") ? "block" : "none";
+    qs("#tabSYKORA").style.display     = (tab === "SYKORA")     ? "block" : "none";
   }
 
   qsa("[data-open-rewards]").forEach(el => {
