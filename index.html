@@ -445,7 +445,7 @@
 
       <div class="card">
         <div class="thumb artistThumb" id="yoheiThumb">
-          <canvas id="yoheiPreview" class="artistPreview"></canvas>
+          <div id="yoheiSlideshow"></div>
           <span class="hint">@YoheiNishitsuji</span>
           <div class="bottomline">
             <b>Yohei Nishitsuji</b><br>
@@ -953,71 +953,30 @@
 </script>
 
 <script>
-// ── YOHEI PREVIEW — GLSL fragment shader simulation ──
+// ── YOHEI PREVIEW — image crossfade slideshow ──
 (function(){
-  const canvas = document.getElementById("yoheiPreview");
-  const thumb  = document.getElementById("yoheiThumb");
-  if(!canvas || !thumb) return;
-  const ctx = canvas.getContext("2d");
-
-  function resize(){
-    const r = thumb.getBoundingClientRect();
-    // Half-res, scaled via CSS — good for performance
-    canvas.width  = Math.round((r.width  || 300) / 2);
-    canvas.height = Math.round((r.height || 300) / 2);
-  }
-
-  function draw(){
-    const w = canvas.width, h = canvas.height;
-    const t = performance.now() * .001;
-
-    // Dark base
-    ctx.fillStyle = "#020a08";
-    ctx.fillRect(0, 0, w, h);
-
-    // Three animated radial light blobs — simulates fragment shader light fields
-    const blobs = [
-      { x: .28 + .18*Math.sin(t*.55),      y: .38 + .15*Math.cos(t*.70),      r: w*.62, h: 168, a: .52 },
-      { x: .72 + .14*Math.cos(t*.40),      y: .62 + .18*Math.sin(t*.50),      r: w*.55, h: 195, a: .40 },
-      { x: .50 + .22*Math.sin(t*.30+1.2),  y: .28 + .20*Math.cos(t*.65+.8),   r: w*.48, h: 145, a: .35 },
-    ];
-
-    for(const b of blobs){
-      const grd = ctx.createRadialGradient(b.x*w, b.y*h, 0, b.x*w, b.y*h, b.r);
-      const hue = b.h + 12*Math.sin(t*.3 + b.h);
-      grd.addColorStop(0,   `hsla(${hue},90%,52%,${b.a})`);
-      grd.addColorStop(.45, `hsla(${hue+18},70%,30%,${b.a*.45})`);
-      grd.addColorStop(1,   "transparent");
-      ctx.fillStyle = grd;
-      ctx.fillRect(0, 0, w, h);
-    }
-
-    // Interference rings — gives the shader wave look
-    const cx = (.5 + .1*Math.sin(t*.4)) * w;
-    const cy = (.5 + .1*Math.cos(t*.5)) * h;
-    const maxR = Math.sqrt(w*w + h*h);
-    for(let r=4; r<maxR; r+=10){
-      const phase = r*.22 - t*2.2;
-      const amp = Math.sin(phase);
-      if(amp > .3){
-        const a = (amp - .3) * .12;
-        ctx.strokeStyle = `rgba(73,234,203,${a})`;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI*2);
-        ctx.stroke();
-      }
-    }
-
-    // Scanline overlay (CSS pixel art / shader aesthetic)
-    ctx.fillStyle = "rgba(0,0,0,0.18)";
-    for(let y=0;y<h;y+=2) ctx.fillRect(0, y, w, 1);
-
-    requestAnimationFrame(draw);
-  }
-
-  new ResizeObserver(()=>{ resize(); }).observe(thumb);
-  resize(); draw();
+  const wrap = document.getElementById("yoheiSlideshow");
+  if(!wrap) return;
+  const srcs = [
+    "assets/img/yohei_1769012405915.png",
+    "assets/img/yohei_1769032347663.png",
+    "assets/img/yohei_1769032671810.png",
+    "assets/img/yohei_1769032957909.png"
+  ];
+  wrap.style.cssText = "position:absolute;inset:0;";
+  const imgs = srcs.map((src, i) => {
+    const el = document.createElement("img");
+    el.src = src;
+    el.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity 1s ease;opacity:" + (i === 0 ? "1" : "0") + ";";
+    wrap.appendChild(el);
+    return el;
+  });
+  let cur = 0;
+  setInterval(() => {
+    imgs[cur].style.opacity = "0";
+    cur = (cur + 1) % imgs.length;
+    imgs[cur].style.opacity = "1";
+  }, 3000);
 })();
 </script>
 </body>
