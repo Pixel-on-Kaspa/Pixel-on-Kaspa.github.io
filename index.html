@@ -202,8 +202,6 @@
     .thumb .tag{
       position:absolute;left:10px;top:10px;
       padding:5px 10px;
-      border:1px solid rgba(73,234,203,.38);
-      background:rgba(73,234,203,.07);
       color:var(--accent);
       font-weight:800;
       font-size:11px;
@@ -358,7 +356,6 @@
     <section class="cards">
       <div class="card">
         <div class="thumb" id="thumbPIXELONKAS">
-          <span class="tag">PIXELONKAS</span>
           <span class="hint" id="hintPIXELONKAS">Loading…</span>
           <div class="bottomline">
             <b>System states</b><br>
@@ -379,7 +376,6 @@
 
       <div class="card">
         <div class="thumb" id="thumbSYKORA">
-          <span class="tag">SYKORA</span>
           <span class="hint" id="hintSYKORA">Loading…</span>
           <div class="bottomline">
             <b>Entities</b><br>
@@ -400,7 +396,6 @@
 
       <div class="card">
         <div class="thumb synthiThumb">
-          <span class="tag">SYNTHI</span>
           <span class="hint">REC + token</span>
           <img class="synthiLogo" src="assets/img/logo.png" alt="SYNTHI logo" loading="lazy">
           <div class="bottomline">
@@ -431,7 +426,6 @@
       <div class="card">
         <div class="thumb artistThumb" id="komaThumb">
           <canvas id="komaPreview" class="artistPreview"></canvas>
-          <span class="tag">P5</span>
           <span class="hint">@KomaTebe</span>
           <div class="bottomline">
             <b>Koma Tebe</b><br>
@@ -452,7 +446,6 @@
       <div class="card">
         <div class="thumb artistThumb" id="yoheiThumb">
           <canvas id="yoheiPreview" class="artistPreview"></canvas>
-          <span class="tag">GLSL</span>
           <span class="hint">@YoheiNishitsuji</span>
           <div class="bottomline">
             <b>Yohei Nishitsuji</b><br>
@@ -472,7 +465,6 @@
 
       <div class="card">
         <div class="thumb artistThumb" style="opacity:.9">
-          <span class="tag">OPEN</span>
           <span class="hint">submit</span>
           <div class="bottomline">
             <b>Guest slot</b><br>
@@ -818,7 +810,6 @@
 
       const bottomline = thumb.querySelector(".bottomline")?.outerHTML || "";
       thumb.innerHTML = `
-        <span class="tag">${tick}</span>
         <span class="hint">Last mint: #${coverId}</span>
         ${bottomline}
         <img src="${url}" alt="${tick} cover" loading="lazy">
