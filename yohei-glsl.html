@@ -502,11 +502,9 @@
   if(!gl){ showErr("WebGL not available."); return; }
   const isWebGL2 = !!gl2;
 
-  const RENDER_SCALE = 0.5; // render at half CSS size — halves GPU load
   function resize(){
-    const rect = canvas.getBoundingClientRect();
-    const w = Math.max(2, Math.floor(rect.width  * RENDER_SCALE));
-    const h = Math.max(2, Math.floor(rect.height * RENDER_SCALE));
+    const w = Math.floor(canvas.clientWidth  * 0.5);
+    const h = Math.floor(canvas.clientHeight * 0.5);
     if(canvas.width !== w || canvas.height !== h){
       canvas.width = w; canvas.height = h;
       gl.viewport(0,0,w,h);
