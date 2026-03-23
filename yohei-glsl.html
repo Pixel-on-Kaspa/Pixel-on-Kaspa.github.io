@@ -62,24 +62,26 @@
 
     /* ── MAIN AREA ── */
     .main{
-      flex:1;
+      height:calc(100vh - 96px);
       display:flex;
       overflow:hidden;
-      min-height:0;
     }
 
     /* ── CANVAS SIDE ── */
     .canvasSide{
-      width:min(55vh,45vw);
-      flex:0 0 min(55vh,45vw);
+      width:calc(100vh - 96px);
+      max-width:60vw;
+      flex-shrink:0;
       display:flex;
       flex-direction:column;
+      align-items:center;
+      justify-content:center;
       border-right:1px solid var(--border);
-      min-width:0;
       overflow:hidden;
     }
     .toolbar{
       flex-shrink:0;
+      width:100%;
       display:flex;align-items:center;gap:6px;
       padding:8px 12px;
       border-bottom:1px solid var(--border);
@@ -99,8 +101,7 @@
       aspect-ratio:1/1;
     }
     canvas{
-      position:absolute;
-      inset:0;
+      display:block;
       width:100%;
       height:100%;
       will-change:transform;
@@ -133,10 +134,10 @@
 
     /* ── CONTROLS SIDE ── */
     .controlsSide{
-      flex:0 0 45%;
+      flex:1;
+      min-width:0;
       display:flex;
       flex-direction:column;
-      min-width:0;
       overflow:hidden;
     }
     .controlsHeader{
@@ -212,10 +213,10 @@
     }
 
     @media(max-width:900px){
-      .main{flex-direction:column;}
-      .canvasSide{flex:0 0 55vh;border-right:none;border-bottom:1px solid var(--border);}
-      .controlsSide{flex:1;}
-      html,body{overflow:auto;}
+      html,body{height:auto;overflow:auto;}
+      .main{height:auto;flex-direction:column;}
+      .canvasSide{width:100%;max-width:100%;border-right:none;border-bottom:1px solid var(--border);}
+      .controlsSide{flex:1;min-height:400px;}
     }
   </style>
 </head>
