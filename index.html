@@ -868,8 +868,8 @@
   if(!canvas || !thumb) return;
   const ctx = canvas.getContext("2d");
 
+  const COLS = 8, ROWS = 8;
   const particles = [];
-  const N = 70;
 
   function resize(){
     const r = thumb.getBoundingClientRect();
@@ -879,53 +879,46 @@
 
   function init(){
     particles.length = 0;
-    for(let i=0;i<N;i++){
-      particles.push({
-        x:  Math.random() * canvas.width,
-        y:  Math.random() * canvas.height,
-        vx: (Math.random() - .5) * 1.1,
-        vy: (Math.random() - .5) * 1.1,
-        size: Math.random() * 2 + .6,
-        hue:  155 + Math.random() * 35,
-        phase: Math.random() * Math.PI * 2,
-      });
+    const cw = canvas.width, ch = canvas.height;
+    const cellW = cw / COLS, cellH = ch / ROWS;
+    for(let row = 0; row < ROWS; row++){
+      for(let col = 0; col < COLS; col++){
+        // Place each particle at its grid cell center
+        particles.push({
+          x:     (col + .5) * cellW,
+          y:     (row + .5) * cellH,
+          homeX: (col + .5) * cellW,
+          homeY: (row + .5) * cellH,
+          phase: (col * ROWS + row) * (Math.PI * 2 / (COLS * ROWS)),
+          size:  Math.random() * 1.2 + .6,
+        });
+      }
     }
-    // Start with a dark fill so trail effect has a base
     ctx.fillStyle = "#070c0c";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
   function draw(){
-    // Soft fade trail
-    ctx.fillStyle = "rgba(7,12,12,0.07)";
+    ctx.fillStyle = "rgba(7,12,12,0.12)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const t = performance.now() * .001;
+    const t = performance.now() * .001 * .3; // 70% slower
+    const amp = canvas.width * .045; // gentle orbital radius
 
     for(const p of particles){
-      // Noise-like steering via slow sine offsets
-      p.vx += Math.sin(p.y * .018 + t * .6 + p.phase) * .06;
-      p.vy += Math.cos(p.x * .018 + t * .5 + p.phase) * .06;
-      // Speed limit
-      const spd = Math.sqrt(p.vx*p.vx + p.vy*p.vy);
-      if(spd > 1.8){ p.vx = p.vx/spd*1.8; p.vy = p.vy/spd*1.8; }
-      p.x += p.vx;
-      p.y += p.vy;
-      // Wrap
-      if(p.x < 0) p.x += canvas.width;
-      if(p.x > canvas.width)  p.x -= canvas.width;
-      if(p.y < 0) p.y += canvas.height;
-      if(p.y > canvas.height) p.y -= canvas.height;
+      // Ordered geometric orbit around grid home position
+      p.x = p.homeX + Math.cos(t + p.phase) * amp;
+      p.y = p.homeY + Math.sin(t * .7 + p.phase) * amp * .6;
     }
 
-    // Connection lines
-    for(let i=0;i<particles.length;i++){
-      for(let j=i+1;j<particles.length;j++){
+    // Connection lines — white
+    for(let i = 0; i < particles.length; i++){
+      for(let j = i + 1; j < particles.length; j++){
         const dx = particles[i].x - particles[j].x;
         const dy = particles[i].y - particles[j].y;
         const d  = Math.sqrt(dx*dx + dy*dy);
-        if(d < 55){
-          ctx.strokeStyle = `rgba(73,234,203,${(1-d/55)*.18})`;
+        if(d < 60){
+          ctx.strokeStyle = `rgba(255,255,255,${(1 - d/60) * .18})`;
           ctx.lineWidth = .6;
           ctx.beginPath();
           ctx.moveTo(particles[i].x, particles[i].y);
@@ -935,10 +928,10 @@
       }
     }
 
-    // Dots
+    // Dots — white
     for(const p of particles){
-      const pulse = .45 + .2 * Math.sin(t * 1.4 + p.phase);
-      ctx.fillStyle = `hsla(${p.hue},88%,65%,${pulse})`;
+      const pulse = .5 + .25 * Math.sin(t * 1.4 + p.phase);
+      ctx.fillStyle = `rgba(255,255,255,${pulse})`;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
       ctx.fill();
@@ -947,7 +940,7 @@
     requestAnimationFrame(draw);
   }
 
-  new ResizeObserver(()=>{ resize(); }).observe(thumb);
+  new ResizeObserver(()=>{ resize(); init(); }).observe(thumb);
   resize(); init(); draw();
 })();
 </script>
