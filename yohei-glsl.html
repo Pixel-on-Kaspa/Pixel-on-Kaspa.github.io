@@ -91,12 +91,14 @@
       letter-spacing:.06em;
     }
     .canvasWrap{
-      flex:1;
       position:relative;
       overflow:hidden;
       background:#000;
-      min-height:0;
-      max-height:80vh;
+      width:100%;
+      aspect-ratio:1/1;
+      max-width:min(55vh,55vw);
+      max-height:min(55vh,55vw);
+      flex-shrink:0;
     }
     canvas{
       display:block;
@@ -104,7 +106,6 @@
       height:100%;
       will-change:transform;
       transform:translateZ(0);
-      image-rendering:pixelated;
     }
     #recOverlay{
       position:absolute;inset:0;
@@ -504,8 +505,8 @@
   const isWebGL2 = !!gl2;
 
   function resize(){
-    const w = Math.floor(canvas.clientWidth  * 0.35);
-    const h = Math.floor(canvas.clientHeight * 0.35);
+    const w = Math.floor(canvas.clientWidth  * 1.0);
+    const h = Math.floor(canvas.clientHeight * 1.0);
     if(canvas.width !== w || canvas.height !== h){
       canvas.width = w; canvas.height = h;
       gl.viewport(0,0,w,h);
