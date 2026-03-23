@@ -4,251 +4,273 @@
   <meta charset="UTF-8" />
   <title>PIXEL NFT Viewer – PIXELONKAS & SYKORA</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;800;900&display=swap" rel="stylesheet">
   <style>
     :root{
-      --panel: rgba(0,0,0,.18);
-      --border: rgba(255,255,255,.12);
-      --muted: rgba(255,255,255,.65);
-      --accent:#00c4ff;
-      --accentSoft: rgba(0,196,255,.14);
-      --danger:#ffb4b4;
-      --cardShadow: 0 18px 35px rgba(0,0,0,.5);
+      --bg:     #050a0a;
+      --bg2:    #0a0f0f;
+      --card:   #0d1117;
+      --border: rgba(255,255,255,.08);
+      --border-hover: rgba(73,234,203,.35);
+      --muted:  rgba(255,255,255,.50);
+      --accent: #49EACB;
+      --accent-dim: rgba(73,234,203,.10);
+      --text:   #f0f0f0;
+      --danger: #ffb4b4;
     }
-    *{box-sizing:border-box}
+    *{box-sizing:border-box;margin:0;padding:0}
     body{
-      margin:0;
-      font-family: system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
-      background: radial-gradient(circle at top, #121623 0, #050608 52%);
-      color:#f5f5f5;
+      font-family:"Open Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+      background:var(--bg);
+      color:var(--text);
       min-height:100vh;
     }
-    .app{max-width:1100px;margin:0 auto;padding:24px 16px 48px}
-    header{text-align:center;margin-bottom:10px}
-    header h1{margin:8px 0 4px;font-size:2.1rem;letter-spacing:.12em;text-transform:uppercase}
-    header p{margin:0;color:var(--muted);font-size:.95rem}
 
-    .collection-switcher{
-      display:inline-flex;
-      padding:4px;
-      background: rgba(10,12,18,.9);
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.10);
-      margin:20px auto 6px;
-      gap:6px;
+    /* ── TOPBAR ── */
+    .topbar{
+      position:sticky;top:0;z-index:100;
+      display:flex;align-items:center;justify-content:space-between;
+      gap:12px;padding:0 24px;height:52px;
+      background:rgba(5,10,10,.97);
+      border-bottom:1px solid var(--border);
     }
-    .collection-button{
-      border:none;background:transparent;color:rgba(255,255,255,.65);
-      padding:8px 18px;border-radius:999px;font-size:.9rem;cursor:pointer;
-      transition:background .2s,color .2s;
+    .brand{
+      font-weight:900;font-size:13px;letter-spacing:.14em;text-transform:uppercase;
+      color:var(--text);text-decoration:none;
     }
-    .collection-button.active{background: var(--accentSoft); color: var(--accent);}
-
-    #metaBox{
+    .brand span{color:var(--accent);}
+    .topNav{display:flex;gap:6px;align-items:center;}
+    .btn{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:6px 12px;
+      font-family:inherit;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+      color:var(--text);text-decoration:none;
+      background:transparent;
       border:1px solid var(--border);
-      border-radius:16px;
-      padding:14px 16px;
-      background: var(--panel);
-      backdrop-filter: blur(10px);
-      margin:18px auto 10px;
+      border-radius:4px;
+      cursor:pointer;
+      transition:color .15s,border-color .15s,background .15s;
+    }
+    .btn:hover{color:var(--text);border-color:rgba(255,255,255,.22);}
+    .btnPrimary{background:var(--accent);color:#020308;border-color:var(--accent);}
+    .btnPrimary:hover{background:#5fffd8;border-color:#5fffd8;color:#020308;}
+
+    /* ── LAYOUT ── */
+    .wrap{max-width:1200px;margin:0 auto;padding:28px 24px 60px;}
+
+    /* ── COLLECTION SWITCHER ── */
+    .switcher{
+      display:inline-flex;gap:4px;
+      border:1px solid var(--border);
+      border-radius:4px;
+      padding:3px;
+      background:var(--bg2);
+      margin-bottom:24px;
+    }
+    .switchBtn{
+      border:1px solid transparent;background:transparent;
+      color:var(--muted);
+      padding:7px 16px;
+      font-family:inherit;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+      cursor:pointer;border-radius:3px;
+      transition:color .15s,border-color .15s,background .15s;
+    }
+    .switchBtn.active{
+      border-color:var(--accent);
+      color:var(--accent);
+      background:var(--accent-dim);
+    }
+
+    /* ── META BOX ── */
+    #metaBox{
+      border-left:3px solid var(--accent);
+      border-top:1px solid var(--border);
+      border-right:1px solid var(--border);
+      border-bottom:1px solid var(--border);
+      padding:14px 18px;
+      background:var(--bg2);
+      margin-bottom:20px;
     }
     #metaRow{
       display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;
     }
-    #metaTitle{font-weight:850;letter-spacing:.08em}
+    #metaTitle{font-weight:900;font-size:14px;letter-spacing:.12em;text-transform:uppercase;}
     .pill{
-      padding:7px 12px;border-radius:999px;border:1px solid var(--border);
-      background: rgba(5,7,11,.45);
-      font-size:.9rem;
+      padding:5px 11px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.04);
+      border-radius:4px;
+      font-size:12px;
+      font-weight:700;
+      letter-spacing:.06em;
     }
 
-    /* Bigger kaspa.com button */
-    .mintPill{
-      padding:10px 16px;
-      border-radius:999px;
-      border:1px solid rgba(0,196,255,.70);
-      color: var(--accent);
-      background: rgba(0,196,255,.08);
-      font-weight: 800;
-      font-size: 1rem;
-      text-decoration:none;
-      display:inline-flex;
-      align-items:center;
-      gap:10px;
-      transition: background .15s, color .15s, transform .15s;
-      white-space: nowrap;
+    /* ── STATUS ── */
+    #statusLine{
+      font-size:12px;color:var(--muted);
+      margin-bottom:14px;letter-spacing:.04em;
     }
-    .mintPill:hover{background: var(--accent); color:#020308; transform: translateY(-1px);}
 
-    #statusLine{opacity:.75;font-size:14px;margin:10px 0}
+    /* ── GRID ── */
     #grid{
       display:grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap:16px;
+      grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+      gap:1px;
+      background:var(--border);
+      border:1px solid var(--border);
     }
     .card{
-      padding:12px;border-radius:16px;border:1px solid var(--border);
-      background: rgba(0,0,0,.18);
-      backdrop-filter: blur(10px);
-      box-shadow: var(--cardShadow);
-      transition: transform .15s ease-out, box-shadow .15s ease-out, border-color .15s;
-      display:flex;flex-direction:column;gap:10px;
+      background:var(--card);
+      padding:12px;
+      display:flex;flex-direction:column;gap:8px;
+      position:relative;
+      transition:background .15s;
     }
-    .card:hover{transform: translateY(-3px); box-shadow:0 24px 40px rgba(0,0,0,.7); border-color: rgba(0,196,255,.22);}
+    .card::after{
+      content:"";
+      position:absolute;bottom:0;left:0;right:0;
+      height:2px;background:var(--accent);
+      transform:scaleX(0);transform-origin:left;
+      transition:transform .22s ease;
+    }
+    .card:hover{background:#0b1219;}
+    .card:hover::after{transform:scaleX(1);}
+
     .thumb{
-      width:100%;
-      aspect-ratio: 1/1;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,.10);
+      width:100%;aspect-ratio:1/1;
       background:#000;
       overflow:hidden;
       display:flex;align-items:center;justify-content:center;
-      color:rgba(255,255,255,.7);
-      font-size:12px;
-      text-align:center;
-      padding:8px;
-      cursor: zoom-in;
+      color:var(--muted);font-size:12px;text-align:center;
+      cursor:zoom-in;
+      border:1px solid var(--border);
     }
-    .thumb img{width:100%;height:100%;object-fit:cover;display:block}
-    .row{display:flex;justify-content:space-between;gap:10px;align-items:center}
-    .id{font-weight:850}
+    .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+    .row{display:flex;justify-content:space-between;gap:8px;align-items:center;}
+    .nftId{font-weight:900;font-size:13px;letter-spacing:.06em;}
     .badge{
-      padding:4px 10px;border-radius:999px;
-      background: rgba(80,200,120,.16);
-      border: 1px solid rgba(80,200,120,.28);
-      font-size:12px;
+      padding:3px 8px;
+      border:1px solid rgba(73,234,203,.28);
+      background:rgba(73,234,203,.07);
+      color:var(--accent);
+      font-size:11px;font-weight:800;letter-spacing:.06em;
     }
-    .titleLine{font-weight:650;font-size:13px;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .metaLine{opacity:.70;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .titleLine{font-weight:700;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .metaLine{font-size:11px;color:var(--muted);opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
-    #loadMoreWrap{display:flex;justify-content:center;margin:18px 0 0}
-    #loadMoreBtn{
-      display:none;
-      padding:10px 14px;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
-      color:inherit;
-      cursor:pointer;
-    }
+    /* ── LOAD MORE ── */
+    #loadMoreWrap{display:flex;justify-content:center;margin:18px 0 0;}
+    #loadMoreBtn{display:none;}
+
+    /* ── ERROR ── */
     .errBox{
       grid-column:1/-1;
-      padding:14px;
-      border-radius:14px;
-      border:1px solid rgba(255,180,180,.35);
-      color: var(--danger);
-      background: rgba(255,180,180,.06);
-      opacity:.95;
+      padding:14px 18px;
+      border-left:3px solid var(--danger);
+      border-top:1px solid rgba(255,180,180,.18);
+      border-right:1px solid rgba(255,180,180,.18);
+      border-bottom:1px solid rgba(255,180,180,.18);
+      color:var(--danger);
+      background:rgba(255,180,180,.04);
+      font-size:13px;
     }
 
-    /* Lightbox */
+    /* ── LIGHTBOX ── */
     #lightbox{
-      position: fixed; inset: 0;
-      display: none;
-      align-items: center; justify-content: center;
-      padding: 18px;
-      background: rgba(0,0,0,.72);
-      z-index: 9999;
+      position:fixed;inset:0;
+      display:none;align-items:center;justify-content:center;
+      padding:18px;
+      background:rgba(0,0,0,.82);
+      z-index:9999;
     }
-    #lightbox.open{ display:flex; }
+    #lightbox.open{display:flex;}
     .lbPanel{
-      width: min(1100px, 96vw);
-      max-height: 92vh;
-      overflow: auto;
-      border-radius: 18px;
-      border: 1px solid rgba(255,255,255,.14);
-      background: rgba(10,12,18,.92);
-      box-shadow: 0 30px 80px rgba(0,0,0,.75);
-      backdrop-filter: blur(10px);
+      width:min(1100px,96vw);
+      max-height:92vh;overflow:auto;
+      border:1px solid rgba(255,255,255,.10);
+      background:#080e0e;
+      box-shadow:0 30px 80px rgba(0,0,0,.85);
     }
     .lbTop{
-      display:flex; justify-content: space-between; align-items:center;
-      gap:12px; padding: 12px 14px;
-      border-bottom: 1px solid rgba(255,255,255,.10);
-      position: sticky; top: 0;
-      background: rgba(10,12,18,.92);
+      display:flex;justify-content:space-between;align-items:center;
+      gap:12px;padding:14px 20px;
+      border-bottom:1px solid var(--border);
+      position:sticky;top:0;background:#080e0e;z-index:1;
     }
-    .lbTitle{display:flex; flex-direction:column; gap:2px;}
-    .lbTitle b{letter-spacing:.06em}
+    .lbTitle{display:flex;flex-direction:column;gap:2px;}
+    .lbTitle b{letter-spacing:.1em;text-transform:uppercase;font-size:14px;}
+    .lbTitle span{font-size:11px;color:var(--muted);}
+    .lbActions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
     .lbBody{
-      display:grid; grid-template-columns: 1.2fr .8fr;
-      gap: 14px; padding: 14px;
+      display:grid;grid-template-columns:1.2fr .8fr;
+      gap:14px;padding:16px;
     }
     .lbImgWrap{
-      border-radius: 14px; overflow:hidden;
-      border:1px solid rgba(255,255,255,.12);
       background:#000;
-      display:flex; align-items:center; justify-content:center;
-      min-height: 320px;
+      border:1px solid var(--border);
+      display:flex;align-items:center;justify-content:center;
+      min-height:320px;
+      overflow:hidden;
     }
     .lbImgWrap img{
-      width:100%;
-      height:auto;
-      max-height: 75vh;
-      object-fit: contain;
-      display:block;
-      cursor: zoom-out;
+      width:100%;height:auto;max-height:75vh;
+      object-fit:contain;display:block;cursor:zoom-out;
     }
     .lbSide{
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-      padding: 12px;
-      overflow:auto;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.02);
+      padding:14px;overflow:auto;
     }
-    .kv{margin:0 0 10px}
-    .kv .k{opacity:.7;font-size:12px;margin-bottom:4px}
-    .kv .v{font-size:14px;word-break:break-word}
-    .attrs{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+    .kv{margin:0 0 14px;}
+    .kv .k{
+      font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+      color:var(--muted);margin-bottom:5px;
+    }
+    .kv .v{font-size:13px;word-break:break-all;line-height:1.5;}
+    .ownerRow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .attrs{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
     .chip{
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(0,0,0,.18);
-      border-radius:999px;
-      padding:6px 10px;
-      font-size:12px;
-      opacity:.95;
+      border:1px solid var(--border);
+      background:rgba(0,0,0,.18);
+      padding:4px 9px;
+      font-size:11px;
     }
-    .btnSmall{
-      font-size:.9rem;
-      text-decoration:none;
-      padding:8px 12px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.18);
-      color: rgba(255,255,255,.85);
-      background: rgba(255,255,255,.06);
-      display:inline-flex;
-      gap:8px;
-      align-items:center;
-      cursor:pointer;
-      user-select:none;
-    }
-    .btnSmall:hover{background: rgba(255,255,255,.12); color:#fff;}
-    @media (max-width: 860px){
-      .lbBody{grid-template-columns: 1fr;}
-      .lbImgWrap{min-height: 240px;}
+    @media(max-width:860px){
+      .lbBody{grid-template-columns:1fr;}
+      .lbImgWrap{min-height:240px;}
+      .topbar{padding:0 16px;}
+      .wrap{padding:16px 12px 48px;}
+      #grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));}
     }
   </style>
 </head>
 <body>
-<div class="app">
-  <header>
-    <h1>PIXEL ON KASPA</h1>
-    <p>Audio-visual art generated by sound and inscribed on the Kaspa blockDAG.</p>
 
-    <div class="collection-switcher">
-      <button class="collection-button active" data-collection="PIXELONKAS">PIXELONKAS</button>
-      <button class="collection-button" data-collection="SYKORA">SYKORA</button>
-    </div>
-  </header>
+<div class="topbar">
+  <a class="brand" href="index.html">PIXEL ON <span>KASPA</span></a>
+  <nav class="topNav">
+    <a class="btn" href="index.html">Home</a>
+    <a class="btn btnPrimary" id="topMintBtn" href="#" target="_blank" rel="noreferrer">Mint</a>
+  </nav>
+</div>
+
+<div class="wrap">
+
+  <div class="switcher">
+    <button class="switchBtn active" data-collection="PIXELONKAS">PIXELONKAS</button>
+    <button class="switchBtn" data-collection="SYKORA">SYKORA</button>
+  </div>
 
   <section id="metaBox">
     <div id="metaRow">
       <div>
         <div id="metaTitle">—</div>
       </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center;">
         <div id="metaMinted" class="pill">Minted: —</div>
         <div id="metaMax" class="pill">Max: —</div>
-        <a id="mintBtn" class="mintPill" href="#" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
+        <a id="mintBtn" class="btn btnPrimary" href="#" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
       </div>
     </div>
   </section>
@@ -258,9 +280,10 @@
   <section>
     <div id="grid"></div>
     <div id="loadMoreWrap">
-      <button id="loadMoreBtn">Load more</button>
+      <button id="loadMoreBtn" class="btn">Load more</button>
     </div>
   </section>
+
 </div>
 
 <!-- Lightbox -->
@@ -269,13 +292,13 @@
     <div class="lbTop">
       <div class="lbTitle">
         <b id="lbHeading">—</b>
-        <span id="lbSub" style="opacity:.7;font-size:12px">—</span>
+        <span id="lbSub">—</span>
       </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
-        <a id="lbMint" class="mintPill" href="#" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
-        <a id="lbOpenImg" class="btnSmall" href="#" target="_blank" rel="noreferrer">Open image</a>
-        <button id="lbFs" class="btnSmall" type="button">Full screen</button>
-        <button id="lbClose" class="btnSmall" type="button">Close</button>
+      <div class="lbActions">
+        <a id="lbMint" class="btn btnPrimary" href="#" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
+        <a id="lbOpenImg" class="btn" href="#" target="_blank" rel="noreferrer">Open image</a>
+        <button id="lbFs" class="btn" type="button">Full screen</button>
+        <button id="lbClose" class="btn" type="button">Close</button>
       </div>
     </div>
     <div class="lbBody">
@@ -299,7 +322,7 @@
   const META_CONCURRENCY = 8;
 
   // krc721.stream /ranges/{tick} returns AVAILABLE (unminted) ranges as string.
-  // We need max/idMin + buri for metadata.
+  // minted = max - available_count. This is the correct interpretation.
   const COLLECTIONS = {
     PIXELONKAS: {
       buri: "ipfs://bafybeih2phpjzxfrszsscpmxdr44kliaddto3sicsdh44kgx7b3f43fdvm",
@@ -317,9 +340,9 @@
     return `https://kaspa.com/nft/collections/${encodeURIComponent(String(ticker))}`;
   }
 
-  const qs = (s)=>document.querySelector(s);
-  const qsa = (s)=>Array.from(document.querySelectorAll(s));
-  const gridEl = ()=>qs("#grid");
+  const qs  = (s) => document.querySelector(s);
+  const qsa = (s) => Array.from(document.querySelectorAll(s));
+  const gridEl = () => qs("#grid");
 
   function setStatus(html){ qs("#statusLine").innerHTML = html; }
   function setText(id, t){ const el=document.getElementById(id); if(el) el.textContent=t; }
@@ -344,7 +367,6 @@
     return x;
   }
 
-  // IMPORTANT: tries multiple candidate paths; each path tries multiple gateways
   async function fetchJsonFromGateways(paths, signal){
     let lastErr = null;
     for(const p of paths){
@@ -414,24 +436,35 @@
       .replaceAll('"',"&quot;").replaceAll("'","&#039;");
   }
 
-  // ✅ Try /31.json, /31, /31/index.json + common subfolders
+  function truncateAddr(addr){
+    if(!addr || addr.length <= 18) return addr;
+    return addr.slice(0, 10) + "…" + addr.slice(-6);
+  }
+
+  async function fetchOwner(tick, tokenId, signal){
+    try{
+      const url = `${API_BASE}/tokens/${encodeURIComponent(tick)}/${tokenId}`;
+      const raw = await fetchJson(url, signal);
+      const res = unwrapResult(raw);
+      return res?.owner || res?.ownerAddress || res?.owner_address || null;
+    }catch(e){
+      return null;
+    }
+  }
+
   function metaCandidatePaths(buri, tick, tokenId){
     const folder = ipfsPath(buri).replace(/\/+$/,"");
     const t = String(tick);
-
     return [
       `${folder}/${tokenId}.json`,
       `${folder}/${tokenId}`,
       `${folder}/${tokenId}/index.json`,
-
       `${folder}/metadata/${tokenId}.json`,
       `${folder}/metadata/${tokenId}`,
       `${folder}/metadata/${tokenId}/index.json`,
-
       `${folder}/meta/${tokenId}.json`,
       `${folder}/meta/${tokenId}`,
       `${folder}/meta/${tokenId}/index.json`,
-
       `${folder}/${t}/${tokenId}`,
       `${folder}/${t}/${tokenId}/index.json`,
       `${folder}/${t.toLowerCase()}/${tokenId}`,
@@ -442,13 +475,9 @@
   async function fetchRangesMeta(tick, signal){
     const raw = await fetchJson(`${API_BASE}/ranges/${encodeURIComponent(tick)}`, signal);
     const res = unwrapResult(raw);
-
-    // Most common: ranges string
     if(typeof res === "string"){
       return { tick, rangesString: res };
     }
-
-    // Sometimes: object or array. Try to find string inside.
     if(res && typeof res === "object"){
       if(typeof res.ranges === "string") return { tick: res.tick || tick, rangesString: res.ranges };
       if(Array.isArray(res)){
@@ -456,39 +485,45 @@
         if(found && typeof found.ranges === "string") return { tick: found.tick || tick, rangesString: found.ranges };
       }
     }
-
     return { tick, rangesString: null };
   }
 
-  // Lightbox
+  // ── Lightbox ──
   const lb = {
-    root: qs("#lightbox"),
-    imgWrap: qs("#lbImgWrap"),
-    side: qs("#lbSide"),
-    heading: qs("#lbHeading"),
-    sub: qs("#lbSub"),
+    root:     qs("#lightbox"),
+    imgWrap:  qs("#lbImgWrap"),
+    side:     qs("#lbSide"),
+    heading:  qs("#lbHeading"),
+    sub:      qs("#lbSub"),
     closeBtn: qs("#lbClose"),
-    openImg: qs("#lbOpenImg"),
-    mint: qs("#lbMint"),
-    fsBtn: qs("#lbFs")
+    openImg:  qs("#lbOpenImg"),
+    mint:     qs("#lbMint"),
+    fsBtn:    qs("#lbFs")
   };
+
+  let lbAbort = null;
 
   function requestFs(el){
     if(!el) return;
-    const any = el;
-    const fn = any.requestFullscreen || any.webkitRequestFullscreen || any.mozRequestFullScreen || any.msRequestFullscreen;
-    if(fn) fn.call(any);
+    const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+    if(fn) fn.call(el);
   }
 
-  function openLightbox({ tick, tokenId, meta, imgUrl, imgIpfs, mintUrl }){
+  async function openLightbox({ tick, tokenId, meta, imgUrl, imgIpfs, mintUrl }){
+    // Cancel any previous owner fetch
+    if(lbAbort) lbAbort.abort();
+    lbAbort = new AbortController();
+
     lb.heading.textContent = `${tick} #${tokenId}`;
     lb.sub.textContent = meta?.name ? meta.name : "";
     lb.mint.href = mintUrl || "#";
     lb.openImg.href = imgUrl || "#";
 
-    lb.imgWrap.innerHTML = imgUrl ? `<img id="lbImg" src="${imgUrl}" alt="">` : `<div style="opacity:.7;padding:18px">No image</div>`;
-    const imgEl = lb.imgWrap.querySelector("img");
+    lb.imgWrap.innerHTML = imgUrl
+      ? `<img id="lbImg" src="${imgUrl}" alt="">`
+      : `<div style="opacity:.7;padding:18px;font-size:13px;">No image</div>`;
 
+    const imgEl = lb.imgWrap.querySelector("img");
     if(imgEl && imgIpfs){
       let gwIndex = 0;
       imgEl.onerror = () => {
@@ -501,22 +536,25 @@
       };
       imgEl.onclick = () => closeLightbox();
     }
-
     lb.fsBtn.onclick = () => requestFs(imgEl || lb.imgWrap);
 
-    const name = meta?.name || `#${tokenId}`;
-    const desc = meta?.description || "";
+    const name  = meta?.name || `#${tokenId}`;
+    const desc  = meta?.description || "";
     const attrs = Array.isArray(meta?.attributes) ? meta.attributes
       : (Array.isArray(meta?.properties?.attributes) ? meta.properties.attributes : []);
 
     lb.side.innerHTML = `
+      <div class="kv">
+        <div class="k">Owner</div>
+        <div class="v ownerRow" id="lbOwnerRow"><span style="opacity:.5;font-size:12px;">Loading…</span></div>
+      </div>
       <div class="kv">
         <div class="k">Name</div>
         <div class="v">${escapeHtml(name)}</div>
       </div>
       <div class="kv">
         <div class="k">Description</div>
-        <div class="v">${desc ? escapeHtml(desc) : "<span style='opacity:.7'>—</span>"}</div>
+        <div class="v">${desc ? escapeHtml(desc) : `<span style="opacity:.5">—</span>`}</div>
       </div>
       <div class="kv">
         <div class="k">Attributes</div>
@@ -529,31 +567,46 @@
                 return `<span class="chip">${escapeHtml(String(t))}: <b>${escapeHtml(String(v))}</b></span>`;
               }).join("")}
             </div>
-          ` : `<span style="opacity:.7">—</span>`}
+          ` : `<span style="opacity:.5">—</span>`}
         </div>
       </div>
     `;
 
     lb.root.classList.add("open");
     lb.root.setAttribute("aria-hidden", "false");
+
+    // Fetch owner async and update the placeholder
+    fetchOwner(tick, tokenId, lbAbort.signal).then(owner => {
+      const row = document.getElementById("lbOwnerRow");
+      if(!row) return;
+      if(owner){
+        const display = escapeHtml(truncateAddr(owner));
+        const full    = escapeHtml(owner);
+        row.innerHTML = `<span title="${full}" style="font-family:monospace;font-size:12px;">${display}</span><button class="btn" style="padding:3px 8px;font-size:10px;" onclick="navigator.clipboard.writeText('${full}').then(()=>{this.textContent='Copied';setTimeout(()=>this.textContent='Copy',1200)})">Copy</button>`;
+      }else{
+        row.innerHTML = `<span style="opacity:.5">—</span>`;
+      }
+    });
   }
 
   function closeLightbox(){
+    if(lbAbort){ lbAbort.abort(); lbAbort = null; }
     lb.root.classList.remove("open");
     lb.root.setAttribute("aria-hidden", "true");
     lb.imgWrap.innerHTML = "";
     lb.side.innerHTML = "";
   }
   lb.closeBtn.addEventListener("click", closeLightbox);
-  lb.root.addEventListener("click", (e)=>{ if(e.target===lb.root) closeLightbox(); });
-  document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && lb.root.classList.contains("open")) closeLightbox(); });
+  lb.root.addEventListener("click", (e) => { if(e.target === lb.root) closeLightbox(); });
+  document.addEventListener("keydown", (e) => { if(e.key === "Escape" && lb.root.classList.contains("open")) closeLightbox(); });
 
+  // ── Grid ──
   function cardSkeleton(tick, tokenId){
     return `
       <div class="card" data-tick="${tick}" data-tokenid="${tokenId}">
-        <div class="thumb">Loading metadata…</div>
+        <div class="thumb">Loading…</div>
         <div class="row">
-          <div class="id">#${tokenId}</div>
+          <div class="nftId">#${tokenId}</div>
           <div class="badge">Minted</div>
         </div>
         <div class="titleLine" data-title>${tick} #${tokenId}</div>
@@ -566,14 +619,14 @@
 
   let currentTick = "PIXELONKAS";
   let currentBuri = null;
-  let currentRangesString = null; // AVAILABLE / UNMINTED ranges string
-  let mintedIds = [];             // computed minted IDs list
+  let currentRangesString = null;
+  let mintedIds = [];
   let pageIndex = 0;
   let maxSupply = null;
   let abortCtrl = null;
 
   function setActiveButton(tick){
-    qsa(".collection-button").forEach(btn => {
+    qsa(".switchBtn").forEach(btn => {
       btn.classList.toggle("active", btn.getAttribute("data-collection") === tick);
     });
   }
@@ -593,7 +646,9 @@
     abortCtrl = new AbortController();
 
     setText("metaTitle", tick);
-    qs("#mintBtn").href = kaspaCollectionUrl(tick);
+    const mintUrl = kaspaCollectionUrl(tick);
+    qs("#mintBtn").href = mintUrl;
+    qs("#topMintBtn").href = mintUrl;
 
     setText("metaMinted", "Minted: —");
     setText("metaMax", "Max: —");
@@ -601,7 +656,7 @@
 
     const cfg = COLLECTIONS[tick];
     if(!cfg){
-      renderError(`Missing config for <b>${tick}</b> in COLLECTIONS.`);
+      renderError(`Missing config for <b>${tick}</b>.`);
       setStatus(`Missing config.`);
       return;
     }
@@ -609,42 +664,41 @@
     try{
       const meta = await fetchRangesMeta(tick, abortCtrl.signal);
       currentRangesString = meta.rangesString || null;
-
       currentBuri = cfg.buri || null;
-      maxSupply = cfg.max;
+      maxSupply   = cfg.max;
       const idMin = cfg.idMin;
 
       if(!currentRangesString){
-        renderError(`Missing <b>ranges</b> for <b>${tick}</b> from krc721.stream.`);
+        renderError(`Missing ranges for <b>${tick}</b> from krc721.stream.`);
         setStatus(`Missing ranges.`);
         return;
       }
       if(!currentBuri){
-        renderError(`Missing <b>buri</b> for <b>${tick}</b>.`);
+        renderError(`Missing buri for <b>${tick}</b>.`);
         setStatus(`Missing buri.`);
         return;
       }
       if(!Number.isFinite(maxSupply) || !Number.isFinite(idMin)){
-        renderError(`Missing <b>max</b> or <b>idMin</b> for <b>${tick}</b> in COLLECTIONS.`);
+        renderError(`Missing max or idMin for <b>${tick}</b>.`);
         setStatus(`Missing max/idMin.`);
         return;
       }
 
-      // rangesString = AVAILABLE (unminted) IDs
+      // rangesString = AVAILABLE (unminted) IDs — minted = total - available
       const availableCount = availableCountFromRangesString(currentRangesString);
-      const totalSupply = (maxSupply - idMin + 1);
-      const mintedCount = Math.max(0, totalSupply - availableCount);
+      const totalSupply    = (maxSupply - idMin + 1);
+      const mintedCount    = Math.max(0, totalSupply - availableCount);
 
-      // build minted IDs list (correct grid)
       mintedIds = mintedIdsFromAvailableRanges({ idMin, max: maxSupply, rangesString: currentRangesString });
 
       setText("metaMinted", `Minted: ${mintedCount}`);
-      setText("metaMax", `Max: ${maxSupply}`);
+      setText("metaMax",    `Max: ${maxSupply}`);
 
       await renderNextPage();
 
     }catch(e){
-      renderError(`Failed to load <b>${tick}</b>.<br/><code>${escapeHtml(String(e.message || e))}</code>`);
+      if(e.name === "AbortError") return;
+      renderError(`Failed to load <b>${tick}</b>.<br><code>${escapeHtml(String(e.message || e))}</code>`);
       setStatus(`Error.`);
       console.error(e);
     }
@@ -656,7 +710,6 @@
     if(!tick || !buri) return;
 
     const ids = mintedIds.slice(pageIndex, pageIndex + PAGE_SIZE);
-
     if(ids.length === 0){
       showLoadMore(false);
       setStatus(`No more items.`);
@@ -671,13 +724,12 @@
 
     async function worker(){
       while(idx < cards.length){
-        const card = cards[idx++];
+        const card    = cards[idx++];
         const tokenId = Number(card.getAttribute("data-tokenid"));
         const cacheKey = `${tick}:${tokenId}`;
-
-        const thumb = card.querySelector(".thumb");
+        const thumb   = card.querySelector(".thumb");
         const titleEl = card.querySelector("[data-title]");
-        const descEl = card.querySelector("[data-desc]");
+        const descEl  = card.querySelector("[data-desc]");
 
         try{
           let meta = metaCache.get(cacheKey);
@@ -690,12 +742,10 @@
 
           const name = meta?.name || `${tick} #${tokenId}`;
           const desc = meta?.description || "";
-
           if(titleEl) titleEl.textContent = name;
-          if(descEl) descEl.textContent = desc || "—";
+          if(descEl)  descEl.textContent  = desc || "—";
 
           const { primary, ipfs } = extractImageFromMeta(meta);
-
           if(primary && thumb){
             thumb.innerHTML = `<img src="${primary}" alt="" loading="lazy">`;
             const imgEl = thumb.querySelector("img");
@@ -710,17 +760,15 @@
                 }
               };
             }
-
             thumb.onclick = () => {
-              const mintUrl = kaspaCollectionUrl(tick);
-              openLightbox({ tick, tokenId, meta, imgUrl: primary, imgIpfs: ipfs, mintUrl });
+              openLightbox({ tick, tokenId, meta, imgUrl: primary, imgIpfs: ipfs, mintUrl: kaspaCollectionUrl(tick) });
             };
           }else{
             if(thumb) thumb.textContent = "No image in JSON";
           }
-
         }catch(e){
-          if(thumb) thumb.textContent = "Meta error";
+          if(e.name === "AbortError") return;
+          if(thumb)  thumb.textContent  = "Meta error";
           if(descEl) descEl.textContent = "—";
         }
       }
@@ -729,16 +777,11 @@
     await Promise.all(Array.from({length: META_CONCURRENCY}, worker));
 
     pageIndex += ids.length;
-
-    if(pageIndex >= mintedIds.length){
-      showLoadMore(false);
-    }else{
-      showLoadMore(true);
-    }
+    showLoadMore(pageIndex < mintedIds.length);
     setStatus(`Ready. Loaded ${pageIndex} items.`);
   }
 
-  qsa(".collection-button").forEach(btn => {
+  qsa(".switchBtn").forEach(btn => {
     btn.addEventListener("click", () => {
       const tick = btn.getAttribute("data-collection");
       setActiveButton(tick);
@@ -748,7 +791,6 @@
 
   qs("#loadMoreBtn").addEventListener("click", () => renderNextPage());
 
-  // Default
   loadCollection("PIXELONKAS");
 })();
 </script>
