@@ -6,281 +6,361 @@
   <title>Yohei • GLSL • Pixel on Kaspa</title>
   <style>
     :root{
-      --bg1:#121623; --bg2:#050608;
-      --panel: rgba(0,0,0,.18);
-      --border: rgba(255,255,255,.12);
-      --muted: rgba(255,255,255,.70);
-      --accent:#00c4ff;
-      --shadow: 0 18px 35px rgba(0,0,0,.50);
-      --text:#f5f5f5;
-      --radius: 18px;
+      --bg:     #050a0a;
+      --bg2:    #0a0f0f;
+      --card:   #0d1117;
+      --border: rgba(255,255,255,.08);
+      --muted:  rgba(255,255,255,.50);
+      --accent: #49EACB;
+      --accent-dim: rgba(73,234,203,.10);
+      --text:   #f0f0f0;
     }
-    *{box-sizing:border-box}
-    html,body{height:100%}
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;overflow:hidden;}
     body{
-      margin:0;
-      font-family: system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
-      background: radial-gradient(circle at top, var(--bg1) 0, var(--bg2) 52%);
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
+      background:var(--bg);
       color:var(--text);
-      min-height:100vh;
+      display:flex;
+      flex-direction:column;
     }
-    a{color:inherit}
-    .wrap{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
+    a{color:inherit;text-decoration:none}
 
+    /* ── NAVBAR ── */
     .topbar{
-      display:flex;align-items:center;justify-content:space-between;gap:14px;
-      border:1px solid var(--border);
-      border-radius:16px;
-      background: var(--panel);
-      backdrop-filter: blur(10px);
-      padding:12px 14px;
-      box-shadow: var(--shadow);
+      flex-shrink:0;
+      display:flex;align-items:center;justify-content:space-between;
+      gap:14px;
+      background:rgba(5,10,10,.97);
+      border-bottom:1px solid var(--border);
+      padding:0 32px;
+      height:52px;
     }
     .brand{
       display:flex;align-items:baseline;gap:10px;
-      letter-spacing:.14em;text-transform:uppercase;font-weight:900;white-space:nowrap;
+      letter-spacing:.14em;text-transform:uppercase;font-weight:900;font-size:14px;white-space:nowrap;
     }
-    .brand small{opacity:.7;font-weight:700;letter-spacing:.08em;text-transform:none;white-space:nowrap;}
-    .nav{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center;}
+    .brand small{color:var(--muted);font-weight:600;letter-spacing:.06em;text-transform:none;font-size:11px;}
+    .nav{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center;}
     .btn{
       text-decoration:none;
-      display:inline-flex;align-items:center;gap:8px;
-      padding:9px 14px;border-radius:999px;
-      border:1px solid rgba(255,255,255,.16);
-      background: rgba(255,255,255,.06);
-      color: rgba(255,255,255,.88);
-      font-weight:850;
-      transition: background .15s, color .15s, transform .15s, border-color .15s;
+      display:inline-flex;align-items:center;gap:6px;
+      padding:6px 12px;
+      border-radius:4px;
+      border:1px solid var(--border);
+      background:transparent;
+      color:var(--muted);
+      font-weight:700;font-size:12px;letter-spacing:.04em;
+      transition:color .15s,border-color .15s,background .15s;
       white-space:nowrap;line-height:1;cursor:pointer;user-select:none;
     }
-    .btn:hover{background: rgba(255,255,255,.12);color:#fff;transform: translateY(-1px);}
-    .btnPrimary{
-      border-color: rgba(0,196,255,.70);
-      color: var(--accent);
-      background: rgba(0,196,255,.08);
-    }
-    .btnPrimary:hover{background: var(--accent); color:#020308;}
-    .btnGhost{ background: transparent; border-color: rgba(255,255,255,.16); opacity:.95; }
+    .btn:hover{color:var(--text);border-color:rgba(255,255,255,.22);}
+    .btnPrimary{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);font-weight:800;}
+    .btnPrimary:hover{background:var(--accent);color:#020a08;}
+    .btnGhost{border-color:var(--border);color:var(--muted);}
+    .btnGhost:hover{color:var(--text);border-color:rgba(255,255,255,.22);}
 
-    .grid{
-      margin-top:14px;
-      display:grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap:14px;
-      align-items:start;
+    /* ── MAIN AREA ── */
+    .main{
+      flex:1;
+      display:flex;
+      overflow:hidden;
+      min-height:0;
     }
-    .panel{
-      border:1px solid var(--border);
-      border-radius: var(--radius);
-      background: rgba(0,0,0,.18);
-      backdrop-filter: blur(10px);
-      box-shadow: var(--shadow);
+
+    /* ── CANVAS SIDE ── */
+    .canvasSide{
+      flex:0 0 70%;
+      display:flex;
+      flex-direction:column;
+      border-right:1px solid var(--border);
+      min-width:0;
       overflow:hidden;
     }
-    .panelHead{
-      padding:12px 14px;
-      border-bottom:1px solid rgba(255,255,255,.10);
-      display:flex;justify-content:space-between;align-items:center;gap:10px;
+    .toolbar{
+      flex-shrink:0;
+      display:flex;align-items:center;gap:6px;
+      padding:8px 12px;
+      border-bottom:1px solid var(--border);
+      background:var(--bg);
     }
-    .panelHead b{
-      letter-spacing:.14em;
-      text-transform:uppercase;
-      font-size:12px;
-      opacity:.92;
+    .toolbar .status{
+      margin-left:auto;
+      font-size:11px;
+      color:var(--muted);
+      letter-spacing:.06em;
     }
-    .chip{
-      padding:6px 10px;border-radius:999px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
-      opacity:.85;
-      font-size:12px;
-      white-space:nowrap;
-      max-width: 52ch;
+    .canvasWrap{
+      flex:1;
+      position:relative;
       overflow:hidden;
-      text-overflow: ellipsis;
-    }
-    .panelBody{padding:14px}
-
-    canvas{
-      width:100%;
-      aspect-ratio:1/1;
-      display:block;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.10);
       background:#000;
+      min-height:0;
     }
-
-    .ctrl{border:1px solid rgba(255,255,255,.12);background: rgba(255,255,255,.04);border-radius:14px;padding:10px 12px;margin-top:10px;}
-    .ctrlHead{display:flex;justify-content:space-between;align-items:center;gap:10px}
-    .ctrlTitle{font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.9;font-weight:900;margin:0;}
-    .ctrlVal{font-size:12px;opacity:.75;white-space:nowrap}
-    input[type="range"]{width:100%}
-    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-    .btnSm{padding:8px 12px;font-size:13px}
-
-    .muted{opacity:.76}
-    pre{
-      margin:10px 0 0;
-      padding:10px 12px;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.30);
+    canvas{
+      display:block;
+      width:100%;
+      height:100%;
+    }
+    #recOverlay{
+      position:absolute;inset:0;
+      display:flex;align-items:center;justify-content:center;
+      pointer-events:none;
+      font-size:clamp(32px,5vw,64px);
+      font-weight:900;
+      letter-spacing:.08em;
+      color:#fff;
+      text-shadow:0 0 30px rgba(0,0,0,.9);
+      opacity:0;
+      transition:opacity .2s;
+    }
+    #recOverlay.show{opacity:1;}
+    #errEl{
+      display:none;
+      position:absolute;bottom:0;left:0;right:0;
+      background:rgba(180,30,30,.9);
+      color:#fff;
+      font:12px ui-monospace,monospace;
+      padding:10px 14px;
+      white-space:pre-wrap;
+      max-height:120px;
       overflow:auto;
-      max-height: 260px;
-      font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
-      color: rgba(255,255,255,.86);
     }
 
-    @media (max-width: 980px){
-      .grid{grid-template-columns:1fr}
-      canvas{aspect-ratio: 16/10;}
+    /* ── CONTROLS SIDE ── */
+    .controlsSide{
+      flex:0 0 30%;
+      display:flex;
+      flex-direction:column;
+      min-width:0;
+      overflow:hidden;
+    }
+    .controlsHeader{
+      flex-shrink:0;
+      padding:10px 14px;
+      border-bottom:1px solid var(--border);
+      font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+    }
+    .controlsScroll{
+      flex:1;
+      overflow-y:auto;
+      overflow-x:hidden;
+      padding:8px 12px 16px;
+    }
+    .controlsScroll::-webkit-scrollbar{width:4px;}
+    .controlsScroll::-webkit-scrollbar-track{background:transparent;}
+    .controlsScroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:2px;}
+
+    /* ── CTRL GROUPS ── */
+    .ctrlGroup{
+      border:1px solid var(--border);
+      margin-bottom:8px;
+    }
+    .ctrlGroupHead{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:7px 10px;
+      cursor:pointer;
+      user-select:none;
+      background:rgba(255,255,255,.02);
+      border-bottom:1px solid var(--border);
+    }
+    .ctrlGroupHead:hover{background:rgba(255,255,255,.04);}
+    .ctrlGroupHead b{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);}
+    .ctrlGroupHead .arrow{font-size:10px;color:var(--muted);transition:transform .15s;}
+    .ctrlGroupHead.collapsed .arrow{transform:rotate(-90deg);}
+    .ctrlGroupBody{padding:6px 8px 8px;}
+    .ctrlGroupBody.hidden{display:none;}
+
+    /* ── INDIVIDUAL CTRL ── */
+    .ctrl{margin-top:6px;}
+    .ctrlHead{display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:2px;}
+    .ctrlTitle{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;}
+    .ctrlVal{font-size:11px;color:var(--accent);font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;}
+    input[type="range"]{
+      width:100%;
+      height:3px;
+      -webkit-appearance:none;
+      appearance:none;
+      background:rgba(255,255,255,.12);
+      border-radius:2px;
+      outline:none;
+      cursor:pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb{
+      -webkit-appearance:none;
+      width:12px;height:12px;
+      border-radius:2px;
+      background:var(--accent);
+      cursor:pointer;
+    }
+    input[type="range"]::-moz-range-thumb{
+      width:12px;height:12px;
+      border-radius:2px;
+      background:var(--accent);
+      border:none;cursor:pointer;
+    }
+
+    /* REC button active state */
+    .btnRec.recording{
+      border-color:#e03535;
+      color:#e03535;
+      background:rgba(224,53,53,.12);
+    }
+
+    @media(max-width:900px){
+      .main{flex-direction:column;}
+      .canvasSide{flex:0 0 55vh;border-right:none;border-bottom:1px solid var(--border);}
+      .controlsSide{flex:1;}
+      html,body{overflow:auto;}
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="topbar">
-      <div class="brand">
-        YOHEI <small>@YoheiNishitsuji • GLSL</small>
+
+  <!-- NAVBAR -->
+  <nav class="topbar">
+    <a class="brand" href="index.html">
+      PIXEL ON KASPA <small>GLSL • @YoheiNishitsuji</small>
+    </a>
+    <div class="nav">
+      <a class="btn" href="index.html">Home</a>
+      <a class="btn" href="artists.html">Artists</a>
+      <a class="btn btnPrimary" href="yohei-glsl.html">Shader</a>
+      <a class="btn btnGhost" href="https://x.com/YoheiNishitsuji" target="_blank" rel="noreferrer">X profile</a>
+    </div>
+  </nav>
+
+  <div class="main">
+
+    <!-- CANVAS SIDE -->
+    <div class="canvasSide">
+      <div class="toolbar">
+        <button class="btn btnPrimary" id="btnPause" type="button">Pause</button>
+        <button class="btn" id="btnShot" type="button">PNG</button>
+        <button class="btn" id="btnReset" type="button">Reset</button>
+        <button class="btn" id="btnCopy" type="button">Copy URL</button>
+        <button class="btn btnGhost btnRec" id="btnRec" type="button">REC 5s</button>
+        <span class="status" id="status">boot…</span>
       </div>
-      <div class="nav">
-        <a class="btn" href="/">Home</a>
-        <a class="btn" href="/artists">Artists</a>
-        <a class="btn btnPrimary" href="/yohei-glsl.html">Shader</a>
-        <a class="btn btnGhost" href="https://x.com/YoheiNishitsuji" target="_blank" rel="noreferrer">X profile</a>
+      <div class="canvasWrap">
+        <canvas id="c"></canvas>
+        <div id="recOverlay"></div>
+        <pre id="errEl"></pre>
       </div>
     </div>
 
-    <section class="grid">
-      <div class="panel">
-        <div class="panelHead">
-          <b>Shader</b>
-          <span class="chip" id="status">boot…</span>
-        </div>
-        <div class="panelBody">
-          <canvas id="c"></canvas>
+    <!-- CONTROLS SIDE -->
+    <div class="controlsSide">
+      <div class="controlsHeader">Controls <span style="font-weight:500;text-transform:none;letter-spacing:.04em;opacity:.55" id="shareHint">— share: URL params</span></div>
+      <div class="controlsScroll">
 
-          <div class="row">
-            <button class="btn btnPrimary btnSm" id="btnPause" type="button">Pause</button>
-            <button class="btn btnSm" id="btnShot" type="button">PNG</button>
-            <button class="btn btnSm" id="btnReset" type="button">Reset</button>
-            <button class="btn btnPrimary btnSm" id="btnCopy" type="button">Copy share URL</button>
+        <!-- MOTION -->
+        <div class="ctrlGroup" id="grpMotion">
+          <div class="ctrlGroupHead" data-group="motion">
+            <b>Motion</b><span class="arrow">▾</span>
           </div>
-
-          <div class="muted" style="margin-top:10px;line-height:1.55">
-            Form controls change the actual geometry + texture: FOV, step scale, swirl, cap, FBM bias/amp.
-          </div>
-
-          <pre id="err" style="display:none"></pre>
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="panelHead">
-          <b>Controls</b>
-          <span class="chip" id="shareHint">share: URL params</span>
-        </div>
-        <div class="panelBody">
-
-          <!-- camera-ish -->
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Time speed</div><div class="ctrlVal" id="vSpeed">—</div></div>
-            <input id="speed" type="range" min="0.00" max="3.00" step="0.01" value="1.00"/>
-          </div>
-
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Zoom</div><div class="ctrlVal" id="vZoom">—</div></div>
-            <input id="zoom" type="range" min="0.25" max="3.50" step="0.01" value="1.00"/>
-          </div>
-
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Offset X</div><div class="ctrlVal" id="vOx">—</div></div>
-            <input id="ox" type="range" min="-1.50" max="1.50" step="0.01" value="0.00"/>
-          </div>
-
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Offset Y</div><div class="ctrlVal" id="vOy">—</div></div>
-            <input id="oy" type="range" min="-1.50" max="1.50" step="0.01" value="0.00"/>
-          </div>
-
-          <!-- form -->
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">FOV (ray Z)</div><div class="ctrlVal" id="vFov">—</div></div>
-            <input id="fov" type="range" min="0.20" max="1.20" step="0.01" value="0.50"/>
-          </div>
-
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Step scale</div><div class="ctrlVal" id="vStepK">—</div></div>
-            <input id="stepk" type="range" min="0.05" max="0.80" step="0.01" value="0.30"/>
-            <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
-              Strong shape control (how the ray advances): lower = tighter, higher = wilder.
+          <div class="ctrlGroupBody" id="bodyMotion">
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Time speed</span><span class="ctrlVal" id="vSpeed">—</span></div>
+              <input id="speed" type="range" min="0.00" max="3.00" step="0.01" value="1.00"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Zoom</span><span class="ctrlVal" id="vZoom">—</span></div>
+              <input id="zoom" type="range" min="0.25" max="3.50" step="0.01" value="1.00"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Offset X</span><span class="ctrlVal" id="vOx">—</span></div>
+              <input id="ox" type="range" min="-1.50" max="1.50" step="0.01" value="0.00"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Offset Y</span><span class="ctrlVal" id="vOy">—</span></div>
+              <input id="oy" type="range" min="-1.50" max="1.50" step="0.01" value="0.00"/>
             </div>
           </div>
+        </div>
 
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Swirl</div><div class="ctrlVal" id="vSwirl">—</div></div>
-            <input id="swirl" type="range" min="0.00" max="2.00" step="0.01" value="0.80"/>
+        <!-- GEOMETRY -->
+        <div class="ctrlGroup" id="grpGeometry">
+          <div class="ctrlGroupHead" data-group="geometry">
+            <b>Geometry</b><span class="arrow">▾</span>
           </div>
-
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Swirl speed</div><div class="ctrlVal" id="vSwSpd">—</div></div>
-            <input id="swspd" type="range" min="0.00" max="2.00" step="0.01" value="0.50"/>
-          </div>
-
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Surface cap</div><div class="ctrlVal" id="vCap">—</div></div>
-            <input id="cap" type="range" min="0.10" max="1.20" step="0.01" value="0.40"/>
-            <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
-              Changes the “surface” threshold: lower = sharper, higher = thicker forms.
+          <div class="ctrlGroupBody" id="bodyGeometry">
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">FOV (ray Z)</span><span class="ctrlVal" id="vFov">—</span></div>
+              <input id="fov" type="range" min="0.20" max="1.20" step="0.01" value="0.50"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Step scale</span><span class="ctrlVal" id="vStepK">—</span></div>
+              <input id="stepk" type="range" min="0.05" max="0.80" step="0.01" value="0.30"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Swirl</span><span class="ctrlVal" id="vSwirl">—</span></div>
+              <input id="swirl" type="range" min="0.00" max="2.00" step="0.01" value="0.80"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Swirl speed</span><span class="ctrlVal" id="vSwSpd">—</span></div>
+              <input id="swspd" type="range" min="0.00" max="2.00" step="0.01" value="0.50"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Surface cap</span><span class="ctrlVal" id="vCap">—</span></div>
+              <input id="cap" type="range" min="0.10" max="1.20" step="0.01" value="0.40"/>
             </div>
           </div>
-
-          <!-- texture -->
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">FBM bias</div><div class="ctrlVal" id="vBias">—</div></div>
-            <input id="bias" type="range" min="-1.00" max="1.00" step="0.01" value="0.40"/>
-          </div>
-
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">FBM amp</div><div class="ctrlVal" id="vAmp">—</div></div>
-            <input id="amp" type="range" min="0.05" max="0.80" step="0.01" value="0.30"/>
-          </div>
-
-          <!-- quality -->
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Outer steps</div><div class="ctrlVal" id="vSteps">—</div></div>
-            <input id="steps" type="range" min="20" max="140" step="1" value="99"/>
-          </div>
-
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">FBM steps</div><div class="ctrlVal" id="vFbm">—</div></div>
-            <input id="fbm" type="range" min="5" max="12" step="1" value="9"/>
-          </div>
-
-          <!-- color -->
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Hue</div><div class="ctrlVal" id="vHue">—</div></div>
-            <input id="hue" type="range" min="-0.50" max="0.50" step="0.001" value="0.00"/>
-          </div>
-
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Saturation</div><div class="ctrlVal" id="vSat">—</div></div>
-            <input id="sat" type="range" min="0.00" max="1.00" step="0.001" value="0.20"/>
-          </div>
-
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Gain</div><div class="ctrlVal" id="vGain">—</div></div>
-            <input id="gain" type="range" min="0.10" max="4.00" step="0.01" value="1.00"/>
-          </div>
-
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Gamma</div><div class="ctrlVal" id="vGam">—</div></div>
-            <input id="gamma" type="range" min="0.60" max="2.40" step="0.01" value="1.00"/>
-          </div>
-
         </div>
+
+        <!-- TEXTURE -->
+        <div class="ctrlGroup" id="grpTexture">
+          <div class="ctrlGroupHead" data-group="texture">
+            <b>Texture</b><span class="arrow">▾</span>
+          </div>
+          <div class="ctrlGroupBody" id="bodyTexture">
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">FBM bias</span><span class="ctrlVal" id="vBias">—</span></div>
+              <input id="bias" type="range" min="-1.00" max="1.00" step="0.01" value="0.40"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">FBM amp</span><span class="ctrlVal" id="vAmp">—</span></div>
+              <input id="amp" type="range" min="0.05" max="0.80" step="0.01" value="0.30"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Outer steps</span><span class="ctrlVal" id="vSteps">—</span></div>
+              <input id="steps" type="range" min="20" max="140" step="1" value="99"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">FBM steps</span><span class="ctrlVal" id="vFbm">—</span></div>
+              <input id="fbm" type="range" min="5" max="12" step="1" value="9"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLOR -->
+        <div class="ctrlGroup" id="grpColor">
+          <div class="ctrlGroupHead" data-group="color">
+            <b>Color</b><span class="arrow">▾</span>
+          </div>
+          <div class="ctrlGroupBody" id="bodyColor">
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Hue</span><span class="ctrlVal" id="vHue">—</span></div>
+              <input id="hue" type="range" min="-0.50" max="0.50" step="0.001" value="0.00"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Saturation</span><span class="ctrlVal" id="vSat">—</span></div>
+              <input id="sat" type="range" min="0.00" max="1.00" step="0.001" value="0.20"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Gain</span><span class="ctrlVal" id="vGain">—</span></div>
+              <input id="gain" type="range" min="0.10" max="4.00" step="0.01" value="1.00"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Gamma</span><span class="ctrlVal" id="vGam">—</span></div>
+              <input id="gamma" type="range" min="0.60" max="2.40" step="0.01" value="1.00"/>
+            </div>
+          </div>
+        </div>
+
       </div>
-    </section>
+    </div>
+
   </div>
 
 <script>
@@ -295,29 +375,19 @@
   ];
 
   const el = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
-  const status = document.getElementById("status");
+  const status    = document.getElementById("status");
   const shareHint = document.getElementById("shareHint");
-  const errEl = document.getElementById("err");
-  const canvas = document.getElementById("c");
+  const errEl     = document.getElementById("errEl");
+  const canvas    = document.getElementById("c");
 
   const num = (v)=>{ const x = parseFloat(v); return Number.isFinite(x) ? x : null; };
 
   const defaults = {
     speed:1.00, zoom:1.00, ox:0.00, oy:0.00,
-
-    // form
-    fov:0.50,     // ray Z (FOV-ish)
-    stepk:0.30,   // d * e * R * stepk
-    swirl:0.80,   // cos(t*swspd)*swirl
-    swspd:0.50,
-    cap:0.40,     // uForm.z in min(e*s, cap-e)
-    bias:0.40,    // FBM bias (was .4)
-    amp:0.30,     // FBM amplitude (was .3)
-
-    // quality
+    fov:0.50, stepk:0.30,
+    swirl:0.80, swspd:0.50,
+    cap:0.40, bias:0.40, amp:0.30,
     steps:99, fbm:9,
-
-    // color
     hue:0.00, sat:0.20, gain:1.00, gamma:1.00,
   };
 
@@ -326,10 +396,7 @@
   function readUrl(){
     const u = new URL(location.href);
     const out = {};
-    ids.forEach(id=>{
-      const v = num(u.searchParams.get(id));
-      if(v != null) out[id]=v;
-    });
+    ids.forEach(id=>{ const v = num(u.searchParams.get(id)); if(v != null) out[id]=v; });
     return out;
   }
   function readStore(){
@@ -360,25 +427,22 @@
 
   function renderVals(){
     setTxt("vSpeed", params.speed.toFixed(2));
-    setTxt("vZoom", params.zoom.toFixed(2));
-    setTxt("vOx", params.ox.toFixed(2));
-    setTxt("vOy", params.oy.toFixed(2));
-
-    setTxt("vFov", params.fov.toFixed(2));
+    setTxt("vZoom",  params.zoom.toFixed(2));
+    setTxt("vOx",    params.ox.toFixed(2));
+    setTxt("vOy",    params.oy.toFixed(2));
+    setTxt("vFov",   params.fov.toFixed(2));
     setTxt("vStepK", params.stepk.toFixed(2));
     setTxt("vSwirl", params.swirl.toFixed(2));
     setTxt("vSwSpd", params.swspd.toFixed(2));
-    setTxt("vCap", params.cap.toFixed(2));
-    setTxt("vBias", params.bias.toFixed(2));
-    setTxt("vAmp", params.amp.toFixed(2));
-
+    setTxt("vCap",   params.cap.toFixed(2));
+    setTxt("vBias",  params.bias.toFixed(2));
+    setTxt("vAmp",   params.amp.toFixed(2));
     setTxt("vSteps", String(params.steps));
-    setTxt("vFbm", String(params.fbm));
-
-    setTxt("vHue", params.hue.toFixed(3));
-    setTxt("vSat", params.sat.toFixed(3));
-    setTxt("vGain", params.gain.toFixed(2));
-    setTxt("vGam", params.gamma.toFixed(2));
+    setTxt("vFbm",   String(params.fbm));
+    setTxt("vHue",   params.hue.toFixed(3));
+    setTxt("vSat",   params.sat.toFixed(3));
+    setTxt("vGain",  params.gain.toFixed(2));
+    setTxt("vGam",   params.gamma.toFixed(2));
   }
 
   function commit(){
@@ -386,9 +450,7 @@
       const v = num(el[id]?.value);
       params[id] = clampToSlider(id, v == null ? defaults[id] : v);
     });
-    writeStore();
-    writeUrl();
-    renderVals();
+    writeStore(); writeUrl(); renderVals();
   }
 
   Object.assign(params, readStore(), readUrl());
@@ -396,19 +458,33 @@
   commit();
   ids.forEach(id=> el[id]?.addEventListener("input", commit));
 
+  // ── Reset ──
   document.getElementById("btnReset").addEventListener("click", ()=>{
     Object.assign(params, defaults);
     ids.forEach(id=>{ if(el[id]) el[id].value = String(params[id]); });
     commit();
   });
+
+  // ── Copy URL ──
   document.getElementById("btnCopy").addEventListener("click", async ()=>{
     try{
       await navigator.clipboard.writeText(location.href);
-      shareHint.textContent = "Copied!";
-      setTimeout(()=>shareHint.textContent="share: URL params", 900);
+      shareHint.textContent = "— Copied!";
+      setTimeout(()=>shareHint.textContent="— share: URL params", 1200);
     }catch{
-      shareHint.textContent = "Copy failed";
+      shareHint.textContent = "— copy failed";
     }
+  });
+
+  // ---------------- collapsible groups ----------------
+  document.querySelectorAll(".ctrlGroupHead").forEach(head => {
+    head.addEventListener("click", () => {
+      const group = head.dataset.group;
+      const body  = document.getElementById("body" + group.charAt(0).toUpperCase() + group.slice(1));
+      if(!body) return;
+      const collapsed = body.classList.toggle("hidden");
+      head.classList.toggle("collapsed", collapsed);
+    });
   });
 
   // ---------------- webgl ----------------
@@ -666,34 +742,100 @@ void main(){
         gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
       }
 
-      status.textContent = (isWebGL2 ? "WebGL2 OK" : "WebGL1 OK") + " • running";
+      status.textContent = (isWebGL2 ? "WebGL2" : "WebGL1") + " • running";
     }catch(e){
       showErr(String(e?.message || e));
     }
   }
 
-  function showErr(msg){
-    errEl.style.display = "block";
-    errEl.textContent = msg;
-    status.textContent = "shader error";
-  }
-
   build();
 
-  // Pause + screenshot
+  // ── Pause ──
   let paused = false;
   const btnPause = document.getElementById("btnPause");
   btnPause.addEventListener("click", ()=>{
     paused = !paused;
-    btnPause.textContent = paused ? "Resume" : "Pause";
+    btnPause.textContent = paused ? "Play" : "Pause";
+    btnPause.classList.toggle("btnPrimary", !paused);
+    btnPause.classList.toggle("btnGhost", paused);
   });
+
+  // ── PNG screenshot ──
   document.getElementById("btnShot").addEventListener("click", ()=>{
     const a = document.createElement("a");
-    a.download = `yohei_${Date.now()}.png`;
+    a.download = `yohei-glsl-${Date.now()}.png`;
     a.href = canvas.toDataURL("image/png");
     a.click();
   });
 
+  // ── REC 5s ──
+  const btnRec    = document.getElementById("btnRec");
+  const recOverlay = document.getElementById("recOverlay");
+  let isRecording = false;
+
+  btnRec.addEventListener("click", () => {
+    if(isRecording) return;
+    isRecording = true;
+    btnRec.classList.add("recording");
+    btnRec.textContent = "● REC";
+    btnRec.disabled = true;
+
+    const REC_DURATION = 5000;
+    const chunks = [];
+
+    let stream;
+    try{
+      stream = canvas.captureStream(30);
+    }catch(e){
+      alert("captureStream not supported in this browser.");
+      endRec(); return;
+    }
+
+    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+      ? "video/webm;codecs=vp9"
+      : "video/webm";
+
+    const rec = new MediaRecorder(stream, { mimeType });
+    rec.ondataavailable = e => { if(e.data.size > 0) chunks.push(e.data); };
+    rec.onstop = () => {
+      const blob = new Blob(chunks, { type: "video/webm" });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href = url;
+      a.download = `yohei-glsl-${Date.now()}.webm`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+      endRec();
+    };
+
+    rec.start();
+
+    // Countdown overlay
+    const start = performance.now();
+    function updateOverlay(){
+      const elapsed = performance.now() - start;
+      const remaining = Math.ceil((REC_DURATION - elapsed) / 1000);
+      if(elapsed >= REC_DURATION){
+        recOverlay.classList.remove("show");
+        recOverlay.textContent = "";
+        rec.stop();
+        return;
+      }
+      recOverlay.classList.add("show");
+      recOverlay.textContent = remaining > 0 ? `● REC ${remaining}` : "● REC";
+      requestAnimationFrame(updateOverlay);
+    }
+    requestAnimationFrame(updateOverlay);
+  });
+
+  function endRec(){
+    isRecording = false;
+    btnRec.classList.remove("recording");
+    btnRec.textContent = "REC 5s";
+    btnRec.disabled = false;
+  }
+
+  // ── Render loop ──
   let t0 = performance.now();
   let last = t0;
 
@@ -713,12 +855,11 @@ void main(){
     gl.uniform3f(locRes, canvas.width, canvas.height, 1.0);
     gl.uniform1f(locTime, time);
 
-    gl.uniform4f(locCam, params.zoom, params.ox, params.oy, params.speed);
-    gl.uniform4f(locCol, params.hue, params.sat, params.gain, params.gamma);
-    gl.uniform4f(locSteps, params.steps, params.fbm, 0.0, 0.0);
-
-    gl.uniform4f(locForm, params.fov, params.stepk, params.cap, 0.0);
-    gl.uniform4f(locTex, params.swirl, params.swspd, params.bias, params.amp);
+    gl.uniform4f(locCam,   params.zoom,  params.ox,    params.oy,   params.speed);
+    gl.uniform4f(locCol,   params.hue,   params.sat,   params.gain, params.gamma);
+    gl.uniform4f(locSteps, params.steps, params.fbm,   0.0,         0.0);
+    gl.uniform4f(locForm,  params.fov,   params.stepk, params.cap,  0.0);
+    gl.uniform4f(locTex,   params.swirl, params.swspd, params.bias, params.amp);
 
     if(isWebGL2){
       gl.bindVertexArray(vao);
@@ -732,7 +873,6 @@ void main(){
   requestAnimationFrame(tick);
 
   window.addEventListener("resize", resize);
-
 })();
 </script>
 </body>
