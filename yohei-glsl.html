@@ -101,6 +101,9 @@
       display:block;
       width:100%;
       height:100%;
+      will-change:transform;
+      transform:translateZ(0);
+      image-rendering:pixelated;
     }
     #recOverlay{
       position:absolute;inset:0;
@@ -499,11 +502,11 @@
   if(!gl){ showErr("WebGL not available."); return; }
   const isWebGL2 = !!gl2;
 
+  const RENDER_SCALE = 0.5; // render at half CSS size — halves GPU load
   function resize(){
-    const dpr = Math.max(1, Math.min(2.25, window.devicePixelRatio || 1));
     const rect = canvas.getBoundingClientRect();
-    const w = Math.max(2, Math.floor(rect.width * dpr));
-    const h = Math.max(2, Math.floor(rect.height * dpr));
+    const w = Math.max(2, Math.floor(rect.width  * RENDER_SCALE));
+    const h = Math.max(2, Math.floor(rect.height * RENDER_SCALE));
     if(canvas.width !== w || canvas.height !== h){
       canvas.width = w; canvas.height = h;
       gl.viewport(0,0,w,h);
@@ -868,7 +871,8 @@ void main(){
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     }
 
-    requestAnimationFrame(tick);
+    if(!document.hidden) requestAnimationFrame(tick);
+    else setTimeout(() => requestAnimationFrame(tick), 500);
   }
   requestAnimationFrame(tick);
 
