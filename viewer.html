@@ -443,10 +443,10 @@
 
   async function fetchOwner(tick, tokenId, signal){
     try{
-      const url = `${API_BASE}/tokens/${encodeURIComponent(tick)}/${tokenId}`;
+      const url = `${API_BASE}/nfts/${encodeURIComponent(tick)}/${tokenId}`;
       const raw = await fetchJson(url, signal);
       const res = unwrapResult(raw);
-      return res?.owner || res?.ownerAddress || res?.owner_address || null;
+      return res?.owner || null;
     }catch(e){
       return null;
     }
