@@ -542,10 +542,6 @@
 
     lb.side.innerHTML = `
       <div class="kv">
-        <div class="k">Owner</div>
-        <div class="v ownerRow" id="lbOwnerRow"><span style="opacity:.5;font-size:12px;">Loading…</span></div>
-      </div>
-      <div class="kv">
         <div class="k">Name</div>
         <div class="v">${escapeHtml(name)}</div>
       </div>
@@ -567,7 +563,10 @@
           ` : `<span style="opacity:.5">—</span>`}
         </div>
       </div>
-      <button id="lbCopyOwner" class="btn" type="button" style="display:none;width:100%;background:var(--accent);color:#020308;border-color:var(--accent);font-weight:800;margin-top:auto;padding:10px 0;">Copy Owner Address</button>
+      <div class="kv" id="lbOwnerRow" style="align-items:center;">
+        <div class="k">Owner</div>
+        <div class="v" style="display:flex;align-items:center;gap:6px;"><span style="opacity:.5;font-size:12px;">Loading…</span></div>
+      </div>
     `;
 
     lb.root.classList.add("open");
@@ -577,17 +576,14 @@
     fetchOwner(tick, tokenId, lbAbort.signal).then(owner => {
       const row = document.getElementById("lbOwnerRow");
       if(!row) return;
+      const vEl = row.querySelector(".v");
+      if(!vEl) return;
       if(owner){
         const full = escapeHtml(owner);
         const truncated = owner.length > 16 ? owner.slice(0,10) + '…' + owner.slice(-6) : owner;
-        row.innerHTML = `<span style="font-family:monospace;font-size:13px;line-height:1.5;" title="${full}">${escapeHtml(truncated)}</span>`;
-        const copyBtn = document.getElementById("lbCopyOwner");
-        if(copyBtn){
-          copyBtn.style.display = "";
-          copyBtn.onclick = function(){ navigator.clipboard.writeText(owner).then(()=>{ this.textContent="Copied!"; setTimeout(()=>{ this.textContent="Copy Owner Address"; },1400); }); };
-        }
+        vEl.innerHTML = `<span style="font-family:monospace;font-size:13px;line-height:1;" title="${full}">${escapeHtml(truncated)}</span><button class="btn" type="button" style="padding:2px 7px;font-size:11px;flex-shrink:0;opacity:.7;" onclick="navigator.clipboard.writeText('${full}').then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='Copy',1200)})">Copy</button>`;
       }else{
-        row.innerHTML = `<span style="opacity:.5">—</span>`;
+        vEl.innerHTML = `<span style="opacity:.5">—</span>`;
       }
     });
   }
