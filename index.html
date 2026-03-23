@@ -922,41 +922,48 @@
 <script>
 // ── HERO SLIDESHOW ──
 (async function(){
-  const wrap = document.getElementById("heroSlideshow");
+  const wrap   = document.getElementById("heroSlideshow");
   if(!wrap) return;
-
   const heroH1 = document.querySelector(".heroContent h1");
-  const GW = "https://dweb.link/ipfs/";
-
-  const STATIC = [
-    "assets/img/rec3.png",
-    "assets/img/rec4.png",
-    "assets/img/rec5.png",
-    "assets/img/yohei_1769012405915.png",
-    "assets/img/yohei_1769032347663.png",
-    "assets/img/yohei_1769032671810.png",
-    "assets/img/yohei_1769032957909.png",
-    "assets/img/koma_1769014545384.png",
-    "assets/img/koma_1770142718909.png",
-    "assets/img/PIXELONKAS_259.png",
-    "assets/img/SYKORA-nftcollection-background.png",
-    "assets/img/2025-01-23-nft-prep-cover.jpg"
-  ];
-
-  const NFT_IDS = {
-    PIXELONKAS: { buri: "bafybeih2phpjzxfrszsscpmxdr44kliaddto3sicsdh44kgx7b3f43fdvm", ids: [1,8,13,20,25] },
-    SYKORA:     { buri: "bafybeifema4upmzu7c4iipvxdagctirxf46g3htmsin6l66zm77dibfhaq", ids: [1,50,100,200,500] }
-  };
+  const GW     = "https://dweb.link/ipfs/";
+  const PX_BURI = "bafybeih2phpjzxfrszsscpmxdr44kliaddto3sicsdh44kgx7b3f43fdvm";
+  const SY_BURI = "bafybeifema4upmzu7c4iipvxdagctirxf46g3htmsin6l66zm77dibfhaq";
 
   const DISPLAY_MS    = 25000;
   const TRANSITION_MS = 15000;
+
+  // Ordered slots — static src set immediately; nft src set async
+  // type:'nft' elements start with no src (dark placeholder) until URL resolves
+  const SLOTS = [
+    { src:"assets/img/PIXELONKAS_259.png",               cors:false },
+    { nft:{ buri:PX_BURI, id:1   },                      cors:true  },
+    { nft:{ buri:PX_BURI, id:8   },                      cors:true  },
+    { nft:{ buri:PX_BURI, id:13  },                      cors:true  },
+    { nft:{ buri:PX_BURI, id:20  },                      cors:true  },
+    { nft:{ buri:PX_BURI, id:25  },                      cors:true  },
+    { nft:{ buri:SY_BURI, id:1   },                      cors:true  },
+    { nft:{ buri:SY_BURI, id:50  },                      cors:true  },
+    { nft:{ buri:SY_BURI, id:100 },                      cors:true  },
+    { nft:{ buri:SY_BURI, id:200 },                      cors:true  },
+    { nft:{ buri:SY_BURI, id:500 },                      cors:true  },
+    { src:"assets/img/rec3.png",                          cors:false },
+    { src:"assets/img/rec4.png",                          cors:false },
+    { src:"assets/img/rec5.png",                          cors:false },
+    { src:"assets/img/yohei_1769012405915.png",           cors:false },
+    { src:"assets/img/yohei_1769032347663.png",           cors:false },
+    { src:"assets/img/yohei_1769032671810.png",           cors:false },
+    { src:"assets/img/yohei_1769032957909.png",           cors:false },
+    { src:"assets/img/koma_1769014545384.png",            cors:false },
+    { src:"assets/img/koma_1770142718909.png",            cors:false },
+    { src:"assets/img/SYKORA-nftcollection-background.png", cors:false },
+    { src:"assets/img/2025-01-23-nft-prep-cover.jpg",    cors:false },
+  ];
 
   // ── Color extraction ──
   const offCanvas = document.createElement("canvas");
   offCanvas.width = offCanvas.height = 50;
   const offCtx = offCanvas.getContext("2d");
 
-  // RGB → HSL (returns [h 0-360, s 0-1, l 0-1])
   function rgbToHsl(r, g, b){
     r/=255; g/=255; b/=255;
     const max=Math.max(r,g,b), min=Math.min(r,g,b), d=max-min;
@@ -978,70 +985,68 @@
       let bestR=255, bestG=255, bestB=255, bestSat=0;
       for(let i=0; i<data.length; i+=4){
         const r=data[i], g=data[i+1], b=data[i+2];
-        const brightness = (r+g+b)/3;
+        const brightness=(r+g+b)/3;
         if(brightness < 30 || brightness > 220) continue;
         const max=Math.max(r,g,b), min=Math.min(r,g,b);
         const sat = max===0 ? 0 : (max-min)/max;
         if(sat > bestSat){ bestSat=sat; bestR=r; bestG=g; bestB=b; }
       }
-      // Convert to HSL and enforce min lightness 65%, min saturation 60%
       let [h, s, l] = rgbToHsl(bestR, bestG, bestB);
       s = Math.max(s, 0.60);
       l = Math.max(l, 0.65);
       return `hsl(${Math.round(h)},${Math.round(s*100)}%,${Math.round(l*100)}%)`;
-    }catch(e){
-      return null;
-    }
+    }catch(e){ return null; }
   }
 
   function applyColor(imgEl){
-    if(!heroH1) return;
-    if(!imgEl.complete || imgEl.naturalWidth === 0) return;
+    if(!heroH1 || !imgEl.complete || imgEl.naturalWidth === 0) return;
     const color = dominantColor(imgEl);
     if(!color) return;
-    // Apply to h1 directly (CSS transition handles the 12s ease-in-out)
-    // .teal span keeps its fixed accent color via the CSS rule
     heroH1.style.color = color;
     heroH1.style.textShadow = `0 0 40px ${color.replace("hsl(","hsla(").replace(")",",0.35)")}`;
   }
 
-  // ── Slideshow ──
-  const imgs = [];
-  let cur = 0;
-
-  function addImg(src, crossorigin){
+  // ── Build DOM in slot order ──
+  const imgs = SLOTS.map(slot => {
     const el = document.createElement("img");
-    if(crossorigin) el.crossOrigin = "anonymous";
-    el.src = src;
     el.alt = "";
+    if(slot.cors) el.crossOrigin = "anonymous";
+    if(slot.src)  el.src = slot.src;
     el.style.cssText = `position:absolute;inset:0;width:100%;height:100%;object-fit:cover;` +
       `transition:opacity ${TRANSITION_MS}ms ease-in-out;opacity:0;`;
     wrap.appendChild(el);
-    imgs.push(el);
-  }
+    return el;
+  });
 
-  STATIC.forEach(s => addImg(s, false));
-  if(imgs.length){
-    imgs[0].style.opacity = "1";
-    imgs[0].addEventListener("load", () => applyColor(imgs[0]), { once:true });
-    if(imgs[0].complete) applyColor(imgs[0]);
-  }
+  // Show first slot immediately
+  imgs[0].style.opacity = "1";
+  if(imgs[0].complete && imgs[0].naturalWidth > 0) applyColor(imgs[0]);
+  else imgs[0].addEventListener("load", () => applyColor(imgs[0]), { once:true });
 
+  // ── Interval — skip slots with no src or not yet loaded ──
+  let cur = 0;
   setInterval(() => {
-    if(imgs.length < 2) return;
     imgs[cur].style.opacity = "0";
-    cur = (cur + 1) % imgs.length;
-    const next = imgs[cur];
-    next.style.opacity = "1";
-    // Sample color once image is ready
-    if(next.complete && next.naturalWidth > 0){
-      applyColor(next);
+    // Advance, skipping unloaded NFT slots (no src yet or broken)
+    let next = (cur + 1) % imgs.length;
+    let tries = 0;
+    while(tries < imgs.length){
+      const el = imgs[next];
+      // Skip if: NFT slot with no src set yet
+      if(!el.src || el.src === window.location.href) { next=(next+1)%imgs.length; tries++; continue; }
+      break;
+    }
+    cur = next;
+    const el = imgs[cur];
+    el.style.opacity = "1";
+    if(el.complete && el.naturalWidth > 0){
+      applyColor(el);
     }else{
-      next.addEventListener("load", () => applyColor(next), { once:true });
+      el.addEventListener("load", () => { if(parseFloat(el.style.opacity) > 0) applyColor(el); }, { once:true });
     }
   }, DISPLAY_MS);
 
-  // ── NFT image fetch ──
+  // ── Async: resolve NFT image URLs and set srcs ──
   async function getNftImageUrl(buri, id){
     for(const path of [`${buri}/${id}.json`, `${buri}/${id}`]){
       try{
@@ -1056,10 +1061,11 @@
     return null;
   }
 
-  for(const [, { buri, ids }] of Object.entries(NFT_IDS)){
-    const urls = await Promise.all(ids.map(id => getNftImageUrl(buri, id)));
-    urls.filter(Boolean).forEach(u => addImg(u, true));
-  }
+  await Promise.all(SLOTS.map(async (slot, i) => {
+    if(!slot.nft) return;
+    const url = await getNftImageUrl(slot.nft.buri, slot.nft.id);
+    if(url) imgs[i].src = url;
+  }));
 })();
 </script>
 </body>
