@@ -142,15 +142,15 @@
     }
     .controlsHeader{
       flex-shrink:0;
-      padding:10px 14px;
+      padding:7px 10px;
       border-bottom:1px solid var(--border);
-      font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+      font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
     }
     .controlsScroll{
       flex:1;
       overflow-y:auto;
       overflow-x:hidden;
-      padding:8px 12px 16px;
+      padding:6px 8px 12px;
     }
     .controlsScroll::-webkit-scrollbar{width:4px;}
     .controlsScroll::-webkit-scrollbar-track{background:transparent;}
@@ -173,17 +173,22 @@
     .ctrlGroupHead b{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);}
     .ctrlGroupHead .arrow{font-size:10px;color:var(--muted);transition:transform .15s;}
     .ctrlGroupHead.collapsed .arrow{transform:rotate(-90deg);}
-    .ctrlGroupBody{padding:6px 8px 8px;}
+    .ctrlGroupBody{
+      padding:6px 8px 8px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:4px 8px;
+    }
     .ctrlGroupBody.hidden{display:none;}
 
     /* ── INDIVIDUAL CTRL ── */
-    .ctrl{margin-top:6px;}
-    .ctrlHead{display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:2px;}
-    .ctrlTitle{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;}
-    .ctrlVal{font-size:11px;color:var(--accent);font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;}
+    .ctrl{min-width:0;}
+    .ctrlHead{display:flex;justify-content:space-between;align-items:baseline;gap:4px;margin-bottom:2px;}
+    .ctrlTitle{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .ctrlVal{font-size:10px;color:var(--accent);font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;flex-shrink:0;}
     input[type="range"]{
       width:100%;
-      height:3px;
+      height:2px;
       -webkit-appearance:none;
       appearance:none;
       background:rgba(255,255,255,.12);
@@ -193,13 +198,13 @@
     }
     input[type="range"]::-webkit-slider-thumb{
       -webkit-appearance:none;
-      width:12px;height:12px;
+      width:10px;height:10px;
       border-radius:2px;
       background:var(--accent);
       cursor:pointer;
     }
     input[type="range"]::-moz-range-thumb{
-      width:12px;height:12px;
+      width:10px;height:10px;
       border-radius:2px;
       background:var(--accent);
       border:none;cursor:pointer;
