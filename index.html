@@ -747,24 +747,17 @@
     return { url: String(raw), ipfs: null };
   }
 
-  // Fetch all minted tokens in parallel, return the tokenId with the highest opScoreMod
-  // (= most recently minted/modified). Works for small collections (< ~100 minted).
-  async function mostRecentlyMintedId(tick, mintedIds){
-    const results = await Promise.all(
-      mintedIds.map(id =>
-        fetchJson(`${STREAM_API}/nfts/${encodeURIComponent(tick)}/${id}`)
-          .then(raw => {
-            const r = unwrapResult(raw);
-            return { id, score: BigInt(r?.opScoreMod ?? 0) };
-          })
-          .catch(() => ({ id, score: 0n }))
-      )
-    );
-    let best = null;
-    for(const { id, score } of results){
-      if(best === null || score > best.score) best = { id, score };
-    }
-    return best?.id ?? null;
+  // Try to get the most recently minted tokenId from the nfts endpoint.
+  // Falls back to null if the endpoint doesn't return a tokenId.
+  async function fetchRecentMintLabel(tick){
+    try{
+      const raw = await fetchJson(`${STREAM_API}/nfts/${encodeURIComponent(tick)}?limit=1&direction=back`);
+      const res = unwrapResult(raw);
+      const item = Array.isArray(res) ? res[0] : res;
+      const id = item?.tokenId ?? item?.token_id ?? item?.id ?? null;
+      if(id != null) return Number(id);
+    }catch(_e){}
+    return null;
   }
 
   async function loadCover(tick){
@@ -773,13 +766,13 @@
     const hint  = qs(`#hint${tick}`);
     if(!cfg || !thumb || !hint) return;
 
+    // Cover image: use highest minted ID from ranges (reliable)
     let coverId = null;
     try{
       const raw = await fetchJson(`${STREAM_API}/ranges/${encodeURIComponent(tick)}`);
       const res = unwrapResult(raw);
       if(typeof res === "string" && res.trim()){
-        const mintedIds = mintedIdsFromAvailableRanges({ idMin: cfg.idMin, max: cfg.max, rangesString: res });
-        if(mintedIds.length) coverId = await mostRecentlyMintedId(tick, mintedIds);
+        coverId = lastMintedIdFromAvailableRanges({ idMin: cfg.idMin, max: cfg.max, rangesString: res });
       }
     }catch(_e){}
 
@@ -788,7 +781,11 @@
       return;
     }
 
-    hint.textContent = `Last mint: #${coverId}`;
+    // Label: try the nfts endpoint for most recent tokenId; fall back to coverId
+    let labelId = await fetchRecentMintLabel(tick);
+    if(!Number.isFinite(labelId)) labelId = coverId;
+
+    hint.textContent = `Last mint: #${labelId}`;
 
     try{
       const meta = await fetchMetaFromGateways(metaCandidatePaths(cfg.buri, tick, coverId));
@@ -797,7 +794,7 @@
 
       const bottomline = thumb.querySelector(".bottomline")?.outerHTML || "";
       thumb.innerHTML = `
-        <span class="hint">Last mint: #${coverId}</span>
+        <span class="hint">Last mint: #${labelId}</span>
         ${bottomline}
         <img src="${url}" alt="${tick} cover" loading="lazy">
       `;
@@ -811,7 +808,7 @@
         };
       }
     }catch(_e){
-      hint.textContent = `Last mint: #${coverId} (image unavailable)`;
+      hint.textContent = `Last mint: #${labelId} (image unavailable)`;
     }
   }
 
