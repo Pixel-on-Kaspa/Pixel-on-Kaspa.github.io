@@ -117,14 +117,13 @@
       min-width:0;
     }
     .heroSlideshow{
-      width:400px;
-      height:400px;
+      width:420px;
+      height:420px;
       flex-shrink:0;
       position:relative;
-      border:1px solid var(--border);
-      border-radius:8px;
-      overflow:hidden;
-      background:var(--card);
+      background:transparent;
+      -webkit-mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 40%,transparent 100%);
+      mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 40%,transparent 100%);
     }
     .heroEyebrow{
       font-size:11px;
@@ -925,8 +924,7 @@
   const wrap = document.getElementById("heroSlideshow");
   if(!wrap) return;
 
-  const GW     = "https://dweb.link/ipfs/";
-  const STREAM = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
+  const GW = "https://dweb.link/ipfs/";
 
   const STATIC = [
     "assets/img/rec3.png",
@@ -934,9 +932,22 @@
     "assets/img/rec5.png",
     "assets/img/yohei_1769012405915.png",
     "assets/img/yohei_1769032347663.png",
+    "assets/img/yohei_1769032671810.png",
+    "assets/img/yohei_1769032957909.png",
     "assets/img/koma_1769014545384.png",
-    "assets/img/koma_1770142718909.png"
+    "assets/img/koma_1770142718909.png",
+    "assets/img/PIXELONKAS_259.png",
+    "assets/img/SYKORA-nftcollection-background.png",
+    "assets/img/2025-01-23-nft-prep-cover.jpg"
   ];
+
+  const NFT_IDS = {
+    PIXELONKAS: { buri: "bafybeih2phpjzxfrszsscpmxdr44kliaddto3sicsdh44kgx7b3f43fdvm", ids: [1,8,13,20,25] },
+    SYKORA:     { buri: "bafybeifema4upmzu7c4iipvxdagctirxf46g3htmsin6l66zm77dibfhaq", ids: [1,50,100,200,500] }
+  };
+
+  const DISPLAY_MS    = 25000;
+  const TRANSITION_MS = 15000;
 
   const imgs = [];
   let cur = 0;
@@ -945,7 +956,8 @@
     const el = document.createElement("img");
     el.src = src;
     el.alt = "";
-    el.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity 1.2s ease;opacity:0;";
+    el.style.cssText = `position:absolute;inset:0;width:100%;height:100%;object-fit:cover;` +
+      `transition:opacity ${TRANSITION_MS}ms ease-in-out;opacity:0;`;
     wrap.appendChild(el);
     imgs.push(el);
   }
@@ -958,22 +970,7 @@
     imgs[cur].style.opacity = "0";
     cur = (cur + 1) % imgs.length;
     imgs[cur].style.opacity = "1";
-  }, 4000);
-
-  async function getMintedIds(tick, max){
-    try{
-      const r = await fetch(`${STREAM}/ranges/${encodeURIComponent(tick)}`, { cache:"no-store" });
-      if(!r.ok) return [];
-      const { result } = await r.json();
-      if(typeof result !== "string") return [];
-      const nums = result.split(",").map(Number).filter(Number.isFinite);
-      const avail = new Set();
-      for(let i=0;i<nums.length-1;i+=2) for(let j=0;j<nums[i+1];j++) avail.add(nums[i]+j);
-      const out = [];
-      for(let id=1;id<=max;id++) if(!avail.has(id)) out.push(id);
-      return out;
-    }catch(e){ return []; }
-  }
+  }, DISPLAY_MS);
 
   async function getNftImageUrl(buri, id){
     for(const path of [`${buri}/${id}.json`, `${buri}/${id}`]){
@@ -989,14 +986,8 @@
     return null;
   }
 
-  for(const [tick, max, buri] of [
-    ["PIXELONKAS", 342, "bafybeih2phpjzxfrszsscpmxdr44kliaddto3sicsdh44kgx7b3f43fdvm"],
-    ["SYKORA",    2518, "bafybeifema4upmzu7c4iipvxdagctirxf46g3htmsin6l66zm77dibfhaq"]
-  ]){
-    const minted = await getMintedIds(tick, max);
-    if(!minted.length) continue;
-    const picks = [...minted].sort(()=>Math.random()-.5).slice(0, 3);
-    const urls = await Promise.all(picks.map(id => getNftImageUrl(buri, id)));
+  for(const [, { buri, ids }] of Object.entries(NFT_IDS)){
+    const urls = await Promise.all(ids.map(id => getNftImageUrl(buri, id)));
     urls.filter(Boolean).forEach(addImg);
   }
 })();
