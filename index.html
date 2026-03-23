@@ -141,9 +141,9 @@
       line-height:.93;
       margin-bottom:28px;
       color:#fff;
-      transition:color 3s ease,text-shadow 3s ease;
+      transition:color 12s ease-in-out,text-shadow 12s ease-in-out;
     }
-    h1 .teal{color:var(--accent);transition:color 3s ease,text-shadow 3s ease;}
+    h1 .teal{color:var(--accent);}
     .sub{
       font-size:17px;
       color:var(--muted);
@@ -956,6 +956,21 @@
   offCanvas.width = offCanvas.height = 50;
   const offCtx = offCanvas.getContext("2d");
 
+  // RGB → HSL (returns [h 0-360, s 0-1, l 0-1])
+  function rgbToHsl(r, g, b){
+    r/=255; g/=255; b/=255;
+    const max=Math.max(r,g,b), min=Math.min(r,g,b), d=max-min;
+    let h=0, s=0, l=(max+min)/2;
+    if(d){
+      s = d / (1 - Math.abs(2*l - 1));
+      if(max===r) h=((g-b)/d+6)%6;
+      else if(max===g) h=(b-r)/d+2;
+      else h=(r-g)/d+4;
+      h*=60;
+    }
+    return [h, s, l];
+  }
+
   function dominantColor(imgEl){
     try{
       offCtx.drawImage(imgEl, 0, 0, 50, 50);
@@ -969,7 +984,11 @@
         const sat = max===0 ? 0 : (max-min)/max;
         if(sat > bestSat){ bestSat=sat; bestR=r; bestG=g; bestB=b; }
       }
-      return `rgb(${bestR},${bestG},${bestB})`;
+      // Convert to HSL and enforce min lightness 65%, min saturation 60%
+      let [h, s, l] = rgbToHsl(bestR, bestG, bestB);
+      s = Math.max(s, 0.60);
+      l = Math.max(l, 0.65);
+      return `hsl(${Math.round(h)},${Math.round(s*100)}%,${Math.round(l*100)}%)`;
     }catch(e){
       return null;
     }
@@ -977,12 +996,13 @@
 
   function applyColor(imgEl){
     if(!heroH1) return;
-    // Ensure image is loaded and CORS-ok before sampling
     if(!imgEl.complete || imgEl.naturalWidth === 0) return;
     const color = dominantColor(imgEl);
     if(!color) return;
+    // Apply to h1 directly (CSS transition handles the 12s ease-in-out)
+    // .teal span keeps its fixed accent color via the CSS rule
     heroH1.style.color = color;
-    heroH1.style.textShadow = color.replace("rgb(","rgba(").replace(")",",0.35) 0 0 40px");
+    heroH1.style.textShadow = `0 0 40px ${color.replace("hsl(","hsla(").replace(")",",0.35)")}`;
   }
 
   // ── Slideshow ──
