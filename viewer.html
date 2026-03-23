@@ -296,7 +296,6 @@
       </div>
       <div class="lbActions">
         <a id="lbMint" class="btn btnPrimary" href="#" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
-        <a id="lbOpenImg" class="btn" href="#" target="_blank" rel="noreferrer">Open image</a>
         <button id="lbFs" class="btn" type="button">Full screen</button>
         <button id="lbClose" class="btn" type="button">Close</button>
       </div>
@@ -496,7 +495,6 @@
     heading:  qs("#lbHeading"),
     sub:      qs("#lbSub"),
     closeBtn: qs("#lbClose"),
-    openImg:  qs("#lbOpenImg"),
     mint:     qs("#lbMint"),
     fsBtn:    qs("#lbFs")
   };
@@ -517,7 +515,6 @@
     lb.heading.textContent = `${tick} #${tokenId}`;
     lb.sub.textContent = meta?.name ? meta.name : "";
     lb.mint.href = mintUrl || "#";
-    lb.openImg.href = imgUrl || "#";
 
     lb.imgWrap.innerHTML = imgUrl
       ? `<img id="lbImg" src="${imgUrl}" alt="">`
@@ -570,6 +567,7 @@
           ` : `<span style="opacity:.5">—</span>`}
         </div>
       </div>
+      <button id="lbCopyOwner" class="btn" type="button" style="display:none;width:100%;background:var(--accent);color:#020308;border-color:var(--accent);font-weight:800;margin-top:auto;padding:10px 0;">Copy Owner Address</button>
     `;
 
     lb.root.classList.add("open");
@@ -581,7 +579,13 @@
       if(!row) return;
       if(owner){
         const full = escapeHtml(owner);
-        row.innerHTML = `<span style="font-family:monospace;font-size:13px;word-break:break-all;line-height:1.5;">${full}</span><button class="btn" style="padding:3px 8px;font-size:11px;flex-shrink:0;" onclick="navigator.clipboard.writeText('${full}').then(()=>{this.textContent='Copied';setTimeout(()=>this.textContent='Copy',1200)})">Copy</button>`;
+        const truncated = owner.length > 16 ? owner.slice(0,10) + '…' + owner.slice(-6) : owner;
+        row.innerHTML = `<span style="font-family:monospace;font-size:13px;line-height:1.5;" title="${full}">${escapeHtml(truncated)}</span>`;
+        const copyBtn = document.getElementById("lbCopyOwner");
+        if(copyBtn){
+          copyBtn.style.display = "";
+          copyBtn.onclick = function(){ navigator.clipboard.writeText(owner).then(()=>{ this.textContent="Copied!"; setTimeout(()=>{ this.textContent="Copy Owner Address"; },1400); }); };
+        }
       }else{
         row.innerHTML = `<span style="opacity:.5">—</span>`;
       }
