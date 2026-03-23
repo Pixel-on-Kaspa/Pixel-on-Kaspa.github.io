@@ -747,35 +747,24 @@
     return { url: String(raw), ipfs: null };
   }
 
-  async function tryGetLastMintFromKaspaApi(ticker){
-    const endpoint = `${KASPA_API}/krc721/tokens`;
-    const candidates = [
-      { ticker: String(ticker), page: 1, pageSize: 1, sortBy: "mintedAt", sortDirection: "desc" },
-      { ticker: String(ticker), offset: 0, limit: 1, sort: "mintedAt", order: "desc" },
-      { ticker: String(ticker), page: 1, perPage: 1, sort: "mintedAt", sortDirection: "desc" },
-      { ticker: String(ticker), page: 1, pageSize: 1, sortBy: "createdAt", sortDirection: "desc" },
-      { ticker: String(ticker), page: 1, pageSize: 1, sortBy: "timestamp", sortDirection: "desc" },
-    ];
-    for(const body of candidates){
-      try{
-        const res = await fetchJson(endpoint, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(body)
-        });
-        const items =
-          Array.isArray(res?.items) ? res.items :
-          Array.isArray(res?.data)  ? res.data  :
-          Array.isArray(res)        ? res        :
-          [];
-        if(items.length){
-          const it = items[0];
-          const tokenId = it?.tokenId ?? it?.id ?? it?.nftId ?? it?.token_id;
-          if(tokenId != null) return Number(tokenId);
-        }
-      }catch(_e){}
+  // Fetch all minted tokens in parallel, return the tokenId with the highest opScoreMod
+  // (= most recently minted/modified). Works for small collections (< ~100 minted).
+  async function mostRecentlyMintedId(tick, mintedIds){
+    const results = await Promise.all(
+      mintedIds.map(id =>
+        fetchJson(`${STREAM_API}/nfts/${encodeURIComponent(tick)}/${id}`)
+          .then(raw => {
+            const r = unwrapResult(raw);
+            return { id, score: BigInt(r?.opScoreMod ?? 0) };
+          })
+          .catch(() => ({ id, score: 0n }))
+      )
+    );
+    let best = null;
+    for(const { id, score } of results){
+      if(best === null || score > best.score) best = { id, score };
     }
-    return null;
+    return best?.id ?? null;
   }
 
   async function loadCover(tick){
@@ -785,16 +774,14 @@
     if(!cfg || !thumb || !hint) return;
 
     let coverId = null;
-    try{ coverId = await tryGetLastMintFromKaspaApi(tick); }catch(_e){}
-    if(!Number.isFinite(coverId)){
-      try{
-        const raw = await fetchJson(`${STREAM_API}/ranges/${encodeURIComponent(tick)}`);
-        const res = unwrapResult(raw);
-        if(typeof res === "string" && res.trim()){
-          coverId = lastMintedIdFromAvailableRanges({ idMin: cfg.idMin, max: cfg.max, rangesString: res });
-        }
-      }catch(_e){}
-    }
+    try{
+      const raw = await fetchJson(`${STREAM_API}/ranges/${encodeURIComponent(tick)}`);
+      const res = unwrapResult(raw);
+      if(typeof res === "string" && res.trim()){
+        const mintedIds = mintedIdsFromAvailableRanges({ idMin: cfg.idMin, max: cfg.max, rangesString: res });
+        if(mintedIds.length) coverId = await mostRecentlyMintedId(tick, mintedIds);
+      }
+    }catch(_e){}
 
     if(!Number.isFinite(coverId)){
       hint.textContent = "Cover unavailable";
