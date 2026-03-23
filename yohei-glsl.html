@@ -67,16 +67,15 @@
       overflow:hidden;
     }
 
-    /* ── CANVAS SIDE ── */
+    /* ── CANVAS SIDE (right) ── */
     .canvasSide{
-      width:calc(100vh - 96px);
-      max-width:60vw;
-      flex-shrink:0;
+      flex:1;
+      min-width:0;
       display:flex;
       flex-direction:column;
       align-items:center;
       justify-content:center;
-      border-right:1px solid var(--border);
+      border-left:1px solid var(--border);
       overflow:hidden;
     }
     .toolbar{
@@ -132,13 +131,14 @@
       overflow:auto;
     }
 
-    /* ── CONTROLS SIDE ── */
+    /* ── CONTROLS SIDE (left) ── */
     .controlsSide{
-      flex:1;
-      min-width:0;
+      width:280px;
+      flex:0 0 280px;
       display:flex;
       flex-direction:column;
       overflow:hidden;
+      border-right:1px solid var(--border);
     }
     .controlsHeader{
       flex-shrink:0;
@@ -242,24 +242,7 @@
 
   <div class="main">
 
-    <!-- CANVAS SIDE -->
-    <div class="canvasSide">
-      <div class="toolbar">
-        <button class="btn btnPrimary" id="btnPause" type="button">Pause</button>
-        <button class="btn" id="btnShot" type="button">PNG</button>
-        <button class="btn" id="btnReset" type="button">Reset</button>
-        <button class="btn" id="btnCopy" type="button">Copy URL</button>
-        <button class="btn btnGhost btnRec" id="btnRec" type="button">REC 5s</button>
-        <span class="status" id="status">boot…</span>
-      </div>
-      <div class="canvasWrap">
-        <canvas id="c"></canvas>
-        <div id="recOverlay"></div>
-        <pre id="errEl"></pre>
-      </div>
-    </div>
-
-    <!-- CONTROLS SIDE -->
+    <!-- CONTROLS SIDE (left) -->
     <div class="controlsSide">
       <div class="controlsHeader">Controls <span style="font-weight:500;text-transform:none;letter-spacing:.04em;opacity:.55" id="shareHint">— share: URL params</span></div>
       <div class="controlsScroll">
@@ -314,6 +297,10 @@
             <div class="ctrl">
               <div class="ctrlHead"><span class="ctrlTitle">Surface cap</span><span class="ctrlVal" id="vCap">—</span></div>
               <input id="cap" type="range" min="0.10" max="1.20" step="0.01" value="0.40"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Growth</span><span class="ctrlVal" id="vGrowth">—</span></div>
+              <input id="growth" type="range" min="0.00" max="1.00" step="0.01" value="0.30"/>
             </div>
           </div>
         </div>
@@ -371,6 +358,23 @@
       </div>
     </div>
 
+    <!-- CANVAS SIDE (right) -->
+    <div class="canvasSide">
+      <div class="toolbar">
+        <button class="btn btnPrimary" id="btnPause" type="button">Pause</button>
+        <button class="btn" id="btnShot" type="button">PNG</button>
+        <button class="btn" id="btnReset" type="button">Reset</button>
+        <button class="btn" id="btnCopy" type="button">Copy URL</button>
+        <button class="btn btnGhost btnRec" id="btnRec" type="button">REC 5s</button>
+        <span class="status" id="status">boot…</span>
+      </div>
+      <div class="canvasWrap">
+        <canvas id="c"></canvas>
+        <div id="recOverlay"></div>
+        <pre id="errEl"></pre>
+      </div>
+    </div>
+
   </div>
 
 <script>
@@ -381,7 +385,8 @@
     "speed","zoom","ox","oy",
     "fov","stepk","swirl","swspd","cap","bias","amp",
     "steps","fbm",
-    "hue","sat","gain","gamma"
+    "hue","sat","gain","gamma",
+    "growth"
   ];
 
   const el = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
@@ -399,6 +404,7 @@
     cap:0.40, bias:0.40, amp:0.30,
     steps:99, fbm:9,
     hue:0.00, sat:0.20, gain:1.00, gamma:1.00,
+    growth:0.30,
   };
 
   const params = Object.assign({}, defaults);
@@ -452,7 +458,8 @@
     setTxt("vHue",   params.hue.toFixed(3));
     setTxt("vSat",   params.sat.toFixed(3));
     setTxt("vGain",  params.gain.toFixed(2));
-    setTxt("vGam",   params.gamma.toFixed(2));
+    setTxt("vGam",    params.gamma.toFixed(2));
+    setTxt("vGrowth", params.growth.toFixed(2));
   }
 
   function commit(){
@@ -543,6 +550,7 @@ uniform vec4 uSteps;   // steps, fbmSteps, unused, unused
 // form/texture controls (actually change geometry)
 uniform vec4 uForm;    // fovZ, stepK, cap, unused
 uniform vec4 uTex;     // swirl, swirlSpeed, bias, amp
+uniform float uGrowth; // organic protrusion amount
 
 out vec4 fragColor;
 
@@ -603,6 +611,9 @@ void main(){
 
     e = --p.y;
 
+    // growth: organic protrusion displacement
+    e += uGrowth * 0.3 * sin(p.x * 4.0 + t) * sin(p.y * 4.0) * sin(p.z * 4.0);
+
     // inner FBM loop: ss *= 2
     float ss = 1.0;
     for(int j=0; j<16; j++){
@@ -632,6 +643,7 @@ uniform vec4 uCol;
 uniform vec4 uSteps;
 uniform vec4 uForm;
 uniform vec4 uTex;
+uniform float uGrowth;
 
 vec3 hsv(float h, float s, float v) {
   vec3 p = abs(fract(vec3(h) + vec3(1.0, 2.0/3.0, 1.0/3.0)) * 6.0 - 3.0);
@@ -682,6 +694,9 @@ void main(){
 
     e = --p.y;
 
+    // growth: organic protrusion displacement
+    e += uGrowth * 0.3 * sin(p.x * 4.0 + t) * sin(p.y * 4.0) * sin(p.z * 4.0);
+
     float ss = 1.0;
     for(int j=0; j<16; j++){
       if(j>=FBM) break;
@@ -709,7 +724,7 @@ void main(){
     return sh;
   }
 
-  let prog, locRes, locTime, locCam, locCol, locSteps, locForm, locTex;
+  let prog, locRes, locTime, locCam, locCol, locSteps, locForm, locTex, locGrowth;
   let vao=null, vbo=null;
 
   function build(){
@@ -733,8 +748,9 @@ void main(){
       locCam   = gl.getUniformLocation(prog, "uCam");
       locCol   = gl.getUniformLocation(prog, "uCol");
       locSteps = gl.getUniformLocation(prog, "uSteps");
-      locForm  = gl.getUniformLocation(prog, "uForm");
-      locTex   = gl.getUniformLocation(prog, "uTex");
+      locForm   = gl.getUniformLocation(prog, "uForm");
+      locTex    = gl.getUniformLocation(prog, "uTex");
+      locGrowth = gl.getUniformLocation(prog, "uGrowth");
 
       if(isWebGL2){
         vao = gl.createVertexArray();
@@ -867,7 +883,8 @@ void main(){
     gl.uniform4f(locCol,   params.hue,   params.sat,   params.gain, params.gamma);
     gl.uniform4f(locSteps, params.steps, params.fbm,   0.0,         0.0);
     gl.uniform4f(locForm,  params.fov,   params.stepk, params.cap,  0.0);
-    gl.uniform4f(locTex,   params.swirl, params.swspd, params.bias, params.amp);
+    gl.uniform4f(locTex,    params.swirl, params.swspd, params.bias, params.amp);
+    gl.uniform1f(locGrowth, params.growth);
 
     if(isWebGL2){
       gl.bindVertexArray(vao);
