@@ -141,8 +141,9 @@
       line-height:.93;
       margin-bottom:28px;
       color:#fff;
+      transition:color 3s ease,text-shadow 3s ease;
     }
-    h1 .teal{color:var(--accent);}
+    h1 .teal{color:var(--accent);transition:color 3s ease,text-shadow 3s ease;}
     .sub{
       font-size:17px;
       color:var(--muted);
@@ -924,6 +925,7 @@
   const wrap = document.getElementById("heroSlideshow");
   if(!wrap) return;
 
+  const heroH1 = document.querySelector(".heroContent h1");
   const GW = "https://dweb.link/ipfs/";
 
   const STATIC = [
@@ -949,11 +951,47 @@
   const DISPLAY_MS    = 25000;
   const TRANSITION_MS = 15000;
 
+  // ── Color extraction ──
+  const offCanvas = document.createElement("canvas");
+  offCanvas.width = offCanvas.height = 50;
+  const offCtx = offCanvas.getContext("2d");
+
+  function dominantColor(imgEl){
+    try{
+      offCtx.drawImage(imgEl, 0, 0, 50, 50);
+      const data = offCtx.getImageData(0, 0, 50, 50).data;
+      let bestR=255, bestG=255, bestB=255, bestSat=0;
+      for(let i=0; i<data.length; i+=4){
+        const r=data[i], g=data[i+1], b=data[i+2];
+        const brightness = (r+g+b)/3;
+        if(brightness < 30 || brightness > 220) continue;
+        const max=Math.max(r,g,b), min=Math.min(r,g,b);
+        const sat = max===0 ? 0 : (max-min)/max;
+        if(sat > bestSat){ bestSat=sat; bestR=r; bestG=g; bestB=b; }
+      }
+      return `rgb(${bestR},${bestG},${bestB})`;
+    }catch(e){
+      return null;
+    }
+  }
+
+  function applyColor(imgEl){
+    if(!heroH1) return;
+    // Ensure image is loaded and CORS-ok before sampling
+    if(!imgEl.complete || imgEl.naturalWidth === 0) return;
+    const color = dominantColor(imgEl);
+    if(!color) return;
+    heroH1.style.color = color;
+    heroH1.style.textShadow = color.replace("rgb(","rgba(").replace(")",",0.35) 0 0 40px");
+  }
+
+  // ── Slideshow ──
   const imgs = [];
   let cur = 0;
 
-  function addImg(src){
+  function addImg(src, crossorigin){
     const el = document.createElement("img");
+    if(crossorigin) el.crossOrigin = "anonymous";
     el.src = src;
     el.alt = "";
     el.style.cssText = `position:absolute;inset:0;width:100%;height:100%;object-fit:cover;` +
@@ -962,16 +1000,28 @@
     imgs.push(el);
   }
 
-  STATIC.forEach(addImg);
-  if(imgs.length) imgs[0].style.opacity = "1";
+  STATIC.forEach(s => addImg(s, false));
+  if(imgs.length){
+    imgs[0].style.opacity = "1";
+    imgs[0].addEventListener("load", () => applyColor(imgs[0]), { once:true });
+    if(imgs[0].complete) applyColor(imgs[0]);
+  }
 
   setInterval(() => {
     if(imgs.length < 2) return;
     imgs[cur].style.opacity = "0";
     cur = (cur + 1) % imgs.length;
-    imgs[cur].style.opacity = "1";
+    const next = imgs[cur];
+    next.style.opacity = "1";
+    // Sample color once image is ready
+    if(next.complete && next.naturalWidth > 0){
+      applyColor(next);
+    }else{
+      next.addEventListener("load", () => applyColor(next), { once:true });
+    }
   }, DISPLAY_MS);
 
+  // ── NFT image fetch ──
   async function getNftImageUrl(buri, id){
     for(const path of [`${buri}/${id}.json`, `${buri}/${id}`]){
       try{
@@ -988,7 +1038,7 @@
 
   for(const [, { buri, ids }] of Object.entries(NFT_IDS)){
     const urls = await Promise.all(ids.map(id => getNftImageUrl(buri, id)));
-    urls.filter(Boolean).forEach(addImg);
+    urls.filter(Boolean).forEach(u => addImg(u, true));
   }
 })();
 </script>
