@@ -105,10 +105,26 @@
       width:100%;height:100%;
       pointer-events:none;
     }
-    .heroContent{
+    .heroInner{
       position:relative;
       z-index:1;
-      max-width:880px;
+      display:flex;
+      align-items:center;
+      gap:48px;
+    }
+    .heroContent{
+      flex:1;
+      min-width:0;
+    }
+    .heroSlideshow{
+      width:400px;
+      height:400px;
+      flex-shrink:0;
+      position:relative;
+      border:1px solid var(--border);
+      border-radius:8px;
+      overflow:hidden;
+      background:var(--card);
     }
     .heroEyebrow{
       font-size:11px;
@@ -198,7 +214,8 @@
       margin-bottom:20px;
       position:relative;
     }
-    .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+    .thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;z-index:0;}
+    .thumb .hint,.thumb .bottomline{z-index:1;}
     .thumb .tag{
       position:absolute;left:10px;top:10px;
       padding:5px 10px;
@@ -302,6 +319,7 @@
       h1{font-size:clamp(44px,10vw,72px);}
       .cards{grid-template-columns:1fr;}
       .brand small{display:none;}
+      .heroSlideshow{display:none;}
     }
     @media(max-width:600px){
       .hero{padding:64px 0 52px;}
@@ -336,13 +354,16 @@
     <!-- HERO -->
     <section class="hero">
       <canvas id="heroCanvas"></canvas>
-      <div class="heroContent">
-        <div class="heroEyebrow">KRC-20 · Kaspa BlockDAG</div>
-        <h1>PIXEL<br>ON <span class="teal">KASPA</span></h1>
-        <p class="sub"><b>$PIXEL</b> KRC-20 utility token on Kaspa.</p>
-        <div class="heroCtas">
-          <a class="btn btnPrimary" href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">Open $PIXEL</a>
+      <div class="heroInner">
+        <div class="heroContent">
+          <div class="heroEyebrow">KRC-20 · Kaspa BlockDAG</div>
+          <h1>PIXEL<br>ON <span class="teal">KASPA</span></h1>
+          <p class="sub"><b>$PIXEL</b> KRC-20 utility token on Kaspa.</p>
+          <div class="heroCtas">
+            <a class="btn btnPrimary" href="https://kaspa.com/tokens/marketplace/token/PIXEL" target="_blank" rel="noreferrer">Open $PIXEL</a>
+          </div>
         </div>
+        <div id="heroSlideshow" class="heroSlideshow"></div>
       </div>
     </section>
 
@@ -794,9 +815,9 @@
 
       const bottomline = thumb.querySelector(".bottomline")?.outerHTML || "";
       thumb.innerHTML = `
+        <img src="${url}" alt="${tick} cover" loading="lazy">
         <span class="hint">Last mint: #${labelId}</span>
         ${bottomline}
-        <img src="${url}" alt="${tick} cover" loading="lazy">
       `;
 
       const img = thumb.querySelector("img");
@@ -895,6 +916,89 @@
     cur = (cur + 1) % imgs.length;
     imgs[cur].style.opacity = "1";
   }, 15000);
+})();
+</script>
+
+<script>
+// ── HERO SLIDESHOW ──
+(async function(){
+  const wrap = document.getElementById("heroSlideshow");
+  if(!wrap) return;
+
+  const GW     = "https://dweb.link/ipfs/";
+  const STREAM = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
+
+  const STATIC = [
+    "assets/img/rec3.png",
+    "assets/img/rec4.png",
+    "assets/img/rec5.png",
+    "assets/img/yohei_1769012405915.png",
+    "assets/img/yohei_1769032347663.png",
+    "assets/img/koma_1769014545384.png",
+    "assets/img/koma_1770142718909.png"
+  ];
+
+  const imgs = [];
+  let cur = 0;
+
+  function addImg(src){
+    const el = document.createElement("img");
+    el.src = src;
+    el.alt = "";
+    el.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity 1.2s ease;opacity:0;";
+    wrap.appendChild(el);
+    imgs.push(el);
+  }
+
+  STATIC.forEach(addImg);
+  if(imgs.length) imgs[0].style.opacity = "1";
+
+  setInterval(() => {
+    if(imgs.length < 2) return;
+    imgs[cur].style.opacity = "0";
+    cur = (cur + 1) % imgs.length;
+    imgs[cur].style.opacity = "1";
+  }, 4000);
+
+  async function getMintedIds(tick, max){
+    try{
+      const r = await fetch(`${STREAM}/ranges/${encodeURIComponent(tick)}`, { cache:"no-store" });
+      if(!r.ok) return [];
+      const { result } = await r.json();
+      if(typeof result !== "string") return [];
+      const nums = result.split(",").map(Number).filter(Number.isFinite);
+      const avail = new Set();
+      for(let i=0;i<nums.length-1;i+=2) for(let j=0;j<nums[i+1];j++) avail.add(nums[i]+j);
+      const out = [];
+      for(let id=1;id<=max;id++) if(!avail.has(id)) out.push(id);
+      return out;
+    }catch(e){ return []; }
+  }
+
+  async function getNftImageUrl(buri, id){
+    for(const path of [`${buri}/${id}.json`, `${buri}/${id}`]){
+      try{
+        const r = await fetch(GW + path, { cache:"no-store" });
+        if(!r.ok) continue;
+        const meta = await r.json();
+        const raw = meta?.image || meta?.image_url || meta?.properties?.image;
+        if(!raw) continue;
+        return raw.startsWith("ipfs://") ? GW + raw.slice(7) : raw;
+      }catch(e){}
+    }
+    return null;
+  }
+
+  for(const [tick, max, buri] of [
+    ["PIXELONKAS", 342, "bafybeih2phpjzxfrszsscpmxdr44kliaddto3sicsdh44kgx7b3f43fdvm"],
+    ["SYKORA",    2518, "bafybeifema4upmzu7c4iipvxdagctirxf46g3htmsin6l66zm77dibfhaq"]
+  ]){
+    const minted = await getMintedIds(tick, max);
+    if(!minted.length) continue;
+    const picks = [...minted].sort(()=>Math.random()-.5).slice(0, 3);
+    const urls = await Promise.all(picks.map(id => getNftImageUrl(buri, id)));
+    urls.filter(Boolean).forEach(addImg);
+  }
 })();
 </script>
 </body>
