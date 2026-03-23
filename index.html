@@ -425,7 +425,7 @@
     <section class="cards">
       <div class="card">
         <div class="thumb artistThumb" id="komaThumb">
-          <canvas id="komaPreview" class="artistPreview"></canvas>
+          <div id="komaSlideshow"></div>
           <span class="hint">@KomaTebe</span>
           <div class="bottomline">
             <b>Koma Tebe</b><br>
@@ -861,87 +861,28 @@
 </script>
 
 <script>
-// ── KOMA PREVIEW — p5-style particle sketch ──
+// ── KOMA PREVIEW — image crossfade slideshow ──
 (function(){
-  const canvas = document.getElementById("komaPreview");
-  const thumb  = document.getElementById("komaThumb");
-  if(!canvas || !thumb) return;
-  const ctx = canvas.getContext("2d");
-
-  const COLS = 8, ROWS = 8;
-  const particles = [];
-
-  function resize(){
-    const r = thumb.getBoundingClientRect();
-    canvas.width  = Math.round(r.width)  || 300;
-    canvas.height = Math.round(r.height) || 300;
-  }
-
-  function init(){
-    particles.length = 0;
-    const cw = canvas.width, ch = canvas.height;
-    const cellW = cw / COLS, cellH = ch / ROWS;
-    for(let row = 0; row < ROWS; row++){
-      for(let col = 0; col < COLS; col++){
-        // Place each particle at its grid cell center
-        particles.push({
-          x:     (col + .5) * cellW,
-          y:     (row + .5) * cellH,
-          homeX: (col + .5) * cellW,
-          homeY: (row + .5) * cellH,
-          phase: (col * ROWS + row) * (Math.PI * 2 / (COLS * ROWS)),
-          size:  Math.random() * 1.2 + .6,
-        });
-      }
-    }
-    ctx.fillStyle = "#070c0c";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }
-
-  function draw(){
-    ctx.fillStyle = "rgba(7,12,12,0.12)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    const t = performance.now() * .001 * .3; // 70% slower
-    const amp = canvas.width * .045; // gentle orbital radius
-
-    for(const p of particles){
-      // Ordered geometric orbit around grid home position
-      p.x = p.homeX + Math.cos(t + p.phase) * amp;
-      p.y = p.homeY + Math.sin(t * .7 + p.phase) * amp * .6;
-    }
-
-    // Connection lines — white
-    for(let i = 0; i < particles.length; i++){
-      for(let j = i + 1; j < particles.length; j++){
-        const dx = particles[i].x - particles[j].x;
-        const dy = particles[i].y - particles[j].y;
-        const d  = Math.sqrt(dx*dx + dy*dy);
-        if(d < 60){
-          ctx.strokeStyle = `rgba(255,255,255,${(1 - d/60) * .18})`;
-          ctx.lineWidth = .6;
-          ctx.beginPath();
-          ctx.moveTo(particles[i].x, particles[i].y);
-          ctx.lineTo(particles[j].x, particles[j].y);
-          ctx.stroke();
-        }
-      }
-    }
-
-    // Dots — white
-    for(const p of particles){
-      const pulse = .5 + .25 * Math.sin(t * 1.4 + p.phase);
-      ctx.fillStyle = `rgba(255,255,255,${pulse})`;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
-      ctx.fill();
-    }
-
-    requestAnimationFrame(draw);
-  }
-
-  new ResizeObserver(()=>{ resize(); init(); }).observe(thumb);
-  resize(); init(); draw();
+  const wrap = document.getElementById("komaSlideshow");
+  if(!wrap) return;
+  const srcs = [
+    "assets/img/koma_1769014545384.png",
+    "assets/img/koma_1770142718909.png"
+  ];
+  wrap.style.cssText = "position:absolute;inset:0;";
+  const imgs = srcs.map((src, i) => {
+    const el = document.createElement("img");
+    el.src = src;
+    el.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity 15s ease;opacity:" + (i === 0 ? "1" : "0") + ";";
+    wrap.appendChild(el);
+    return el;
+  });
+  let cur = 0;
+  setInterval(() => {
+    imgs[cur].style.opacity = "0";
+    cur = (cur + 1) % imgs.length;
+    imgs[cur].style.opacity = "1";
+  }, 25000);
 })();
 </script>
 
