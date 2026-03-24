@@ -468,9 +468,19 @@
     dryGain.gain.value = 0.60;
     pre.connect(dryGain);
 
+    // master delay mix gain — scales all 4 delay wet outputs together
+    const delayMixGain = actx.createGain();
+    delayMixGain.gain.value = delayMix;
+    delayOut.connect(delayMixGain);
+
     const mixBus = actx.createGain();
     dryGain.connect(mixBus);
-    delayOut.connect(mixBus);
+    delayMixGain.connect(mixBus);
+
+    // tap mixBus directly into analysers so delay echoes register
+    // before the limiter can suppress them
+    mixBus.connect(analyserF);
+    mixBus.connect(analyserT);
 
     // ── Reverb ──
     const convolver = actx.createConvolver();
@@ -535,6 +545,7 @@
       _noiseBuf: null,
       oscSin, oscTri, oscDet,
       pd1, pd2, pd3, pd4,
+      delayMixGain,
       distNode, filterNode, rvWet, rvDry,
       chorusDelay, chorusLFO, chorusLFOGain, chorusWetGain,
       setMute(on) {
@@ -573,6 +584,10 @@
         this.pd4.dNode.delayTime.setTargetAtTime(clamp(d4Time,0,2), t, 0.02);
         this.pd4.fbGain.gain.setTargetAtTime(clamp(d4Fb,0,0.95), t, 0.02);
         this.pd4.wetGain.gain.setTargetAtTime(d4Wet, t, 0.02);
+        this.delayMixGain.gain.setTargetAtTime(delayMix, t, 0.02);
+      },
+      setDelayMix() {
+        this.delayMixGain.gain.setTargetAtTime(delayMix, this.ctx.currentTime, 0.02);
       },
       setEffectParams() {
         const t = this.ctx.currentTime;
@@ -677,10 +692,11 @@
   };
 
   // ── delay bank state ──
-  let d1Time = 0.15, d1Fb = 0.40, d1Wet = 0.50;
+  let d1Time = 0.15, d1Fb = 0.60, d1Wet = 0.50;
   let d2Time = 0.30, d2Fb = 0.50, d2Wet = 0.40;
-  let d3Time = 0.70, d3Fb = 0.55, d3Wet = 0.30;
-  let d4Time = 0.08, d4Fb = 0.35, d4Wet = 0.40;
+  let d3Time = 0.70, d3Fb = 0.40, d3Wet = 0.30;
+  let d4Time = 0.08, d4Fb = 0.60, d4Wet = 0.40;
+  let delayMix = 0.75;
 
   // ── effects state ──
   let reverbWet    = 0.30;
@@ -1060,6 +1076,7 @@
   bindRangeSlider("d4TimeSlider","d4TimeVal", ()=>d4Time, v=>{d4Time=v;}, v=>v.toFixed(2)+"s", ()=>{ if(audio) audio.setDelayParams(); });
   bindRangeSlider("d4FbSlider",  "d4FbVal",   ()=>d4Fb,   v=>{d4Fb=clamp(v,0,0.95);}, v=>v.toFixed(2), ()=>{ if(audio) audio.setDelayParams(); });
   bindRangeSlider("d4WetSlider", "d4WetVal",  ()=>d4Wet,  v=>{d4Wet=clamp(v,0,1);}, v=>v.toFixed(2), ()=>{ if(audio) audio.setDelayParams(); });
+  bindRangeSlider("delayMixSlider", "delayMixVal", ()=>delayMix, v=>{delayMix=clamp(v,0,1);}, v=>v.toFixed(2), ()=>{ if(audio) audio.setDelayMix(); });
 
   // ── effects UI bindings ──
   bindRangeSlider("reverbWetSlider",    "reverbWetVal",    ()=>reverbWet,    v=>{reverbWet=clamp(v,0,1);},       v=>v.toFixed(2),        ()=>{ if(audio) audio.setEffectParams(); });
@@ -1187,11 +1204,18 @@
       const expoReact = clamp(0.85 + (1.60 * aB + 0.35 * snareFlash) * R, 0.40, 3.00);
       const warpReact = clamp(0.80 + (1.85 * aH) * R, 0.00, 2.40);
 
-      const densityMulEff = clamp(densityMul * densReact, 0.2, 2.8);
+      // ── delay → visual modulation ──
+      const dMix = delayMix;
+      const d1VisWarp    = d1Fb * d1Wet * dMix * 0.55;  // d1 short echo → warp
+      const d2VisDens    = 1 + d2Fb * d2Wet * dMix * 0.90; // d2 medium → density
+      const d3VisPhiSprd = d3Fb * d3Wet * dMix * 0.10;  // d3 long → phiSpread boost
+      const d4VisFlutter = d4Fb * d4Wet * dMix * 10.0;  // d4 flutter → pixel jitter
+
+      const densityMulEff = clamp(densityMul * densReact * d2VisDens, 0.2, 3.5);
       const exposureEff   = clamp(exposure   * expoReact, 0.4, 3.2);
 
       const warpMulUser = warpMul;
-      if (audio && warpOn) warpMul = clamp(warpMul * warpReact, 0, 2.0);
+      if (audio && warpOn) warpMul = clamp(warpMul * warpReact + d1VisWarp, 0, 2.0);
       const p = effective(now);
       warpMul = warpMulUser;
 
@@ -1219,7 +1243,7 @@
 
       const amp = (0.86 + 0.16 * Math.sin(TAU * (p.ampRate * p.nowSec)));
       const dens = (0.62 + 0.38 * Math.sin(TAU * (p.densRate * p.nowSec + 0.2)));
-      const phiSpread = p.phiSpreadBase * (0.55 + 1.05 * (1 - dens));
+      const phiSpread = p.phiSpreadBase * (0.55 + 1.05 * (1 - dens)) + d3VisPhiSprd;
       const phiBase = p.phi + (driftOn ? driftPhase : 0);
 
       const q = clamp(quality * qAuto, 0.20, 1.20);
@@ -1263,8 +1287,10 @@
           const phiPoint = layerPhi + (rr() * 2 - 1) * phiSpread;
           const { x, y } = xyAt(t, pLayer, phiPoint, p.nowSec);
 
-          const px0 = (cx + x * sx * amp) | 0;
-          const py0 = (cy - y * sy * amp) | 0;
+          const flutterX = d4VisFlutter * Math.sin(p.nowSec * 47.3 + i * 0.11);
+          const flutterY = d4VisFlutter * Math.cos(p.nowSec * 53.7 + i * 0.07);
+          const px0 = (cx + x * sx * amp + flutterX) | 0;
+          const py0 = (cy - y * sy * amp + flutterY) | 0;
           const px = (px0 + (((rr() * 2 - 1) * jitterK) | 0));
           const py = (py0 + (((rr() * 2 - 1) * jitterK) | 0));
 
