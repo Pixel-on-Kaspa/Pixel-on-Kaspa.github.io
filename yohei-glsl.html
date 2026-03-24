@@ -788,12 +788,33 @@ void main(){
     btnPause.classList.toggle("btnGhost", paused);
   });
 
-  // ── PNG screenshot ──
+  // ── PNG screenshot (2x resolution) ──
   document.getElementById("btnShot").addEventListener("click", ()=>{
+    // Render at 2x display size
+    const w2 = canvas.clientWidth  * 2;
+    const h2 = canvas.clientHeight * 2;
+    canvas.width = w2; canvas.height = h2;
+    gl.viewport(0, 0, w2, h2);
+    // Draw one high-res frame
+    const time = (performance.now() - t0) / 1000;
+    gl.useProgram(prog);
+    gl.uniform3f(locRes, w2, h2, 1.0);
+    gl.uniform1f(locTime, time);
+    gl.uniform4f(locCam,   params.zoom,  params.ox,    params.oy,   params.speed);
+    gl.uniform4f(locCol,   params.hue,   params.sat,   params.gain, params.gamma);
+    gl.uniform4f(locSteps, params.steps, params.fbm,   0.0,         0.0);
+    gl.uniform4f(locForm,  params.fov,   params.stepk, params.cap,  0.0);
+    gl.uniform4f(locTex,   params.swirl, params.swspd, params.bias, params.amp);
+    gl.uniform1f(locGrowth, params.growth);
+    if(isWebGL2){ gl.bindVertexArray(vao); gl.drawArrays(gl.TRIANGLES,0,3); }
+    else{ gl.drawArrays(gl.TRIANGLES,0,6); }
+    // Save PNG
     const a = document.createElement("a");
     a.download = `yohei-glsl-${Date.now()}.png`;
     a.href = canvas.toDataURL("image/png");
     a.click();
+    // Restore normal size next frame
+    requestAnimationFrame(resize);
   });
 
   // ── REC 5s ──
@@ -819,18 +840,22 @@ void main(){
       endRec(); return;
     }
 
-    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
-      ? "video/webm;codecs=vp9"
-      : "video/webm";
+    const FORMATS = [
+      { mime: "video/mp4",             ext: "mp4"  },
+      { mime: "video/webm;codecs=h264",ext: "webm" },
+      { mime: "video/webm;codecs=vp9", ext: "webm" },
+      { mime: "video/webm",            ext: "webm" },
+    ];
+    const fmt = FORMATS.find(f => MediaRecorder.isTypeSupported(f.mime)) || FORMATS[3];
 
-    const rec = new MediaRecorder(stream, { mimeType });
+    const rec = new MediaRecorder(stream, { mimeType: fmt.mime, videoBitsPerSecond: 8_000_000 });
     rec.ondataavailable = e => { if(e.data.size > 0) chunks.push(e.data); };
     rec.onstop = () => {
-      const blob = new Blob(chunks, { type: "video/webm" });
+      const blob = new Blob(chunks, { type: fmt.mime });
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement("a");
       a.href = url;
-      a.download = `yohei-glsl-${Date.now()}.webm`;
+      a.download = `yohei-glsl-${Date.now()}.${fmt.ext}`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 3000);
       endRec();
