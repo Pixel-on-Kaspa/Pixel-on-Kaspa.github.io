@@ -3,436 +3,404 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SYNTHI • INDEX</title>
+  <title>SYNTHI • Pixel on Kaspa</title>
   <style>
     :root{
-      --bg1:#0e1220;
-      --bg2:#050608;
-      --panel: rgba(255,255,255,.05);
-      --border: rgba(255,255,255,.10);
-      --muted: rgba(255,255,255,.70);
-      --text:#f5f5f5;
-      --accent:#00c4ff;
-      --shadow: 0 18px 35px rgba(0,0,0,.55);
-      --radius: 18px;
+      --bg:     #050a0a;
+      --bg2:    #0a0f0f;
+      --card:   #0d1117;
+      --border: rgba(255,255,255,.08);
+      --muted:  rgba(255,255,255,.50);
+      --accent: #9B59B6;
+      --accent-dim: rgba(155,89,182,.12);
+      --accent-glow: rgba(155,89,182,.30);
+      --text:   #f0f0f0;
     }
-    *{box-sizing:border-box}
+    *{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%}
     body{
-      margin:0;
-      font-family: system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
-      background: radial-gradient(circle at top, var(--bg1) 0, var(--bg2) 56%);
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
+      background:var(--bg);
       color:var(--text);
       min-height:100vh;
     }
-    a{color:inherit}
-    .wrap{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
+    a{color:inherit;text-decoration:none}
 
+    /* ── NAVBAR ── */
     .topbar{
-      display:flex;align-items:center;justify-content:space-between;gap:14px;
-      border:1px solid var(--border);
-      border-radius:16px;
-      background: rgba(0,0,0,.22);
-      backdrop-filter: blur(10px);
-      padding:12px 14px;
-      box-shadow: var(--shadow);
+      position:sticky;top:0;z-index:100;
+      display:flex;align-items:center;justify-content:space-between;
+      gap:14px;
+      background:rgba(5,10,10,.97);
+      border-bottom:1px solid var(--border);
+      padding:0 32px;
+      height:52px;
     }
     .brand{
-      display:flex;align-items:center;gap:10px;
-      font-weight:900;
-      letter-spacing:.12em;
-      text-transform:uppercase;
-      white-space:nowrap;
+      display:flex;align-items:baseline;gap:10px;
+      letter-spacing:.14em;text-transform:uppercase;font-weight:900;font-size:15px;white-space:nowrap;
     }
-    .brand img{width:28px;height:28px;display:block;border-radius:8px}
-    .nav{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+    .brand small{color:var(--muted);font-weight:600;letter-spacing:.06em;text-transform:none;font-size:12px;}
+    .nav{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center;}
 
+    /* ── BUTTONS ── */
     .btn{
       text-decoration:none;
-      display:inline-flex;align-items:center;gap:8px;
-      padding:9px 14px;border-radius:999px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
-      color: rgba(255,255,255,.90);
-      font-weight:850;
-      transition: background .15s, transform .15s, border-color .15s;
-      white-space:nowrap;line-height:1;cursor:pointer;
-      user-select:none;
+      display:inline-flex;align-items:center;gap:6px;
+      padding:7px 13px;
+      border-radius:4px;
+      border:1px solid var(--border);
+      background:transparent;
+      color:var(--muted);
+      font-weight:700;font-size:13px;letter-spacing:.04em;
+      transition:color .15s,border-color .15s,background .15s;
+      white-space:nowrap;line-height:1;cursor:pointer;user-select:none;
     }
-    .btn:hover{background: rgba(255,255,255,.10);transform: translateY(-1px);}
-    .btnPrimary{
-      border-color: rgba(0,196,255,.55);
-      background: rgba(0,196,255,.10);
-      color: var(--accent);
-    }
-    .btnPrimary:hover{background: rgba(0,196,255,.18);}
-    .btnSm{padding:8px 12px;font-size:13px}
+    .btn:hover{color:var(--text);border-color:rgba(255,255,255,.22);}
+    .btnPrimary{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);font-weight:800;}
+    .btnPrimary:hover{background:var(--accent);color:#f0f0f0;}
+    .btnGhost{border-color:var(--border);color:var(--muted);}
+    .btnGhost:hover{color:var(--text);border-color:rgba(255,255,255,.22);}
 
+    /* ── LAYOUT ── */
+    .wrap{max-width:1200px;margin:0 auto;padding:0 32px 80px;}
+
+    /* ── HERO ── */
     .hero{
-      margin-top:14px;
-      border:1px solid var(--border);
-      border-radius:22px;
-      background: rgba(0,0,0,.20);
-      backdrop-filter: blur(10px);
-      box-shadow: var(--shadow);
-      padding:14px;
       position:relative;
+      padding:80px 0 64px;
       overflow:hidden;
     }
-    .hero::before{
-      content:"";
-      position:absolute;inset:-150px -180px auto auto;
-      width:340px;height:340px;
-      background: radial-gradient(circle at center, rgba(0,196,255,.16), transparent 60%);
-      filter: blur(2px);
-      transform: rotate(8deg);
-      pointer-events:none;
+    #heroCanvas{
+      position:absolute;inset:0;width:100%;height:100%;pointer-events:none;
     }
-    .heroGrid{
+    .heroContent{position:relative;z-index:1;}
+    .heroEyebrow{
+      font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
+      color:var(--accent);margin-bottom:20px;
+    }
+    h1{
+      font-size:clamp(52px,8vw,88px);
+      font-weight:900;letter-spacing:-.02em;text-transform:uppercase;line-height:.93;
+      margin-bottom:22px;color:#fff;
+    }
+    h1 .pur{color:var(--accent);}
+    .sub{font-size:17px;color:var(--muted);max-width:50ch;line-height:1.65;}
+    .heroCtas{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px;}
+
+    /* ── DIVIDER ── */
+    .divider{height:1px;background:var(--border);margin:56px 0 44px;}
+
+    /* ── SECTION TITLE ── */
+    .sectionTitle{
+      margin:0 0 20px;
+      letter-spacing:.14em;text-transform:uppercase;font-weight:800;font-size:11px;
+      color:var(--muted);
+      border-left:2px solid var(--accent);padding-left:12px;
+      display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    }
+    .sectionTitle span{color:var(--muted);font-weight:500;letter-spacing:.04em;text-transform:none;font-size:11px;opacity:.65;}
+
+    /* ── CARDS GRID ── */
+    .cards{
       display:grid;
-      grid-template-columns: 1.25fr .75fr;
-      gap:14px;
-      align-items:center;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:1px;background:var(--border);border:1px solid var(--border);
     }
-    .hero h1{
-      margin:0 0 6px;
-      font-size:34px;
-      letter-spacing:.18em;
-      text-transform:uppercase;
-      line-height:1.02;
+    .card{
+      background:var(--card);padding:24px;
+      transition:background .15s;position:relative;overflow:hidden;
     }
-    .hero p{margin:0;opacity:.84;max-width:70ch}
-    .hero .sub{margin-top:7px;opacity:.70;font-size:13px}
-    .heroCtas{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .card::after{
+      content:"";position:absolute;bottom:0;left:0;right:0;height:2px;
+      background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform .22s ease;
+    }
+    .card:hover{background:#0b1219;}
+    .card:hover::after{transform:scaleX(1);}
 
-    .heroArt{display:flex;justify-content:flex-end;align-items:center;}
-    .heroArt .frame{
-      width:min(200px, 44vw);
-      aspect-ratio: 1/1;
-      border-radius: 16px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.25);
-      box-shadow: 0 18px 50px rgba(0,0,0,.55);
-      overflow:hidden;
-      position:relative;
+    /* card icon area */
+    .cardIcon{
+      width:100%;aspect-ratio:16/9;
+      background:#070c0c;border:1px solid var(--border);
+      display:flex;align-items:center;justify-content:center;
+      margin-bottom:20px;position:relative;overflow:hidden;
     }
-    .heroArt img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
-      opacity:.92;
-      filter: contrast(1.05);
+    .cardIcon img{width:72px;height:72px;object-fit:contain;opacity:.9;}
+
+    /* waveform icon */
+    .waveformIcon{display:flex;align-items:center;gap:3px;height:40px;}
+    .waveformIcon span{
+      display:block;width:4px;border-radius:2px;background:var(--accent);
+      animation:wave 1.2s ease-in-out infinite;
+      opacity:.8;
     }
-    .heroArt .label{
-      position:absolute;left:10px;bottom:10px;
-      padding:7px 9px;border-radius:12px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(0,0,0,.35);
-      backdrop-filter: blur(10px);
-      font-size:11px;
-      opacity:.90;
-      letter-spacing:.10em;
-      text-transform:uppercase;
-      font-weight:900;
+    .waveformIcon span:nth-child(1){height:14px;animation-delay:0s;}
+    .waveformIcon span:nth-child(2){height:30px;animation-delay:.1s;}
+    .waveformIcon span:nth-child(3){height:22px;animation-delay:.2s;}
+    .waveformIcon span:nth-child(4){height:38px;animation-delay:.3s;}
+    .waveformIcon span:nth-child(5){height:26px;animation-delay:.4s;}
+    .waveformIcon span:nth-child(6){height:18px;animation-delay:.5s;}
+    .waveformIcon span:nth-child(7){height:32px;animation-delay:.35s;}
+    .waveformIcon span:nth-child(8){height:20px;animation-delay:.15s;}
+    @keyframes wave{
+      0%,100%{transform:scaleY(1);}
+      50%{transform:scaleY(.4);}
     }
 
-    .grid{
-      margin-top:14px;
-      display:grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap:14px;
-      align-items:start;
+    /* pulse icon */
+    .pulseIcon{position:relative;width:48px;height:48px;display:flex;align-items:center;justify-content:center;}
+    .pulseIcon .ring{
+      position:absolute;inset:0;border-radius:50%;border:2px solid var(--accent);
+      animation:pulse 2s ease-out infinite;opacity:0;
     }
-    .panel{
-      border:1px solid var(--border);
-      border-radius: var(--radius);
-      background: rgba(0,0,0,.18);
-      backdrop-filter: blur(10px);
-      box-shadow: var(--shadow);
-      overflow:hidden;
+    .pulseIcon .ring:nth-child(2){animation-delay:.7s;}
+    .pulseIcon .dot{width:14px;height:14px;border-radius:50%;background:var(--accent);}
+    @keyframes pulse{
+      0%{transform:scale(.5);opacity:.9;}
+      100%{transform:scale(2.2);opacity:0;}
     }
-    .panelHead{
-      padding:12px 14px;
-      border-bottom:1px solid rgba(255,255,255,.10);
-      display:flex;justify-content:space-between;align-items:center;gap:10px;
-    }
-    .panelHead b{
-      letter-spacing:.14em;
-      text-transform:uppercase;
-      font-size:12px;
-      opacity:.92;
-    }
-    .panelBody{padding:14px}
-    .muted{opacity:.76}
 
+    .cardHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;}
+    .cardHead b{font-size:15px;letter-spacing:.1em;text-transform:uppercase;font-weight:900;}
     .chip{
-      padding:6px 10px;border-radius:999px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.05);
-      font-size:12px;
-      opacity:.88;
-      white-space:nowrap;
+      padding:4px 10px;border:1px solid var(--border);background:transparent;
+      color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.06em;white-space:nowrap;
     }
+    .card p{margin:0 0 18px;color:var(--muted);line-height:1.6;font-size:14px;}
+    .cardActions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
 
+    /* ── STREAMS SECTION ── */
     .streamGrid{
       display:grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap:12px;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:1px;background:var(--border);border:1px solid var(--border);
     }
-    .sCard{
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-      border-radius: 16px;
-      overflow:hidden;
-      transition: transform .15s, border-color .15s, background .15s;
-    }
-    .sCard:hover{
-      transform: translateY(-2px);
-      border-color: rgba(0,196,255,.22);
-      background: rgba(255,255,255,.06);
-    }
+    .sCard{background:var(--card);overflow:hidden;transition:background .15s;}
+    .sCard:hover{background:#0b1219;}
     .sThumb{
-      width:100%;
-      aspect-ratio: 16/10;
-      background: radial-gradient(circle at top, rgba(0,196,255,.14), rgba(0,0,0,.75) 65%);
-      position:relative;
-      overflow:hidden;
-      border-bottom:1px solid rgba(255,255,255,.08);
+      width:100%;aspect-ratio:16/10;
+      background:radial-gradient(circle at top,rgba(155,89,182,.18),rgba(0,0,0,.75) 65%);
+      position:relative;overflow:hidden;border-bottom:1px solid var(--border);
     }
-    .sThumb img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
-      opacity:.95;
-    }
+    .sThumb img{width:100%;height:100%;object-fit:cover;display:block;opacity:.95;}
     .sThumb .badge{
       position:absolute;left:10px;top:10px;
-      padding:7px 10px;border-radius:999px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(0,0,0,.35);
-      backdrop-filter: blur(10px);
-      font-size:11px;
-      opacity:.92;
-      letter-spacing:.10em;
-      text-transform:uppercase;
-      font-weight:900;
+      padding:5px 9px;border:1px solid var(--border);
+      background:rgba(0,0,0,.55);backdrop-filter:blur(6px);
+      font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:900;color:var(--text);
     }
-    .sBody{padding:12px}
-    .sTitle{
-      margin:0;
-      font-weight:900;
-      letter-spacing:.12em;
-      text-transform:uppercase;
-      font-size:13px;
-    }
-    .sMeta{
-      margin-top:6px;
-      font-size:12px;
-      opacity:.72;
-      display:flex;gap:8px;flex-wrap:wrap;
-    }
-    .sActions{
-      margin-top:10px;
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-    }
+    .sBody{padding:14px;}
+    .sTitle{font-weight:900;letter-spacing:.10em;text-transform:uppercase;font-size:12px;margin-bottom:10px;}
+    .sMeta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+    .sMeta .chip{font-size:10px;}
+    .sActions{display:flex;gap:8px;flex-wrap:wrap;}
+    .btnSm{padding:5px 10px;font-size:12px;}
 
-    .stack{display:flex;flex-direction:column;gap:14px}
-    .linkRow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-
-    /* Custom audio UI */
-    .audioTop{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
-    .audioTitle{font-weight:900;letter-spacing:.12em;text-transform:uppercase;}
-    .audioTime{opacity:.75;font-size:12px;white-space:nowrap}
-    .bar{
-      width:100%;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.04);
-      border-radius:14px;
-      padding:10px 12px;
-      margin-top:12px;
+    /* ── AUDIO PLAYER ── */
+    .audioPanel{
+      border:1px solid var(--border);background:var(--card);padding:28px 28px 24px;
+      margin-top:1px;
     }
-    .barHead{display:flex;justify-content:space-between;align-items:center;gap:10px}
-    .barLabel{font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.9;font-weight:900}
-    .barVal{font-size:12px;opacity:.75;white-space:nowrap}
-    input[type="range"]{width:100%}
-
-    /* Hide the iframe engine */
+    .audioPanel h3{
+      font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+      color:var(--muted);margin-bottom:20px;
+      border-left:2px solid var(--accent);padding-left:12px;
+    }
+    .audioTop{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;}
+    .audioTitle{font-weight:900;letter-spacing:.12em;text-transform:uppercase;font-size:15px;}
+    .audioTime{opacity:.65;font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
+    .audioControls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+    .audioSlider{margin-bottom:12px;}
+    .audioSliderHead{display:flex;justify-content:space-between;margin-bottom:6px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;}
+    input[type="range"]{
+      width:100%;height:3px;-webkit-appearance:none;appearance:none;
+      background:rgba(255,255,255,.12);border-radius:2px;outline:none;cursor:pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb{
+      -webkit-appearance:none;width:13px;height:13px;border-radius:2px;
+      background:var(--accent);cursor:pointer;
+    }
+    input[type="range"]::-moz-range-thumb{
+      width:13px;height:13px;border-radius:2px;background:var(--accent);border:none;cursor:pointer;
+    }
     .scEngine{
-      position:absolute !important;
-      width:1px !important;
-      height:1px !important;
-      left:-9999px !important;
-      top:-9999px !important;
-      opacity:0 !important;
-      pointer-events:none !important;
+      position:absolute !important;width:1px !important;height:1px !important;
+      left:-9999px !important;top:-9999px !important;
+      opacity:0 !important;pointer-events:none !important;
     }
 
+    /* ── FOOTER ── */
     footer{
-      margin-top:18px;
-      opacity:.70;
-      font-size:13px;
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      flex-wrap:wrap;
+      margin-top:80px;padding-top:24px;border-top:1px solid var(--border);
+      color:var(--muted);font-size:12px;
+      display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
     }
-    footer a{color: var(--accent); text-decoration:none}
-    footer a:hover{text-decoration:underline}
+    footer a{color:var(--accent);}
+    footer a:hover{color:#fff;}
 
-    @media (max-width: 980px){
-      .heroGrid{grid-template-columns:1fr}
-      .heroArt{justify-content:flex-start}
-      .grid{grid-template-columns:1fr}
-      .streamGrid{grid-template-columns: repeat(2, minmax(0, 1fr));}
-      .hero h1{font-size:32px;letter-spacing:.14em}
-      .heroArt .frame{width:min(190px, 60vw)}
+    @media(max-width:900px){
+      .topbar{padding:0 16px;}
+      .wrap{padding:0 16px 60px;}
+      h1{font-size:clamp(44px,10vw,72px);}
+      .cards{grid-template-columns:1fr;}
+      .streamGrid{grid-template-columns:repeat(2,minmax(0,1fr));}
+      .brand small{display:none;}
+      .hero{padding:60px 0 48px;}
     }
-    @media (max-width: 560px){
-      .streamGrid{grid-template-columns:1fr}
+    @media(max-width:560px){
+      .streamGrid{grid-template-columns:1fr;}
+      .nav .btn:not(.btnPrimary){display:none;}
     }
   </style>
 </head>
 <body>
+
+  <!-- NAVBAR -->
+  <nav class="topbar">
+    <a class="brand" href="../index.html">
+      PIXEL ON KASPA <small>SYNTHI · sound system</small>
+    </a>
+    <div class="nav">
+      <a class="btn" href="../index.html">Home</a>
+      <a class="btn btnPrimary" href="./rec.html">REC Streams</a>
+      <a class="btn" href="./generator.html">Generator</a>
+      <a class="btn" href="../viewer">NFTs</a>
+      <a class="btn btnGhost" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
+      <a class="btn btnGhost" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
+    </div>
+  </nav>
+
   <div class="wrap">
 
-    <div class="topbar">
-      <div class="brand">
-        <img src="../assets/img/logo.png" alt="SYNTHI">
-        SYNTHI • INDEX
+    <!-- HERO -->
+    <section class="hero">
+      <canvas id="heroCanvas"></canvas>
+      <div class="heroContent">
+        <div class="heroEyebrow">Sound System · REC Streams · On-chain Residue</div>
+        <h1>SYNTH<span class="pur">I</span></h1>
+        <p class="sub">Sound-driven image generation inscribed on the Kaspa blockDAG.</p>
+        <div class="heroCtas">
+          <a class="btn btnPrimary" href="./rec.html">REC Streams</a>
+          <a class="btn btnGhost" href="./generator.html">Open Generator</a>
+        </div>
       </div>
-      <div class="nav">
-        <a class="btn" href="/">Home</a>
-        <a class="btn btnPrimary" href="./rec.html">REC Streams</a>
-        <a class="btn" href="./generator.html">Generator</a>
-        <a class="btn" href="/viewer">NFTs</a>
-        <a class="btn" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
-        <a class="btn" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- FEATURE CARDS -->
+    <div class="sectionTitle">Tools</div>
+    <section class="cards">
+
+      <!-- REC STREAMS -->
+      <div class="card">
+        <div class="cardIcon">
+          <div class="waveformIcon">
+            <span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+        <div class="cardHead">
+          <b>REC Streams</b>
+          <span class="chip">archive</span>
+        </div>
+        <p>Live sound captures archived on-chain. Each stream is a unique ephemeral recording inscribed to Kaspa.</p>
+        <div class="cardActions">
+          <a class="btn btnPrimary" href="./rec.html">Open REC</a>
+        </div>
       </div>
+
+      <!-- GENERATOR -->
+      <div class="card">
+        <div class="cardIcon">
+          <div class="pulseIcon">
+            <div class="ring"></div>
+            <div class="ring"></div>
+            <div class="dot"></div>
+          </div>
+        </div>
+        <div class="cardHead">
+          <b>Generator</b>
+          <span class="chip">tool</span>
+        </div>
+        <p>Sound-driven image generation tool. Feed audio parameters into the visual engine and capture the result.</p>
+        <div class="cardActions">
+          <a class="btn btnPrimary" href="./generator.html">Open Generator</a>
+        </div>
+      </div>
+
+      <!-- $SYNTHI TOKEN -->
+      <div class="card">
+        <div class="cardIcon">
+          <img src="../assets/img/logo.png" alt="SYNTHI logo">
+        </div>
+        <div class="cardHead">
+          <b>$SYNTHI Token</b>
+          <span class="chip">KRC-20</span>
+        </div>
+        <p>KRC-20 utility token on Kaspa. The on-chain currency of the SYNTHI sound system.</p>
+        <div class="cardActions">
+          <a class="btn btnPrimary" id="btnTrade" href="#" target="_blank" rel="noreferrer">Trade $SYNTHI</a>
+        </div>
+      </div>
+
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- LATEST REC STREAMS -->
+    <div class="sectionTitle">
+      Latest REC Streams
+      <span id="streamCount">—</span>
+    </div>
+    <div class="streamGrid" id="streamGrid"></div>
+
+    <!-- AUDIO PLAYER -->
+    <div class="divider"></div>
+    <div class="sectionTitle">Audio</div>
+    <div class="audioPanel">
+      <div class="audioTop">
+        <div class="audioTitle">dlouhý d</div>
+        <div class="audioTime" id="synthiAudioTime">00:00 / 00:00</div>
+      </div>
+      <div class="audioControls">
+        <button class="btn btnPrimary" id="synthiAudioPlay" type="button">Play</button>
+        <button class="btn btnGhost" id="synthiAudioPause" type="button">Pause</button>
+        <button class="btn btnGhost" id="synthiAudioRew" type="button">Rewind</button>
+        <span style="font-size:11px;color:var(--muted);align-self:center;letter-spacing:.06em;">SoundCloud</span>
+      </div>
+      <div class="audioSlider">
+        <div class="audioSliderHead">
+          <span>Position</span>
+          <span id="synthiAudioPosVal">—</span>
+        </div>
+        <input id="synthiAudioPos" type="range" min="0" max="1000" step="1" value="0"/>
+      </div>
+      <div class="audioSlider">
+        <div class="audioSliderHead">
+          <span>Volume</span>
+          <span id="synthiAudioVolVal">—</span>
+        </div>
+        <input id="synthiAudioVol" type="range" min="0" max="100" step="1" value="80"/>
+      </div>
+      <!-- SoundCloud engine (hidden) -->
+      <iframe
+        class="scEngine"
+        id="synthiScIframe"
+        scrolling="no"
+        frameborder="no"
+        allow="autoplay"
+        src="https://w.soundcloud.com/player/?url=https%3A//soundcloud.com/user-130810224/dlouhy-d&color=%239B59B6&auto_play=false&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false&visual=false">
+      </iframe>
     </div>
 
-    <section class="hero">
-      <div class="heroGrid">
-        <div>
-          <h1>SYNTHI   KRC20</h1>
-          <p class="muted">Sound-driven image generation inscribed on the Kaspa blockDAG.</p>
-          <div class="sub"></div>
-          <div class="heroCtas">
-            <a class="btn btnPrimary" href="./rec.html">REC Streams</a>
-            <a class="btn" href="./generator.html">Open Generator</a>
-            <a class="btn" id="btnPumpCoin" href="#" target="_blank" rel="noreferrer">pump.fun</a>
-          </div>
-        </div>
-
-        <div class="heroArt">
-          <div class="frame">
-            <img src="../assets/img/synthi.png" alt="SYNTHI art" loading="lazy" onerror="this.style.display='none'">
-            <div class="label">live → rec</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="grid">
-      <!-- LEFT -->
-      <div class="panel">
-        <div class="panelHead">
-          <b>Latest REC Streams</b>
-          <span class="chip" id="streamCount">—</span>
-        </div>
-        <div class="panelBody">
-          <div class="streamGrid" id="streamGrid"></div>
-        </div>
-      </div>
-
-      <!-- RIGHT -->
-      <div class="stack">
-
-        <!-- AUDIO (custom UI, no click-through) -->
-        <div class="panel" id="synthiAudio">
-          <div class="panelHead">
-            <b>Audio</b>
-            <span class="chip">SoundCloud</span>
-          </div>
-          <div class="panelBody" style="position:relative">
-            <div class="audioTop">
-              <div class="audioTitle">dlouhý d</div>
-              <div class="audioTime" id="synthiAudioTime">00:00 / 00:00</div>
-            </div>
-
-            <div class="linkRow">
-              <button class="btn btnPrimary btnSm" id="synthiAudioPlay" type="button">Play</button>
-              <button class="btn btnSm" id="synthiAudioPause" type="button">Pause</button>
-              <button class="btn btnSm" id="synthiAudioRew" type="button">Rewind</button>
-            </div>
-
-            <div class="bar">
-              <div class="barHead">
-                <div class="barLabel">Position</div>
-                <div class="barVal" id="synthiAudioPosVal">—</div>
-              </div>
-              <input id="synthiAudioPos" type="range" min="0" max="1000" step="1" value="0" />
-            </div>
-
-            <div class="bar">
-              <div class="barHead">
-                <div class="barLabel">Volume</div>
-                <div class="barVal" id="synthiAudioVolVal">—</div>
-              </div>
-              <input id="synthiAudioVol" type="range" min="0" max="100" step="1" value="80" />
-            </div>
-
-            <!-- SoundCloud engine (hidden) -->
-            <iframe
-              class="scEngine"
-              id="synthiScIframe"
-              scrolling="no"
-              frameborder="no"
-              allow="autoplay"
-              src="https://w.soundcloud.com/player/?url=https%3A//soundcloud.com/user-130810224/dlouhy-d&color=%2300c4ff&auto_play=false&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false&visual=false">
-            </iframe>
-          </div>
-        </div>
-
-        <!-- ON-CHAIN (clean) -->
-        <div class="panel">
-          <div class="panelHead"><b>On-chain</b></div>
-          <div class="panelBody">
-            <div class="muted" style="line-height:1.55">
-              SYNTHI reference link:
-            </div>
-            <div class="linkRow" style="margin-top:12px">
-              <a class="btn btnPrimary" id="btnPumpCoin2" href="#" target="_blank" rel="noreferrer">SYNTHI on pump.fun</a>
-            </div>
-          </div>
-        </div>
-
-        <!-- LINKS -->
-        <div class="panel">
-          <div class="panelHead"><b>Links</b></div>
-          <div class="panelBody">
-            <div class="linkRow">
-              <a class="btn btnSm" href="./generator.html" rel="noreferrer">Generator</a>
-              <a class="btn btnSm" href="./rec.html" rel="noreferrer">REC</a>
-              <a class="btn btnSm" href="/viewer" rel="noreferrer">NFTs</a>
-              <a class="btn btnSm" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
-              <a class="btn btnSm" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
     <footer>
-      <div>© SYNTHI</div>
+      <div>© Pixel on Kaspa · SYNTHI</div>
       <div>
+        <a href="../index.html">Home</a> ·
         <a href="./rec.html">REC</a> ·
         <a href="./generator.html">Generator</a> ·
-        <a href="/viewer">NFTs</a> ·
+        <a href="../viewer">NFTs</a> ·
         <a href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a> ·
         <a href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
       </div>
@@ -440,84 +408,115 @@
 
   </div>
 
-  <script>
-  (() => {
-    const COIN_ID = "2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump";
-    const PUMP_COIN_URL = `https://pump.fun/coin/${COIN_ID}`;
+<script>
+// ── HERO CANVAS — animated sine wave ──
+(function(){
+  const canvas = document.getElementById("heroCanvas");
+  const ctx    = canvas.getContext("2d");
+  let t = 0;
 
-    const STREAMS = [
-      { title:"SYNTHI REC STREAM 8", date:"2026-01-14", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260114_002147%3A1940516_20260114_002127", thumb:"../assets/img/rec8.png" },
-      { title:"SYNTHI REC STREAM 7", date:"2026-01-14", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260114_000728%3A1940453_20260114_000715", thumb:"../assets/img/rec7.png" },
-      { title:"SYNTHI REC STREAM 6", date:"2026-01-06", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_231554%3A1914159_20260106_231539", thumb:"../assets/img/rec6.png" },
-      { title:"SYNTHI REC STREAM 5", date:"2026-01-06", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_223447%3A1914055_20260106_223434", thumb:"../assets/img/rec5.png" },
-      { title:"SYNTHI REC STREAM 4", date:"2025-12-14", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251214_014052%3A1848857_20251214_014035", thumb:"../assets/img/rec4.png" },
-      { title:"SYNTHI REC STREAM 3", date:"2025-12-13", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251213_003042%3A1845633_20251213_003028", thumb:"../assets/img/rec3.png" }
+  function resize(){
+    canvas.width  = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const w = canvas.width, h = canvas.height, cy = h * 0.55;
+    // draw two sine waves at low opacity
+    const waves = [
+      { amp:32, freq:0.012, speed:0.012, phase:0,    alpha:0.18 },
+      { amp:18, freq:0.020, speed:0.018, phase:1.2,  alpha:0.10 },
+      { amp:48, freq:0.007, speed:0.006, phase:2.5,  alpha:0.07 },
     ];
-
-    const qs = (s)=>document.querySelector(s);
-    const grid = qs("#streamGrid");
-    const count = qs("#streamCount");
-
-    const pump1 = qs("#btnPumpCoin");
-    const pump2 = qs("#btnPumpCoin2");
-    if (pump1) pump1.href = PUMP_COIN_URL;
-    if (pump2) pump2.href = PUMP_COIN_URL;
-
-    function escapeHtml(str){
-      return String(str).replace(/[&<>"']/g, (m) => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-      }[m]));
+    for(const wv of waves){
+      ctx.beginPath();
+      for(let x=0;x<=w;x+=2){
+        const y = cy + wv.amp * Math.sin(x * wv.freq + t * wv.speed * 60 + wv.phase);
+        x===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      }
+      ctx.strokeStyle = `rgba(155,89,182,${wv.alpha})`;
+      ctx.lineWidth   = 1.5;
+      ctx.stroke();
     }
-    function recPlayerLink(streamIdx){
-      return `./rec.html?s=${encodeURIComponent(String(streamIdx))}`;
-    }
-    function cardHtml(s, idx){
-      const badge = `REC ${String(idx+1).padStart(2,"0")}`;
-      return `
-        <div class="sCard">
-          <div class="sThumb">
-            <img src="${escapeHtml(s.thumb)}" alt="${escapeHtml(s.title)}" loading="lazy"
-                 onerror="this.style.display='none'">
-            <span class="badge">${escapeHtml(badge)}</span>
-          </div>
-          <div class="sBody">
-            <div class="sTitle">${escapeHtml(s.title)}</div>
-            <div class="sMeta">
-              <span class="chip">${escapeHtml(s.date || "archive")}</span>
-            </div>
-            <div class="sActions">
-              <a class="btn btnPrimary btnSm" href="${recPlayerLink(idx)}">Play</a>
-              <a class="btn btnSm" href="${escapeHtml(s.url)}" target="_blank" rel="noreferrer">pump.fun</a>
-            </div>
+    t++;
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener("resize", ()=>{ resize(); });
+  resize(); draw();
+})();
+</script>
+
+<script>
+// ── STREAMS ──
+(() => {
+  const COIN_ID = "2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump";
+  const PUMP_COIN_URL = `https://pump.fun/coin/${COIN_ID}`;
+
+  const STREAMS = [
+    { title:"SYNTHI REC STREAM 8", date:"2026-01-14", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260114_002147%3A1940516_20260114_002127", thumb:"../assets/img/rec8.png" },
+    { title:"SYNTHI REC STREAM 7", date:"2026-01-14", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260114_000728%3A1940453_20260114_000715", thumb:"../assets/img/rec7.png" },
+    { title:"SYNTHI REC STREAM 6", date:"2026-01-06", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_231554%3A1914159_20260106_231539", thumb:"../assets/img/rec6.png" },
+    { title:"SYNTHI REC STREAM 5", date:"2026-01-06", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_223447%3A1914055_20260106_223434", thumb:"../assets/img/rec5.png" },
+    { title:"SYNTHI REC STREAM 4", date:"2025-12-14", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251214_014052%3A1848857_20251214_014035", thumb:"../assets/img/rec4.png" },
+    { title:"SYNTHI REC STREAM 3", date:"2025-12-13", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251213_003042%3A1845633_20251213_003028", thumb:"../assets/img/rec3.png" }
+  ];
+
+  const btnTrade = document.getElementById("btnTrade");
+  if(btnTrade) btnTrade.href = PUMP_COIN_URL;
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+  }
+  function recPlayerLink(idx){ return `./rec.html?s=${encodeURIComponent(String(idx))}`; }
+
+  function cardHtml(s, idx){
+    const badge = `REC ${String(idx+1).padStart(2,"0")}`;
+    return `
+      <div class="sCard">
+        <div class="sThumb">
+          <img src="${escapeHtml(s.thumb)}" alt="${escapeHtml(s.title)}" loading="lazy" onerror="this.style.display='none'">
+          <span class="badge">${escapeHtml(badge)}</span>
+        </div>
+        <div class="sBody">
+          <div class="sTitle">${escapeHtml(s.title)}</div>
+          <div class="sMeta"><span class="chip">${escapeHtml(s.date||"archive")}</span></div>
+          <div class="sActions">
+            <a class="btn btnPrimary btnSm" href="${recPlayerLink(idx)}">Play</a>
+            <a class="btn btnGhost btnSm" href="${escapeHtml(s.url)}" target="_blank" rel="noreferrer">pump.fun</a>
           </div>
         </div>
-      `;
+      </div>`;
+  }
+
+  const grid  = document.getElementById("streamGrid");
+  const count = document.getElementById("streamCount");
+  if(count) count.textContent = `${STREAMS.length} streams`;
+  if(grid)  grid.innerHTML = STREAMS.map(cardHtml).join("");
+})();
+</script>
+
+<script src="https://w.soundcloud.com/player/api.js"></script>
+<script src="./js/synthi-audio.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    if(window.SynthiAudio){
+      window.SynthiAudio.init({
+        iframeId:     "synthiScIframe",
+        playBtnId:    "synthiAudioPlay",
+        pauseBtnId:   "synthiAudioPause",
+        rewindBtnId:  "synthiAudioRew",
+        posSliderId:  "synthiAudioPos",
+        posLabelId:   "synthiAudioPosVal",
+        timeLabelId:  "synthiAudioTime",
+        volSliderId:  "synthiAudioVol",
+        volLabelId:   "synthiAudioVolVal",
+        initialVolume: 80
+      });
     }
+  });
+</script>
 
-    if (count) count.textContent = `${STREAMS.length} streams`;
-    if (grid) grid.innerHTML = STREAMS.map(cardHtml).join("");
-  })();
-  </script>
-
-  <script src="https://w.soundcloud.com/player/api.js"></script>
-  <script src="./js/synthi-audio.js"></script>
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      if (window.SynthiAudio) {
-        window.SynthiAudio.init({
-          iframeId: "synthiScIframe",
-          playBtnId: "synthiAudioPlay",
-          pauseBtnId: "synthiAudioPause",
-          rewindBtnId: "synthiAudioRew",
-          posSliderId: "synthiAudioPos",
-          posLabelId: "synthiAudioPosVal",
-          timeLabelId: "synthiAudioTime",
-          volSliderId: "synthiAudioVol",
-          volLabelId: "synthiAudioVolVal",
-          initialVolume: 80
-        });
-      }
-    });
-  </script>
 </body>
 </html>
