@@ -284,6 +284,28 @@
     return buf;
   }
 
+  function makeReverbIR(actx, duration = 2.5, decay = 3.0) {
+    const len = Math.floor(actx.sampleRate * duration);
+    const buf = actx.createBuffer(2, len, actx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      for (let i = 0; i < len; i++)
+        d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+    }
+    return buf;
+  }
+
+  function makeDistortionCurve(drive) {
+    const n = 2048;
+    const curve = new Float32Array(n);
+    const k = drive * 100 + 1;
+    for (let i = 0; i < n; i++) {
+      const x = (i / (n - 1)) * 2 - 1;
+      curve[i] = (Math.PI + k) * x / (Math.PI + k * Math.abs(x));
+    }
+    return curve;
+  }
+
   function drumKick(actx, when, out, vel = 1.0) {
     const osc = actx.createOscillator();
     osc.type = "sine";
@@ -415,30 +437,86 @@
 
     const pre = actx.createGain();
     pre.gain.value = 0.22;
+    sum.connect(pre);
 
-    const s = fbOn ? clamp(fbMul, 0, 1.2) : 0.0;
+    // ── 4 parallel delay lines ──
+    const delayOut = actx.createGain();
 
-    const d1 = buildDelayStage(actx, pEff.t1, clamp(pEff.fb1 * s, 0, 0.95), 0.85);
-    const d2 = buildDelayStage(actx, pEff.t2, clamp(pEff.fb2 * s, 0, 0.95), 0.95);
-    const d3 = buildDelayStage(actx, pEff.t3, clamp(pEff.fb3 * s, 0, 0.95), 1.05);
+    function makeParallelDelay(time, fb, wet) {
+      const dNode = actx.createDelay(2.0);
+      dNode.delayTime.value = clamp(time, 0, 2);
+      const fbGain = actx.createGain();
+      fbGain.gain.value = clamp(fb, 0, 0.95);
+      const clip = makeSoftClipper(actx, 0.85);
+      const wetGain = actx.createGain();
+      wetGain.gain.value = clamp(wet, 0, 1);
+      pre.connect(dNode);
+      dNode.connect(fbGain);
+      fbGain.connect(clip);
+      clip.connect(dNode);
+      dNode.connect(wetGain);
+      wetGain.connect(delayOut);
+      return { dNode, fbGain, wetGain };
+    }
 
-    const post = actx.createGain();
-    post.gain.value = 0.9;
+    const pd1 = makeParallelDelay(d1Time, d1Fb, d1Wet);
+    const pd2 = makeParallelDelay(d2Time, d2Fb, d2Wet);
+    const pd3 = makeParallelDelay(d3Time, d3Fb, d3Wet);
+    const pd4 = makeParallelDelay(d4Time, d4Fb, d4Wet);
+
+    const dryGain = actx.createGain();
+    dryGain.gain.value = 0.60;
+    pre.connect(dryGain);
+
+    const mixBus = actx.createGain();
+    dryGain.connect(mixBus);
+    delayOut.connect(mixBus);
+
+    // ── Reverb ──
+    const convolver = actx.createConvolver();
+    convolver.buffer = makeReverbIR(actx, 2.5, 3.0);
+    const rvWet = actx.createGain(); rvWet.gain.value = reverbWet;
+    const rvDry = actx.createGain(); rvDry.gain.value = 1 - reverbWet;
+    mixBus.connect(convolver); convolver.connect(rvWet);
+    mixBus.connect(rvDry);
+    const afterReverb = actx.createGain();
+    rvWet.connect(afterReverb); rvDry.connect(afterReverb);
+
+    // ── Distortion ──
+    const distNode = actx.createWaveShaper();
+    distNode.curve = makeDistortionCurve(distDrive);
+    distNode.oversample = "2x";
+    afterReverb.connect(distNode);
+
+    // ── Lowpass Filter ──
+    const filterNode = actx.createBiquadFilter();
+    filterNode.type = "lowpass";
+    filterNode.frequency.value = filterCutoff;
+    filterNode.Q.value = filterRes;
+    distNode.connect(filterNode);
+
+    // ── Chorus ──
+    const chorusDelay = actx.createDelay(0.1);
+    chorusDelay.delayTime.value = 0.025;
+    const chorusLFO = actx.createOscillator();
+    chorusLFO.type = "sine";
+    chorusLFO.frequency.value = chorusRate;
+    const chorusLFOGain = actx.createGain();
+    chorusLFOGain.gain.value = chorusDepth * 0.015;
+    const chorusWetGain = actx.createGain();
+    chorusWetGain.gain.value = 0.5;
+    chorusLFO.connect(chorusLFOGain);
+    chorusLFOGain.connect(chorusDelay.delayTime);
+    filterNode.connect(chorusDelay);
+    chorusDelay.connect(chorusWetGain);
+    const chorusOut = actx.createGain();
+    filterNode.connect(chorusOut);
+    chorusWetGain.connect(chorusOut);
 
     const masterClip = makeSoftClipper(actx, 0.9);
-
-    // chain
-    sum.connect(pre);
-    pre.connect(d1.delay);
-    d1.delay.connect(d2.delay);
-    d2.delay.connect(d3.delay);
-    d3.delay.connect(post);
-    post.connect(masterClip);
-
+    chorusOut.connect(masterClip);
     masterClip.connect(masterGain);
     masterGain.connect(limiter);
-
-    // IMPORTANT FIX: connect limiter to destination (not analyser output)
     limiter.connect(actx.destination);
     limiter.connect(analyserF);
     limiter.connect(analyserT);
@@ -448,6 +526,7 @@
     oscSin.start(now);
     oscTri.start(now + triOffset);
     oscDet.start(now);
+    chorusLFO.start(now);
 
     audio = {
       ctx: actx,
@@ -455,7 +534,9 @@
       muted: false,
       _noiseBuf: null,
       oscSin, oscTri, oscDet,
-      d1, d2, d3,
+      pd1, pd2, pd3, pd4,
+      distNode, filterNode, rvWet, rvDry,
+      chorusDelay, chorusLFO, chorusLFOGain, chorusWetGain,
       setMute(on) {
         this.muted = on;
         this.masterGain.gain.value = on ? 0 : masterVol;
@@ -472,9 +553,36 @@
       },
       setFeedback(pEffNow, fbOnNow, fbMulNow) {
         const s2 = fbOnNow ? clamp(fbMulNow, 0, 1.2) : 0.0;
-        this.d1.fbGain.gain.setTargetAtTime(clamp(pEffNow.fb1 * s2, 0, 0.95), this.ctx.currentTime, 0.02);
-        this.d2.fbGain.gain.setTargetAtTime(clamp(pEffNow.fb2 * s2, 0, 0.95), this.ctx.currentTime, 0.02);
-        this.d3.fbGain.gain.setTargetAtTime(clamp(pEffNow.fb3 * s2, 0, 0.95), this.ctx.currentTime, 0.02);
+        const t = this.ctx.currentTime;
+        this.pd1.fbGain.gain.setTargetAtTime(clamp(d1Fb * s2, 0, 0.95), t, 0.02);
+        this.pd2.fbGain.gain.setTargetAtTime(clamp(d2Fb * s2, 0, 0.95), t, 0.02);
+        this.pd3.fbGain.gain.setTargetAtTime(clamp(d3Fb * s2, 0, 0.95), t, 0.02);
+        this.pd4.fbGain.gain.setTargetAtTime(clamp(d4Fb * s2, 0, 0.95), t, 0.02);
+      },
+      setDelayParams() {
+        const t = this.ctx.currentTime;
+        this.pd1.dNode.delayTime.setTargetAtTime(clamp(d1Time,0,2), t, 0.02);
+        this.pd1.fbGain.gain.setTargetAtTime(clamp(d1Fb,0,0.95), t, 0.02);
+        this.pd1.wetGain.gain.setTargetAtTime(d1Wet, t, 0.02);
+        this.pd2.dNode.delayTime.setTargetAtTime(clamp(d2Time,0,2), t, 0.02);
+        this.pd2.fbGain.gain.setTargetAtTime(clamp(d2Fb,0,0.95), t, 0.02);
+        this.pd2.wetGain.gain.setTargetAtTime(d2Wet, t, 0.02);
+        this.pd3.dNode.delayTime.setTargetAtTime(clamp(d3Time,0,2), t, 0.02);
+        this.pd3.fbGain.gain.setTargetAtTime(clamp(d3Fb,0,0.95), t, 0.02);
+        this.pd3.wetGain.gain.setTargetAtTime(d3Wet, t, 0.02);
+        this.pd4.dNode.delayTime.setTargetAtTime(clamp(d4Time,0,2), t, 0.02);
+        this.pd4.fbGain.gain.setTargetAtTime(clamp(d4Fb,0,0.95), t, 0.02);
+        this.pd4.wetGain.gain.setTargetAtTime(d4Wet, t, 0.02);
+      },
+      setEffectParams() {
+        const t = this.ctx.currentTime;
+        this.rvWet.gain.setTargetAtTime(reverbWet, t, 0.05);
+        this.rvDry.gain.setTargetAtTime(1 - reverbWet, t, 0.05);
+        this.distNode.curve = makeDistortionCurve(distDrive);
+        this.filterNode.frequency.setTargetAtTime(filterCutoff, t, 0.02);
+        this.filterNode.Q.setTargetAtTime(filterRes, t, 0.02);
+        this.chorusLFO.frequency.setTargetAtTime(chorusRate, t, 0.02);
+        this.chorusLFOGain.gain.setTargetAtTime(chorusDepth * 0.015, t, 0.02);
       },
     };
 
@@ -568,6 +676,26 @@
     osc3Mix: null, osc4Mul: null, warpBase: null,
   };
 
+  // ── delay bank state ──
+  let d1Time = 0.15, d1Fb = 0.40, d1Wet = 0.50;
+  let d2Time = 0.30, d2Fb = 0.50, d2Wet = 0.40;
+  let d3Time = 0.70, d3Fb = 0.55, d3Wet = 0.30;
+  let d4Time = 0.08, d4Fb = 0.35, d4Wet = 0.40;
+
+  // ── effects state ──
+  let reverbWet    = 0.30;
+  let distDrive    = 0.20;
+  let filterCutoff = 8000;
+  let filterRes    = 2.0;
+  let chorusDepth  = 0.30;
+  let chorusRate   = 0.50;
+
+  // ── harmonics state ──
+  const HARMONIC_RATIOS = [0.5, 1.0, 1.5, 2.0, 3.0, 5.0, 7.0];
+  let harmonicsMix   = 0.50;
+  let phaseDriftRate = 0.30;
+  let layerPhases    = [0, 0.14, 0.28, 0.42, 0.56, 0.70, 0.84];
+
   let driftPhase = 0;
   let lastT = performance.now();
   function stepDrift(now) {
@@ -575,6 +703,8 @@
     lastT = now;
     if (!driftOn) return;
     driftPhase = (driftPhase + base.driftCps * dt) % 1;
+    for (let i = 0; i < 7; i++)
+      layerPhases[i] = (layerPhases[i] + phaseDriftRate * (i + 1) * 0.003 * dt) % 1;
   }
 
   function effective(nowMs) {
@@ -904,6 +1034,45 @@
   if (padHat) padHat.addEventListener("click", () => firePad("hat"));
   if (padPerc) padPerc.addEventListener("click", () => firePad("perc"));
 
+  // ── delay bank UI bindings ──
+  function bindRangeSlider(id, valId, getter, setter, fmt, onSet) {
+    const el = document.getElementById(id);
+    const vEl = document.getElementById(valId);
+    if (!el) return;
+    const sync = () => { if (vEl) vEl.textContent = fmt(getter()); el.value = String(getter()); };
+    sync();
+    el.addEventListener("input", () => {
+      setter(parseFloat(el.value));
+      sync();
+      if (onSet) onSet();
+    });
+  }
+
+  bindRangeSlider("d1TimeSlider","d1TimeVal", ()=>d1Time, v=>{d1Time=v;}, v=>v.toFixed(2)+"s", ()=>{ if(audio) audio.setDelayParams(); });
+  bindRangeSlider("d1FbSlider",  "d1FbVal",   ()=>d1Fb,   v=>{d1Fb=clamp(v,0,0.95);}, v=>v.toFixed(2), ()=>{ if(audio) audio.setDelayParams(); });
+  bindRangeSlider("d1WetSlider", "d1WetVal",  ()=>d1Wet,  v=>{d1Wet=clamp(v,0,1);}, v=>v.toFixed(2), ()=>{ if(audio) audio.setDelayParams(); });
+  bindRangeSlider("d2TimeSlider","d2TimeVal", ()=>d2Time, v=>{d2Time=v;}, v=>v.toFixed(2)+"s", ()=>{ if(audio) audio.setDelayParams(); });
+  bindRangeSlider("d2FbSlider",  "d2FbVal",   ()=>d2Fb,   v=>{d2Fb=clamp(v,0,0.95);}, v=>v.toFixed(2), ()=>{ if(audio) audio.setDelayParams(); });
+  bindRangeSlider("d2WetSlider", "d2WetVal",  ()=>d2Wet,  v=>{d2Wet=clamp(v,0,1);}, v=>v.toFixed(2), ()=>{ if(audio) audio.setDelayParams(); });
+  bindRangeSlider("d3TimeSlider","d3TimeVal", ()=>d3Time, v=>{d3Time=v;}, v=>v.toFixed(2)+"s", ()=>{ if(audio) audio.setDelayParams(); });
+  bindRangeSlider("d3FbSlider",  "d3FbVal",   ()=>d3Fb,   v=>{d3Fb=clamp(v,0,0.95);}, v=>v.toFixed(2), ()=>{ if(audio) audio.setDelayParams(); });
+  bindRangeSlider("d3WetSlider", "d3WetVal",  ()=>d3Wet,  v=>{d3Wet=clamp(v,0,1);}, v=>v.toFixed(2), ()=>{ if(audio) audio.setDelayParams(); });
+  bindRangeSlider("d4TimeSlider","d4TimeVal", ()=>d4Time, v=>{d4Time=v;}, v=>v.toFixed(2)+"s", ()=>{ if(audio) audio.setDelayParams(); });
+  bindRangeSlider("d4FbSlider",  "d4FbVal",   ()=>d4Fb,   v=>{d4Fb=clamp(v,0,0.95);}, v=>v.toFixed(2), ()=>{ if(audio) audio.setDelayParams(); });
+  bindRangeSlider("d4WetSlider", "d4WetVal",  ()=>d4Wet,  v=>{d4Wet=clamp(v,0,1);}, v=>v.toFixed(2), ()=>{ if(audio) audio.setDelayParams(); });
+
+  // ── effects UI bindings ──
+  bindRangeSlider("reverbWetSlider",    "reverbWetVal",    ()=>reverbWet,    v=>{reverbWet=clamp(v,0,1);},       v=>v.toFixed(2),        ()=>{ if(audio) audio.setEffectParams(); });
+  bindRangeSlider("distDriveSlider",    "distDriveVal",    ()=>distDrive,    v=>{distDrive=clamp(v,0,1);},       v=>v.toFixed(2),        ()=>{ if(audio) audio.setEffectParams(); });
+  bindRangeSlider("filterCutoffSlider", "filterCutoffVal", ()=>filterCutoff, v=>{filterCutoff=clamp(v,200,20000);}, v=>Math.round(v)+"Hz", ()=>{ if(audio) audio.setEffectParams(); });
+  bindRangeSlider("filterResSlider",    "filterResVal",    ()=>filterRes,    v=>{filterRes=clamp(v,0,20);},      v=>v.toFixed(1),        ()=>{ if(audio) audio.setEffectParams(); });
+  bindRangeSlider("chorusDepthSlider",  "chorusDepthVal",  ()=>chorusDepth,  v=>{chorusDepth=clamp(v,0,1);},     v=>v.toFixed(2),        ()=>{ if(audio) audio.setEffectParams(); });
+  bindRangeSlider("chorusRateSlider",   "chorusRateVal",   ()=>chorusRate,   v=>{chorusRate=clamp(v,0.1,5);},    v=>v.toFixed(2)+"Hz",   ()=>{ if(audio) audio.setEffectParams(); });
+
+  // ── harmonics UI bindings ──
+  bindRangeSlider("harmonicsSlider",  "harmonicsVal",  ()=>harmonicsMix,   v=>{harmonicsMix=clamp(v,0,1);},   v=>v.toFixed(2), null);
+  bindRangeSlider("phaseDriftSlider", "phaseDriftVal", ()=>phaseDriftRate, v=>{phaseDriftRate=clamp(v,0,2);}, v=>v.toFixed(2), null);
+
   window.addEventListener("resize", () => clearHard());
 
   clearHard();
@@ -1066,36 +1235,47 @@
       const frameSeed = (renderSeed ^ (now | 0) ^ (N * 2654435761)) >>> 0;
       const rr = mulberry32(frameSeed);
 
-      ctx2d.save();
-      ctx2d.globalCompositeOperation = "lighter";
-
+      // ── multi-layer Lissajous ──
       const beatLift = 0.55 * kickFlash + 0.25 * snareFlash;
-      const alphaBase = 0.24 + 0.38 * aL * R + 0.22 * beatLift;
-      const alpha = clamp(alphaBase * exposureEff, 0.08, 0.95);
-      ctx2d.globalAlpha = alpha;
-
-      ctx2d.fillStyle = rgbFromBands(aB, aM, aH, colorAmt);
       const jitterK = (1.20 + 0.95 * aH * R + 0.55 * beatLift) * s;
+      const nLayers = Math.max(1, Math.round(1 + harmonicsMix * 6));
+      const fillColor = rgbFromBands(aB, aM, aH, colorAmt);
 
-      for (let i = 0; i < N; i++) {
-        const t = rr() * TWIN;
-        const phiPoint = phiBase + (rr() * 2 - 1) * phiSpread;
-        const { x, y } = xyAt(t, p, phiPoint, p.nowSec);
+      for (let li = 0; li < nLayers; li++) {
+        const ratio = HARMONIC_RATIOS[li];
+        const pLayer = { ...p, f_vis: p.f_vis * ratio };
+        const layerAlphaScale = li === 0 ? 1.0 : 0.45 / Math.sqrt(li);
+        const alphaBase = (0.24 + 0.38 * aL * R + 0.22 * beatLift) * layerAlphaScale;
+        const alpha = clamp(alphaBase * exposureEff, 0.04, 0.95);
 
-        const px0 = (cx + x * sx * amp) | 0;
-        const py0 = (cy - y * sy * amp) | 0;
+        ctx2d.save();
+        ctx2d.globalCompositeOperation = "lighter";
+        ctx2d.globalAlpha = alpha;
+        ctx2d.fillStyle = fillColor;
 
-        const px = (px0 + (((rr() * 2 - 1) * jitterK) | 0));
-        const py = (py0 + (((rr() * 2 - 1) * jitterK) | 0));
+        const layerN = li === 0
+          ? Math.floor(N * 0.5)
+          : Math.floor(N * 0.5 / Math.max(1, nLayers - 1));
+        const layerPhi = phiBase + layerPhases[li];
 
-        if (px <= 0 || py <= 0 || px >= W || py >= H) continue;
+        for (let i = 0; i < layerN; i++) {
+          const t = rr() * TWIN;
+          const phiPoint = layerPhi + (rr() * 2 - 1) * phiSpread;
+          const { x, y } = xyAt(t, pLayer, phiPoint, p.nowSec);
 
-        ctx2d.fillRect(px, py, s, s);
-        if ((i & 31) === 0 && (rr() < 0.65 + 0.30 * aH)) ctx2d.fillRect(px + s, py, s, s);
-        if ((i & 63) === 0 && (rr() < 0.55 + 0.35 * aH)) ctx2d.fillRect(px, py + s, s, s);
+          const px0 = (cx + x * sx * amp) | 0;
+          const py0 = (cy - y * sy * amp) | 0;
+          const px = (px0 + (((rr() * 2 - 1) * jitterK) | 0));
+          const py = (py0 + (((rr() * 2 - 1) * jitterK) | 0));
+
+          if (px <= 0 || py <= 0 || px >= W || py >= H) continue;
+          ctx2d.fillRect(px, py, s, s);
+          if ((i & 31) === 0 && (rr() < 0.65 + 0.30 * aH)) ctx2d.fillRect(px + s, py, s, s);
+          if ((i & 63) === 0 && (rr() < 0.55 + 0.35 * aH)) ctx2d.fillRect(px, py + s, s, s);
+        }
+
+        ctx2d.restore();
       }
-
-      ctx2d.restore();
 
       const detCents = 1200 * Math.log2(1 + p.detune);
       const text =
