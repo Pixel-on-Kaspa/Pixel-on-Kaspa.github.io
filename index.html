@@ -62,22 +62,18 @@
       display:inline-flex;align-items:center;gap:6px;
       padding:8px 14px;
       border-radius:8px;
-      border:1px solid rgba(255,255,255,.16);
+      border:none;
       background:transparent;
       color:rgba(255,255,255,.85);
       font-weight:600;
-      font-size:13px;
+      font-size:14px;
       letter-spacing:.06em;
-      transition:color .15s,border-color .15s,background .15s;
+      transition:color .15s,background .15s;
       white-space:nowrap;line-height:1;cursor:pointer;user-select:none;
     }
-    .btn:hover{color:#fff;border-color:rgba(255,255,255,.32);background:rgba(255,255,255,.06);}
-    .btnPrimary{
-      border-color:rgba(73,234,203,.6);
-      color:#49EACB;
-      background:rgba(73,234,203,.08);
-    }
-    .btnPrimary:hover{background:#49EACB;color:#020308;border-color:#49EACB;}
+    .btn:hover{color:#fff;background:rgba(255,255,255,.08);}
+    .btnPrimary{color:#49EACB;}
+    .btnPrimary:hover{background:rgba(255,255,255,.08);color:#49EACB;}
     .btnSynthi img{width:18px;height:18px;display:block;border-radius:3px;}
 
     /* ── LAYOUT ── */
@@ -332,7 +328,7 @@
       <a class="btn" href="artists.html">ARTISTS</a>
       <a class="btn" href="viewer">NFTs</a>
       <div style="position:relative">
-        <button class="btn btnPrimary" id="mintDropBtn" type="button">MINT ▾</button>
+        <button class="btn btnPrimary" id="mintDropBtn" type="button">MINT</button>
         <div id="mintDropMenu" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:#0a0f0f;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:4px 0;z-index:200;min-width:168px;">
           <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer" style="border:none;border-radius:0;padding:9px 16px;width:100%">Mint PIXELONKAS</a>
           <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer" style="border:none;border-radius:0;padding:9px 16px;width:100%">Mint SYKORA</a>
