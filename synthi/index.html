@@ -67,14 +67,13 @@
 
     /* ── HERO ── */
     .hero{
-      position:relative;
+      display:flex;
+      gap:52px;
+      align-items:center;
       padding:80px 0 64px;
-      overflow:hidden;
     }
-    #heroCanvas{
-      position:absolute;inset:0;width:100%;height:100%;pointer-events:none;
-    }
-    .heroContent{position:relative;z-index:1;}
+    .heroLeft{flex:1;min-width:0;}
+    .heroRight{width:340px;flex-shrink:0;}
     .heroEyebrow{
       font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
       color:var(--accent);margin-bottom:20px;
@@ -88,6 +87,64 @@
     .sub{font-size:17px;color:var(--muted);max-width:50ch;line-height:1.65;}
     .heroCtas{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px;}
 
+    /* ── PLAYER CARD ── */
+    .playerCard{
+      background:rgba(0,0,0,.40);
+      border:1px solid rgba(155,89,182,.30);
+      border-radius:12px;
+      padding:22px 22px 18px;
+    }
+    .playerTrack{
+      color:var(--accent);
+      font-weight:900;letter-spacing:.12em;text-transform:uppercase;font-size:12px;
+      margin-bottom:18px;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    .playerRow{
+      display:flex;align-items:center;gap:12px;margin-bottom:16px;
+    }
+    .playerCircle{
+      width:44px;height:44px;border-radius:50%;
+      border:none;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+      flex-shrink:0;
+      transition:background .15s,transform .12s;
+    }
+    .playerCircle:hover{transform:scale(1.06);}
+    .playerCircle svg{display:block;}
+    #synthiAudioPlay{background:var(--accent);}
+    #synthiAudioPlay:hover{background:#b070d0;}
+    #synthiAudioPause{background:rgba(155,89,182,.18);border:1px solid rgba(155,89,182,.35);}
+    #synthiAudioPause:hover{background:rgba(155,89,182,.30);}
+    .playerTime{
+      font-size:11px;color:var(--muted);
+      font-variant-numeric:tabular-nums;white-space:nowrap;
+      margin-left:auto;
+    }
+    .playerSlider{margin-bottom:10px;}
+    .playerSliderLabel{
+      display:flex;justify-content:space-between;
+      font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+      color:rgba(255,255,255,.30);font-weight:700;
+      margin-bottom:5px;
+    }
+    input[type="range"]{
+      width:100%;height:2px;-webkit-appearance:none;appearance:none;
+      background:rgba(155,89,182,.22);border-radius:1px;outline:none;cursor:pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb{
+      -webkit-appearance:none;width:11px;height:11px;border-radius:2px;
+      background:var(--accent);cursor:pointer;
+    }
+    input[type="range"]::-moz-range-thumb{
+      width:11px;height:11px;border-radius:2px;background:var(--accent);border:none;cursor:pointer;
+    }
+    .scEngine{
+      position:absolute !important;width:1px !important;height:1px !important;
+      left:-9999px !important;top:-9999px !important;
+      opacity:0 !important;pointer-events:none !important;
+    }
+
     /* ── DIVIDER ── */
     .divider{height:1px;background:var(--border);margin:56px 0 44px;}
 
@@ -97,14 +154,12 @@
       letter-spacing:.14em;text-transform:uppercase;font-weight:800;font-size:11px;
       color:var(--muted);
       border-left:2px solid var(--accent);padding-left:12px;
-      display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;
     }
-    .sectionTitle span{color:var(--muted);font-weight:500;letter-spacing:.04em;text-transform:none;font-size:11px;opacity:.65;}
 
     /* ── CARDS GRID ── */
     .cards{
       display:grid;
-      grid-template-columns:repeat(3,minmax(0,1fr));
+      grid-template-columns:repeat(2,minmax(0,1fr));
       gap:1px;background:var(--border);border:1px solid var(--border);
     }
     .card{
@@ -118,34 +173,13 @@
     .card:hover{background:#0b1219;}
     .card:hover::after{transform:scaleX(1);}
 
-    /* card icon area */
     .cardIcon{
       width:100%;aspect-ratio:16/9;
       background:#070c0c;border:1px solid var(--border);
       display:flex;align-items:center;justify-content:center;
       margin-bottom:20px;position:relative;overflow:hidden;
     }
-    .cardIcon img{width:72px;height:72px;object-fit:contain;opacity:.9;}
-
-    /* waveform icon */
-    .waveformIcon{display:flex;align-items:center;gap:3px;height:40px;}
-    .waveformIcon span{
-      display:block;width:4px;border-radius:2px;background:var(--accent);
-      animation:wave 1.2s ease-in-out infinite;
-      opacity:.8;
-    }
-    .waveformIcon span:nth-child(1){height:14px;animation-delay:0s;}
-    .waveformIcon span:nth-child(2){height:30px;animation-delay:.1s;}
-    .waveformIcon span:nth-child(3){height:22px;animation-delay:.2s;}
-    .waveformIcon span:nth-child(4){height:38px;animation-delay:.3s;}
-    .waveformIcon span:nth-child(5){height:26px;animation-delay:.4s;}
-    .waveformIcon span:nth-child(6){height:18px;animation-delay:.5s;}
-    .waveformIcon span:nth-child(7){height:32px;animation-delay:.35s;}
-    .waveformIcon span:nth-child(8){height:20px;animation-delay:.15s;}
-    @keyframes wave{
-      0%,100%{transform:scaleY(1);}
-      50%{transform:scaleY(.4);}
-    }
+    .cardIcon img{width:100%;height:100%;object-fit:cover;display:block;}
 
     /* pulse icon */
     .pulseIcon{position:relative;width:48px;height:48px;display:flex;align-items:center;justify-content:center;}
@@ -160,6 +194,43 @@
       100%{transform:scale(2.2);opacity:0;}
     }
 
+    /* CSS sine wave for card 4 */
+    .sineWave{
+      width:100%;height:100%;
+      display:flex;align-items:flex-end;justify-content:center;
+      gap:2px;padding:0 6px 6px;
+    }
+    .sineWave .bar{
+      flex:1;border-radius:2px 2px 0 0;
+      background:var(--accent);opacity:.70;
+      animation:sineAnim 2.6s ease-in-out infinite;
+      transform-origin:bottom center;
+    }
+    .sineWave .bar:nth-child(1) {height:22%;animation-delay:0s;}
+    .sineWave .bar:nth-child(2) {height:36%;animation-delay:.13s;}
+    .sineWave .bar:nth-child(3) {height:55%;animation-delay:.26s;}
+    .sineWave .bar:nth-child(4) {height:72%;animation-delay:.39s;}
+    .sineWave .bar:nth-child(5) {height:84%;animation-delay:.52s;}
+    .sineWave .bar:nth-child(6) {height:90%;animation-delay:.65s;}
+    .sineWave .bar:nth-child(7) {height:84%;animation-delay:.78s;}
+    .sineWave .bar:nth-child(8) {height:72%;animation-delay:.91s;}
+    .sineWave .bar:nth-child(9) {height:55%;animation-delay:1.04s;}
+    .sineWave .bar:nth-child(10){height:36%;animation-delay:1.17s;}
+    .sineWave .bar:nth-child(11){height:22%;animation-delay:1.30s;}
+    .sineWave .bar:nth-child(12){height:36%;animation-delay:1.17s;}
+    .sineWave .bar:nth-child(13){height:55%;animation-delay:1.04s;}
+    .sineWave .bar:nth-child(14){height:72%;animation-delay:.91s;}
+    .sineWave .bar:nth-child(15){height:84%;animation-delay:.78s;}
+    .sineWave .bar:nth-child(16){height:90%;animation-delay:.65s;}
+    .sineWave .bar:nth-child(17){height:84%;animation-delay:.52s;}
+    .sineWave .bar:nth-child(18){height:72%;animation-delay:.39s;}
+    .sineWave .bar:nth-child(19){height:55%;animation-delay:.26s;}
+    .sineWave .bar:nth-child(20){height:36%;animation-delay:.13s;}
+    @keyframes sineAnim{
+      0%,100%{transform:scaleY(1);opacity:.70;}
+      50%{transform:scaleY(.20);opacity:.25;}
+    }
+
     .cardHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;}
     .cardHead b{font-size:15px;letter-spacing:.1em;text-transform:uppercase;font-weight:900;}
     .chip{
@@ -168,66 +239,6 @@
     }
     .card p{margin:0 0 18px;color:var(--muted);line-height:1.6;font-size:14px;}
     .cardActions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
-
-    /* ── STREAMS SECTION ── */
-    .streamGrid{
-      display:grid;
-      grid-template-columns:repeat(3,minmax(0,1fr));
-      gap:1px;background:var(--border);border:1px solid var(--border);
-    }
-    .sCard{background:var(--card);overflow:hidden;transition:background .15s;}
-    .sCard:hover{background:#0b1219;}
-    .sThumb{
-      width:100%;aspect-ratio:16/10;
-      background:radial-gradient(circle at top,rgba(155,89,182,.18),rgba(0,0,0,.75) 65%);
-      position:relative;overflow:hidden;border-bottom:1px solid var(--border);
-    }
-    .sThumb img{width:100%;height:100%;object-fit:cover;display:block;opacity:.95;}
-    .sThumb .badge{
-      position:absolute;left:10px;top:10px;
-      padding:5px 9px;border:1px solid var(--border);
-      background:rgba(0,0,0,.55);backdrop-filter:blur(6px);
-      font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:900;color:var(--text);
-    }
-    .sBody{padding:14px;}
-    .sTitle{font-weight:900;letter-spacing:.10em;text-transform:uppercase;font-size:12px;margin-bottom:10px;}
-    .sMeta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
-    .sMeta .chip{font-size:10px;}
-    .sActions{display:flex;gap:8px;flex-wrap:wrap;}
-    .btnSm{padding:5px 10px;font-size:12px;}
-
-    /* ── AUDIO PLAYER ── */
-    .audioPanel{
-      border:1px solid var(--border);background:var(--card);padding:28px 28px 24px;
-      margin-top:1px;
-    }
-    .audioPanel h3{
-      font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
-      color:var(--muted);margin-bottom:20px;
-      border-left:2px solid var(--accent);padding-left:12px;
-    }
-    .audioTop{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;}
-    .audioTitle{font-weight:900;letter-spacing:.12em;text-transform:uppercase;font-size:15px;}
-    .audioTime{opacity:.65;font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
-    .audioControls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
-    .audioSlider{margin-bottom:12px;}
-    .audioSliderHead{display:flex;justify-content:space-between;margin-bottom:6px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;}
-    input[type="range"]{
-      width:100%;height:3px;-webkit-appearance:none;appearance:none;
-      background:rgba(255,255,255,.12);border-radius:2px;outline:none;cursor:pointer;
-    }
-    input[type="range"]::-webkit-slider-thumb{
-      -webkit-appearance:none;width:13px;height:13px;border-radius:2px;
-      background:var(--accent);cursor:pointer;
-    }
-    input[type="range"]::-moz-range-thumb{
-      width:13px;height:13px;border-radius:2px;background:var(--accent);border:none;cursor:pointer;
-    }
-    .scEngine{
-      position:absolute !important;width:1px !important;height:1px !important;
-      left:-9999px !important;top:-9999px !important;
-      opacity:0 !important;pointer-events:none !important;
-    }
 
     /* ── FOOTER ── */
     footer{
@@ -238,17 +249,18 @@
     footer a{color:var(--accent);}
     footer a:hover{color:#fff;}
 
+    @media(max-width:960px){
+      .hero{flex-direction:column;gap:36px;padding:60px 0 48px;}
+      .heroRight{width:100%;}
+    }
     @media(max-width:900px){
       .topbar{padding:0 16px;}
       .wrap{padding:0 16px 60px;}
       h1{font-size:clamp(44px,10vw,72px);}
       .cards{grid-template-columns:1fr;}
-      .streamGrid{grid-template-columns:repeat(2,minmax(0,1fr));}
       .brand small{display:none;}
-      .hero{padding:60px 0 48px;}
     }
     @media(max-width:560px){
-      .streamGrid{grid-template-columns:1fr;}
       .nav .btn:not(.btnPrimary){display:none;}
     }
   </style>
@@ -272,45 +284,87 @@
 
   <div class="wrap">
 
-    <!-- HERO -->
+    <!-- HERO: two-column -->
     <section class="hero">
-      <canvas id="heroCanvas"></canvas>
-      <div class="heroContent">
+      <div class="heroLeft">
         <div class="heroEyebrow">Sound System · REC Streams · On-chain Residue</div>
         <h1>SYNTH<span class="pur">I</span></h1>
         <p class="sub">Sound-driven image generation inscribed on the Kaspa blockDAG.</p>
         <div class="heroCtas">
           <a class="btn btnPrimary" href="./rec.html">REC Streams</a>
           <a class="btn btnGhost" href="./generator.html">Open Generator</a>
+          <a class="btn btnGhost" href="./app.html">SYNTHI APP</a>
+        </div>
+      </div>
+
+      <div class="heroRight">
+        <div class="playerCard">
+          <div class="playerTrack">dlouhý d</div>
+          <div class="playerRow">
+            <button class="playerCircle" id="synthiAudioPlay" type="button" aria-label="Play">
+              <svg width="16" height="18" viewBox="0 0 16 18" fill="none">
+                <polygon points="2,1 15,9 2,17" fill="#f0f0f0"/>
+              </svg>
+            </button>
+            <button class="playerCircle" id="synthiAudioPause" type="button" aria-label="Pause">
+              <svg width="14" height="16" viewBox="0 0 14 16" fill="none">
+                <rect x="1" y="1" width="4" height="14" rx="1.5" fill="rgba(255,255,255,.80)"/>
+                <rect x="9" y="1" width="4" height="14" rx="1.5" fill="rgba(255,255,255,.80)"/>
+              </svg>
+            </button>
+            <div class="playerTime" id="synthiAudioTime">00:00 / 00:00</div>
+          </div>
+          <div class="playerSlider">
+            <div class="playerSliderLabel">
+              <span>Position</span>
+              <span id="synthiAudioPosVal">—</span>
+            </div>
+            <input id="synthiAudioPos" type="range" min="0" max="1000" step="1" value="0"/>
+          </div>
+          <div class="playerSlider">
+            <div class="playerSliderLabel">
+              <span>Volume</span>
+              <span id="synthiAudioVolVal">—</span>
+            </div>
+            <input id="synthiAudioVol" type="range" min="0" max="100" step="1" value="80"/>
+          </div>
         </div>
       </div>
     </section>
 
+    <!-- SoundCloud engine (hidden) -->
+    <iframe
+      class="scEngine"
+      id="synthiScIframe"
+      scrolling="no"
+      frameborder="no"
+      allow="autoplay"
+      src="https://w.soundcloud.com/player/?url=https%3A//soundcloud.com/user-130810224/dlouhy-d&color=%239B59B6&auto_play=false&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false&visual=false">
+    </iframe>
+
     <div class="divider"></div>
 
-    <!-- FEATURE CARDS -->
+    <!-- TOOLS CARDS -->
     <div class="sectionTitle">Tools</div>
     <section class="cards">
 
-      <!-- REC STREAMS -->
+      <!-- Card 1: REC STREAMS -->
       <div class="card">
         <div class="cardIcon">
-          <div class="waveformIcon">
-            <span></span><span></span><span></span><span></span>
-            <span></span><span></span><span></span><span></span>
-          </div>
+          <img src="../assets/img/rec6.png" alt="REC Streams" loading="lazy"
+               onerror="this.onerror=null;this.src='../assets/img/rec5.png'">
         </div>
         <div class="cardHead">
           <b>REC Streams</b>
           <span class="chip">archive</span>
         </div>
-        <p>Live sound captures archived on-chain. Each stream is a unique ephemeral recording inscribed to Kaspa.</p>
+        <p>Archived live sessions captured during SYNTHI performance runs. Each stream is a unique ephemeral recording.</p>
         <div class="cardActions">
-          <a class="btn btnPrimary" href="./rec.html">Open REC</a>
+          <a class="btn btnPrimary" href="./rec.html">Open Archive</a>
         </div>
       </div>
 
-      <!-- GENERATOR -->
+      <!-- Card 2: GENERATOR -->
       <div class="card">
         <div class="cardIcon">
           <div class="pulseIcon">
@@ -326,13 +380,15 @@
         <p>Sound-driven image generation tool. Feed audio parameters into the visual engine and capture the result.</p>
         <div class="cardActions">
           <a class="btn btnPrimary" href="./generator.html">Open Generator</a>
+          <a class="btn btnGhost" href="./app.html">SYNTHI APP</a>
         </div>
       </div>
 
-      <!-- $SYNTHI TOKEN -->
+      <!-- Card 3: $SYNTHI TOKEN -->
       <div class="card">
         <div class="cardIcon">
-          <img src="../assets/img/logo.png" alt="SYNTHI logo">
+          <img src="../assets/img/logo.png" alt="SYNTHI logo"
+               style="width:72px;height:72px;object-fit:contain;opacity:.9;">
         </div>
         <div class="cardHead">
           <b>$SYNTHI Token</b>
@@ -340,59 +396,32 @@
         </div>
         <p>KRC-20 utility token on Kaspa. The on-chain currency of the SYNTHI sound system.</p>
         <div class="cardActions">
-          <a class="btn btnPrimary" id="btnTrade" href="#" target="_blank" rel="noreferrer">Trade $SYNTHI</a>
+          <span class="btn btnGhost" style="cursor:default;opacity:.55;pointer-events:none;">Coming soon</span>
+        </div>
+      </div>
+
+      <!-- Card 4: SYNTHI APP -->
+      <div class="card">
+        <div class="cardIcon" style="background:#060d0d;">
+          <div class="sineWave">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          </div>
+        </div>
+        <div class="cardHead">
+          <b>SYNTHI APP</b>
+          <span class="chip">workstation</span>
+        </div>
+        <p>Browser audio workstation — oscillators, effects chain, beat sequencer, and real-time Lissajous visualization.</p>
+        <div class="cardActions">
+          <a class="btn btnPrimary" href="./app.html">Launch App</a>
         </div>
       </div>
 
     </section>
-
-    <div class="divider"></div>
-
-    <!-- LATEST REC STREAMS -->
-    <div class="sectionTitle">
-      Latest REC Streams
-      <span id="streamCount">—</span>
-    </div>
-    <div class="streamGrid" id="streamGrid"></div>
-
-    <!-- AUDIO PLAYER -->
-    <div class="divider"></div>
-    <div class="sectionTitle">Audio</div>
-    <div class="audioPanel">
-      <div class="audioTop">
-        <div class="audioTitle">dlouhý d</div>
-        <div class="audioTime" id="synthiAudioTime">00:00 / 00:00</div>
-      </div>
-      <div class="audioControls">
-        <button class="btn btnPrimary" id="synthiAudioPlay" type="button">Play</button>
-        <button class="btn btnGhost" id="synthiAudioPause" type="button">Pause</button>
-        <button class="btn btnGhost" id="synthiAudioRew" type="button">Rewind</button>
-        <span style="font-size:11px;color:var(--muted);align-self:center;letter-spacing:.06em;">SoundCloud</span>
-      </div>
-      <div class="audioSlider">
-        <div class="audioSliderHead">
-          <span>Position</span>
-          <span id="synthiAudioPosVal">—</span>
-        </div>
-        <input id="synthiAudioPos" type="range" min="0" max="1000" step="1" value="0"/>
-      </div>
-      <div class="audioSlider">
-        <div class="audioSliderHead">
-          <span>Volume</span>
-          <span id="synthiAudioVolVal">—</span>
-        </div>
-        <input id="synthiAudioVol" type="range" min="0" max="100" step="1" value="80"/>
-      </div>
-      <!-- SoundCloud engine (hidden) -->
-      <iframe
-        class="scEngine"
-        id="synthiScIframe"
-        scrolling="no"
-        frameborder="no"
-        allow="autoplay"
-        src="https://w.soundcloud.com/player/?url=https%3A//soundcloud.com/user-130810224/dlouhy-d&color=%239B59B6&auto_play=false&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false&visual=false">
-      </iframe>
-    </div>
 
     <footer>
       <div>© Pixel on Kaspa · SYNTHI</div>
@@ -400,6 +429,7 @@
         <a href="../index.html">Home</a> ·
         <a href="./rec.html">REC</a> ·
         <a href="./generator.html">Generator</a> ·
+        <a href="./app.html">APP</a> ·
         <a href="../viewer">NFTs</a> ·
         <a href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a> ·
         <a href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
@@ -408,110 +438,21 @@
 
   </div>
 
-<script>
-// ── HERO CANVAS — animated sine wave ──
-(function(){
-  const canvas = document.getElementById("heroCanvas");
-  const ctx    = canvas.getContext("2d");
-  let t = 0;
-
-  function resize(){
-    canvas.width  = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-  }
-
-  function draw(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    const w = canvas.width, h = canvas.height, cy = h * 0.55;
-    // draw two sine waves at low opacity
-    const waves = [
-      { amp:32, freq:0.012, speed:0.012, phase:0,    alpha:0.18 },
-      { amp:18, freq:0.020, speed:0.018, phase:1.2,  alpha:0.10 },
-      { amp:48, freq:0.007, speed:0.006, phase:2.5,  alpha:0.07 },
-    ];
-    for(const wv of waves){
-      ctx.beginPath();
-      for(let x=0;x<=w;x+=2){
-        const y = cy + wv.amp * Math.sin(x * wv.freq + t * wv.speed * 60 + wv.phase);
-        x===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
-      }
-      ctx.strokeStyle = `rgba(155,89,182,${wv.alpha})`;
-      ctx.lineWidth   = 1.5;
-      ctx.stroke();
-    }
-    t++;
-    requestAnimationFrame(draw);
-  }
-
-  window.addEventListener("resize", ()=>{ resize(); });
-  resize(); draw();
-})();
-</script>
-
-<script>
-// ── STREAMS ──
-(() => {
-  const COIN_ID = "2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump";
-  const PUMP_COIN_URL = `https://pump.fun/coin/${COIN_ID}`;
-
-  const STREAMS = [
-    { title:"SYNTHI REC STREAM 8", date:"2026-01-14", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260114_002147%3A1940516_20260114_002127", thumb:"../assets/img/rec8.png" },
-    { title:"SYNTHI REC STREAM 7", date:"2026-01-14", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260114_000728%3A1940453_20260114_000715", thumb:"../assets/img/rec7.png" },
-    { title:"SYNTHI REC STREAM 6", date:"2026-01-06", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_231554%3A1914159_20260106_231539", thumb:"../assets/img/rec6.png" },
-    { title:"SYNTHI REC STREAM 5", date:"2026-01-06", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20260106_223447%3A1914055_20260106_223434", thumb:"../assets/img/rec5.png" },
-    { title:"SYNTHI REC STREAM 4", date:"2025-12-14", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251214_014052%3A1848857_20251214_014035", thumb:"../assets/img/rec4.png" },
-    { title:"SYNTHI REC STREAM 3", date:"2025-12-13", url:"https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump?clip=20251213_003042%3A1845633_20251213_003028", thumb:"../assets/img/rec3.png" }
-  ];
-
-  const btnTrade = document.getElementById("btnTrade");
-  if(btnTrade) btnTrade.href = PUMP_COIN_URL;
-
-  function escapeHtml(str){
-    return String(str).replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
-  }
-  function recPlayerLink(idx){ return `./rec.html?s=${encodeURIComponent(String(idx))}`; }
-
-  function cardHtml(s, idx){
-    const badge = `REC ${String(idx+1).padStart(2,"0")}`;
-    return `
-      <div class="sCard">
-        <div class="sThumb">
-          <img src="${escapeHtml(s.thumb)}" alt="${escapeHtml(s.title)}" loading="lazy" onerror="this.style.display='none'">
-          <span class="badge">${escapeHtml(badge)}</span>
-        </div>
-        <div class="sBody">
-          <div class="sTitle">${escapeHtml(s.title)}</div>
-          <div class="sMeta"><span class="chip">${escapeHtml(s.date||"archive")}</span></div>
-          <div class="sActions">
-            <a class="btn btnPrimary btnSm" href="${recPlayerLink(idx)}">Play</a>
-            <a class="btn btnGhost btnSm" href="${escapeHtml(s.url)}" target="_blank" rel="noreferrer">pump.fun</a>
-          </div>
-        </div>
-      </div>`;
-  }
-
-  const grid  = document.getElementById("streamGrid");
-  const count = document.getElementById("streamCount");
-  if(count) count.textContent = `${STREAMS.length} streams`;
-  if(grid)  grid.innerHTML = STREAMS.map(cardHtml).join("");
-})();
-</script>
-
 <script src="https://w.soundcloud.com/player/api.js"></script>
 <script src="./js/synthi-audio.js"></script>
 <script>
   document.addEventListener("DOMContentLoaded", () => {
-    if(window.SynthiAudio){
+    if (window.SynthiAudio) {
       window.SynthiAudio.init({
-        iframeId:     "synthiScIframe",
-        playBtnId:    "synthiAudioPlay",
-        pauseBtnId:   "synthiAudioPause",
-        rewindBtnId:  "synthiAudioRew",
-        posSliderId:  "synthiAudioPos",
-        posLabelId:   "synthiAudioPosVal",
-        timeLabelId:  "synthiAudioTime",
-        volSliderId:  "synthiAudioVol",
-        volLabelId:   "synthiAudioVolVal",
+        iframeId:      "synthiScIframe",
+        playBtnId:     "synthiAudioPlay",
+        pauseBtnId:    "synthiAudioPause",
+        rewindBtnId:   null,
+        posSliderId:   "synthiAudioPos",
+        posLabelId:    "synthiAudioPosVal",
+        timeLabelId:   "synthiAudioTime",
+        volSliderId:   "synthiAudioVol",
+        volLabelId:    "synthiAudioVolVal",
         initialVolume: 80
       });
     }
