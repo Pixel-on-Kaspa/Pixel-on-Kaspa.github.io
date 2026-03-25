@@ -61,36 +61,24 @@
       text-decoration:none;
       display:inline-flex;align-items:center;gap:6px;
       padding:8px 14px;
-      border-radius:4px;
-      border:1px solid var(--border);
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,.16);
       background:transparent;
-      color:var(--muted);
-      font-weight:700;
+      color:rgba(255,255,255,.85);
+      font-weight:600;
       font-size:13px;
-      letter-spacing:.04em;
+      letter-spacing:.06em;
       transition:color .15s,border-color .15s,background .15s;
       white-space:nowrap;line-height:1;cursor:pointer;user-select:none;
     }
-    .btn:hover{color:var(--text);border-color:rgba(255,255,255,.22);}
+    .btn:hover{color:#fff;border-color:rgba(255,255,255,.32);background:rgba(255,255,255,.06);}
     .btnPrimary{
-      border-color:var(--accent);
-      color:var(--accent);
-      background:var(--accent-dim);
-      font-weight:800;
+      border-color:rgba(73,234,203,.6);
+      color:#49EACB;
+      background:rgba(73,234,203,.08);
     }
-    .btnPrimary:hover{background:var(--accent);color:#020a08;}
-    .btnGhost{border-color:var(--border);color:var(--muted);}
-    .btnGhost:hover{color:var(--text);border-color:rgba(255,255,255,.22);}
-    .btnIcon{padding:7px 12px;}
-    .btnIcon img{width:18px;height:18px;display:block;border-radius:3px;}
-    .btnSynthi{padding:10px 16px;font-size:15px;font-weight:700;gap:8px;}
-    .btnSynthi img{width:24px;height:24px;display:block;border-radius:5px;}
-    .btnRewardsTop{
-      font-size:12px;
-      font-weight:900;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-    }
+    .btnPrimary:hover{background:#49EACB;color:#020308;border-color:#49EACB;}
+    .btnSynthi img{width:18px;height:18px;display:block;border-radius:3px;}
 
     /* ── LAYOUT ── */
     .wrap{max-width:1200px;margin:0 auto;padding:0 32px 80px;}
@@ -343,14 +331,14 @@
     <div class="nav">
       <a class="btn" href="artists.html">ARTISTS</a>
       <a class="btn" href="viewer">NFTs</a>
-      <div class="mintDrop" style="position:relative">
-        <button class="btn" id="mintDropBtn" type="button">MINT ▾</button>
-        <div id="mintDropMenu" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:#0a1010;border:1px solid var(--border);border-radius:4px;padding:4px 0;z-index:200;min-width:160px;">
-          <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer" style="display:flex;border:none;border-radius:0;padding:8px 14px;width:100%">Mint PIXELONKAS</a>
-          <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer" style="display:flex;border:none;border-radius:0;padding:8px 14px;width:100%">Mint SYKORA</a>
+      <div style="position:relative">
+        <button class="btn btnPrimary" id="mintDropBtn" type="button">MINT ▾</button>
+        <div id="mintDropMenu" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:#0a0f0f;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:4px 0;z-index:200;min-width:168px;">
+          <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer" style="border:none;border-radius:0;padding:9px 16px;width:100%">Mint PIXELONKAS</a>
+          <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer" style="border:none;border-radius:0;padding:9px 16px;width:100%">Mint SYKORA</a>
         </div>
       </div>
-      <button class="btn btnPrimary btnRewardsTop" type="button" data-open-rewards="PIXELONKAS">REWARDS</button>
+      <button class="btn" type="button" data-open-rewards="PIXELONKAS">REWARDS</button>
       <a class="btn btnSynthi" href="synthi/">
         <img src="assets/img/logo.png" alt="SYNTHI">
         SYNTHI
