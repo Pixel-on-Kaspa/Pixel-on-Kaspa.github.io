@@ -237,6 +237,10 @@
         <div class="statLabel">Unpaid NFTs</div>
         <div class="statVal" id="statUnpaidCount">—</div>
       </div>
+      <div class="stat" style="flex:1.8">
+        <div class="statLabel">Paid Address</div>
+        <div class="statVal" style="font-size:10px;font-family:monospace;letter-spacing:.02em;word-break:break-all">kaspa:qqxp…ugtre</div>
+      </div>
     </div>
 
     <div id="progressWrap">
@@ -317,6 +321,9 @@
     }
   };
 
+  // Address whose NFT holdings are treated as already-paid (deployer/payment wallet)
+  const PAID_ADDRESS = "kaspa:qqxpsvl25l2cf0zrx2wvpnulgthla5ckq9ae4rttw5mupm9e6hc0ujt8ugtre";
+
   const REWARDS = {
     PIXELONKAS: {
       "Super Broken": 1_000_000_000,
@@ -332,6 +339,8 @@
       "Black":           12_000_000,
       "Blue":            12_000_000,
     },
+    // SYKORA trait_type is "Style" (not "Color"). Actual metadata values:
+    //   "Ice" (rare) → 100M, "Black" → 80M, "Pink" → 40M, everything else → 0
     SYKORA: {
       "Ice":   100_000_000,
       "Black":  80_000_000,
@@ -467,6 +476,25 @@
       if (found?.ranges) return found.ranges;
     }
     return null;
+  }
+  async function fetchOwnedByPaidAddress(tick, signal) {
+    try {
+      const url = `${API_BASE}/address/${encodeURIComponent(PAID_ADDRESS)}/${encodeURIComponent(tick)}`;
+      const raw = await fetchJson(url, signal);
+      const res = unwrapResult(raw);
+      const items = Array.isArray(res) ? res : (res?.items || res?.tokens || res?.nfts || []);
+      const ids = new Set();
+      for (const item of items) {
+        const id = item?.tokenId ?? item?.token_id ?? item?.id ?? item;
+        const n = typeof id === "number" ? id : Number(id);
+        if (Number.isFinite(n)) ids.add(n);
+      }
+      return ids;
+    } catch(e) {
+      if (e.name === "AbortError") throw e;
+      console.warn(`fetchOwnedByPaidAddress ${tick}:`, e);
+      return new Set();
+    }
   }
   function getAttr(attrs, traitType) {
     if (!Array.isArray(attrs)) return null;
@@ -719,10 +747,12 @@
     updateStats();
 
     try {
-      // Phase 1: get minted IDs for both collections in parallel
-      const [rangesPXK, rangesSYK] = await Promise.all([
+      // Phase 1: get minted IDs + paid-address holdings in parallel
+      const [rangesPXK, rangesSYK, paidPXK, paidSYK] = await Promise.all([
         fetchRanges("PIXELONKAS", signal),
         fetchRanges("SYKORA", signal),
+        fetchOwnedByPaidAddress("PIXELONKAS", signal),
+        fetchOwnedByPaidAddress("SYKORA", signal),
       ]);
 
       const pxkIds = rangesPXK
@@ -743,6 +773,11 @@
         tick: j.tick, tokenId: j.tokenId,
         owner: null, color: null, opScore: null, reward: null, loaded: false
       }));
+
+      // Auto-mark tokens owned by the paid address as paid
+      for (const id of paidPXK) setPaid("PIXELONKAS", id, true);
+      for (const id of paidSYK) setPaid("SYKORA", id, true);
+
       setProgress(0, totalToLoad);
       doRender();
 
@@ -764,7 +799,10 @@
             const attrs = Array.isArray(meta?.attributes) ? meta.attributes
               : Array.isArray(meta?.properties?.attributes) ? meta.properties.attributes
               : [];
-            const color = getAttr(attrs, "Color") || getAttr(attrs, "color") || null;
+            // SYKORA metadata uses trait_type "Style"; PIXELONKAS uses "Color"
+            const color = tick === "SYKORA"
+              ? getAttr(attrs, "Style")
+              : getAttr(attrs, "Color");
 
             const row = allRows.find(r => r.tick === tick && r.tokenId === tokenId);
             if (row) {
