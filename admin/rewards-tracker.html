@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>REWARDS TRACKER</title>
+  <style>
+    :root {
+      --bg:         #050a0a;
+      --bg2:        #0a0f0f;
+      --card:       #0d1117;
+      --border:     rgba(255,255,255,.08);
+      --muted:      rgba(255,255,255,.50);
+      --accent:     #9B59B6;
+      --accent-dim: rgba(155,89,182,.12);
+      --text:       #f0f0f0;
+      --warn-bg:    rgba(210,65,40,.07);
+      --warn-bdr:   rgba(210,65,40,.20);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
+      background: radial-gradient(circle at top, var(--bg) 0, var(--bg2) 60%);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 13px;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
+      background: rgba(5,10,10,.97);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 48px;
+    }
+    .brand {
+      font-weight: 900; font-size: 13px; letter-spacing: .14em;
+      text-transform: uppercase; white-space: nowrap;
+      color: var(--accent);
+    }
+    .topRight { display: flex; align-items: center; gap: 8px; }
+    #loadStatus { font-size: 11px; color: var(--muted); letter-spacing: .04em; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px;
+      font-size: 12px; font-weight: 700; letter-spacing: .04em;
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: color .15s, border-color .15s, background .15s;
+      white-space: nowrap; line-height: 1;
+    }
+    .btn:hover { color: var(--text); border-color: rgba(255,255,255,.22); }
+    .btnAccent {
+      border-color: var(--accent); color: var(--accent); background: var(--accent-dim);
+    }
+    .btnAccent:hover { background: var(--accent); color: #f0f0f0; }
+
+    /* ── LAYOUT ── */
+    .wrap { max-width: 1700px; margin: 0 auto; padding: 20px 24px 60px; }
+
+    /* ── STATS BAR ── */
+    .statsBar {
+      display: flex; gap: 1px;
+      border: 1px solid var(--border); background: var(--border);
+      margin-bottom: 16px;
+    }
+    .stat {
+      flex: 1; min-width: 110px;
+      background: var(--card);
+      padding: 14px 18px;
+    }
+    .statLabel {
+      font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 6px; font-weight: 700;
+    }
+    .statVal {
+      font-size: 19px; font-weight: 900; letter-spacing: .01em;
+      color: var(--text);
+    }
+    .statVal.hi { color: var(--accent); }
+
+    /* ── PROGRESS ── */
+    #progressWrap { margin-bottom: 16px; }
+    #progressTrack {
+      height: 3px; background: rgba(255,255,255,.08);
+      border-radius: 2px; overflow: hidden; margin-bottom: 6px;
+    }
+    #progressFill {
+      height: 100%; background: var(--accent);
+      border-radius: 2px; transition: width .25s;
+      width: 0%;
+    }
+    #progressText { font-size: 11px; color: var(--muted); letter-spacing: .04em; }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .filterGroup {
+      display: inline-flex; gap: 3px;
+      border: 1px solid var(--border); border-radius: 4px;
+      padding: 3px; background: var(--bg2);
+    }
+    .filterBtn {
+      border: 1px solid transparent; background: transparent;
+      color: var(--muted); padding: 5px 10px;
+      font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+      cursor: pointer; border-radius: 3px;
+      transition: color .15s, border-color .15s, background .15s;
+    }
+    .filterBtn.active {
+      border-color: var(--accent); color: var(--accent); background: var(--accent-dim);
+    }
+    #rowCount { font-size: 11px; color: var(--muted); }
+
+    /* ── TABLE ── */
+    .tableWrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead th {
+      background: var(--card);
+      border-bottom: 1px solid rgba(155,89,182,.35);
+      padding: 10px 12px;
+      text-align: left;
+      font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+      cursor: pointer; user-select: none;
+    }
+    thead th:hover { color: var(--accent); }
+    thead th.sortedCol { color: var(--accent); }
+    .sortIcon { opacity: .7; margin-left: 3px; font-size: 9px; }
+    tbody tr {
+      border-bottom: 1px solid rgba(255,255,255,.045);
+      transition: background .12s;
+    }
+    tbody tr:hover { background: rgba(255,255,255,.025); }
+    tbody tr.unpaid {
+      background: var(--warn-bg);
+      border-bottom-color: var(--warn-bdr);
+    }
+    tbody tr.unpaid:hover { background: rgba(210,65,40,.12); }
+    td { padding: 8px 12px; color: var(--text); vertical-align: middle; }
+    td.dim { color: var(--muted); }
+    td.mono { font-family: monospace; font-size: 11px; }
+    td.bold { font-weight: 700; }
+    .addrCell {
+      font-family: monospace; font-size: 11px;
+      cursor: pointer; white-space: nowrap;
+      max-width: 160px; overflow: hidden; text-overflow: ellipsis;
+    }
+    .addrCell:hover { color: var(--accent); }
+    .paidCb {
+      width: 15px; height: 15px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .notesInput {
+      background: transparent;
+      border: 1px solid transparent; border-radius: 3px;
+      color: var(--text); font-size: 12px; font-family: inherit;
+      padding: 3px 6px; width: 180px;
+      transition: border-color .15s;
+      outline: none;
+    }
+    .notesInput:hover { border-color: rgba(255,255,255,.15); }
+    .notesInput:focus { border-color: var(--accent); background: rgba(155,89,182,.08); }
+    .badge {
+      display: inline-block; padding: 2px 8px;
+      font-size: 10px; font-weight: 800; letter-spacing: .06em;
+      border-radius: 3px; white-space: nowrap;
+    }
+    .badge-pxk { border: 1px solid rgba(155,89,182,.40); color: var(--accent); }
+    .badge-syk { border: 1px solid rgba(73,234,203,.40); color: #49EACB; }
+    .dim-text { opacity: .35; }
+    .loading-ph { opacity: .35; font-style: italic; }
+    .errBar {
+      padding: 12px 18px; margin-bottom: 14px;
+      border-left: 3px solid #e05757;
+      background: rgba(220,80,50,.06);
+      color: #ffb4b4; font-size: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .topbar { padding: 0 12px; }
+      .wrap { padding: 12px 12px 40px; }
+      .statVal { font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app" style="display:none">
+
+  <nav class="topbar">
+    <div class="brand">⬡ Rewards Tracker</div>
+    <div class="topRight">
+      <span id="loadStatus">—</span>
+      <button class="btn btnAccent" id="exportBtn" type="button">Export CSV</button>
+      <button class="btn" id="reloadBtn" type="button">Reload Data</button>
+    </div>
+  </nav>
+
+  <div class="wrap">
+
+    <div class="statsBar">
+      <div class="stat">
+        <div class="statLabel">Total Minted</div>
+        <div class="statVal" id="statTotal">—</div>
+      </div>
+      <div class="stat">
+        <div class="statLabel">$PIXEL Owed</div>
+        <div class="statVal hi" id="statOwed">—</div>
+      </div>
+      <div class="stat">
+        <div class="statLabel">$PIXEL Paid</div>
+        <div class="statVal" id="statPaid">—</div>
+      </div>
+      <div class="stat">
+        <div class="statLabel">$PIXEL Unpaid</div>
+        <div class="statVal" id="statRemaining">—</div>
+      </div>
+      <div class="stat">
+        <div class="statLabel">Unpaid NFTs</div>
+        <div class="statVal" id="statUnpaidCount">—</div>
+      </div>
+    </div>
+
+    <div id="progressWrap">
+      <div id="progressTrack"><div id="progressFill"></div></div>
+      <div id="progressText">Initialising…</div>
+    </div>
+
+    <div id="errBar" class="errBar" style="display:none"></div>
+
+    <div class="toolbar">
+      <div class="filterGroup" id="colFilter">
+        <button class="filterBtn active" data-col="ALL">All</button>
+        <button class="filterBtn" data-col="PIXELONKAS">PIXELONKAS</button>
+        <button class="filterBtn" data-col="SYKORA">SYKORA</button>
+      </div>
+      <div class="filterGroup" id="paidFilter">
+        <button class="filterBtn active" data-paid="ALL">All</button>
+        <button class="filterBtn" data-paid="UNPAID">Unpaid</button>
+        <button class="filterBtn" data-paid="PAID">Paid</button>
+      </div>
+      <span id="rowCount" style="font-size:11px;color:var(--muted);">—</span>
+    </div>
+
+    <div class="tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th data-sort="tokenId">#<span class="sortIcon"></span></th>
+            <th data-sort="tick">Collection<span class="sortIcon"></span></th>
+            <th data-sort="owner">Owner<span class="sortIcon"></span></th>
+            <th data-sort="color">Color / Rarity<span class="sortIcon"></span></th>
+            <th data-sort="opScore">opScore<span class="sortIcon"></span></th>
+            <th data-sort="reward">$PIXEL Reward<span class="sortIcon"></span></th>
+            <th data-sort="paid">Paid<span class="sortIcon"></span></th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(() => {
+  // ── AUTH ────────────────────────────────────────────────────────────────────
+  const AUTH_KEY = "rewards_auth_v1";
+  const PASSWORD = "pixel2025";
+
+  if (sessionStorage.getItem(AUTH_KEY) !== "1") {
+    const input = prompt("Admin password:");
+    if (input !== PASSWORD) {
+      document.documentElement.innerHTML = "";
+      throw new Error("Unauthorized");
+    }
+    sessionStorage.setItem(AUTH_KEY, "1");
+  }
+  document.getElementById("app").style.display = "";
+
+  // ── CONSTANTS ────────────────────────────────────────────────────────────────
+  const API_BASE = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
+  const IPFS_GATEWAYS = [
+    "https://dweb.link/ipfs/",
+    "https://ipfs.io/ipfs/",
+    "https://cloudflare-ipfs.com/ipfs/",
+  ];
+  const CONCURRENCY = 14;
+
+  const COLLECTIONS = {
+    PIXELONKAS: {
+      buri: "ipfs://bafybeih2phpjzxfrszsscpmxdr44kliaddto3sicsdh44kgx7b3f43fdvm",
+      max: 342, idMin: 1
+    },
+    SYKORA: {
+      buri: "ipfs://bafybeifema4upmzu7c4iipvxdagctirxf46g3htmsin6l66zm77dibfhaq",
+      max: 2518, idMin: 1
+    }
+  };
+
+  const REWARDS = {
+    PIXELONKAS: {
+      "Super Broken": 1_000_000_000,
+      "Broken":         100_000_000,
+      "Grey":            80_000_000,
+      "Orange":          50_000_000,
+      "Yellow":          30_000_000,
+      "Pink":            26_000_000,
+      "Red":             24_000_000,
+      "Purple":          22_000_000,
+      "White":           20_000_000,
+      "Green":           15_000_000,
+      "Black":           12_000_000,
+      "Blue":            12_000_000,
+    },
+    SYKORA: {
+      "Ice":   100_000_000,
+      "Black":  80_000_000,
+      "Pink":   40_000_000,
+    }
+  };
+
+  function getReward(tick, color) {
+    if (!color) return 0;
+    const tbl = REWARDS[tick];
+    if (!tbl) return 0;
+    for (const [k, v] of Object.entries(tbl)) {
+      if (k.toLowerCase() === color.toLowerCase()) return v;
+    }
+    return 0; // "Other" or unknown color
+  }
+
+  // ── LOCALSTORAGE ─────────────────────────────────────────────────────────────
+  const kPaid  = (tick, id) => `pxr_paid_${tick}_${id}`;
+  const kNotes = (tick, id) => `pxr_notes_${tick}_${id}`;
+  const isPaid  = (tick, id) => localStorage.getItem(kPaid(tick, id)) === "1";
+  const setPaid = (tick, id, v) => localStorage.setItem(kPaid(tick, id), v ? "1" : "0");
+  const getNotes = (tick, id) => localStorage.getItem(kNotes(tick, id)) || "";
+  const setNotes = (tick, id, v) => localStorage.setItem(kNotes(tick, id), v);
+
+  // ── DOM REFS ─────────────────────────────────────────────────────────────────
+  const $ = id => document.getElementById(id);
+  const tbody       = $("tbody");
+  const progressFill = $("progressFill");
+  const progressText = $("progressText");
+  const errBar      = $("errBar");
+
+  // ── STATE ────────────────────────────────────────────────────────────────────
+  let allRows     = [];
+  let sortCol     = "tokenId";
+  let sortDir     = "asc";
+  let filterCol   = "ALL";
+  let filterPaid  = "ALL";
+  let totalToLoad = 0;
+  let loadedCount = 0;
+  let renderPending = false;
+  let abortCtrl   = null;
+
+  // ── UTILS ────────────────────────────────────────────────────────────────────
+  function esc(s) {
+    return String(s ?? "").replace(/[&<>"']/g,
+      m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" })[m]);
+  }
+  function truncAddr(addr) {
+    if (!addr) return "—";
+    if (addr.length <= 22) return addr;
+    return addr.slice(0, 12) + "…" + addr.slice(-6);
+  }
+  function fmtNum(n) {
+    if (n == null || isNaN(n)) return "—";
+    return Number(n).toLocaleString("en-US");
+  }
+  function showErr(msg) {
+    errBar.textContent = msg;
+    errBar.style.display = msg ? "block" : "none";
+  }
+
+  // ── API HELPERS (mirrored from viewer.html) ───────────────────────────────────
+  async function fetchJson(url, signal) {
+    const r = await fetch(url, { cache: "no-store", signal });
+    if (!r.ok) throw new Error(`HTTP ${r.status}: ${url}`);
+    return r.json();
+  }
+  function unwrapResult(x) {
+    if (x && typeof x === "object" && "result" in x) return x.result;
+    return x;
+  }
+  function ipfsPath(uri) {
+    if (!uri) return "";
+    if (uri.startsWith("ipfs://")) return uri.slice(7);
+    const m = uri.match(/\/ipfs\/(.+)$/);
+    return m ? m[1] : "";
+  }
+  async function fetchJsonFromGateways(paths, signal) {
+    let lastErr = null;
+    for (const p of paths) {
+      for (const gw of IPFS_GATEWAYS) {
+        try {
+          const r = await fetch(gw + p, { cache: "no-store", signal, redirect: "follow" });
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return await r.json();
+        } catch(e) { lastErr = e; }
+      }
+    }
+    throw lastErr || new Error("IPFS fetch failed");
+  }
+  function availableSetFromRanges(s) {
+    const nums = String(s).split(",").map(x => Number(x.trim())).filter(Number.isFinite);
+    const set = new Set();
+    for (let i = 0; i < nums.length - 1; i += 2) {
+      const start = nums[i], len = nums[i + 1];
+      for (let j = 0; j < len; j++) set.add(start + j);
+    }
+    return set;
+  }
+  function mintedIdsFromRanges({ idMin, max, rangesString }) {
+    const avail = availableSetFromRanges(rangesString);
+    const out = [];
+    for (let id = idMin; id <= max; id++) {
+      if (!avail.has(id)) out.push(id);
+    }
+    return out;
+  }
+  function metaCandidatePaths(buri, tick, tokenId) {
+    const folder = ipfsPath(buri).replace(/\/+$/, "");
+    const t = String(tick);
+    return [
+      `${folder}/${tokenId}.json`,
+      `${folder}/${tokenId}`,
+      `${folder}/${tokenId}/index.json`,
+      `${folder}/metadata/${tokenId}.json`,
+      `${folder}/metadata/${tokenId}`,
+      `${folder}/metadata/${tokenId}/index.json`,
+      `${folder}/meta/${tokenId}.json`,
+      `${folder}/meta/${tokenId}`,
+      `${folder}/meta/${tokenId}/index.json`,
+      `${folder}/${t}/${tokenId}`,
+      `${folder}/${t.toLowerCase()}/${tokenId}`,
+    ];
+  }
+  async function fetchRanges(tick, signal) {
+    const raw = await fetchJson(`${API_BASE}/ranges/${encodeURIComponent(tick)}`, signal);
+    const res = unwrapResult(raw);
+    if (typeof res === "string") return res;
+    if (res && typeof res.ranges === "string") return res.ranges;
+    if (Array.isArray(res)) {
+      const found = res.find(x => String(x?.tick).toUpperCase() === tick.toUpperCase());
+      if (found?.ranges) return found.ranges;
+    }
+    return null;
+  }
+  function getAttr(attrs, traitType) {
+    if (!Array.isArray(attrs)) return null;
+    const key = traitType.toLowerCase();
+    const a = attrs.find(a => {
+      const t = (a?.trait_type || a?.trait || a?.type || "").toLowerCase();
+      return t === key;
+    });
+    return a ? String(a?.value ?? a?.val ?? "") : null;
+  }
+
+  // ── PROGRESS ─────────────────────────────────────────────────────────────────
+  function setProgress(loaded, total) {
+    const pct = total > 0 ? Math.min(100, (loaded / total) * 100) : 0;
+    progressFill.style.width = pct + "%";
+    progressText.textContent = total > 0
+      ? `Loading… ${loaded} / ${total} (${Math.round(pct)}%)`
+      : "Ready.";
+    $("loadStatus").textContent = total > 0 ? `${loaded}/${total}` : "";
+  }
+  function setDone(n) {
+    progressFill.style.width = "100%";
+    progressText.textContent = `Loaded ${n} NFTs.`;
+    $("loadStatus").textContent = `${n} loaded`;
+  }
+
+  // ── STATS ─────────────────────────────────────────────────────────────────────
+  function updateStats() {
+    const owed  = allRows.reduce((s, r) => s + (r.reward || 0), 0);
+    const paid  = allRows.reduce((s, r) => s + (isPaid(r.tick, r.tokenId) ? (r.reward || 0) : 0), 0);
+    const unpaidCount = allRows.filter(r => !isPaid(r.tick, r.tokenId) && (r.reward || 0) > 0).length;
+    $("statTotal").textContent       = fmtNum(allRows.length);
+    $("statOwed").textContent        = fmtNum(owed);
+    $("statPaid").textContent        = fmtNum(paid);
+    $("statRemaining").textContent   = fmtNum(owed - paid);
+    $("statUnpaidCount").textContent = fmtNum(unpaidCount);
+  }
+
+  // ── TABLE RENDER ─────────────────────────────────────────────────────────────
+  function applyFilters(rows) {
+    return rows.filter(r => {
+      if (filterCol !== "ALL" && r.tick !== filterCol) return false;
+      const paid = isPaid(r.tick, r.tokenId);
+      if (filterPaid === "PAID"   && !paid) return false;
+      if (filterPaid === "UNPAID" && (paid || !r.reward)) return false;
+      return true;
+    });
+  }
+  function applySort(rows) {
+    return [...rows].sort((a, b) => {
+      let av = a[sortCol], bv = b[sortCol];
+      if (sortCol === "paid") {
+        av = isPaid(a.tick, a.tokenId) ? 1 : 0;
+        bv = isPaid(b.tick, b.tokenId) ? 1 : 0;
+      }
+      if (av == null) av = ""; if (bv == null) bv = "";
+      const cmp = (typeof av === "number" && typeof bv === "number")
+        ? av - bv
+        : String(av).localeCompare(String(bv));
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }
+
+  function colorStyle(tick, color) {
+    const c = (color || "").toLowerCase();
+    if (c === "super broken") return "color:#fff;text-shadow:0 0 6px rgba(255,255,255,.7);font-weight:900;";
+    if (c === "broken")       return "color:#ffd700;font-weight:700;";
+    if (c === "ice")          return "color:#a0f4ff;";
+    if (c === "orange")       return "color:#ffaa44;";
+    if (c === "red")          return "color:#ff6666;";
+    if (c === "pink")         return "color:#ff88bb;";
+    if (c === "purple")       return "color:#cc88ff;";
+    if (c === "green")        return "color:#66cc88;";
+    if (c === "yellow")       return "color:#ffee66;";
+    if (c === "blue")         return "color:#66aaff;";
+    return "";
+  }
+
+  function renderRow(row) {
+    const paid  = isPaid(row.tick, row.tokenId);
+    const notes = getNotes(row.tick, row.tokenId);
+    const unpaid = !paid && (row.reward || 0) > 0;
+
+    const collBadge = row.tick === "PIXELONKAS"
+      ? `<span class="badge badge-pxk">PXK</span>`
+      : `<span class="badge badge-syk">SYK</span>`;
+
+    const ownerCell = !row.loaded
+      ? `<span class="loading-ph">…</span>`
+      : row.owner
+        ? `<span class="addrCell" title="${esc(row.owner)}" data-addr="${esc(row.owner)}">${esc(truncAddr(row.owner))}</span>`
+        : `<span class="dim-text">—</span>`;
+
+    const colorCell = !row.loaded
+      ? `<span class="loading-ph">…</span>`
+      : row.color
+        ? `<span style="${colorStyle(row.tick, row.color)}">${esc(row.color)}</span>`
+        : `<span class="dim-text">—</span>`;
+
+    const rewardCell = !row.loaded
+      ? `<span class="loading-ph">…</span>`
+      : (row.reward || 0) > 0
+        ? fmtNum(row.reward)
+        : `<span class="dim-text">—</span>`;
+
+    return `<tr class="${unpaid ? "unpaid" : ""}" data-tick="${esc(row.tick)}" data-id="${row.tokenId}">
+      <td class="mono">${row.tokenId}</td>
+      <td>${collBadge}</td>
+      <td class="mono">${ownerCell}</td>
+      <td>${colorCell}</td>
+      <td class="dim mono">${row.opScore ? fmtNum(row.opScore) : '<span class="dim-text">—</span>'}</td>
+      <td class="bold">${rewardCell}</td>
+      <td style="text-align:center"><input type="checkbox" class="paidCb" ${paid ? "checked" : ""}></td>
+      <td><input type="text" class="notesInput" value="${esc(notes)}" placeholder="notes…"></td>
+    </tr>`;
+  }
+
+  function scheduleRender() {
+    if (renderPending) return;
+    renderPending = true;
+    setTimeout(() => { renderPending = false; doRender(); }, 300);
+  }
+
+  function doRender() {
+    const filtered = applyFilters(allRows);
+    const sorted   = applySort(filtered);
+    tbody.innerHTML = sorted.map(renderRow).join("");
+    $("rowCount").textContent = `${filtered.length} rows`;
+    bindRowEvents();
+    updateStats();
+  }
+
+  function bindRowEvents() {
+    // Click address to copy
+    tbody.querySelectorAll(".addrCell[data-addr]").forEach(el => {
+      el.style.cursor = "pointer";
+      el.addEventListener("click", () => {
+        const addr = el.dataset.addr;
+        if (!addr) return;
+        navigator.clipboard.writeText(addr).then(() => {
+          const orig = el.textContent;
+          el.textContent = "✓ copied";
+          setTimeout(() => { el.textContent = truncAddr(addr); }, 1300);
+        }).catch(() => {});
+      });
+    });
+
+    // Paid checkbox
+    tbody.querySelectorAll(".paidCb").forEach(cb => {
+      cb.addEventListener("change", () => {
+        const tr = cb.closest("tr");
+        const tick = tr.dataset.tick;
+        const id   = Number(tr.dataset.id);
+        setPaid(tick, id, cb.checked);
+        const row = allRows.find(r => r.tick === tick && r.tokenId === id);
+        const unpaid = !cb.checked && row && (row.reward || 0) > 0;
+        tr.classList.toggle("unpaid", unpaid);
+        updateStats();
+      });
+    });
+
+    // Notes auto-save
+    tbody.querySelectorAll(".notesInput").forEach(inp => {
+      inp.addEventListener("input", () => {
+        const tr = inp.closest("tr");
+        setNotes(tr.dataset.tick, Number(tr.dataset.id), inp.value);
+      });
+    });
+  }
+
+  // ── SORT HEADERS ─────────────────────────────────────────────────────────────
+  document.querySelectorAll("thead th[data-sort]").forEach(th => {
+    th.addEventListener("click", () => {
+      const col = th.dataset.sort;
+      if (sortCol === col) {
+        sortDir = sortDir === "asc" ? "desc" : "asc";
+      } else {
+        sortCol = col;
+        sortDir = "asc";
+      }
+      document.querySelectorAll("thead th").forEach(h => {
+        h.classList.remove("sortedCol");
+        const si = h.querySelector(".sortIcon");
+        if (si) si.textContent = "";
+      });
+      th.classList.add("sortedCol");
+      const si = th.querySelector(".sortIcon");
+      if (si) si.textContent = sortDir === "asc" ? " ▲" : " ▼";
+      doRender();
+    });
+  });
+
+  // ── FILTERS ──────────────────────────────────────────────────────────────────
+  document.querySelectorAll("#colFilter .filterBtn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#colFilter .filterBtn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      filterCol = btn.dataset.col;
+      doRender();
+    });
+  });
+  document.querySelectorAll("#paidFilter .filterBtn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#paidFilter .filterBtn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      filterPaid = btn.dataset.paid;
+      doRender();
+    });
+  });
+
+  // ── EXPORT CSV ───────────────────────────────────────────────────────────────
+  $("exportBtn").addEventListener("click", () => {
+    const header = ["#","Collection","Owner","Color","opScore","$PIXEL Reward","Paid","Notes"];
+    const rows = applySort(allRows).map(r => [
+      r.tokenId,
+      r.tick,
+      r.owner || "",
+      r.color || "",
+      r.opScore || "",
+      r.reward || 0,
+      isPaid(r.tick, r.tokenId) ? "1" : "0",
+      getNotes(r.tick, r.tokenId)
+    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(","));
+
+    const csv  = [header.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href = url;
+    a.download = `pixel-rewards-${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  // ── DATA LOADING ─────────────────────────────────────────────────────────────
+  async function loadAll() {
+    if (abortCtrl) abortCtrl.abort();
+    abortCtrl = new AbortController();
+    const signal = abortCtrl.signal;
+
+    allRows     = [];
+    loadedCount = 0;
+    totalToLoad = 0;
+    tbody.innerHTML = "";
+    showErr("");
+    setProgress(0, 0);
+    progressText.textContent = "Fetching minted ranges…";
+    $("loadStatus").textContent = "loading…";
+    updateStats();
+
+    try {
+      // Phase 1: get minted IDs for both collections in parallel
+      const [rangesPXK, rangesSYK] = await Promise.all([
+        fetchRanges("PIXELONKAS", signal),
+        fetchRanges("SYKORA", signal),
+      ]);
+
+      const pxkIds = rangesPXK
+        ? mintedIdsFromRanges({ idMin: 1, max: 342,  rangesString: rangesPXK })
+        : [];
+      const sykIds = rangesSYK
+        ? mintedIdsFromRanges({ idMin: 1, max: 2518, rangesString: rangesSYK })
+        : [];
+
+      const jobs = [
+        ...pxkIds.map(id => ({ tick: "PIXELONKAS", tokenId: id })),
+        ...sykIds.map(id => ({ tick: "SYKORA",     tokenId: id })),
+      ];
+      totalToLoad = jobs.length;
+
+      // Phase 2: create skeleton rows immediately so table is visible
+      allRows = jobs.map(j => ({
+        tick: j.tick, tokenId: j.tokenId,
+        owner: null, color: null, opScore: null, reward: null, loaded: false
+      }));
+      setProgress(0, totalToLoad);
+      doRender();
+
+      // Phase 3: enrich each NFT with metadata + owner
+      let qi = 0;
+      async function worker() {
+        while (qi < jobs.length) {
+          const { tick, tokenId } = jobs[qi++];
+          const cfg = COLLECTIONS[tick];
+
+          try {
+            const [meta, nftInfo] = await Promise.all([
+              fetchJsonFromGateways(metaCandidatePaths(cfg.buri, tick, tokenId), signal)
+                .catch(() => null),
+              fetchJson(`${API_BASE}/nfts/${encodeURIComponent(tick)}/${tokenId}`, signal)
+                .then(r => unwrapResult(r)).catch(() => null),
+            ]);
+
+            const attrs = Array.isArray(meta?.attributes) ? meta.attributes
+              : Array.isArray(meta?.properties?.attributes) ? meta.properties.attributes
+              : [];
+            const color = getAttr(attrs, "Color") || getAttr(attrs, "color") || null;
+
+            const row = allRows.find(r => r.tick === tick && r.tokenId === tokenId);
+            if (row) {
+              row.owner   = nftInfo?.owner || null;
+              row.color   = color;
+              row.opScore = nftInfo?.opScoreMod || nftInfo?.opScore || null;
+              row.reward  = getReward(tick, color);
+              row.loaded  = true;
+            }
+          } catch(e) {
+            if (e.name === "AbortError") return;
+            const row = allRows.find(r => r.tick === tick && r.tokenId === tokenId);
+            if (row) { row.loaded = true; row.reward = 0; }
+          }
+
+          loadedCount++;
+          setProgress(loadedCount, totalToLoad);
+          scheduleRender();
+        }
+      }
+
+      await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+      setDone(totalToLoad);
+      doRender(); // final authoritative render
+
+    } catch(e) {
+      if (e.name === "AbortError") return;
+      showErr(`Error: ${e.message}`);
+      progressText.textContent = "Failed.";
+      $("loadStatus").textContent = "error";
+      console.error(e);
+    }
+  }
+
+  $("reloadBtn").addEventListener("click", loadAll);
+
+  // ── INIT ─────────────────────────────────────────────────────────────────────
+  loadAll();
+})();
+</script>
+
+</body>
+</html>
