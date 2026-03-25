@@ -237,10 +237,6 @@
         <div class="statLabel">Unpaid NFTs</div>
         <div class="statVal" id="statUnpaidCount">—</div>
       </div>
-      <div class="stat" style="flex:1.8">
-        <div class="statLabel">Paid Address</div>
-        <div class="statVal" style="font-size:10px;font-family:monospace;letter-spacing:.02em;word-break:break-all">kaspa:qqxp…ugtre</div>
-      </div>
     </div>
 
     <div id="progressWrap">
@@ -249,6 +245,21 @@
     </div>
 
     <div id="errBar" class="errBar" style="display:none"></div>
+
+    <div id="importPanel" style="margin-bottom:14px;border:1px solid var(--border);background:var(--card);padding:14px 18px;">
+      <div style="font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Import Paid Addresses</div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <textarea id="paidAddrsInput"
+          placeholder="kaspa:address1&#10;kaspa:address2&#10;…one per line (paste from KasWare send history)"
+          style="flex:1;min-height:72px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:monospace;font-size:11px;padding:8px 10px;resize:vertical;outline:none;transition:border-color .15s;"
+          spellcheck="false"></textarea>
+        <div style="display:flex;flex-direction:column;gap:6px;padding-top:2px;">
+          <button class="btn btnAccent" id="applyAddrsBtn" type="button">Apply</button>
+          <span id="applyResult" style="font-size:10px;color:var(--muted);text-align:center;white-space:nowrap;"></span>
+        </div>
+      </div>
+      <div style="margin-top:8px;font-size:10px;color:var(--muted);">Matches owner addresses against loaded NFT rows and checks Paid. List is saved in localStorage.</div>
+    </div>
 
     <div class="toolbar">
       <div class="filterGroup" id="colFilter">
@@ -320,9 +331,6 @@
       max: 2518, idMin: 1
     }
   };
-
-  // Address whose NFT holdings are treated as already-paid (deployer/payment wallet)
-  const PAID_ADDRESS = "kaspa:qqxpsvl25l2cf0zrx2wvpnulgthla5ckq9ae4rttw5mupm9e6hc0ujt8ugtre";
 
   const REWARDS = {
     PIXELONKAS: {
@@ -476,25 +484,6 @@
       if (found?.ranges) return found.ranges;
     }
     return null;
-  }
-  async function fetchOwnedByPaidAddress(tick, signal) {
-    try {
-      const url = `${API_BASE}/address/${encodeURIComponent(PAID_ADDRESS)}/${encodeURIComponent(tick)}`;
-      const raw = await fetchJson(url, signal);
-      const res = unwrapResult(raw);
-      const items = Array.isArray(res) ? res : (res?.items || res?.tokens || res?.nfts || []);
-      const ids = new Set();
-      for (const item of items) {
-        const id = item?.tokenId ?? item?.token_id ?? item?.id ?? item;
-        const n = typeof id === "number" ? id : Number(id);
-        if (Number.isFinite(n)) ids.add(n);
-      }
-      return ids;
-    } catch(e) {
-      if (e.name === "AbortError") throw e;
-      console.warn(`fetchOwnedByPaidAddress ${tick}:`, e);
-      return new Set();
-    }
   }
   function getAttr(attrs, traitType) {
     if (!Array.isArray(attrs)) return null;
@@ -747,12 +736,10 @@
     updateStats();
 
     try {
-      // Phase 1: get minted IDs + paid-address holdings in parallel
-      const [rangesPXK, rangesSYK, paidPXK, paidSYK] = await Promise.all([
+      // Phase 1: get minted IDs for both collections in parallel
+      const [rangesPXK, rangesSYK] = await Promise.all([
         fetchRanges("PIXELONKAS", signal),
         fetchRanges("SYKORA", signal),
-        fetchOwnedByPaidAddress("PIXELONKAS", signal),
-        fetchOwnedByPaidAddress("SYKORA", signal),
       ]);
 
       const pxkIds = rangesPXK
@@ -773,11 +760,6 @@
         tick: j.tick, tokenId: j.tokenId,
         owner: null, color: null, opScore: null, reward: null, loaded: false
       }));
-
-      // Auto-mark tokens owned by the paid address as paid
-      for (const id of paidPXK) setPaid("PIXELONKAS", id, true);
-      for (const id of paidSYK) setPaid("SYKORA", id, true);
-
       setProgress(0, totalToLoad);
       doRender();
 
@@ -838,6 +820,37 @@
   }
 
   $("reloadBtn").addEventListener("click", loadAll);
+
+  // ── IMPORT PAID ADDRESSES ─────────────────────────────────────────────────────
+  const K_PAID_ADDRS = "pxr_paid_addrs";
+
+  // Restore saved addresses into textarea on load
+  $("paidAddrsInput").value = localStorage.getItem(K_PAID_ADDRS) || "";
+
+  function applyPaidAddresses() {
+    const raw = $("paidAddrsInput").value;
+    const addrs = new Set(
+      raw.split("\n").map(s => s.trim().toLowerCase()).filter(Boolean)
+    );
+    if (!addrs.size) return 0;
+    let count = 0;
+    for (const row of allRows) {
+      if (row.owner && addrs.has(row.owner.toLowerCase()) && !isPaid(row.tick, row.tokenId)) {
+        setPaid(row.tick, row.tokenId, true);
+        count++;
+      }
+    }
+    if (count > 0) doRender();
+    return count;
+  }
+
+  $("applyAddrsBtn").addEventListener("click", () => {
+    localStorage.setItem(K_PAID_ADDRS, $("paidAddrsInput").value);
+    const count = applyPaidAddresses();
+    const el = $("applyResult");
+    el.textContent = count > 0 ? `✓ ${count} marked paid` : "no new matches";
+    el.style.color = count > 0 ? "#49EACB" : "var(--muted)";
+  });
 
   // ── INIT ─────────────────────────────────────────────────────────────────────
   loadAll();
