@@ -83,6 +83,8 @@
     .btnGhost:hover{color:var(--text);border-color:rgba(255,255,255,.22);}
     .btnIcon{padding:7px 12px;}
     .btnIcon img{width:18px;height:18px;display:block;border-radius:3px;}
+    .btnSynthi{padding:10px 16px;font-size:15px;font-weight:700;gap:8px;}
+    .btnSynthi img{width:24px;height:24px;display:block;border-radius:5px;}
     .btnRewardsTop{
       font-size:12px;
       font-weight:900;
@@ -339,17 +341,20 @@
       PIXEL ON KASPA <small>sound → image → chain</small>
     </div>
     <div class="nav">
-      <button class="btn btnRewardsTop btnPrimary" type="button" data-open-rewards="PIXELONKAS">REWARDS</button>
       <a class="btn" href="artists.html">ARTISTS</a>
       <a class="btn" href="viewer">NFTs</a>
-      <a class="btn navSecondary" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">Mint PIXELONKAS</a>
-      <a class="btn navSecondary" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">Mint SYKORA</a>
-      <a class="btn btnIcon btnGhost navSecondary" href="synthi/" title="SYNTHI">
+      <div class="mintDrop" style="position:relative">
+        <button class="btn" id="mintDropBtn" type="button">MINT ▾</button>
+        <div id="mintDropMenu" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:#0a1010;border:1px solid var(--border);border-radius:4px;padding:4px 0;z-index:200;min-width:160px;">
+          <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer" style="display:flex;border:none;border-radius:0;padding:8px 14px;width:100%">Mint PIXELONKAS</a>
+          <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer" style="display:flex;border:none;border-radius:0;padding:8px 14px;width:100%">Mint SYKORA</a>
+        </div>
+      </div>
+      <button class="btn btnPrimary btnRewardsTop" type="button" data-open-rewards="PIXELONKAS">REWARDS</button>
+      <a class="btn btnSynthi" href="synthi/">
         <img src="assets/img/logo.png" alt="SYNTHI">
         SYNTHI
       </a>
-      <a class="btn btnGhost" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
-      <a class="btn btnGhost" href="https://t.me/+Ro2t1MjZunIxM2M8" target="_blank" rel="noreferrer">TG</a>
     </div>
   </nav>
 
@@ -655,6 +660,15 @@
 </script>
 
 <script>
+// ── MINT DROPDOWN ──
+(function(){
+  const btn = document.getElementById("mintDropBtn");
+  const menu = document.getElementById("mintDropMenu");
+  if (!btn || !menu) return;
+  btn.addEventListener("click", e => { e.stopPropagation(); menu.style.display = menu.style.display==="none"?"block":"none"; });
+  document.addEventListener("click", () => { menu.style.display="none"; });
+})();
+
 // ── NFT COVER LOADING + REWARDS MODAL ──
 (() => {
   const STREAM_API = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
