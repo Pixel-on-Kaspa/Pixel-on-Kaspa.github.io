@@ -436,7 +436,7 @@
     oscDet.connect(gDet); gDet.connect(sum);
 
     const pre = actx.createGain();
-    pre.gain.value = 0.22;
+    pre.gain.value = 0.65; // pre-gain raised for analyser sensitivity
     sum.connect(pre);
 
     // ── 4 parallel delay lines ──
@@ -528,8 +528,7 @@
     masterClip.connect(masterGain);
     masterGain.connect(limiter);
     limiter.connect(actx.destination);
-    limiter.connect(analyserF);
-    limiter.connect(analyserT);
+    // analysers are already tapped at mixBus (pre-limiter); no second connection needed
 
     const now = actx.currentTime + 0.02;
     const triOffset = 0.25 / (oscTri.frequency.value || 1);
@@ -639,9 +638,10 @@
       return c ? (s / c) / 255 : 0;
     };
 
-    const bass = band(0.00, 0.10);
-    const mid  = band(0.10, 0.35);
-    const hi   = band(0.35, 0.90);
+    // Bands focused on low-frequency content where the oscillators live
+    const bass = band(0.00, 0.05);  // sub/kick range
+    const mid  = band(0.05, 0.20);  // main melodic range
+    const hi   = band(0.20, 0.60);  // presence/air
 
     let acc = 0;
     for (let i = 0; i < tbuf.length; i++) {
@@ -655,11 +655,12 @@
 
     const level = clamp(0.45 * rms + 0.30 * bass + 0.20 * mid + 0.20 * hi, 0, 1);
 
-    env.level = env.level * 0.84 + level * 0.16;
-    env.bass  = env.bass  * 0.84 + bass  * 0.16;
-    env.mid   = env.mid   * 0.84 + mid   * 0.16;
-    env.hi    = env.hi    * 0.84 + hi    * 0.16;
-    env.rms   = env.rms   * 0.82 + rms   * 0.18;
+    // IIR smoothing: 0.35 hold → fast transient response (~25 ms at 60 fps)
+    env.level = env.level * 0.35 + level * 0.65;
+    env.bass  = env.bass  * 0.35 + bass  * 0.65;
+    env.mid   = env.mid   * 0.35 + mid   * 0.65;
+    env.hi    = env.hi    * 0.35 + hi    * 0.65;
+    env.rms   = env.rms   * 0.75 + rms   * 0.25;
     env.transient = env.transient * 0.70 + trans * 0.30;
 
     return env;
@@ -1200,9 +1201,9 @@
 
       const R = reactMul;
 
-      const densReact = clamp(0.75 + (1.40 * aL + 0.55 * kickFlash) * R, 0.30, 2.50);
-      const expoReact = clamp(0.85 + (1.60 * aB + 0.35 * snareFlash) * R, 0.40, 3.00);
-      const warpReact = clamp(0.80 + (1.85 * aH) * R, 0.00, 2.40);
+      const densReact = clamp(0.75 + (2.80 * aL + 0.55 * kickFlash) * R, 0.30, 2.50);
+      const expoReact = clamp(0.85 + (3.20 * aB + 0.35 * snareFlash) * R, 0.40, 3.00);
+      const warpReact = clamp(0.80 + (3.50 * aH) * R, 0.00, 2.40);
 
       // ── delay → visual modulation ──
       const dMix = delayMix;
@@ -1229,7 +1230,7 @@
       ctx2d.save();
       ctx2d.globalCompositeOperation = "source-over";
       const decayBase = feedbackOn ? (0.040 + 0.030 * Math.min(1, fbMul)) : 0.070;
-      const decay = clamp(decayBase * (1.05 - 0.55 * aL * R), 0.012, 0.11);
+      const decay = clamp(decayBase * (1.05 - 1.10 * aL * R), 0.012, 0.11);
       ctx2d.globalAlpha = decay;
       ctx2d.fillStyle = "#000";
       ctx2d.fillRect(0, 0, canvas.width, canvas.height);
@@ -1261,7 +1262,7 @@
 
       // ── multi-layer Lissajous ──
       const beatLift = 0.55 * kickFlash + 0.25 * snareFlash;
-      const jitterK = (1.20 + 0.95 * aH * R + 0.55 * beatLift) * s;
+      const jitterK = (1.20 + 1.90 * aH * R + 0.55 * beatLift) * s;
       const nLayers = Math.max(1, Math.round(1 + harmonicsMix * 6));
       const fillColor = rgbFromBands(aB, aM, aH, colorAmt);
 
@@ -1269,7 +1270,7 @@
         const ratio = HARMONIC_RATIOS[li];
         const pLayer = { ...p, f_vis: p.f_vis * ratio };
         const layerAlphaScale = li === 0 ? 1.0 : 0.45 / Math.sqrt(li);
-        const alphaBase = (0.24 + 0.38 * aL * R + 0.22 * beatLift) * layerAlphaScale;
+        const alphaBase = (0.24 + 0.76 * aL * R + 0.22 * beatLift) * layerAlphaScale;
         const alpha = clamp(alphaBase * exposureEff, 0.04, 0.95);
 
         ctx2d.save();
