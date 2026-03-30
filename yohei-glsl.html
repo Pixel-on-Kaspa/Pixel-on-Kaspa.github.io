@@ -931,32 +931,38 @@ void main(){
   }
 
   // ── Fullscreen ──
-  const fsCanvas = document.querySelector("canvas");
-  let fsSavedStyle = null; // snapshot of inline style before entering fullscreen
+  // Fullscreen the wrapper, not the canvas. When the canvas itself is the
+  // fullscreen element the browser stretches it to fill the viewport; by
+  // fullscreening the parent div we can flex-centre a 100vmin square inside it.
+  const fsCanvas = document.getElementById("c");
+  const fsWrap   = document.querySelector(".canvasWrap");
+  let fsSavedWrapStyle   = "";
+  let fsSavedCanvasStyle = "";
 
   function onFullscreenChange() {
-    if (document.fullscreenElement === fsCanvas) {
-      // Entering fullscreen — constrain to square, centre on dark background
-      const side = Math.min(window.innerWidth, window.innerHeight);
-      fsSavedStyle = fsCanvas.getAttribute("style") || "";
+    if (document.fullscreenElement === fsWrap) {
+      // Save current inline styles
+      fsSavedWrapStyle   = fsWrap.getAttribute("style")   || "";
+      fsSavedCanvasStyle = fsCanvas.getAttribute("style") || "";
+      // Wrapper fills the fullscreen viewport and centres its child
+      fsWrap.style.cssText =
+        "width:100vw;height:100vh;background:#050a0a;" +
+        "display:flex;align-items:center;justify-content:center;";
+      // Canvas is a square taking the smaller viewport dimension
       fsCanvas.style.cssText =
-        `width:${side}px;height:${side}px;display:block;margin:auto;` +
-        `position:absolute;top:50%;left:50%;` +
-        `transform:translate(-50%,-50%);background:#050a0a;`;
-      // Dark letterbox behind the canvas
-      fsCanvas.style.setProperty("--fs-bg", "#050a0a");
+        "width:100vmin !important;height:100vmin !important;" +
+        "max-width:100vmin !important;max-height:100vmin !important;" +
+        "position:static;transform:none;";
     } else {
-      // Exiting fullscreen — restore original inline style
-      if (fsSavedStyle !== null) {
-        fsCanvas.setAttribute("style", fsSavedStyle);
-        fsSavedStyle = null;
-      }
+      // Restore original inline styles on exit
+      fsWrap.setAttribute("style",   fsSavedWrapStyle);
+      fsCanvas.setAttribute("style", fsSavedCanvasStyle);
     }
   }
 
   document.getElementById("btnFull").addEventListener("click", () => {
     if (!document.fullscreenElement) {
-      fsCanvas.requestFullscreen();
+      fsWrap.requestFullscreen();
     } else {
       document.exitFullscreen();
     }
