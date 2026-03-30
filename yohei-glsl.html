@@ -251,7 +251,7 @@
     <button class="btn" id="btnShot" type="button">PNG</button>
     <button class="btn" id="btnReset" type="button">Reset</button>
     <button class="btn" id="btnCopy" type="button">Copy URL</button>
-    <button class="btn btnGhost btnRec" id="btnRec" type="button">REC 5s</button>
+    <button class="btn btnGhost btnRec" id="btnRec" type="button">REC 8s</button>
     <button id="btnFull" style="display:inline-block !important">[ FULL ]</button>
     <span class="status" id="status">boot…</span>
   </div>
@@ -821,7 +821,7 @@ void main(){
     requestAnimationFrame(resize);
   });
 
-  // ── REC 5s ──
+  // ── REC 8s ──
   const btnRec    = document.getElementById("btnRec");
   const recOverlay = document.getElementById("recOverlay");
   let isRecording    = false;
@@ -835,7 +835,7 @@ void main(){
     btnRec.textContent = "● REC";
     btnRec.disabled = true;
 
-    const REC_DURATION = 5000;
+    const REC_DURATION = 8000;
     const chunks = [];
 
     // Offscreen 2D canvas at 1440×1440 — the main WebGL canvas is NEVER resized,
@@ -926,7 +926,7 @@ void main(){
     activeOffCtx    = null; // stop tick() from copying frames
     activeOffscreen = null; // release canvas ref
     btnRec.classList.remove("recording");
-    btnRec.textContent = "REC 5s";
+    btnRec.textContent = "REC 8s";
     btnRec.disabled = false;
   }
 
