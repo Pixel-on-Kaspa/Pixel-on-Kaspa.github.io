@@ -59,6 +59,7 @@
     .btnPrimary:hover{background:var(--accent);color:#020a08;}
     .btnGhost{border-color:var(--border);color:var(--muted);}
     .btnGhost:hover{color:var(--text);border-color:rgba(255,255,255,.22);}
+    canvas:fullscreen, canvas:-webkit-full-screen{background:#050a0a;}
     #btnFull{display:inline-block !important;visibility:visible !important;opacity:1 !important;background:transparent;border:1px solid #49EACB;border-radius:4px;color:#49EACB;font-size:13px;font-weight:700;cursor:pointer;padding:5px 11px;letter-spacing:.04em;}
     #btnFull:hover{background:rgba(255,255,255,.08);}
 
@@ -930,13 +931,38 @@ void main(){
   }
 
   // ── Fullscreen ──
+  const fsCanvas = document.querySelector("canvas");
+  let fsSavedStyle = null; // snapshot of inline style before entering fullscreen
+
+  function onFullscreenChange() {
+    if (document.fullscreenElement === fsCanvas) {
+      // Entering fullscreen — constrain to square, centre on dark background
+      const side = Math.min(window.innerWidth, window.innerHeight);
+      fsSavedStyle = fsCanvas.getAttribute("style") || "";
+      fsCanvas.style.cssText =
+        `width:${side}px;height:${side}px;display:block;margin:auto;` +
+        `position:absolute;top:50%;left:50%;` +
+        `transform:translate(-50%,-50%);background:#050a0a;`;
+      // Dark letterbox behind the canvas
+      fsCanvas.style.setProperty("--fs-bg", "#050a0a");
+    } else {
+      // Exiting fullscreen — restore original inline style
+      if (fsSavedStyle !== null) {
+        fsCanvas.setAttribute("style", fsSavedStyle);
+        fsSavedStyle = null;
+      }
+    }
+  }
+
   document.getElementById("btnFull").addEventListener("click", () => {
     if (!document.fullscreenElement) {
-      document.querySelector("canvas").requestFullscreen();
+      fsCanvas.requestFullscreen();
     } else {
       document.exitFullscreen();
     }
   });
+
+  document.addEventListener("fullscreenchange", onFullscreenChange);
 
   // ── Render loop ──
   let t0 = performance.now();
