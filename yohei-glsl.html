@@ -859,15 +859,15 @@ void main(){
       endRec(); return;
     }
 
-    // Prefer WebM. Chrome claims isTypeSupported=true for video/mp4 but encodes
-    // VP8/VP9 into it, producing an unplayable container — so mp4 is last resort.
-    // We also try each candidate with new MediaRecorder() directly, because
-    // isTypeSupported can lie; if construction throws we fall through to the next.
+    // H.264/MP4 preferred for quality and compatibility. Specific codec strings
+    // (avc1.42E01E, h264) are tried before bare video/mp4 to avoid browsers
+    // silently selecting VP8/VP9 into an MP4 container. VP9/WebM is the fallback.
+    // Each candidate is constructed directly — isTypeSupported can lie.
     const FORMATS = [
-      "video/webm;codecs=vp9",
-      "video/webm;codecs=vp8",
-      "video/webm",
-      "video/mp4",
+      "video/mp4;codecs=avc1.42E01E", // H.264 baseline — best quality/compat
+      "video/mp4;codecs=h264",         // H.264 generic
+      "video/webm;codecs=vp9",         // VP9 fallback
+      "video/webm",                    // last resort
     ];
 
     let rec;
