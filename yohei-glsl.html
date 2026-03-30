@@ -59,6 +59,8 @@
     .btnPrimary:hover{background:var(--accent);color:#020a08;}
     .btnGhost{border-color:var(--border);color:var(--muted);}
     .btnGhost:hover{color:var(--text);border-color:rgba(255,255,255,.22);}
+    #btnFull{display:inline-block !important;visibility:visible !important;opacity:1 !important;background:transparent;border:1px solid #49EACB;border-radius:4px;color:#49EACB;font-size:13px;font-weight:700;cursor:pointer;padding:5px 11px;letter-spacing:.04em;}
+    #btnFull:hover{background:rgba(255,255,255,.08);}
 
     /* ── TOOLBAR ── */
     .toolbar{
@@ -249,6 +251,7 @@
     <button class="btn" id="btnReset" type="button">Reset</button>
     <button class="btn" id="btnCopy" type="button">Copy URL</button>
     <button class="btn btnGhost btnRec" id="btnRec" type="button">REC 5s</button>
+    <button id="btnFull" style="display:inline-block !important">[ FULL ]</button>
     <span class="status" id="status">boot…</span>
   </div>
 
@@ -820,7 +823,9 @@ void main(){
   // ── REC 5s ──
   const btnRec    = document.getElementById("btnRec");
   const recOverlay = document.getElementById("recOverlay");
-  let isRecording = false;
+  let isRecording    = false;
+  let activeOffCtx   = null; // 2D ctx of the offscreen capture canvas
+  let activeOffscreen = null; // strong ref so GC cannot collect the canvas while recording
 
   btnRec.addEventListener("click", () => {
     if(isRecording) return;
@@ -832,36 +837,70 @@ void main(){
     const REC_DURATION = 5000;
     const chunks = [];
 
+    // Offscreen 2D canvas at 1440×1440 — the main WebGL canvas is NEVER resized,
+    // so the GL context stays intact. tick() copies each rendered frame here via
+    // drawImage(), and captureStream() on THIS canvas feeds MediaRecorder.
+    const offscreen   = document.createElement("canvas");
+    offscreen.width   = 1440;
+    offscreen.height  = 1440;
+    activeOffscreen   = offscreen;           // module-level strong ref (prevents GC)
+    activeOffCtx      = offscreen.getContext("2d");
+    console.log("[REC] offscreen canvas:", offscreen.width, "×", offscreen.height,
+                "| main canvas:", canvas.width, "×", canvas.height);
+
     let stream;
     try{
-      stream = canvas.captureStream(30);
+      stream = offscreen.captureStream(60);  // ← offscreen, NOT the WebGL canvas
+      console.log("[REC] captureStream source: offscreen ✓");
     }catch(e){
       alert("captureStream not supported in this browser.");
+      activeOffCtx = null; activeOffscreen = null;
       endRec(); return;
     }
 
+    // Prefer WebM. Chrome claims isTypeSupported=true for video/mp4 but encodes
+    // VP8/VP9 into it, producing an unplayable container — so mp4 is last resort.
+    // We also try each candidate with new MediaRecorder() directly, because
+    // isTypeSupported can lie; if construction throws we fall through to the next.
     const FORMATS = [
-      { mime: "video/mp4",             ext: "mp4"  },
-      { mime: "video/webm;codecs=h264",ext: "webm" },
-      { mime: "video/webm;codecs=vp9", ext: "webm" },
-      { mime: "video/webm",            ext: "webm" },
+      "video/webm;codecs=vp9",
+      "video/webm;codecs=vp8",
+      "video/webm",
+      "video/mp4",
     ];
-    const fmt = FORMATS.find(f => MediaRecorder.isTypeSupported(f.mime)) || FORMATS[3];
 
-    const rec = new MediaRecorder(stream, { mimeType: fmt.mime, videoBitsPerSecond: 8_000_000 });
+    let rec;
+    for (const mime of FORMATS) {
+      if (!MediaRecorder.isTypeSupported(mime)) continue;
+      try {
+        rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+        break;
+      } catch(e) { /* browser rejected this mime despite isTypeSupported — try next */ }
+    }
+    if (!rec) {
+      // Let the browser pick whatever it supports
+      rec = new MediaRecorder(stream, { videoBitsPerSecond: 8_000_000 });
+    }
+
+    // rec.mimeType is what the browser ACTUALLY uses — may differ from what we asked for.
+    const actualMime = rec.mimeType || "video/webm";
+    const actualExt  = actualMime.includes("mp4") ? "mp4" : "webm";
+    console.log("[REC] MediaRecorder.mimeType:", actualMime, "→ saving as ." + actualExt);
+
     rec.ondataavailable = e => { if(e.data.size > 0) chunks.push(e.data); };
     rec.onstop = () => {
-      const blob = new Blob(chunks, { type: fmt.mime });
+      // Use actualMime (browser-negotiated) not the requested mime — they can differ.
+      const blob = new Blob(chunks, { type: actualMime });
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement("a");
       a.href = url;
-      a.download = `yohei-glsl-${Date.now()}.${fmt.ext}`;
+      a.download = `yohei-glsl-${Date.now()}.${actualExt}`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 3000);
       endRec();
     };
 
-    rec.start();
+    rec.start(100); // timeslice: flush a chunk every 100 ms for reliable collection
 
     // Countdown overlay
     const start = performance.now();
@@ -883,10 +922,21 @@ void main(){
 
   function endRec(){
     isRecording = false;
+    activeOffCtx    = null; // stop tick() from copying frames
+    activeOffscreen = null; // release canvas ref
     btnRec.classList.remove("recording");
     btnRec.textContent = "REC 5s";
     btnRec.disabled = false;
   }
+
+  // ── Fullscreen ──
+  document.getElementById("btnFull").addEventListener("click", () => {
+    if (!document.fullscreenElement) {
+      document.querySelector("canvas").requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  });
 
   // ── Render loop ──
   let t0 = performance.now();
@@ -921,6 +971,9 @@ void main(){
     }else{
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     }
+
+    // Copy current frame into the offscreen recording canvas (1440×1440)
+    if(activeOffCtx) activeOffCtx.drawImage(canvas, 0, 0, 1440, 1440);
 
     if(!document.hidden) requestAnimationFrame(tick);
     else setTimeout(() => requestAnimationFrame(tick), 500);
