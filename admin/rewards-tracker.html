@@ -185,6 +185,13 @@
     }
     .badge-pxk { border: 1px solid rgba(155,89,182,.40); color: var(--accent); }
     .badge-syk { border: 1px solid rgba(73,234,203,.40); color: #49EACB; }
+    .badge-ice {
+      border: 1px solid rgba(0,196,255,.50); color: #00c4ff;
+      cursor: pointer; user-select: none; transition: background .15s, opacity .15s;
+    }
+    .badge-ice:hover { background: rgba(0,196,255,.15); }
+    .badge-ice.ice-off { opacity: .18; border-color: rgba(0,196,255,.20); }
+    .badge-ice.ice-off:hover { opacity: .5; }
     .dim-text { opacity: .35; }
     .loading-ph { opacity: .35; font-style: italic; }
     .errBar {
@@ -282,6 +289,7 @@
             <th data-sort="tokenId">#<span class="sortIcon"></span></th>
             <th data-sort="tick">Collection<span class="sortIcon"></span></th>
             <th data-sort="owner">Owner<span class="sortIcon"></span></th>
+            <th data-sort="mintDate">Mint Date<span class="sortIcon"></span></th>
             <th data-sort="color">Color / Rarity<span class="sortIcon"></span></th>
             <th data-sort="opScore">opScore<span class="sortIcon"></span></th>
             <th data-sort="reward">$PIXEL Reward<span class="sortIcon"></span></th>
@@ -369,10 +377,15 @@
   // ── LOCALSTORAGE ─────────────────────────────────────────────────────────────
   const kPaid  = (tick, id) => `pxr_paid_${tick}_${id}`;
   const kNotes = (tick, id) => `pxr_notes_${tick}_${id}`;
+  const kIce   = (tick, id) => `pxr_ice_${tick}_${id}`;
   const isPaid  = (tick, id) => localStorage.getItem(kPaid(tick, id)) === "1";
   const setPaid = (tick, id, v) => localStorage.setItem(kPaid(tick, id), v ? "1" : "0");
   const getNotes = (tick, id) => localStorage.getItem(kNotes(tick, id)) || "";
   const setNotes = (tick, id, v) => localStorage.setItem(kNotes(tick, id), v);
+  const isIce   = (tick, id) => localStorage.getItem(kIce(tick, id)) === "1";
+  const setIce  = (tick, id, v) => v
+    ? localStorage.setItem(kIce(tick, id), "1")
+    : localStorage.removeItem(kIce(tick, id));
 
   // ── DOM REFS ─────────────────────────────────────────────────────────────────
   const $ = id => document.getElementById(id);
@@ -485,6 +498,26 @@
     }
     return null;
   }
+  async function fetchMintDate(tick, tokenId, signal) {
+    // Step 1: get first ownership record (direction=forward gives oldest = mint)
+    const hist = await fetchJson(
+      `${API_BASE}/history/${encodeURIComponent(tick)}/${tokenId}?direction=forward&limit=1`,
+      signal
+    );
+    const entries = unwrapResult(hist);
+    if (!Array.isArray(entries) || entries.length === 0) return null;
+    const opScore = entries[0]?.opScoreMod;
+    if (!opScore) return null;
+
+    // Step 2: get the operation by score to get mtsAdd (millisecond timestamp)
+    const op = await fetchJson(`${API_BASE}/ops/score/${opScore}`, signal);
+    const opRes = unwrapResult(op);
+    const mts = opRes?.mtsAdd;
+    if (!mts) return null;
+    const d = isNaN(Number(mts)) ? new Date(mts) : new Date(Number(mts));
+    return d.toISOString().slice(0, 16).replace('T', ' ');
+  }
+
   function getAttr(attrs, traitType) {
     if (!Array.isArray(attrs)) return null;
     const key = traitType.toLowerCase();
@@ -567,9 +600,12 @@
     const notes = getNotes(row.tick, row.tokenId);
     const unpaid = !paid && (row.reward || 0) > 0;
 
+    const ice = row.tick === "SYKORA";
+    const iceOn = ice && isIce(row.tick, row.tokenId);
     const collBadge = row.tick === "PIXELONKAS"
       ? `<span class="badge badge-pxk">PXK</span>`
-      : `<span class="badge badge-syk">SYK</span>`;
+      : `<span class="badge badge-syk">SYK</span>`
+        + ` <span class="badge badge-ice${iceOn ? "" : " ice-off"}" title="${iceOn ? "ICE NFT — click to unmark" : "Click to mark as ICE"}">ICE</span>`;
 
     const ownerCell = !row.loaded
       ? `<span class="loading-ph">…</span>`
@@ -581,6 +617,7 @@
       ? `<span class="loading-ph">…</span>`
       : row.color
         ? `<span style="${colorStyle(row.tick, row.color)}">${esc(row.color)}</span>`
+          + (row.edition ? ` <span class="dim-text" style="font-size:10px">${esc(row.edition)}</span>` : "")
         : `<span class="dim-text">—</span>`;
 
     const rewardCell = !row.loaded
@@ -589,10 +626,17 @@
         ? fmtNum(row.reward)
         : `<span class="dim-text">—</span>`;
 
+    const mintDateCell = !row.loaded
+      ? `<span class="loading-ph">…</span>`
+      : row.mintDate
+        ? `<span class="dim">${esc(row.mintDate)}</span>`
+        : `<span class="dim-text">—</span>`;
+
     return `<tr class="${unpaid ? "unpaid" : ""}" data-tick="${esc(row.tick)}" data-id="${row.tokenId}">
       <td class="mono">${row.tokenId}</td>
       <td>${collBadge}</td>
       <td class="mono">${ownerCell}</td>
+      <td class="mono dim">${mintDateCell}</td>
       <td>${colorCell}</td>
       <td class="dim mono">${row.opScore ? fmtNum(row.opScore) : '<span class="dim-text">—</span>'}</td>
       <td class="bold">${rewardCell}</td>
@@ -628,6 +672,19 @@
           el.textContent = "✓ copied";
           setTimeout(() => { el.textContent = truncAddr(addr); }, 1300);
         }).catch(() => {});
+      });
+    });
+
+    // ICE badge toggle
+    tbody.querySelectorAll(".badge-ice").forEach(badge => {
+      badge.addEventListener("click", () => {
+        const tr = badge.closest("tr");
+        const tick = tr.dataset.tick;
+        const id   = Number(tr.dataset.id);
+        const nowIce = !badge.classList.contains("ice-off");
+        setIce(tick, id, !nowIce);
+        badge.classList.toggle("ice-off", nowIce);
+        badge.title = nowIce ? "Click to mark as ICE" : "ICE NFT — click to unmark";
       });
     });
 
@@ -696,11 +753,12 @@
 
   // ── EXPORT CSV ───────────────────────────────────────────────────────────────
   $("exportBtn").addEventListener("click", () => {
-    const header = ["#","Collection","Owner","Color","opScore","$PIXEL Reward","Paid","Notes"];
+    const header = ["#","Collection","Owner","Mint Date","Color","opScore","$PIXEL Reward","Paid","Notes"];
     const rows = applySort(allRows).map(r => [
       r.tokenId,
       r.tick,
       r.owner || "",
+      r.mintDate || "",
       r.color || "",
       r.opScore || "",
       r.reward || 0,
@@ -758,7 +816,7 @@
       // Phase 2: create skeleton rows immediately so table is visible
       allRows = jobs.map(j => ({
         tick: j.tick, tokenId: j.tokenId,
-        owner: null, color: null, opScore: null, reward: null, loaded: false
+        owner: null, color: null, edition: null, opScore: null, reward: null, mintDate: null, loaded: false
       }));
       setProgress(0, totalToLoad);
       doRender();
@@ -771,28 +829,44 @@
           const cfg = COLLECTIONS[tick];
 
           try {
-            const [meta, nftInfo] = await Promise.all([
+            const [meta, nftInfo, mintDate] = await Promise.all([
               fetchJsonFromGateways(metaCandidatePaths(cfg.buri, tick, tokenId), signal)
                 .catch(() => null),
               fetchJson(`${API_BASE}/nfts/${encodeURIComponent(tick)}/${tokenId}`, signal)
                 .then(r => unwrapResult(r)).catch(() => null),
+              fetchMintDate(tick, tokenId, signal).catch(e => { if (e.name === "AbortError") throw e; return null; }),
             ]);
 
             const attrs = Array.isArray(meta?.attributes) ? meta.attributes
               : Array.isArray(meta?.properties?.attributes) ? meta.properties.attributes
               : [];
-            // SYKORA metadata uses trait_type "Style"; PIXELONKAS uses "Color"
-            const color = tick === "SYKORA"
-              ? getAttr(attrs, "Style")
-              : getAttr(attrs, "Color");
+            // SYKORA: Rarity="Special" → Ice tier (no Style trait on Ice tokens)
+            //         otherwise use Style (e.g. "Dark Red", "Black", "Pink")
+            // PIXELONKAS: uses trait_type "Color"
+            let color;
+            if (tick === "SYKORA") {
+              const rarity = getAttr(attrs, "Rarity");
+              color = (rarity?.toLowerCase() === "special") ? "Ice" : getAttr(attrs, "Style");
+            } else {
+              color = getAttr(attrs, "Color");
+            }
+            const edition = tick === "SYKORA" ? getAttr(attrs, "Edition") : null;
+
+            // Auto-set ICE flag for SYKORA Ice NFTs (only if not already explicitly set)
+            if (tick === "SYKORA" && color?.toLowerCase() === "ice"
+                && localStorage.getItem(kIce(tick, tokenId)) === null) {
+              setIce(tick, tokenId, true);
+            }
 
             const row = allRows.find(r => r.tick === tick && r.tokenId === tokenId);
             if (row) {
-              row.owner   = nftInfo?.owner || null;
-              row.color   = color;
-              row.opScore = nftInfo?.opScoreMod || nftInfo?.opScore || null;
-              row.reward  = getReward(tick, color);
-              row.loaded  = true;
+              row.owner    = nftInfo?.owner || null;
+              row.color    = color;
+              row.edition  = edition;
+              row.opScore  = nftInfo?.opScoreMod || nftInfo?.opScore || null;
+              row.reward   = getReward(tick, color);
+              row.mintDate = mintDate;
+              row.loaded   = true;
             }
           } catch(e) {
             if (e.name === "AbortError") return;
