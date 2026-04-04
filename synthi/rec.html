@@ -11,384 +11,221 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:       #0a0a0a;
-      --panel:    #111111;
-      --panel2:   #161616;
-      --border:   #2a2a2a;
-      --border2:  #383838;
-      --red:      #e63b3b;
-      --amber:    #e8a020;
-      --green:    #2de879;
-      --text:     #e4e4e4;
-      --muted:    rgba(228,228,228,0.50);
-      --dim:      rgba(228,228,228,0.28);
-      --f-disp:   'Bebas Neue', sans-serif;
-      --f-mono:   'Share Tech Mono', monospace;
-      --f-ui:     'Space Mono', monospace;
+      --bg:     #0a0a0a;
+      --panel:  #111111;
+      --panel2: #161616;
+      --border: #2a2a2a;
+      --bdr2:   #383838;
+      --red:    #e63b3b;
+      --amber:  #e8a020;
+      --green:  #2de879;
+      --text:   #e4e4e4;
+      --muted:  rgba(228,228,228,.50);
+      --dim:    rgba(228,228,228,.26);
+      --fd: 'Bebas Neue', sans-serif;
+      --fm: 'Share Tech Mono', monospace;
+      --fu: 'Space Mono', monospace;
     }
 
     html { scroll-behavior: smooth; }
+
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: var(--f-ui);
+      font-family: var(--fu);
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ── CRT OVERLAY ── */
+    /* CRT */
     #crt {
-      position: fixed; inset: 0;
-      z-index: 999;
-      pointer-events: none;
+      position: fixed; inset: 0; z-index: 999; pointer-events: none;
       background: repeating-linear-gradient(
         0deg,
-        transparent,
-        transparent 2px,
-        rgba(0,0,0,0.055) 2px,
-        rgba(0,0,0,0.055) 4px
+        transparent 0px, transparent 2px,
+        rgba(0,0,0,.055) 2px, rgba(0,0,0,.055) 4px
       );
     }
 
-    /* ── TOPBAR ── */
+    /* ── TOPBAR ─────────────────────────────────── */
     #topbar {
       position: sticky; top: 0; z-index: 200;
+      height: 54px;
       background: var(--panel);
       border-bottom: 1px solid var(--border);
-      height: 54px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 20px;
-      gap: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 22px; gap: 14px;
     }
 
     .brand {
-      display: flex;
-      align-items: center;
-      gap: 11px;
-      text-decoration: none;
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; flex-shrink: 0;
     }
-    .brand img {
-      width: 30px; height: 30px;
-      border-radius: 6px;
-      display: block;
-    }
-    .brand-name {
-      font-family: var(--f-disp);
-      font-size: 24px;
-      letter-spacing: 0.14em;
-      color: var(--text);
-      line-height: 1;
+    .brand img { width: 28px; height: 28px; border-radius: 5px; display: block; }
+    .brand-text {
+      font-family: var(--fd); font-size: 23px; letter-spacing: .14em; color: var(--text); line-height: 1;
     }
 
-    /* REC badge — parallelogram shape */
     .rec-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      font-family: var(--f-mono);
-      font-size: 10px;
-      font-weight: bold;
-      color: var(--red);
-      background: rgba(230,59,59,0.10);
-      border: 1px solid rgba(230,59,59,0.35);
-      padding: 3px 8px 3px 7px;
-      letter-spacing: 0.12em;
-      clip-path: polygon(6% 0%, 100% 0%, 94% 100%, 0% 100%);
-      animation: rec-blink 1.3s ease-in-out infinite;
+      display: inline-flex; align-items: center; gap: 5px;
+      font-family: var(--fm); font-size: 10px; color: var(--red);
+      background: rgba(230,59,59,.10); border: 1px solid rgba(230,59,59,.32);
+      padding: 3px 9px 3px 8px; letter-spacing: .12em;
+      clip-path: polygon(7% 0%, 100% 0%, 93% 100%, 0% 100%);
+      animation: blink 1.4s ease-in-out infinite;
     }
-    .rec-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--red);
-      flex-shrink: 0;
-      animation: rec-blink 1.3s ease-in-out infinite;
-    }
-    @keyframes rec-blink {
-      0%, 40%, 60%, 100% { opacity: 1; }
-      50% { opacity: 0.08; }
+    .rec-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red); flex-shrink: 0; }
+
+    @keyframes blink {
+      0%, 42%, 58%, 100% { opacity: 1; }
+      50% { opacity: .08; }
     }
 
-    .topnav {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
+    .topnav { display: flex; align-items: center; gap: 5px; }
     .topnav a {
-      font-family: var(--f-mono);
-      font-size: 10px;
-      color: var(--muted);
-      text-decoration: none;
-      padding: 5px 10px;
-      border: 1px solid var(--border);
-      border-radius: 3px;
-      letter-spacing: 0.07em;
-      transition: color .15s, border-color .15s, background .15s;
-      white-space: nowrap;
+      font-family: var(--fm); font-size: 10px; color: var(--muted);
+      text-decoration: none; padding: 5px 10px;
+      border: 1px solid var(--border); border-radius: 3px; letter-spacing: .06em;
+      transition: color .15s, border-color .15s, background .15s; white-space: nowrap;
     }
-    .topnav a:hover {
-      color: var(--text);
-      border-color: var(--border2);
-      background: rgba(255,255,255,0.04);
-    }
+    .topnav a:hover { color: var(--text); border-color: var(--bdr2); background: rgba(255,255,255,.04); }
 
-    /* ── PAGE WRAPPER ── */
-    .page { max-width: 1280px; margin: 0 auto; padding: 0 20px 64px; }
+    /* ── PAGE ───────────────────────────────────── */
+    .page { max-width: 1280px; margin: 0 auto; padding: 0 22px 72px; }
 
-    /* ── TITLE BLOCK ── */
+    /* ── TITLE BLOCK ──────────────────────────── */
     .title-block {
-      padding: 44px 0 32px;
+      padding: 48px 0 34px;
       border-bottom: 1px solid var(--border);
-      margin-bottom: 36px;
+      margin-bottom: 40px;
     }
-    .title-eyebrow {
-      font-family: var(--f-mono);
-      font-size: 10px;
-      color: var(--red);
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      margin-bottom: 8px;
+    .eyebrow {
+      font-family: var(--fm); font-size: 10px; color: var(--red);
+      letter-spacing: .22em; text-transform: uppercase; margin-bottom: 10px;
     }
-    .title-main {
-      font-family: var(--f-disp);
-      font-size: clamp(52px, 8vw, 96px);
-      letter-spacing: 0.06em;
-      line-height: 0.92;
-      color: var(--text);
-      margin-bottom: 14px;
+    .title-h1 {
+      font-family: var(--fd); font-size: clamp(60px, 9vw, 108px);
+      letter-spacing: .05em; line-height: .9; color: var(--text); margin-bottom: 16px;
     }
     .title-sub {
-      font-family: var(--f-mono);
-      font-size: 12px;
-      color: var(--muted);
-      letter-spacing: 0.08em;
-      max-width: 56ch;
-      line-height: 1.6;
+      font-family: var(--fm); font-size: 12px; color: var(--muted);
+      letter-spacing: .07em; line-height: 1.65; max-width: 58ch;
     }
-    .title-meta {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-top: 18px;
-      flex-wrap: wrap;
+    .title-chips {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-top: 20px;
     }
-    .meta-chip {
-      font-family: var(--f-mono);
-      font-size: 9px;
-      color: var(--dim);
-      border: 1px solid var(--border);
-      border-radius: 2px;
-      padding: 3px 8px;
-      letter-spacing: 0.1em;
+    .chip {
+      font-family: var(--fm); font-size: 9px; color: var(--dim);
+      border: 1px solid var(--border); border-radius: 2px;
+      padding: 3px 8px; letter-spacing: .10em;
     }
-    .meta-chip b { color: var(--amber); font-weight: normal; }
+    .chip b { color: var(--amber); font-weight: normal; }
 
-    /* ── STREAM GRID ── */
-    #stream-grid {
+    /* ── STREAM GRID ──────────────────────────── */
+    #grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 16px;
+      gap: 14px;
     }
 
-    /* ── STREAM CARD ── */
-    .stream-card {
+    /* ── CARD ─────────────────────────────────── */
+    .card {
+      display: flex; overflow: hidden;
       background: var(--panel2);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      display: flex;
-      gap: 0;
-      overflow: hidden;
-      transition: border-color .2s, transform .2s;
-      position: relative;
+      border: 1px solid var(--border); border-radius: 4px;
+      transition: border-color .18s, transform .18s;
     }
-    .stream-card:not(.expired):hover {
-      border-color: var(--border2);
-      transform: translateY(-2px);
-    }
-    .stream-card.expired {
-      opacity: 0.45;
-    }
+    .card:not(.expired):hover { border-color: var(--bdr2); transform: translateY(-2px); }
+    .card.expired { opacity: .42; }
 
-    /* VU bars — left edge strip */
-    .card-vu {
-      width: 18px;
-      flex-shrink: 0;
+    /* VU strip */
+    .vu-strip {
+      width: 16px; flex-shrink: 0;
       background: var(--panel);
       border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 3px;
-      padding: 12px 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 3px; padding: 14px 0;
     }
-    .vu-bar {
-      width: 6px;
-      border-radius: 1px;
-      background: rgba(230,59,59,0.55);
-      animation: vu-pulse var(--d,0.7s) ease-in-out infinite alternate;
+    .vb {
+      width: 6px; border-radius: 1px;
+      background: rgba(230,59,59,.60);
+      animation: vu var(--d,.75s) ease-in-out infinite alternate;
       animation-delay: var(--dl,0s);
     }
-    .stream-card.expired .vu-bar {
-      background: rgba(255,255,255,0.12);
-      animation: none;
-      height: 4px !important;
-    }
-    @keyframes vu-pulse {
-      0%   { height: var(--a,3px);  opacity: 0.6; }
-      25%  { height: var(--b,10px); opacity: 1;   }
-      75%  { height: var(--c,14px); opacity: 0.9; }
-      100% { height: var(--d2,4px); opacity: 0.5; }
+    .card.expired .vb { background: rgba(255,255,255,.10); animation: none; height: 4px !important; }
+
+    @keyframes vu {
+      0%   { height: var(--h0,3px);  }
+      30%  { height: var(--h1,11px); }
+      60%  { height: var(--h2,6px);  }
+      100% { height: var(--h3,15px); }
     }
 
+    /* Card body */
     .card-body {
-      flex: 1;
-      min-width: 0;
-      padding: 16px 18px 16px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+      flex: 1; min-width: 0;
+      padding: 16px 18px 16px 13px;
+      display: flex; flex-direction: column; gap: 11px;
     }
 
-    /* Card top row */
-    .card-top {
-      display: flex;
-      align-items: baseline;
-      gap: 10px;
-    }
+    .card-top { display: flex; align-items: baseline; gap: 10px; }
     .card-num {
-      font-family: var(--f-disp);
-      font-size: 36px;
-      line-height: 1;
-      color: var(--red);
-      flex-shrink: 0;
+      font-family: var(--fd); font-size: 38px; line-height: 1;
+      color: var(--red); flex-shrink: 0; min-width: 44px;
     }
-    .stream-card.expired .card-num { color: var(--dim); }
-    .card-title-group { min-width: 0; }
+    .card.expired .card-num { color: var(--dim); }
+    .card-info { min-width: 0; }
     .card-name {
-      font-family: var(--f-disp);
-      font-size: 20px;
-      letter-spacing: 0.08em;
-      color: var(--text);
-      line-height: 1.1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-family: var(--fd); font-size: 20px; letter-spacing: .08em; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.1;
     }
-    .card-date {
-      font-family: var(--f-mono);
-      font-size: 10px;
-      color: var(--dim);
-      letter-spacing: 0.06em;
-      margin-top: 2px;
-    }
+    .card-date { font-family: var(--fm); font-size: 10px; color: var(--dim); margin-top: 2px; }
 
-    /* Card middle */
-    .card-mid {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .card-dur {
-      font-family: var(--f-mono);
-      font-size: 11px;
-      color: var(--amber);
-      letter-spacing: 0.06em;
-    }
-    .card-badge {
-      font-family: var(--f-mono);
-      font-size: 9px;
-      letter-spacing: 0.12em;
-      padding: 2px 7px;
-      border-radius: 2px;
-      border: 1px solid;
-    }
-    .badge-clip {
-      color: var(--green);
-      border-color: rgba(45,232,121,0.35);
-      background: rgba(45,232,121,0.07);
-    }
-    .badge-exp {
-      color: var(--dim);
-      border-color: rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.03);
-    }
+    .card-mid { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .dur { font-family: var(--fm); font-size: 11px; color: var(--amber); letter-spacing: .05em; }
 
-    /* Card bottom — watch button */
+    .badge {
+      font-family: var(--fm); font-size: 9px; letter-spacing: .11em;
+      padding: 2px 7px; border-radius: 2px; border: 1px solid;
+    }
+    .badge-ok  { color: var(--green); border-color: rgba(45,232,121,.30); background: rgba(45,232,121,.07); }
+    .badge-exp { color: var(--dim);   border-color: rgba(255,255,255,.10); background: transparent; }
+
     .card-btn {
-      display: block;
-      width: 100%;
-      padding: 10px 14px;
-      font-family: var(--f-disp);
-      font-size: 16px;
-      letter-spacing: 0.12em;
-      text-align: center;
-      text-decoration: none;
-      border-radius: 3px;
-      border: 1px solid;
-      transition: background .15s, color .15s, border-color .15s;
-      cursor: pointer;
-      line-height: 1;
+      display: block; width: 100%; padding: 10px 14px;
+      font-family: var(--fd); font-size: 17px; letter-spacing: .12em;
+      text-align: center; text-decoration: none;
+      border: 1px solid; border-radius: 3px; line-height: 1;
+      transition: background .15s, border-color .15s;
     }
-    .card-btn.live {
+    .btn-live {
       color: var(--text);
-      border-color: rgba(230,59,59,0.4);
-      background: rgba(230,59,59,0.08);
+      border-color: rgba(230,59,59,.40); background: rgba(230,59,59,.08);
     }
-    .card-btn.live:hover {
-      background: rgba(230,59,59,0.18);
-      border-color: rgba(230,59,59,0.65);
-    }
-    .card-btn.dead {
-      color: var(--dim);
-      border-color: var(--border);
-      background: transparent;
-      cursor: not-allowed;
-      pointer-events: none;
+    .btn-live:hover { background: rgba(230,59,59,.18); border-color: rgba(230,59,59,.65); }
+    .btn-dead {
+      color: var(--dim); border-color: var(--border); background: transparent;
+      cursor: not-allowed; pointer-events: none;
     }
 
-    /* ── FOOTER ── */
+    /* ── FOOTER ───────────────────────────────── */
     footer {
-      margin-top: 56px;
-      padding: 20px 0;
+      margin-top: 60px; padding-top: 22px;
       border-top: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-      flex-wrap: wrap;
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 16px; flex-wrap: wrap;
     }
-    .footer-left {
-      font-family: var(--f-mono);
-      font-size: 10px;
-      color: var(--dim);
-      line-height: 1.8;
-      letter-spacing: 0.06em;
-    }
-    .footer-left b { color: var(--muted); font-weight: normal; }
-    .footer-addr {
-      font-family: var(--f-mono);
-      font-size: 9px;
-      color: var(--dim);
-      word-break: break-all;
-      max-width: 480px;
-      line-height: 1.7;
-      letter-spacing: 0.04em;
-      text-align: right;
-    }
-    .footer-addr a {
-      color: var(--amber);
-      text-decoration: none;
-    }
-    .footer-addr a:hover { text-decoration: underline; }
+    .foot-l { font-family: var(--fm); font-size: 10px; color: var(--dim); line-height: 1.9; letter-spacing: .06em; }
+    .foot-l b { color: var(--muted); font-weight: normal; }
+    .foot-r { font-family: var(--fm); font-size: 9px; color: var(--dim); text-align: right; line-height: 1.8; word-break: break-all; max-width: 500px; }
+    .foot-r a { color: var(--amber); text-decoration: none; }
+    .foot-r a:hover { text-decoration: underline; }
 
-    /* ── RESPONSIVE ── */
-    @media (max-width: 600px) {
-      .title-main { font-size: 52px; }
-      #stream-grid { grid-template-columns: 1fr; }
-      .footer-addr { text-align: left; }
+    @media (max-width: 580px) {
+      .title-h1 { font-size: 58px; }
+      #grid { grid-template-columns: 1fr; }
+      .foot-r { text-align: left; }
     }
   </style>
 </head>
@@ -396,14 +233,13 @@
 
 <div id="crt"></div>
 
-<!-- TOPBAR -->
 <header id="topbar">
-  <div style="display:flex;align-items:center;gap:11px;">
+  <div style="display:flex;align-items:center;gap:11px">
     <a class="brand" href="../">
       <img src="../assets/img/logo.png" alt="SYNTHI" />
-      <span class="brand-name">SYNTHI •</span>
+      <span class="brand-text">SYNTHI •</span>
     </a>
-    <div class="rec-badge"><span class="rec-dot"></span>REC</div>
+    <span class="rec-badge"><span class="rec-dot"></span>REC</span>
   </div>
   <nav class="topnav">
     <a href="../">Home</a>
@@ -413,35 +249,32 @@
   </nav>
 </header>
 
-<!-- CONTENT -->
 <main class="page">
 
-  <!-- Title block -->
   <div class="title-block">
-    <div class="title-eyebrow">● Live recording archive</div>
-    <h1 class="title-main">REC<br>ARCHIVE</h1>
-    <p class="title-sub">Live streams recorded on pump.fun. Click a stream to watch on pump.fun — clips expire 30 days after broadcast.</p>
-    <div class="title-meta">
-      <span class="meta-chip">SYNTHI RECORDS</span>
-      <span class="meta-chip">PLATFORM <b>pump.fun</b></span>
-      <span class="meta-chip">CHAIN <b>Solana</b></span>
-      <span class="meta-chip" id="total-chip">STREAMS <b id="stream-total">—</b></span>
+    <p class="eyebrow">● live recording archive</p>
+    <h1 class="title-h1">REC<br>ARCHIVE</h1>
+    <p class="title-sub">Live sessions recorded on pump.fun. Open a stream to watch — clips expire 30 days after broadcast.</p>
+    <div class="title-chips">
+      <span class="chip">SYNTHI RECORDS</span>
+      <span class="chip">PLATFORM <b>pump.fun</b></span>
+      <span class="chip">CHAIN <b>Solana</b></span>
+      <span class="chip">STREAMS <b id="count">—</b></span>
     </div>
   </div>
 
-  <!-- Stream grid -->
-  <div id="stream-grid"></div>
+  <div id="grid"></div>
 
-  <!-- Footer -->
   <footer>
-    <div class="footer-left">
+    <div class="foot-l">
       <b>© SYNTHI RECORDS</b><br>
       pixel-on-kaspa.fyi<br>
-      All streams recorded live.
+      Recorded live. All rights reserved.
     </div>
-    <div class="footer-addr">
+    <div class="foot-r">
       pump.fun coin<br>
-      <a href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump" target="_blank" rel="noreferrer">
+      <a href="https://pump.fun/coin/2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump"
+         target="_blank" rel="noreferrer">
         2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump
       </a>
     </div>
@@ -450,11 +283,11 @@
 </main>
 
 <script>
-(() => {
-  const COIN    = "2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump";
-  const BASE    = "https://pump.fun/coin/" + COIN;
+(function () {
+  var COIN = "2Rbg9r58dRAEQyh7EsprEx5QVFSBG74yK2nw9bVXpump";
+  var BASE = "https://pump.fun/coin/" + COIN;
 
-  const streams = [
+  var streams = [
     {
       id: 1,
       name: "SYNTHI LIVE 1",
@@ -465,68 +298,61 @@
     }
   ];
 
-  // ── VU bars ──
-  function makeVU(expired) {
-    // 8 bars with randomised animation parameters
-    const heights = [5, 11, 8, 14, 6, 12, 9, 7];
-    return heights.map((h, i) => {
-      const d   = (0.45 + Math.random() * 0.6).toFixed(2);
-      const dl  = (i * 0.07).toFixed(2);
-      const a   = Math.max(2, h - 5);
-      const b   = h + 3;
-      const c   = h + 7;
-      const d2  = Math.max(2, h - 3);
-      if (expired) {
-        return `<div class="vu-bar" style="height:4px"></div>`;
-      }
-      return `<div class="vu-bar" style="--d:${d}s;--dl:${dl}s;--a:${a}px;--b:${b}px;--c:${c}px;--d2:${d2}px;animation-delay:${dl}s"></div>`;
-    }).join("");
-  }
-
-  // ── Render ──
-  function render() {
-    const grid = document.getElementById("stream-grid");
-    document.getElementById("stream-total").textContent = streams.length;
-
-    grid.innerHTML = streams.map(s => {
-      const url     = BASE + "?clip=" + encodeURIComponent(s.clip);
-      const expired = !!s.expired;
-
-      const badge = expired
-        ? `<span class="card-badge badge-exp">EXPIRED (30d limit)</span>`
-        : `<span class="card-badge badge-clip">● CLIP AVAILABLE</span>`;
-
-      const btn = expired
-        ? `<span class="card-btn dead">✕ EXPIRED</span>`
-        : `<a class="card-btn live" href="${esc(url)}" target="_blank" rel="noreferrer">▶ WATCH ON PUMP.FUN</a>`;
-
-      return `
-        <div class="stream-card${expired ? " expired" : ""}">
-          <div class="card-vu">${makeVU(expired)}</div>
-          <div class="card-body">
-            <div class="card-top">
-              <span class="card-num">${String(s.id).padStart(2,"0")}</span>
-              <div class="card-title-group">
-                <div class="card-name">${esc(s.name)}</div>
-                <div class="card-date">${esc(s.date)}</div>
-              </div>
-            </div>
-            <div class="card-mid">
-              <span class="card-dur">${esc(s.duration)}</span>
-              ${badge}
-            </div>
-            ${btn}
-          </div>
-        </div>`;
-    }).join("");
-  }
-
   function esc(s) {
-    return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+    return String(s).replace(/[&<>"']/g, function(c) {
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c];
+    });
   }
 
-  render();
-})();
+  function vuStrip(expired) {
+    var heights = [5, 12, 7, 15, 9, 13, 6, 11, 8, 14];
+    return heights.map(function(h, i) {
+      if (expired) return '<div class="vb" style="height:4px"></div>';
+      var d  = (0.42 + Math.random() * 0.60).toFixed(2);
+      var dl = (i * 0.068).toFixed(3);
+      var h0 = Math.max(2, h - 5);
+      var h1 = h + 2;
+      var h2 = Math.max(2, h - 2);
+      var h3 = h + 6;
+      return '<div class="vb" style="--d:' + d + 's;--dl:' + dl + 's;--h0:' + h0 + 'px;--h1:' + h1 + 'px;--h2:' + h2 + 'px;--h3:' + h3 + 'px;animation-delay:' + dl + 's"></div>';
+    }).join("");
+  }
+
+  function renderCard(s) {
+    var url     = BASE + "?clip=" + encodeURIComponent(s.clip);
+    var expired = !!s.expired;
+    var badge   = expired
+      ? '<span class="badge badge-exp">EXPIRED (30d limit)</span>'
+      : '<span class="badge badge-ok">● CLIP AVAILABLE</span>';
+    var btn = expired
+      ? '<span class="card-btn btn-dead">✕ EXPIRED</span>'
+      : '<a class="card-btn btn-live" href="' + esc(url) + '" target="_blank" rel="noreferrer">▶ WATCH ON PUMP.FUN</a>';
+
+    return '<div class="card' + (expired ? " expired" : "") + '">'
+      + '<div class="vu-strip">' + vuStrip(expired) + '</div>'
+      + '<div class="card-body">'
+      +   '<div class="card-top">'
+      +     '<span class="card-num">' + String(s.id).padStart(2, "0") + '</span>'
+      +     '<div class="card-info">'
+      +       '<div class="card-name">' + esc(s.name) + '</div>'
+      +       '<div class="card-date">' + esc(s.date) + '</div>'
+      +     '</div>'
+      +   '</div>'
+      +   '<div class="card-mid">'
+      +     '<span class="dur">' + esc(s.duration) + '</span>'
+      +     badge
+      +   '</div>'
+      +   btn
+      + '</div>'
+      + '</div>';
+  }
+
+  var grid  = document.getElementById("grid");
+  var count = document.getElementById("count");
+
+  count.textContent = streams.length;
+  grid.innerHTML = streams.map(renderCard).join("");
+}());
 </script>
 </body>
 </html>
