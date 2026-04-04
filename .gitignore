@@ -1,5 +1,6 @@
 # secrets
 .env
+logs/
 
 # project
 _site
