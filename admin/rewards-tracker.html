@@ -153,6 +153,11 @@
       border-bottom-color: var(--warn-bdr);
     }
     tbody tr.unpaid:hover { background: rgba(210,65,40,.12); }
+    tbody tr.sold {
+      background: rgba(255,200,0,.05);
+      border-bottom-color: rgba(255,200,0,.20);
+    }
+    tbody tr.sold:hover { background: rgba(255,200,0,.10); }
     td { padding: 8px 12px; color: var(--text); vertical-align: middle; }
     td.dim { color: var(--muted); }
     td.mono { font-family: monospace; font-size: 11px; }
@@ -288,7 +293,8 @@
           <tr>
             <th data-sort="tokenId">#<span class="sortIcon"></span></th>
             <th data-sort="tick">Collection<span class="sortIcon"></span></th>
-            <th data-sort="owner">Owner<span class="sortIcon"></span></th>
+            <th data-sort="minter">Minter<span class="sortIcon"></span></th>
+            <th data-sort="owner">Aktuální vlastník<span class="sortIcon"></span></th>
             <th data-sort="mintDate">Mint Date<span class="sortIcon"></span></th>
             <th data-sort="color">Color / Rarity<span class="sortIcon"></span></th>
             <th data-sort="opScore">opScore<span class="sortIcon"></span></th>
@@ -498,24 +504,25 @@
     }
     return null;
   }
-  async function fetchMintDate(tick, tokenId, signal) {
-    // Step 1: get first ownership record (direction=forward gives oldest = mint)
+  // Returns { minter, mintDate } — single history call, both fields from first entry
+  async function fetchHistoryData(tick, tokenId, signal) {
     const hist = await fetchJson(
       `${API_BASE}/history/${encodeURIComponent(tick)}/${tokenId}?direction=forward&limit=1`,
       signal
     );
     const entries = unwrapResult(hist);
-    if (!Array.isArray(entries) || entries.length === 0) return null;
-    const opScore = entries[0]?.opScoreMod;
-    if (!opScore) return null;
+    if (!Array.isArray(entries) || entries.length === 0) return { minter: null, mintDate: null };
 
-    // Step 2: get the operation by score to get mtsAdd (millisecond timestamp)
+    const minter  = entries[0]?.owner || null;
+    const opScore = entries[0]?.opScoreMod;
+    if (!opScore) return { minter, mintDate: null };
+
     const op = await fetchJson(`${API_BASE}/ops/score/${opScore}`, signal);
     const opRes = unwrapResult(op);
     const mts = opRes?.mtsAdd;
-    if (!mts) return null;
+    if (!mts) return { minter, mintDate: null };
     const d = isNaN(Number(mts)) ? new Date(mts) : new Date(Number(mts));
-    return d.toISOString().slice(0, 16).replace('T', ' ');
+    return { minter, mintDate: d.toISOString().slice(0, 16).replace('T', ' ') };
   }
 
   function getAttr(attrs, traitType) {
@@ -599,6 +606,9 @@
     const paid  = isPaid(row.tick, row.tokenId);
     const notes = getNotes(row.tick, row.tokenId);
     const unpaid = !paid && (row.reward || 0) > 0;
+    // sold = NFT changed hands; minter ≠ current owner → reward still goes to minter
+    const sold  = row.loaded && row.minter && row.owner
+                  && row.minter.toLowerCase() !== row.owner.toLowerCase();
 
     const ice = row.tick === "SYKORA";
     const iceOn = ice && isIce(row.tick, row.tokenId);
@@ -607,11 +617,19 @@
       : `<span class="badge badge-syk">SYK</span>`
         + ` <span class="badge badge-ice${iceOn ? "" : " ice-off"}" title="${iceOn ? "ICE NFT — click to unmark" : "Click to mark as ICE"}">ICE</span>`;
 
+    const minterCell = !row.loaded
+      ? `<span class="loading-ph">…</span>`
+      : row.minter
+        ? `<span class="addrCell" title="${esc(row.minter)}" data-addr="${esc(row.minter)}">${esc(truncAddr(row.minter))}</span>`
+        : `<span class="dim-text">—</span>`;
+
     const ownerCell = !row.loaded
       ? `<span class="loading-ph">…</span>`
-      : row.owner
-        ? `<span class="addrCell" title="${esc(row.owner)}" data-addr="${esc(row.owner)}">${esc(truncAddr(row.owner))}</span>`
-        : `<span class="dim-text">—</span>`;
+      : !row.owner
+        ? `<span class="dim-text">—</span>`
+        : sold
+          ? `<span class="addrCell" title="${esc(row.owner)}" data-addr="${esc(row.owner)}" style="color:#ffcc00">${esc(truncAddr(row.owner))} ↔</span>`
+          : `<span class="addrCell dim-text" title="${esc(row.owner)}" data-addr="${esc(row.owner)}">${esc(truncAddr(row.owner))}</span>`;
 
     const colorCell = !row.loaded
       ? `<span class="loading-ph">…</span>`
@@ -632,9 +650,11 @@
         ? `<span class="dim">${esc(row.mintDate)}</span>`
         : `<span class="dim-text">—</span>`;
 
-    return `<tr class="${unpaid ? "unpaid" : ""}" data-tick="${esc(row.tick)}" data-id="${row.tokenId}">
+    const rowClass = [unpaid ? "unpaid" : "", sold ? "sold" : ""].filter(Boolean).join(" ");
+    return `<tr class="${rowClass}" data-tick="${esc(row.tick)}" data-id="${row.tokenId}">
       <td class="mono">${row.tokenId}</td>
       <td>${collBadge}</td>
+      <td class="mono">${minterCell}</td>
       <td class="mono">${ownerCell}</td>
       <td class="mono dim">${mintDateCell}</td>
       <td>${colorCell}</td>
@@ -753,11 +773,12 @@
 
   // ── EXPORT CSV ───────────────────────────────────────────────────────────────
   $("exportBtn").addEventListener("click", () => {
-    const header = ["#","Collection","Owner","Mint Date","Color","opScore","$PIXEL Reward","Paid","Notes"];
+    const header = ["#","Collection","Minter","Aktuální vlastník","Mint Date","Color","opScore","$PIXEL Reward","Paid","Notes"];
     const rows = applySort(allRows).map(r => [
       r.tokenId,
       r.tick,
-      r.owner || "",
+      r.minter || "",
+      r.owner  || "",
       r.mintDate || "",
       r.color || "",
       r.opScore || "",
@@ -816,7 +837,7 @@
       // Phase 2: create skeleton rows immediately so table is visible
       allRows = jobs.map(j => ({
         tick: j.tick, tokenId: j.tokenId,
-        owner: null, color: null, edition: null, opScore: null, reward: null, mintDate: null, loaded: false
+        minter: null, owner: null, color: null, edition: null, opScore: null, reward: null, mintDate: null, loaded: false
       }));
       setProgress(0, totalToLoad);
       doRender();
@@ -829,12 +850,12 @@
           const cfg = COLLECTIONS[tick];
 
           try {
-            const [meta, nftInfo, mintDate] = await Promise.all([
+            const [meta, nftInfo, histData] = await Promise.all([
               fetchJsonFromGateways(metaCandidatePaths(cfg.buri, tick, tokenId), signal)
                 .catch(() => null),
               fetchJson(`${API_BASE}/nfts/${encodeURIComponent(tick)}/${tokenId}`, signal)
                 .then(r => unwrapResult(r)).catch(() => null),
-              fetchMintDate(tick, tokenId, signal).catch(e => { if (e.name === "AbortError") throw e; return null; }),
+              fetchHistoryData(tick, tokenId, signal).catch(e => { if (e.name === "AbortError") throw e; return { minter: null, mintDate: null }; }),
             ]);
 
             const attrs = Array.isArray(meta?.attributes) ? meta.attributes
@@ -860,12 +881,13 @@
 
             const row = allRows.find(r => r.tick === tick && r.tokenId === tokenId);
             if (row) {
-              row.owner    = nftInfo?.owner || null;
+              row.minter   = histData?.minter   || null;
+              row.owner    = nftInfo?.owner      || null;
               row.color    = color;
               row.edition  = edition;
               row.opScore  = nftInfo?.opScoreMod || nftInfo?.opScore || null;
               row.reward   = getReward(tick, color);
-              row.mintDate = mintDate;
+              row.mintDate = histData?.mintDate  || null;
               row.loaded   = true;
             }
           } catch(e) {
