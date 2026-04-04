@@ -217,7 +217,9 @@ function loadPaidMinters(): Set<string> {
     if (!file.startsWith("rewards-") || !file.endsWith(".json")) continue;
     try {
       const entries: LogEntry[] = JSON.parse(readFileSync(join(LOGS_DIR, file), "utf-8"));
-      for (const e of entries) paid.add(e.minterAddress.toLowerCase());
+      for (const e of entries) {
+        if (!e.txHash.startsWith("FAILED:")) paid.add(e.minterAddress.toLowerCase());
+      }
     } catch {
       // corrupt log file — skip
     }
@@ -318,7 +320,9 @@ async function sendKrc20Transfer(
   const senderAddress = publicKey.toAddress(NETWORK).toString();
 
   // Build KRC-20 inscription script
-  const payload = { p: "krc-20", op: "transfer", tick: TICK, amt: amount.toString(), to: destination };
+  // amt must be in the token's smallest unit: display_amount × 10^dec (PIXEL dec=8)
+  const amtRaw = (BigInt(amount) * 100_000_000n).toString();
+  const payload = { p: "krc-20", op: "transfer", tick: TICK, amt: amtRaw, to: destination };
   const script = new ScriptBuilder()
     .addData(publicKey.toXOnlyPublicKey().toString())
     .addOp(Opcodes.OpCheckSig)
@@ -553,11 +557,11 @@ async function main() {
   console.log("\nLoading kaspa-wasm…");
   let kaspa: any;
   try {
-    kaspa = await import("kaspa-wasm");
+    kaspa = await import("@kasdk/nodejs");
   } catch (e: any) {
     console.error(
       `\nERROR: cannot import kaspa-wasm.\n` +
-      `  → Install it: bun add kaspa-wasm\n` +
+      `  → Install it: bun add @kasdk/nodejs\n` +
       `  → If WASM loading fails at runtime, see scripts/README.md for the manual WASM setup.\n` +
       `  Details: ${e?.message ?? e}`
     );
@@ -590,6 +594,11 @@ async function main() {
         txHash,
         timestamp: new Date().toISOString(),
       });
+      // Wait for change UTXO to be available before next transfer
+      if (idx < toPay.length - 1) {
+        process.stdout.write("  (waiting 12s for UTXO confirmation…)\n");
+        await new Promise((r) => setTimeout(r, 12_000));
+      }
     } catch (e: any) {
       console.error(`✗  FAILED: ${e?.message ?? e}`);
       failed++;
