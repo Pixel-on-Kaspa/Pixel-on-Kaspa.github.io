@@ -205,6 +205,10 @@
       background: rgba(220,80,50,.06);
       color: #ffb4b4; font-size: 12px;
     }
+    .status-paid { color: #49EACB; font-size: 12px; white-space: nowrap; }
+    .status-paid a { color: #49EACB; text-decoration: underline dotted; }
+    .status-paid a:hover { color: #fff; }
+    .status-pending { color: rgba(255,200,80,.85); font-size: 12px; white-space: nowrap; }
 
     @media (max-width: 900px) {
       .topbar { padding: 0 12px; }
@@ -299,6 +303,7 @@
             <th data-sort="color">Color / Rarity<span class="sortIcon"></span></th>
             <th data-sort="opScore">opScore<span class="sortIcon"></span></th>
             <th data-sort="reward">$PIXEL Reward<span class="sortIcon"></span></th>
+            <th data-sort="status">Status<span class="sortIcon"></span></th>
             <th data-sort="paid">Paid<span class="sortIcon"></span></th>
             <th>Notes</th>
           </tr>
@@ -402,6 +407,7 @@
 
   // ── STATE ────────────────────────────────────────────────────────────────────
   let allRows     = [];
+  let logsMap     = new Map(); // minterAddress.toLowerCase() → { totalAmount, txHash, timestamp }
   let sortCol     = "tokenId";
   let sortDir     = "asc";
   let filterCol   = "ALL";
@@ -644,6 +650,24 @@
         ? fmtNum(row.reward)
         : `<span class="dim-text">—</span>`;
 
+    const logEntry = row.minter ? logsMap.get(row.minter.toLowerCase()) : null;
+    let statusCell;
+    if (!row.loaded) {
+      statusCell = `<span class="loading-ph">…</span>`;
+    } else if ((row.reward || 0) === 0) {
+      statusCell = `<span class="dim-text">—</span>`;
+    } else if (logEntry) {
+      const d   = new Date(logEntry.timestamp);
+      const dateStr  = d.toISOString().slice(0, 16).replace("T", " ") + " UTC";
+      const amtStr   = fmtNum(logEntry.totalAmount) + " $PIXEL";
+      const txShort  = logEntry.txHash.slice(0, 8) + "…" + logEntry.txHash.slice(-6);
+      const tipText  = `${dateStr} · ${amtStr} · ${txShort}`;
+      const txUrl    = `https://kas.fyi/transaction/${esc(logEntry.txHash)}`;
+      statusCell = `<span class="status-paid" title="${esc(tipText)}">✅ <a href="${txUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Paid</a></span>`;
+    } else {
+      statusCell = `<span class="status-pending">⏳ Pending</span>`;
+    }
+
     const mintDateCell = !row.loaded
       ? `<span class="loading-ph">…</span>`
       : row.mintDate
@@ -660,6 +684,7 @@
       <td>${colorCell}</td>
       <td class="dim mono">${row.opScore ? fmtNum(row.opScore) : '<span class="dim-text">—</span>'}</td>
       <td class="bold">${rewardCell}</td>
+      <td>${statusCell}</td>
       <td style="text-align:center"><input type="checkbox" class="paidCb" ${paid ? "checked" : ""}></td>
       <td><input type="text" class="notesInput" value="${esc(notes)}" placeholder="notes…"></td>
     </tr>`;
@@ -773,8 +798,11 @@
 
   // ── EXPORT CSV ───────────────────────────────────────────────────────────────
   $("exportBtn").addEventListener("click", () => {
-    const header = ["#","Collection","Minter","Aktuální vlastník","Mint Date","Color","opScore","$PIXEL Reward","Paid","Notes"];
-    const rows = applySort(allRows).map(r => [
+    const header = ["#","Collection","Minter","Aktuální vlastník","Mint Date","Color","opScore","$PIXEL Reward","Status","Paid","Notes"];
+    const rows = applySort(allRows).map(r => {
+      const le = r.minter ? logsMap.get(r.minter.toLowerCase()) : null;
+      const status = (r.reward || 0) === 0 ? "" : le ? "Paid" : "Pending";
+      return [
       r.tokenId,
       r.tick,
       r.minter || "",
@@ -783,9 +811,11 @@
       r.color || "",
       r.opScore || "",
       r.reward || 0,
+      status,
       isPaid(r.tick, r.tokenId) ? "1" : "0",
       getNotes(r.tick, r.tokenId)
-    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(","));
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(",");
+    });
 
     const csv  = [header.join(","), ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -797,6 +827,43 @@
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   });
+
+  // ── LOGS (paid status) ────────────────────────────────────────────────────────
+  async function loadLogs() {
+    const map = new Map();
+    const base = "../logs/";
+    const prefixes = ["rewards-", "rewards-manual-"];
+    const today = new Date();
+    const urls = [];
+    for (let d = 0; d < 90; d++) {
+      const dt = new Date(today);
+      dt.setDate(today.getDate() - d);
+      const ds = dt.toISOString().slice(0, 10);
+      for (const p of prefixes) urls.push(`${base}${p}${ds}.json`);
+    }
+    await Promise.all(urls.map(async url => {
+      try {
+        const r = await fetch(url, { cache: "no-store" });
+        if (!r.ok) return;
+        const entries = await r.json();
+        for (const e of entries) {
+          if (!e.minterAddress || !e.txHash) continue;
+          if (e.txHash.startsWith("FAILED:")) continue;
+          const key = e.minterAddress.toLowerCase();
+          if (!map.has(key)) {
+            map.set(key, { totalAmount: 0, txHash: e.txHash, timestamp: e.timestamp });
+          }
+          const rec = map.get(key);
+          rec.totalAmount += (e.amount || 0);
+          if (new Date(e.timestamp) > new Date(rec.timestamp)) {
+            rec.txHash    = e.txHash;
+            rec.timestamp = e.timestamp;
+          }
+        }
+      } catch { /* 404 or parse error — skip silently */ }
+    }));
+    return map;
+  }
 
   // ── DATA LOADING ─────────────────────────────────────────────────────────────
   async function loadAll() {
@@ -815,11 +882,13 @@
     updateStats();
 
     try {
-      // Phase 1: get minted IDs for both collections in parallel
-      const [rangesPXK, rangesSYK] = await Promise.all([
+      // Phase 1: get minted IDs + logs in parallel
+      const [rangesPXK, rangesSYK, freshLogs] = await Promise.all([
         fetchRanges("PIXELONKAS", signal),
         fetchRanges("SYKORA", signal),
+        loadLogs(),
       ]);
+      logsMap = freshLogs;
 
       const pxkIds = rangesPXK
         ? mintedIdsFromRanges({ idMin: 1, max: 342,  rangesString: rangesPXK })
