@@ -261,6 +261,11 @@
     </div>
 
     <div id="errBar" class="errBar" style="display:none"></div>
+    <div id="fileProtocolWarn" style="display:none;padding:10px 18px;margin-bottom:14px;border-left:3px solid #f0a500;background:rgba(240,165,0,.07);color:#f5cc70;font-size:12px;">
+      ⚠ Tracker je otevřen přes <code>file://</code> — prohlížeč blokuje načítání log souborů.
+      Spusť lokální server: <code>cd <em>repo-root</em> &amp;&amp; python3 -m http.server 8080</code>
+      a otevři <a href="http://localhost:8080/admin/rewards-tracker.html" style="color:#f5cc70;text-decoration:underline">http://localhost:8080/admin/rewards-tracker.html</a>
+    </div>
 
     <div id="importPanel" style="margin-bottom:14px;border:1px solid var(--border);background:var(--card);padding:14px 18px;">
       <div style="font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Import Paid Addresses</div>
@@ -829,7 +834,31 @@
   });
 
   // ── LOGS (paid status) ────────────────────────────────────────────────────────
+
+  // Fetch a single URL with XHR — works for both http:// and file:// protocols
+  function xhrGet(url) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", url);
+      xhr.onload = () => {
+        if (xhr.status === 0 || (xhr.status >= 200 && xhr.status < 300)) {
+          resolve(xhr.responseText);
+        } else {
+          reject(new Error(`HTTP ${xhr.status}`));
+        }
+      };
+      xhr.onerror = () => reject(new Error("Network error"));
+      xhr.send();
+    });
+  }
+
   async function loadLogs() {
+    const isFile = window.location.protocol === "file:";
+    if (isFile) {
+      $("fileProtocolWarn").style.display = "block";
+      console.warn("[loadLogs] Running on file:// — attempting XHR fallback for log files");
+    }
+
     const map = new Map();
     const base = "../logs/";
     const prefixes = ["rewards-", "rewards-manual-"];
@@ -841,11 +870,22 @@
       const ds = dt.toISOString().slice(0, 10);
       for (const p of prefixes) urls.push(`${base}${p}${ds}.json`);
     }
+
+    let loaded = 0, tried = 0;
     await Promise.all(urls.map(async url => {
+      tried++;
       try {
-        const r = await fetch(url, { cache: "no-store" });
-        if (!r.ok) return;
-        const entries = await r.json();
+        let text;
+        if (isFile) {
+          text = await xhrGet(url);
+        } else {
+          const r = await fetch(url, { cache: "no-store" });
+          if (!r.ok) return;
+          text = await r.text();
+        }
+        const entries = JSON.parse(text);
+        loaded++;
+        console.log(`[loadLogs] ✓ ${url} — ${entries.length} entries`);
         for (const e of entries) {
           if (!e.minterAddress || !e.txHash) continue;
           if (e.txHash.startsWith("FAILED:")) continue;
@@ -860,8 +900,23 @@
             rec.timestamp = e.timestamp;
           }
         }
-      } catch { /* 404 or parse error — skip silently */ }
+      } catch(err) {
+        // 404 = file doesn't exist for that date — expected, skip silently
+        // Any other error worth logging
+        if (!String(err.message).match(/HTTP 404|HTTP 0|Network/)) {
+          console.warn(`[loadLogs] ✗ ${url}:`, err.message);
+        }
+      }
     }));
+
+    console.log(`[loadLogs] Done — ${loaded} file(s) loaded, logsMap has ${map.size} entries`);
+    if (map.size > 0) {
+      console.log("[loadLogs] Paid minters:", [...map.keys()].map(k =>
+        `${k.slice(0, 20)}… → ${map.get(k).totalAmount.toLocaleString()} $PIXEL`
+      ));
+    } else {
+      console.warn("[loadLogs] logsMap is empty — Status column will show ⏳ for all rows");
+    }
     return map;
   }
 
