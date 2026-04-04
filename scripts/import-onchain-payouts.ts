@@ -17,7 +17,7 @@ import { join, dirname } from "path";
 
 const ROOT = join(dirname(Bun.main), "..");
 const LOGS_DIR = join(ROOT, "logs");
-const TREASURY = "kaspa:qqxpsvl25l2cf0zrx2wvpnulgthla5ckq9ae4rttw5mupm9e6hc0ujt8ugtre";
+const TREASURY = "kaspa:qpxdmujaujsse6gqxdhkcnh934ptr3s5mf444aw5lpr9xlsj579uuppf88vkl";
 const TICK = "PIXEL";
 const DECIMALS = 100_000_000n; // KRC-20 uses 8 decimal places
 
