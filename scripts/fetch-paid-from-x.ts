@@ -446,7 +446,9 @@ Bearer tokens do not expire but can be invalidated if regenerated.
     sykoraTokens: r.sykoraTokens,
     pixelonkasTokens: r.pixelonkasTokens,
     amount: r.pixelAmount ?? 0,
-    txHash: r.confirmedInReply ?? `imported-from-x:${r.tweetId}`,
+    // Only a real 64-char hex on-chain tx hash counts as proof of payment.
+    // Anything else is prefixed UNCONFIRMED: so loadPaidAmounts() skips it.
+    txHash: r.confirmedInReply ?? `UNCONFIRMED:imported-from-x:${r.tweetId}`,
     timestamp: r.createdAt || new Date().toISOString(),
     source: r.tweetUrl,
   }));

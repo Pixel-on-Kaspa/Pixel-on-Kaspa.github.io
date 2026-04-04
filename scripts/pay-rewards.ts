@@ -210,7 +210,14 @@ function getReward(tick: string, color: string | null): number {
 
 // ─── IDEMPOTENCE ──────────────────────────────────────────────────────────────
 
-/** Returns Map<minterAddress_lower, totalPaidAmount> — skips FAILED: entries. */
+/** Real on-chain Kaspa tx hash: 64 hex chars. Shorter hashes (e.g. 60-char
+ *  from older manual imports) are also accepted. Pseudo-IDs like
+ *  "imported-from-x:..." or "manual-import:..." are NOT real transactions. */
+const RE_REAL_TX = /^[0-9a-f]{60,64}$/i;
+
+/** Returns Map<minterAddress_lower, totalPaidAmount>.
+ *  Only counts entries backed by a real on-chain tx hash — skips FAILED:,
+ *  UNCONFIRMED:, and any other pseudo-ID that isn't a hex transaction hash. */
 function loadPaidAmounts(): Map<string, number> {
   const paid = new Map<string, number>();
   if (!existsSync(LOGS_DIR)) return paid;
@@ -219,7 +226,7 @@ function loadPaidAmounts(): Map<string, number> {
     try {
       const entries: LogEntry[] = JSON.parse(readFileSync(join(LOGS_DIR, file), "utf-8"));
       for (const e of entries) {
-        if (e.txHash.startsWith("FAILED:")) continue;
+        if (!RE_REAL_TX.test(e.txHash)) continue; // skip FAILED:, UNCONFIRMED:, pseudo-IDs
         const key = e.minterAddress.toLowerCase();
         paid.set(key, (paid.get(key) ?? 0) + (e.amount ?? 0));
       }
