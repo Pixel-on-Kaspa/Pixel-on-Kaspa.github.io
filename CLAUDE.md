@@ -177,11 +177,61 @@ Custom styles include:
 
 ## Notable Constraints
 
-- **No environment variables or secrets** — the site is fully static; GitHub Pages doesn't support server-side secrets. No `.env` files exist or are needed.
+- **`.env` exists at repo root** — holds X API credentials and OpenSea API key for local tooling only. Never commit it (gitignored). See `.env.example` for required keys.
 - **No npm/Node.js** — adding JS dependencies requires either bundling manually or loading via CDN and updating the HTML directly.
 - **Image assets are large** (~47 MB of images in `assets/img/`). Avoid committing uncompressed images.
 - **Beautiful Jekyll upstream** — the repo has `https://github.com/daattali/beautiful-jekyll.git` set as upstream. Theme changes should be reconciled carefully to avoid merge conflicts.
 - **`oldviewer.html.BACKUP`** — stale backup file in root; not served by Jekyll but present in the repo.
+
+---
+
+## X Posting Commands
+
+Slash commands in `.claude/commands/`:
+
+- **`/post --artist <name>`** — pick random media from `~/Desktop/pixel-exports/{artist}/`, generate posts for all three profiles, post after approval
+- **`/mint-post --collection <name>`** — NFT mint announcement post
+
+### Profiles
+| Handle | Voice |
+|--------|-------|
+| `@PixelonKas` | Project voice — clean, direct, EN |
+| `@marekozor` | Personal voice — reflective, first person, EN only |
+| `@synthicoin` | Punk experimental — raw, poetic, never promotional |
+
+All posts require per-profile approval before sending. All posts include `pixel-on-kaspa.fyi`.
+
+### API credentials (`.env`, never commit)
+- `PIXELONKAS_`, `MAREKOZOR_`, `SYNTHICOIN_` prefixes for X API (API_KEY, API_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET, BEARER_TOKEN)
+- `OPENSEA_API_KEY` — used by `/post --artist marekozor` to fetch NFT images
+
+### Media folders
+| Folder | Source |
+|--------|--------|
+| `~/Desktop/pixel-exports/yohei/` | GLSL shader exports |
+| `~/Desktop/pixel-exports/koma/` | Koma exports |
+| `~/Desktop/pixel-exports/sykora/` | Sykora exports |
+| `~/Desktop/pixel-exports/marekozor/` | Fetched live from OpenSea API |
+
+For `--artist marekozor`, images are fetched from OpenSea collections: `deepmemory` (Polygon), `sphericalharmony` (Polygon), `angryheadsv2` (Ethereum).
+
+---
+
+## NFT Collections
+
+- `kaspa.com/nft/collections/PIXELONKAS` — primary pixel art collection (342 max)
+- `kaspa.com/nft/collections/SYKORA` — generative art by David Vrbík (2518 max); **Ice NFTs are special/rare** (Style trait = "Ice")
+
+---
+
+## Rewards Tracker
+
+- **File:** `admin/rewards-tracker.html` — password: `pixel2025`
+- Loads PIXELONKAS and SYKORA NFT data from `mainnet.krc721.stream` API
+- **ICE badge** — SYK rows show a cyan ICE badge (auto-set for Ice trait, toggleable per row, persisted in localStorage under `pxr_ice_SYKORA_{id}`)
+- **Mint date column** — fetched via two-step API chain:
+  1. `GET /api/v1/krc721/mainnet/history/{tick}/{id}?direction=forward&limit=1` → `opScoreMod`
+  2. `GET /api/v1/krc721/mainnet/ops/score/{opScoreMod}` → `mtsAdd` (Unix ms timestamp)
 
 ---
 

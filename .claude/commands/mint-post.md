@@ -37,26 +37,33 @@ For unknown collections: ask the user for name, artist, type, and mint link befo
 
 Generate one mint announcement post per profile. Draw from the collection context above.
 
+### Hashtags
+
+Generate **relevant hashtags per post** based on the collection, artist, and theme. Do not use a fixed set — vary them each time. Consider: collection name, visual style, blockchain tech, artist name, cultural references (e.g. Sýkora for SYKORA). Each profile:
+- @PixelonKas: 2–4 tags, project/NFT/blockchain focused
+- @marekozor: 2–3 tags, art/personal focused
+- @synthicoin: 0–2 tags max, never #NFT
+
+### pixel-on-kaspa.fyi link
+
+Include randomly — not every post. When included, vary placement. Mint link is always included. Aim for ~60% inclusion of pixel-on-kaspa.fyi.
+
 ### Profile voices
 
 **@PixelonKas** — project voice, EN  
 Tone: clear, direct announcement. What is it, who made it, why it matters. No hype.  
-Structure: 2–3 short lines + mint link + hashtags  
-Hashtags: #Kaspa #NFT #GenerativeArt
+Structure: 2–3 short lines + mint link
 
-**@marekozor** — personal voice, EN/CZ mix ok  
+**@marekozor** — personal voice, EN  
 Tone: personal angle — what does this collection mean to him as an artist? Genuine, not promotional.  
 For PIXELONKAS: first person, his own work  
-For SYKORA: collegial, genuine appreciation for Vrbík's process  
-Hashtags: #GenerativeArt #Kaspa + 1 relevant
+For SYKORA: collegial, genuine appreciation for Vrbík's process
 
-**@synthicoin** — punk experimental electronic, raw, no marketing  
+**@synthicoin** — punk experimental electronic, raw, never promotional  
 Tone: find the sound/frequency angle. For SYKORA: oscilloscope, Lissajous, signal. For PIXELONKAS: structure, pattern, noise.  
-Never write like a press release. Short, unexpected, technical or poetic.  
-Hashtags: max 2, no #NFT
+Never write like a press release. Short, unexpected, technical or poetic.
 
-All posts must include the mint link for the collection.  
-Keep under 280 characters where possible. No emojis.
+All posts must include the mint link for the collection. Keep under 280 characters where possible. No emojis.
 
 ---
 

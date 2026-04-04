@@ -564,9 +564,23 @@
 
   // ── STATS ─────────────────────────────────────────────────────────────────────
   function updateStats() {
-    const owed  = allRows.reduce((s, r) => s + (r.reward || 0), 0);
-    const paid  = allRows.reduce((s, r) => s + (isPaid(r.tick, r.tokenId) ? (r.reward || 0) : 0), 0);
-    const unpaidCount = allRows.filter(r => !isPaid(r.tick, r.tokenId) && (r.reward || 0) > 0).length;
+    const owed = allRows.reduce((s, r) => s + (r.reward || 0), 0);
+
+    // Compute paid using same logsMap + minterRewardsMap as the Status column.
+    // Sum per unique minter: min(amountActuallyPaid, minterTotalExpected).
+    let paid = 0;
+    for (const [minter, minterTotal] of minterRewardsMap) {
+      const logEntry = logsMap.get(minter);
+      if (logEntry) paid += Math.min(logEntry.totalAmount, minterTotal);
+    }
+
+    const unpaidCount = allRows.filter(r => {
+      if ((r.reward || 0) === 0 || !r.minter || !r.loaded) return false;
+      const logEntry    = logsMap.get(r.minter.toLowerCase());
+      const minterTotal = minterRewardsMap.get(r.minter.toLowerCase()) || 0;
+      return !(logEntry && logEntry.totalAmount >= minterTotal);
+    }).length;
+
     $("statTotal").textContent       = fmtNum(allRows.length);
     $("statOwed").textContent        = fmtNum(owed);
     $("statPaid").textContent        = fmtNum(paid);
