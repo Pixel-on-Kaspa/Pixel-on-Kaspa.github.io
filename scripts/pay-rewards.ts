@@ -463,7 +463,10 @@ async function main() {
           token.edition = tick === "SYKORA" ? getAttr(attrs, "Edition") : null;
         }
 
-        token.reward = getReward(tick, token.color);
+        // #1–30 premint — no reward (Pixel on Telegram)
+        token.reward = (tick === "SYKORA" && token.tokenId <= 30)
+          ? 0
+          : getReward(tick, token.color);
 
         done++;
         if (done % 5 === 0 || done === tokens.length) {
