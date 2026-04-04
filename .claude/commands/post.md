@@ -7,11 +7,28 @@ Post a visual (PNG or MP4) from a local artist export folder to X profiles.
 /post --artist <name>
 /post --artist <name> --profile <handle>
 /post --artist <name> --promo          # weekly collection promotion post
+/post --kaspa                          # Kaspa educational post (post 3 in cycle)
 ```
 
-**--artist** (required): folder name inside `~/Desktop/pixel-exports/` — e.g. `yohei`, `koma`, `sykora`  
+**--artist** (required for visual posts): folder name inside `~/Desktop/pixel-exports/` — e.g. `yohei`, `koma`, `sykora`  
 **--profile** (optional): `pixelonkas`, `marekozor`, `synthicoin` — if omitted, show all three and let user pick  
-**--promo** (optional): weekly collection promotion mode — see Step 1b
+**--promo** (optional): weekly collection promotion mode — see Step 1b  
+**--kaspa** (optional): generate Kaspa educational post instead of visual — see Step 1c
+
+---
+
+## Posting cycle (4 posts)
+
+Each cycle of 4 posts follows this pattern:
+
+| Post | Type | Content |
+|------|------|---------|
+| 1 | Visual | Artist work — GLSL, koma, sykora, marekozor |
+| 2 | Content | Web, NFT info, artists page, Kaspa ecosystem |
+| 3 | Kaspa | Educational post about Kaspa blockchain |
+| 4 | Promo | Mint / trade / Synthi app |
+
+Use `--kaspa` for post 3. The user will indicate which post in the cycle they're on.
 
 ---
 
@@ -63,6 +80,35 @@ Look inside `~/Desktop/pixel-exports/$ARTIST/` and pick a **separate random file
 
 If the folder is empty or doesn't exist, stop and tell the user:
 > No files found in ~/Desktop/pixel-exports/$ARTIST/ — please export a file first.
+
+---
+
+## Step 1c — Kaspa post mode (--kaspa flag)
+
+Used for post 3 in the cycle. Replaces Step 1 — no media file needed.
+
+Pick a **random topic** from the list below (rotate, don't repeat the same topic two cycles in a row):
+
+| Topic | Key facts |
+|-------|-----------|
+| BlockDAG vs blockchain | Parallel blocks, no orphan blocks, all work counts |
+| Confirmation speed | 1 BPS now, roadmap to 10 BPS, sub-second finality |
+| GHOSTDAG protocol | DAG-based consensus, how it orders parallel blocks |
+| PoW without ASIC dominance | GPU-mineable, decentralized hashrate |
+| Immutable on-chain data | Why NFT metadata stored on Kaspa is permanent |
+| KRC-20 & KRC-721 | Token standards, what they enable (fungible + NFT) |
+| Comparison to Bitcoin | Same PoW philosophy, faster and more scalable |
+| Kaspa community | Open source, no premine, fair launch |
+
+**Profiles for Kaspa posts:**
+
+- **@PixelonKas**: project context — tie the Kaspa tech fact to why the project builds on Kaspa. 2–4 sentences. EN.
+- **@marekozor**: personal perspective — why this blockchain property matters to him as an artist storing creative work on-chain. Reflective, first person. EN.
+- **@synthicoin**: **never a Kaspa educational post** — generate a regular experimental/art post for Synthi instead (treat as post type 1 for this profile only, pick any recent yohei/sykora/koma file or skip media entirely).
+
+No media attachment for @PixelonKas and @marekozor on Kaspa posts (text-only tweet). @synthicoin still gets a visual if available.
+
+Tone: educational, not hype. Short facts or context. No "moon", no price talk.
 
 ---
 
