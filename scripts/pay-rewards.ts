@@ -210,15 +210,18 @@ function getReward(tick: string, color: string | null): number {
 
 // ─── IDEMPOTENCE ──────────────────────────────────────────────────────────────
 
-function loadPaidMinters(): Set<string> {
-  const paid = new Set<string>();
+/** Returns Map<minterAddress_lower, totalPaidAmount> — skips FAILED: entries. */
+function loadPaidAmounts(): Map<string, number> {
+  const paid = new Map<string, number>();
   if (!existsSync(LOGS_DIR)) return paid;
   for (const file of readdirSync(LOGS_DIR)) {
     if (!file.startsWith("rewards-") || !file.endsWith(".json")) continue;
     try {
       const entries: LogEntry[] = JSON.parse(readFileSync(join(LOGS_DIR, file), "utf-8"));
       for (const e of entries) {
-        if (!e.txHash.startsWith("FAILED:")) paid.add(e.minterAddress.toLowerCase());
+        if (e.txHash.startsWith("FAILED:")) continue;
+        const key = e.minterAddress.toLowerCase();
+        paid.set(key, (paid.get(key) ?? 0) + (e.amount ?? 0));
       }
     } catch {
       // corrupt log file — skip
@@ -418,10 +421,10 @@ async function main() {
     if (!treasuryAddress) throw new Error("TREASURY_ADDRESS missing in .env");
   }
 
-  // Load idempotence state
-  const paidMinters = loadPaidMinters();
-  if (paidMinters.size > 0) {
-    console.log(`Idempotence: ${paidMinters.size} already-paid minters loaded from logs/\n`);
+  // Load idempotence state — Map<address, amountAlreadyPaid>
+  const paidAmounts = loadPaidAmounts();
+  if (paidAmounts.size > 0) {
+    console.log(`Idempotence: ${paidAmounts.size} minters with prior payments loaded from logs/\n`);
   }
 
   // Which collections to process
@@ -504,13 +507,27 @@ async function main() {
   }
 
   const allRewards = [...byMinter.values()].filter((r) => r.totalReward > 0);
-  const alreadyPaid = allRewards.filter((r) => paidMinters.has(r.minter.toLowerCase()));
-  const toPay = allRewards.filter((r) => !paidMinters.has(r.minter.toLowerCase()));
 
-  if (alreadyPaid.length > 0) {
-    console.log(`\nSKIPPED — already paid (${alreadyPaid.length} addresses):`);
-    for (const r of alreadyPaid) {
-      console.log(`  ⚠  ${r.minter}  ${r.totalReward.toLocaleString()} $PIXEL`);
+  const skipped: RewardRow[] = [];
+  const toPay:   RewardRow[] = [];
+
+  for (const r of allRewards) {
+    const key       = r.minter.toLowerCase();
+    const paidSoFar = paidAmounts.get(key) ?? 0;
+    const net       = r.totalReward - paidSoFar;
+    if (net <= 0) {
+      skipped.push(r);
+    } else {
+      // Partial payment — reduce to net amount owed
+      toPay.push({ ...r, totalReward: net });
+    }
+  }
+
+  if (skipped.length > 0) {
+    console.log(`\nSKIPPED — fully paid (${skipped.length} addresses):`);
+    for (const r of skipped) {
+      const paid = paidAmounts.get(r.minter.toLowerCase()) ?? 0;
+      console.log(`  ⚠  ${r.minter}  paid ${paid.toLocaleString()} / ${r.totalReward.toLocaleString()} $PIXEL`);
     }
   }
 

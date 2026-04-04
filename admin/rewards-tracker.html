@@ -411,8 +411,9 @@
   const errBar      = $("errBar");
 
   // ── STATE ────────────────────────────────────────────────────────────────────
-  let allRows     = [];
-  let logsMap     = new Map(); // minterAddress.toLowerCase() → { totalAmount, txHash, timestamp }
+  let allRows          = [];
+  let logsMap          = new Map(); // minterAddress.toLowerCase() → { totalAmount, txHash, timestamp }
+  let minterRewardsMap = new Map(); // minterAddress.toLowerCase() → totalExpectedReward (sum across all tokens)
   let sortCol     = "tokenId";
   let sortDir     = "asc";
   let filterCol   = "ALL";
@@ -656,19 +657,27 @@
         : `<span class="dim-text">—</span>`;
 
     const logEntry = row.minter ? logsMap.get(row.minter.toLowerCase()) : null;
+    // fullyPaid = the total paid to this minter covers ALL their expected rewards
+    const minterTotal = row.minter ? (minterRewardsMap.get(row.minter.toLowerCase()) || 0) : 0;
+    const fullyPaid   = logEntry && logEntry.totalAmount >= minterTotal;
     let statusCell;
     if (!row.loaded) {
       statusCell = `<span class="loading-ph">…</span>`;
     } else if ((row.reward || 0) === 0) {
       statusCell = `<span class="dim-text">—</span>`;
-    } else if (logEntry) {
-      const d   = new Date(logEntry.timestamp);
-      const dateStr  = d.toISOString().slice(0, 16).replace("T", " ") + " UTC";
-      const amtStr   = fmtNum(logEntry.totalAmount) + " $PIXEL";
-      const txShort  = logEntry.txHash.slice(0, 8) + "…" + logEntry.txHash.slice(-6);
-      const tipText  = `${dateStr} · ${amtStr} · ${txShort}`;
-      const txUrl    = `https://kas.fyi/transaction/${esc(logEntry.txHash)}`;
+    } else if (fullyPaid) {
+      const d       = new Date(logEntry.timestamp);
+      const dateStr = d.toISOString().slice(0, 16).replace("T", " ") + " UTC";
+      const amtStr  = fmtNum(logEntry.totalAmount) + " $PIXEL";
+      const txShort = logEntry.txHash.slice(0, 8) + "…" + logEntry.txHash.slice(-6);
+      const tipText = `${dateStr} · ${amtStr} · ${txShort}`;
+      const txUrl   = `https://kas.fyi/transaction/${esc(logEntry.txHash)}`;
       statusCell = `<span class="status-paid" title="${esc(tipText)}">✅ <a href="${txUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Paid</a></span>`;
+    } else if (logEntry) {
+      // Partial payment — some tokens paid, not all
+      const paidStr    = fmtNum(logEntry.totalAmount);
+      const expectedStr = fmtNum(minterTotal);
+      statusCell = `<span class="status-pending" title="Partial: ${paidStr} paid of ${expectedStr} $PIXEL expected">⏳ Partial</span>`;
     } else {
       statusCell = `<span class="status-pending">⏳ Pending</span>`;
     }
@@ -702,6 +711,14 @@
   }
 
   function doRender() {
+    // Recompute minter → totalExpectedReward from fully-loaded rows
+    minterRewardsMap = new Map();
+    for (const row of allRows) {
+      if (!row.minter || !row.loaded || (row.reward || 0) === 0) continue;
+      const key = row.minter.toLowerCase();
+      minterRewardsMap.set(key, (minterRewardsMap.get(key) || 0) + row.reward);
+    }
+
     const filtered = applyFilters(allRows);
     const sorted   = applySort(filtered);
     tbody.innerHTML = sorted.map(renderRow).join("");
