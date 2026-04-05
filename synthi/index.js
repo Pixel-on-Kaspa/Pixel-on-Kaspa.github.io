@@ -602,6 +602,7 @@
 
     seqNextTime = actx.currentTime + 0.05;
     seqStep = 0;
+    window.dispatchEvent(new CustomEvent('synthiAudioReady', { detail: { actx, mixBus } }));
     return audio;
   }
   function scheduleBeat(nowSec) {

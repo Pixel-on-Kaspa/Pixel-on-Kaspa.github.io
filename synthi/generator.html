@@ -197,6 +197,99 @@
 
     /* ── SEQUENCER GRID (built by JS) ── */
     #seqGrid { display: grid; gap: 4px; }
+
+    /* ── AKS SELECT ── */
+    .aksSelect {
+      width: 100%;
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,.14);
+      padding: 5px 8px;
+      font-size: 12px;
+      font-family: inherit;
+      border-radius: 4px;
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+    }
+    .aksSelect option { background: #050a0a; color: var(--text); }
+
+    /* ── AKS MATRIX ── */
+    #aks-matrix-grid {
+      display: grid;
+      grid-template-columns: 44px repeat(6, 1fr);
+      gap: 2px;
+    }
+    .aks-mat-corner { width:44px; }
+    .aks-mat-header {
+      text-align: center;
+      color: var(--muted);
+      font-size: 8px;
+      letter-spacing: .04em;
+      padding: 2px 0 4px;
+      line-height: 1.2;
+    }
+    .aks-mat-src {
+      font-size: 8px;
+      color: var(--muted);
+      letter-spacing: .04em;
+      display: flex;
+      align-items: center;
+      padding-right: 3px;
+      line-height: 1.2;
+    }
+    .aks-mat-cell {
+      aspect-ratio: 1;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 9px;
+      font-weight: 700;
+      font-family: ui-monospace, monospace;
+      transition: background .1s, border-color .1s;
+      user-select: none;
+      min-height: 26px;
+    }
+    .aks-mat-cell:hover { border-color: rgba(255,255,255,.25); }
+    .aks-mat-cell[data-s="0"]  { background: rgba(255,255,255,.03); color: rgba(255,255,255,.18); }
+    .aks-mat-cell[data-s="1"]  { background: rgba(45,232,121,.10); border-color: rgba(45,232,121,.30); color: #2de879; }
+    .aks-mat-cell[data-s="2"]  { background: rgba(45,232,121,.20); border-color: rgba(45,232,121,.55); color: #2de879; }
+    .aks-mat-cell[data-s="3"]  { background: rgba(45,232,121,.32); border-color: rgba(45,232,121,.85); color: #2de879; text-shadow: 0 0 6px #2de879; }
+    .aks-mat-cell[data-s="-1"] { background: rgba(230,59,59,.10); border-color: rgba(230,59,59,.30); color: #e63b3b; }
+    .aks-mat-cell[data-s="-2"] { background: rgba(230,59,59,.20); border-color: rgba(230,59,59,.55); color: #e63b3b; }
+    .aks-mat-cell[data-s="-3"] { background: rgba(230,59,59,.32); border-color: rgba(230,59,59,.85); color: #e63b3b; text-shadow: 0 0 6px #e63b3b; }
+
+    /* ── AKS SEQUENCER STEPS ── */
+    .aks-step-btn {
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 2px;
+      background: rgba(255,255,255,.03);
+      color: rgba(255,255,255,.28);
+      font-size: 8px;
+      font-family: ui-monospace, monospace;
+      padding: 4px 1px;
+      cursor: pointer;
+      text-align: center;
+      line-height: 1.25;
+      transition: background .1s, border-color .1s;
+      user-select: none;
+    }
+    .aks-step-btn.active   { border-color: rgba(155,89,182,.55); background: var(--accent-dim); color: var(--accent); }
+    .aks-step-btn.accent   { border-color: rgba(232,160,32,.55); background: rgba(232,160,32,.10); color: #e8a020; }
+    .aks-step-btn.selected { outline: 1px solid rgba(255,255,255,.50); outline-offset: 1px; }
+    .aks-step-btn.playing  { background: rgba(255,255,255,.18) !important; border-color: rgba(255,255,255,.60) !important; color: #fff !important; }
+
+    .aksSubLabel {
+      font-size: 10px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 2px;
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -463,11 +556,667 @@
           </div>
         </div>
 
+        <!-- ══════════════════════════════════════════════════════════
+             AKS VOICE
+        ════════════════════════════════════════════════════════════ -->
+        <div class="ctrlGroup collapsed" id="aksVoiceGroup">
+          <div class="ctrlGroupHead" onclick="this.closest('.ctrlGroup').classList.toggle('collapsed')">
+            <b>AKS Voice</b>
+            <span class="ctrlGroupChevron">▼</span>
+          </div>
+          <div class="ctrlGroupBody">
+            <span class="aksSubLabel">OSC 1</span>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Waveform</span></div>
+              <select id="aks-osc1-wave" class="aksSelect">
+                <option value="sawtooth" selected>Sawtooth</option>
+                <option value="square">Square</option>
+                <option value="triangle">Triangle</option>
+                <option value="sine">Sine</option>
+              </select>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Level</span><span class="ctrlVal" id="aks-osc1-level-val">0.65</span></div>
+              <input id="aks-osc1-level" type="range" min="0" max="1" step="0.01" value="0.65" />
+            </div>
+
+            <span class="aksSubLabel" style="margin-top:6px">OSC 2</span>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Waveform</span></div>
+              <select id="aks-osc2-wave" class="aksSelect">
+                <option value="sawtooth">Sawtooth</option>
+                <option value="square" selected>Square</option>
+                <option value="triangle">Triangle</option>
+                <option value="sine">Sine</option>
+              </select>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Level</span><span class="ctrlVal" id="aks-osc2-level-val">0.45</span></div>
+              <input id="aks-osc2-level" type="range" min="0" max="1" step="0.01" value="0.45" />
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Tune (semitones)</span><span class="ctrlVal" id="aks-osc2-tune-val">+0.06 st</span></div>
+              <input id="aks-osc2-tune" type="range" min="-12" max="12" step="0.01" value="0.06" />
+              <span class="ctrlDesc">Fractional = cents detune</span>
+            </div>
+
+            <span class="aksSubLabel" style="margin-top:6px">OSC 3 (sub)</span>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Waveform</span></div>
+              <select id="aks-osc3-wave" class="aksSelect">
+                <option value="sawtooth">Sawtooth</option>
+                <option value="square">Square</option>
+                <option value="triangle" selected>Triangle</option>
+                <option value="sine">Sine</option>
+              </select>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Level</span><span class="ctrlVal" id="aks-osc3-level-val">0.30</span></div>
+              <input id="aks-osc3-level" type="range" min="0" max="1" step="0.01" value="0.30" />
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Tune (semitones)</span><span class="ctrlVal" id="aks-osc3-tune-val">-12 st</span></div>
+              <input id="aks-osc3-tune" type="range" min="-24" max="12" step="1" value="-12" />
+            </div>
+
+            <span class="aksSubLabel" style="margin-top:6px">Noise + Drift</span>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Noise Level</span><span class="ctrlVal" id="aks-noise-level-val">0.06</span></div>
+              <input id="aks-noise-level" type="range" min="0" max="1" step="0.01" value="0.06" />
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Analog Drift</span><span class="ctrlVal" id="aks-drift-val">0.30</span></div>
+              <input id="aks-drift" type="range" min="0" max="1" step="0.01" value="0.30" />
+              <span class="ctrlDesc">Per-oscillator pitch wander (VCO instability)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════
+             AKS FILTER / VCF
+        ════════════════════════════════════════════════════════════ -->
+        <div class="ctrlGroup collapsed" id="aksFilterGroup">
+          <div class="ctrlGroupHead" onclick="this.closest('.ctrlGroup').classList.toggle('collapsed')">
+            <b>AKS Filter / VCF</b>
+            <span class="ctrlGroupChevron">▼</span>
+          </div>
+          <div class="ctrlGroupBody">
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Cutoff</span><span class="ctrlVal" id="aks-filter-cutoff-val">1800 Hz</span></div>
+              <input id="aks-filter-cutoff" type="range" min="20" max="12000" step="10" value="1800" />
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Resonance</span><span class="ctrlVal" id="aks-filter-res-val">7.0</span></div>
+              <input id="aks-filter-res" type="range" min="0.1" max="20" step="0.1" value="7.0" />
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Drive</span><span class="ctrlVal" id="aks-filter-drive-val">0.28</span></div>
+              <input id="aks-filter-drive" type="range" min="0" max="1" step="0.01" value="0.28" />
+              <span class="ctrlDesc">Pre-VCF soft-clip saturation — asymmetric, adds even harmonics</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════
+             AKS ENVELOPES
+        ════════════════════════════════════════════════════════════ -->
+        <div class="ctrlGroup collapsed" id="aksEnvGroup">
+          <div class="ctrlGroupHead" onclick="this.closest('.ctrlGroup').classList.toggle('collapsed')">
+            <b>AKS Envelopes</b>
+            <span class="ctrlGroupChevron">▼</span>
+          </div>
+          <div class="ctrlGroupBody">
+            <span class="aksSubLabel">AMP ADSR</span>
+            <div class="ctrlGrid2">
+              <div class="ctrl">
+                <div class="ctrlHead"><span class="ctrlTitle">Attack</span><span class="ctrlVal" id="aks-amp-a-val">8ms</span></div>
+                <input id="aks-amp-a" type="range" min="0.001" max="4" step="0.001" value="0.008" />
+              </div>
+              <div class="ctrl">
+                <div class="ctrlHead"><span class="ctrlTitle">Decay</span><span class="ctrlVal" id="aks-amp-d-val">200ms</span></div>
+                <input id="aks-amp-d" type="range" min="0.01" max="4" step="0.01" value="0.20" />
+              </div>
+              <div class="ctrl">
+                <div class="ctrlHead"><span class="ctrlTitle">Sustain</span><span class="ctrlVal" id="aks-amp-s-val">0.62</span></div>
+                <input id="aks-amp-s" type="range" min="0" max="1" step="0.01" value="0.62" />
+              </div>
+              <div class="ctrl">
+                <div class="ctrlHead"><span class="ctrlTitle">Release</span><span class="ctrlVal" id="aks-amp-r-val">550ms</span></div>
+                <input id="aks-amp-r" type="range" min="0.01" max="6" step="0.01" value="0.55" />
+              </div>
+            </div>
+            <span class="aksSubLabel" style="margin-top:8px">MOD ENV → matrix</span>
+            <div class="ctrlGrid2">
+              <div class="ctrl">
+                <div class="ctrlHead"><span class="ctrlTitle">Attack</span><span class="ctrlVal" id="aks-mod-a-val">50ms</span></div>
+                <input id="aks-mod-a" type="range" min="0.001" max="4" step="0.001" value="0.05" />
+              </div>
+              <div class="ctrl">
+                <div class="ctrlHead"><span class="ctrlTitle">Decay</span><span class="ctrlVal" id="aks-mod-d-val">420ms</span></div>
+                <input id="aks-mod-d" type="range" min="0.01" max="8" step="0.01" value="0.42" />
+              </div>
+              <div class="ctrl">
+                <div class="ctrlHead"><span class="ctrlTitle">Sustain</span><span class="ctrlVal" id="aks-mod-s-val">0.22</span></div>
+                <input id="aks-mod-s" type="range" min="0" max="1" step="0.01" value="0.22" />
+              </div>
+              <div class="ctrl">
+                <div class="ctrlHead"><span class="ctrlTitle">Release</span><span class="ctrlVal" id="aks-mod-r-val">880ms</span></div>
+                <input id="aks-mod-r" type="range" min="0.01" max="8" step="0.01" value="0.88" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════
+             AKS MODULATION
+        ════════════════════════════════════════════════════════════ -->
+        <div class="ctrlGroup collapsed" id="aksModGroup">
+          <div class="ctrlGroupHead" onclick="this.closest('.ctrlGroup').classList.toggle('collapsed')">
+            <b>AKS Modulation</b>
+            <span class="ctrlGroupChevron">▼</span>
+          </div>
+          <div class="ctrlGroupBody">
+            <span class="aksSubLabel">LFO 1</span>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Rate</span><span class="ctrlVal" id="aks-lfo1-rate-val">0.55 Hz</span></div>
+              <input id="aks-lfo1-rate" type="range" min="0.01" max="20" step="0.01" value="0.55" />
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Waveform</span></div>
+              <select id="aks-lfo1-wave" class="aksSelect">
+                <option value="sine" selected>Sine</option>
+                <option value="triangle">Triangle</option>
+                <option value="square">Square</option>
+                <option value="sawtooth">Sawtooth</option>
+              </select>
+            </div>
+
+            <span class="aksSubLabel" style="margin-top:8px">LFO 2</span>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Rate</span><span class="ctrlVal" id="aks-lfo2-rate-val">0.12 Hz</span></div>
+              <input id="aks-lfo2-rate" type="range" min="0.01" max="20" step="0.01" value="0.12" />
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Waveform</span></div>
+              <select id="aks-lfo2-wave" class="aksSelect">
+                <option value="sine">Sine</option>
+                <option value="triangle" selected>Triangle</option>
+                <option value="square">Square</option>
+                <option value="sawtooth">Sawtooth</option>
+              </select>
+            </div>
+
+            <span class="aksSubLabel" style="margin-top:8px">Portamento</span>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Glide</span><span class="ctrlVal" id="aks-glide-val">OFF</span></div>
+              <input id="aks-glide" type="range" min="0" max="2" step="0.01" value="0" />
+              <span class="ctrlDesc">Portamento time — 0 = instant</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════
+             AKS ROUTING MATRIX  (centrepiece)
+        ════════════════════════════════════════════════════════════ -->
+        <div class="ctrlGroup" id="aksMatrixGroup">
+          <div class="ctrlGroupHead" onclick="this.closest('.ctrlGroup').classList.toggle('collapsed')">
+            <b>Routing Matrix</b>
+            <span class="ctrlGroupChevron">▼</span>
+          </div>
+          <div class="ctrlGroupBody" style="padding:10px 8px 14px">
+            <span class="ctrlDesc" style="margin-bottom:8px;display:block">
+              Click cell: 0 → +1 → +2 → +3 → −1 → −2 → −3 → 0
+            </span>
+            <div id="aks-matrix-grid"></div>
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════
+             AKS PITCH SEQUENCER
+        ════════════════════════════════════════════════════════════ -->
+        <div class="ctrlGroup collapsed" id="aksSeqGroup">
+          <div class="ctrlGroupHead" onclick="this.closest('.ctrlGroup').classList.toggle('collapsed')">
+            <b>AKS Sequencer</b>
+            <span class="ctrlGroupChevron">▼</span>
+          </div>
+          <div class="ctrlGroupBody">
+            <div class="ctrl">
+              <div class="ctrlHead">
+                <span class="ctrlTitle">Current Note</span>
+                <span class="ctrlVal" id="aks-current-note">C4</span>
+              </div>
+              <span class="ctrlDesc">Keys 1–8 = C4–C5 · 9 / 0 = octave ±</span>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <button class="btn btnSm btnPrimary" id="aks-seq-toggle" type="button">AKS Seq: OFF</button>
+              <button class="btn btnSm" id="aks-note-on" type="button">▶ NOTE</button>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Swing</span><span class="ctrlVal" id="aks-swing-val">0%</span></div>
+              <input id="aks-swing" type="range" min="0" max="0.5" step="0.01" value="0" />
+            </div>
+            <!-- 16 step grid, 2 rows of 8 -->
+            <div id="aks-seq-steps-grid" style="display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin-top:4px"></div>
+            <!-- Per-step editor (shown when a step is selected) -->
+            <div id="aks-seq-step-editor" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
+              <span class="aksSubLabel" id="aks-step-editor-label">Step 1</span>
+              <div class="ctrl">
+                <div class="ctrlHead"><span class="ctrlTitle">Note</span><span class="ctrlVal" id="aks-step-note-val">C4</span></div>
+                <input id="aks-step-note" type="range" min="24" max="96" step="1" value="60" />
+              </div>
+              <div class="ctrl">
+                <div class="ctrlHead"><span class="ctrlTitle">Velocity</span><span class="ctrlVal" id="aks-step-vel-val">0.78</span></div>
+                <input id="aks-step-vel" type="range" min="0.05" max="1" step="0.01" value="0.78" />
+              </div>
+              <div style="display:flex;gap:6px;margin-top:6px">
+                <button class="btn btnSm" id="aks-step-active" type="button">Active: ON</button>
+                <button class="btn btnSm" id="aks-step-accent" type="button">Accent: OFF</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════
+             AKS PRESETS
+        ════════════════════════════════════════════════════════════ -->
+        <div class="ctrlGroup collapsed" id="aksPresetsGroup">
+          <div class="ctrlGroupHead" onclick="this.closest('.ctrlGroup').classList.toggle('collapsed')">
+            <b>AKS Presets</b>
+            <span class="ctrlGroupChevron">▼</span>
+          </div>
+          <div class="ctrlGroupBody">
+            <div style="display:flex;gap:6px">
+              <button class="btn btnSm btnPrimary" id="aks-preset-save" type="button">Save JSON</button>
+              <label class="btn btnSm" style="cursor:pointer">
+                Load JSON
+                <input id="aks-preset-load" type="file" accept=".json" style="display:none">
+              </label>
+            </div>
+            <span class="ctrlDesc">Full AKS patch: voice, filter, envelopes, matrix, sequencer</span>
+          </div>
+        </div>
+
       </div><!-- /controlsScroll -->
     </div><!-- /controlsSide -->
 
   </div><!-- /main -->
 
   <script type="module" src="./index.js"></script>
+  <script src="./synthi-aks.js"></script>
+
+  <script>
+  /* ─────────────────────────────────────────────────────────────────────────────
+     AKS UI wiring — runs after aksReady event (fired by synthi-aks.js after
+     index.js dispatches synthiAudioReady when user clicks "Start audio")
+  ───────────────────────────────────────────────────────────────────────────── */
+  (function () {
+    'use strict';
+
+    let aks = null;
+    let selectedStep = 0;
+
+    /* ── helpers ── */
+    function fmtMs(s) { return s < 0.995 ? Math.round(s * 1000) + 'ms' : s.toFixed(2) + 's'; }
+    function fmtNote(midi) {
+      const N = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+      return N[((midi % 12) + 12) % 12] + (Math.floor(midi / 12) - 1);
+    }
+
+    /* ── bindSlider: wire a range input to an AKS param ── */
+    function bindSlider(id, valId, key, fmt) {
+      const el  = document.getElementById(id);
+      const vEl = document.getElementById(valId);
+      if (!el) return;
+      function refresh() {
+        const v = parseFloat(el.value);
+        if (vEl) vEl.textContent = fmt ? fmt(v) : v.toFixed(2);
+        if (aks) aks.setParam(key, v);
+      }
+      el.addEventListener('input', refresh);
+      // init display value immediately (before audio starts)
+      (function() { const v = parseFloat(el.value); if (vEl) vEl.textContent = fmt ? fmt(v) : v.toFixed(2); })();
+    }
+
+    function bindSelect(id, key) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('change', () => { if (aks) aks.setParam(key, el.value); });
+    }
+
+    /* ── Matrix ── */
+    const STRENGTH_CYCLE = [0, 1, 2, 3, -1, -2, -3];
+    const SRC_LABELS  = ['LFO1', 'LFO2', 'MOD', 'OSC3', 'NOISE'];
+    const DEST_LABELS = ['O1 ƒ', 'O2 ƒ', 'O3 ƒ', 'VCF', 'AMP', 'L1 ƒ'];
+
+    function cellText(s) { return s === 0 ? '·' : (s > 0 ? '+' + s : String(s)); }
+
+    function buildMatrix() {
+      const container = document.getElementById('aks-matrix-grid');
+      if (!container || container.dataset.built) return;
+      container.dataset.built = '1';
+      container.innerHTML = '';
+
+      // header row
+      const corner = document.createElement('div');
+      corner.className = 'aks-mat-corner';
+      container.appendChild(corner);
+      DEST_LABELS.forEach(lbl => {
+        const d = document.createElement('div');
+        d.className = 'aks-mat-header';
+        d.textContent = lbl;
+        container.appendChild(d);
+      });
+
+      // source rows
+      const N_SRC = SRC_LABELS.length, N_DST = DEST_LABELS.length;
+      for (let si = 0; si < N_SRC; si++) {
+        const srcEl = document.createElement('div');
+        srcEl.className = 'aks-mat-src';
+        srcEl.textContent = SRC_LABELS[si];
+        container.appendChild(srcEl);
+
+        for (let di = 0; di < N_DST; di++) {
+          const cell = document.createElement('div');
+          cell.className = 'aks-mat-cell';
+          // default connections: LFO1→VCF +2, MODENV→VCF +3
+          const initS = (si === 0 && di === 3) ? 2 : (si === 2 && di === 3) ? 3 : 0;
+          cell.dataset.s  = String(initS);
+          cell.dataset.si = si;
+          cell.dataset.di = di;
+          cell.textContent = cellText(initS);
+          cell.addEventListener('click', () => {
+            const cur  = parseInt(cell.dataset.s, 10);
+            const idx  = STRENGTH_CYCLE.indexOf(cur);
+            const next = STRENGTH_CYCLE[(idx + 1) % STRENGTH_CYCLE.length];
+            cell.dataset.s   = String(next);
+            cell.textContent = cellText(next);
+            if (aks) aks.setMatrix(si, di, next);
+          });
+          container.appendChild(cell);
+        }
+      }
+    }
+
+    /* ── Sequencer step grid ── */
+    function buildSeqSteps() {
+      const grid = document.getElementById('aks-seq-steps-grid');
+      if (!grid || !aks) return;
+      grid.innerHTML = '';
+      for (let i = 0; i < 16; i++) {
+        const btn = document.createElement('div');
+        btn.className = 'aks-step-btn';
+        btn.id = 'aks-step-' + i;
+        btn.dataset.i = i;
+        refreshStepBtn(btn, i);
+        btn.addEventListener('click', () => {
+          selectedStep = i;
+          refreshAllStepBtns();
+          openStepEditor(i);
+        });
+        grid.appendChild(btn);
+      }
+    }
+
+    function refreshStepBtn(btn, i) {
+      if (!aks) return;
+      const step = aks.state.seqSteps[i];
+      btn.className = 'aks-step-btn';
+      if (step.active) btn.classList.add('active');
+      if (step.accent) btn.classList.add('accent');
+      if (i === selectedStep) btn.classList.add('selected');
+      btn.textContent = step.active ? fmtNote(step.note) : '—';
+    }
+
+    function refreshAllStepBtns() {
+      if (!aks) return;
+      for (let i = 0; i < 16; i++) {
+        const btn = document.getElementById('aks-step-' + i);
+        if (btn) refreshStepBtn(btn, i);
+      }
+    }
+
+    function openStepEditor(i) {
+      if (!aks) return;
+      const editor = document.getElementById('aks-seq-step-editor');
+      if (!editor) return;
+      editor.style.display = 'block';
+      const step = aks.state.seqSteps[i];
+
+      const lbl = document.getElementById('aks-step-editor-label');
+      if (lbl) lbl.textContent = 'Step ' + (i + 1);
+
+      const noteSlider = document.getElementById('aks-step-note');
+      const noteVal    = document.getElementById('aks-step-note-val');
+      if (noteSlider) { noteSlider.value = step.note; }
+      if (noteVal)    { noteVal.textContent = fmtNote(step.note); }
+
+      const velSlider = document.getElementById('aks-step-vel');
+      const velVal    = document.getElementById('aks-step-vel-val');
+      if (velSlider) { velSlider.value = step.velocity; }
+      if (velVal)    { velVal.textContent = step.velocity.toFixed(2); }
+
+      const activeBtn = document.getElementById('aks-step-active');
+      const accentBtn = document.getElementById('aks-step-accent');
+      if (activeBtn) activeBtn.textContent = 'Active: ' + (step.active ? 'ON' : 'OFF');
+      if (accentBtn) accentBtn.textContent = 'Accent: ' + (step.accent ? 'ON' : 'OFF');
+    }
+
+    /* ── Sync sliders from loaded preset ── */
+    function syncSlidersFromState() {
+      if (!aks) return;
+      const st = aks.state;
+      function set(id, v) { const el = document.getElementById(id); if (el) el.value = v; }
+      function setAndShow(id, valId, fmt) {
+        const el = document.getElementById(id); const vEl = document.getElementById(valId);
+        if (!el || !vEl) return;
+        const v = parseFloat(el.value);
+        vEl.textContent = fmt ? fmt(v) : v.toFixed(2);
+      }
+      set('aks-osc1-level', st.osc1Level);
+      set('aks-osc2-level', st.osc2Level); set('aks-osc2-tune', st.osc2Tune);
+      set('aks-osc3-level', st.osc3Level); set('aks-osc3-tune', st.osc3Tune);
+      set('aks-noise-level', st.noiseLevel); set('aks-drift', st.driftAmt);
+      set('aks-filter-cutoff', st.filterCutoff); set('aks-filter-res', st.filterRes);
+      set('aks-filter-drive', st.filterDrive);
+      set('aks-amp-a', st.ampA); set('aks-amp-d', st.ampD);
+      set('aks-amp-s', st.ampS); set('aks-amp-r', st.ampR);
+      set('aks-mod-a', st.modA); set('aks-mod-d', st.modD);
+      set('aks-mod-s', st.modS); set('aks-mod-r', st.modR);
+      set('aks-lfo1-rate', st.lfo1Rate); set('aks-lfo2-rate', st.lfo2Rate);
+      set('aks-glide', st.glide); set('aks-swing', st.seqSwing);
+
+      // re-fire display
+      setAndShow('aks-osc1-level','aks-osc1-level-val');
+      setAndShow('aks-osc2-level','aks-osc2-level-val');
+      setAndShow('aks-osc2-tune','aks-osc2-tune-val', v => v.toFixed(2)+' st');
+      setAndShow('aks-osc3-level','aks-osc3-level-val');
+      setAndShow('aks-osc3-tune','aks-osc3-tune-val', v => v.toFixed(0)+' st');
+      setAndShow('aks-noise-level','aks-noise-level-val');
+      setAndShow('aks-drift','aks-drift-val');
+      setAndShow('aks-filter-cutoff','aks-filter-cutoff-val', v => Math.round(v)+' Hz');
+      setAndShow('aks-filter-res','aks-filter-res-val');
+      setAndShow('aks-filter-drive','aks-filter-drive-val');
+      setAndShow('aks-amp-a','aks-amp-a-val',fmtMs); setAndShow('aks-amp-d','aks-amp-d-val',fmtMs);
+      setAndShow('aks-amp-s','aks-amp-s-val'); setAndShow('aks-amp-r','aks-amp-r-val',fmtMs);
+      setAndShow('aks-mod-a','aks-mod-a-val',fmtMs); setAndShow('aks-mod-d','aks-mod-d-val',fmtMs);
+      setAndShow('aks-mod-s','aks-mod-s-val'); setAndShow('aks-mod-r','aks-mod-r-val',fmtMs);
+      setAndShow('aks-lfo1-rate','aks-lfo1-rate-val', v => v.toFixed(2)+' Hz');
+      setAndShow('aks-lfo2-rate','aks-lfo2-rate-val', v => v.toFixed(2)+' Hz');
+      setAndShow('aks-glide','aks-glide-val', v => v < 0.01 ? 'OFF' : fmtMs(v));
+      setAndShow('aks-swing','aks-swing-val', v => Math.round(v*200)+'%');
+
+      // select elements
+      function sel(id, v) { const el = document.getElementById(id); if (el) el.value = v; }
+      sel('aks-osc1-wave', st.osc1Wave);
+      sel('aks-osc2-wave', st.osc2Wave);
+      sel('aks-osc3-wave', st.osc3Wave);
+      sel('aks-lfo1-wave', st.lfo1Wave);
+      sel('aks-lfo2-wave', st.lfo2Wave);
+
+      // matrix cells
+      document.querySelectorAll('.aks-mat-cell').forEach(cell => {
+        const si = parseInt(cell.dataset.si, 10), di = parseInt(cell.dataset.di, 10);
+        const s = st.matrix[si][di];
+        cell.dataset.s   = String(s);
+        cell.textContent = cellText(s);
+      });
+
+      refreshAllStepBtns();
+      if (document.getElementById('aks-seq-step-editor').style.display !== 'none') {
+        openStepEditor(selectedStep);
+      }
+    }
+
+    /* ── aksReady: all bindings live here ── */
+    window.addEventListener('aksReady', function (e) {
+      aks = e.detail;
+
+      /* Voice */
+      bindSlider('aks-osc1-level','aks-osc1-level-val','osc1Level');
+      bindSlider('aks-osc2-level','aks-osc2-level-val','osc2Level');
+      bindSlider('aks-osc2-tune', 'aks-osc2-tune-val', 'osc2Tune',  function(v){ return v.toFixed(2)+' st'; });
+      bindSlider('aks-osc3-level','aks-osc3-level-val','osc3Level');
+      bindSlider('aks-osc3-tune', 'aks-osc3-tune-val', 'osc3Tune',  function(v){ return v.toFixed(0)+' st'; });
+      bindSlider('aks-noise-level','aks-noise-level-val','noiseLevel');
+      bindSlider('aks-drift',     'aks-drift-val',     'driftAmt');
+      bindSelect('aks-osc1-wave','osc1Wave');
+      bindSelect('aks-osc2-wave','osc2Wave');
+      bindSelect('aks-osc3-wave','osc3Wave');
+
+      /* Filter */
+      bindSlider('aks-filter-cutoff','aks-filter-cutoff-val','filterCutoff', function(v){ return Math.round(v)+' Hz'; });
+      bindSlider('aks-filter-res',   'aks-filter-res-val',   'filterRes');
+      bindSlider('aks-filter-drive', 'aks-filter-drive-val', 'filterDrive');
+
+      /* Envelopes */
+      bindSlider('aks-amp-a','aks-amp-a-val','ampA',fmtMs);
+      bindSlider('aks-amp-d','aks-amp-d-val','ampD',fmtMs);
+      bindSlider('aks-amp-s','aks-amp-s-val','ampS');
+      bindSlider('aks-amp-r','aks-amp-r-val','ampR',fmtMs);
+      bindSlider('aks-mod-a','aks-mod-a-val','modA',fmtMs);
+      bindSlider('aks-mod-d','aks-mod-d-val','modD',fmtMs);
+      bindSlider('aks-mod-s','aks-mod-s-val','modS');
+      bindSlider('aks-mod-r','aks-mod-r-val','modR',fmtMs);
+
+      /* Modulation */
+      bindSlider('aks-lfo1-rate','aks-lfo1-rate-val','lfo1Rate', function(v){ return v.toFixed(2)+' Hz'; });
+      bindSlider('aks-lfo2-rate','aks-lfo2-rate-val','lfo2Rate', function(v){ return v.toFixed(2)+' Hz'; });
+      bindSelect('aks-lfo1-wave','lfo1Wave');
+      bindSelect('aks-lfo2-wave','lfo2Wave');
+      bindSlider('aks-glide','aks-glide-val','glide', function(v){ return v < 0.01 ? 'OFF' : fmtMs(v); });
+
+      /* AKS Sequencer */
+      buildSeqSteps();
+
+      var seqToggle = document.getElementById('aks-seq-toggle');
+      if (seqToggle) {
+        seqToggle.addEventListener('click', function() {
+          if (aks.state.seqRunning) {
+            aks.seqStop();
+            seqToggle.textContent = 'AKS Seq: OFF';
+          } else {
+            var bpmEl = document.getElementById('bpmSlider');
+            aks.seqStart(function() { return bpmEl ? parseFloat(bpmEl.value) : 120; });
+            seqToggle.textContent = 'AKS Seq: ON';
+          }
+        });
+      }
+
+      var noteOnBtn = document.getElementById('aks-note-on');
+      if (noteOnBtn) {
+        noteOnBtn.addEventListener('mousedown',  function() { aks.noteOn(aks.state.currentNote, 0.82); });
+        noteOnBtn.addEventListener('mouseup',    function() { aks.noteOff(); });
+        noteOnBtn.addEventListener('mouseleave', function() { aks.noteOff(); });
+        noteOnBtn.addEventListener('touchstart', function(ev) { ev.preventDefault(); aks.noteOn(aks.state.currentNote, 0.82); });
+        noteOnBtn.addEventListener('touchend',   function() { aks.noteOff(); });
+      }
+
+      var swingSlider = document.getElementById('aks-swing');
+      var swingVal    = document.getElementById('aks-swing-val');
+      if (swingSlider) {
+        swingSlider.addEventListener('input', function() {
+          var v = parseFloat(swingSlider.value);
+          if (swingVal) swingVal.textContent = Math.round(v * 200) + '%';
+          if (aks) aks.state.seqSwing = v;
+        });
+      }
+
+      /* Step editor */
+      var stepNoteSlider = document.getElementById('aks-step-note');
+      var stepNoteVal    = document.getElementById('aks-step-note-val');
+      if (stepNoteSlider) {
+        stepNoteSlider.addEventListener('input', function() {
+          var v = parseInt(stepNoteSlider.value, 10);
+          if (stepNoteVal) stepNoteVal.textContent = fmtNote(v);
+          if (aks) { aks.state.seqSteps[selectedStep].note = v; refreshAllStepBtns(); }
+        });
+      }
+
+      var stepVelSlider = document.getElementById('aks-step-vel');
+      var stepVelVal    = document.getElementById('aks-step-vel-val');
+      if (stepVelSlider) {
+        stepVelSlider.addEventListener('input', function() {
+          var v = parseFloat(stepVelSlider.value);
+          if (stepVelVal) stepVelVal.textContent = v.toFixed(2);
+          if (aks) aks.state.seqSteps[selectedStep].velocity = v;
+        });
+      }
+
+      var activeBtn = document.getElementById('aks-step-active');
+      if (activeBtn) {
+        activeBtn.addEventListener('click', function() {
+          if (!aks) return;
+          var s = aks.state.seqSteps[selectedStep];
+          s.active = !s.active;
+          activeBtn.textContent = 'Active: ' + (s.active ? 'ON' : 'OFF');
+          refreshAllStepBtns();
+        });
+      }
+
+      var accentBtn = document.getElementById('aks-step-accent');
+      if (accentBtn) {
+        accentBtn.addEventListener('click', function() {
+          if (!aks) return;
+          var s = aks.state.seqSteps[selectedStep];
+          s.accent = !s.accent;
+          accentBtn.textContent = 'Accent: ' + (s.accent ? 'ON' : 'OFF');
+          refreshAllStepBtns();
+        });
+      }
+
+      /* Presets */
+      var saveBtn = document.getElementById('aks-preset-save');
+      if (saveBtn) {
+        saveBtn.addEventListener('click', function() {
+          if (!aks) return;
+          var json = aks.savePreset('SYNTHI AKS');
+          var a = document.createElement('a');
+          a.download = 'synthi-aks-patch-' + Date.now() + '.json';
+          a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+          a.click();
+        });
+      }
+
+      var loadInput = document.getElementById('aks-preset-load');
+      if (loadInput) {
+        loadInput.addEventListener('change', function(ev) {
+          var file = ev.target.files[0];
+          if (!file || !aks) return;
+          var reader = new FileReader();
+          reader.onload = function(fe) {
+            var ok = aks.loadPreset(fe.target.result);
+            if (ok) syncSlidersFromState();
+          };
+          reader.readAsText(file);
+        });
+      }
+
+      console.log('[AKS UI] wiring complete');
+    });
+
+    /* Build matrix immediately so it's visible before audio starts */
+    buildMatrix();
+  }());
+  </script>
 </body>
 </html>
