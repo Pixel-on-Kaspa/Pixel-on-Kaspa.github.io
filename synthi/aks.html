@@ -78,7 +78,7 @@
       );
     }
     #col-left, #col-right { display: flex; flex-direction: column; gap: 8px; }
-    #col-center          { display: flex; flex-direction: column; }
+    #col-center          { display: flex; flex-direction: column; gap: 8px; max-width: 380px; }
 
     /* ── PANEL ── */
     .panel {
@@ -177,14 +177,14 @@
       cursor: pointer; position: relative;
     }
     .mat-cell::after {
-      content: ''; width: 8px; height: 8px; border-radius: 50%;
+      content: ''; width: 12px; height: 12px; border-radius: 50%;
       border: 1px solid rgba(255,255,255,.13); background: rgba(255,255,255,.03);
       transition: all .1s; position: relative; z-index: 1;
     }
     .mat-cell:hover::after { border-color: rgba(255,255,255,.32); background: rgba(255,255,255,.06); }
     .mat-cell.on::after {
       background: var(--green); border-color: var(--green);
-      box-shadow: 0 0 6px rgba(45,232,121,.65); width: 9px; height: 9px;
+      box-shadow: 0 0 6px rgba(45,232,121,.65); width: 13px; height: 13px;
     }
     .mat-cell.disabled { opacity: .25; pointer-events: none; }
 
@@ -252,6 +252,16 @@
     #preset-name:focus { border-color: var(--amber); }
     .presets-sep { color: var(--border2); }
 
+    /* ── VU METER ── */
+    .vu-meters { display: flex; gap: 14px; justify-content: center; padding: 2px 0; }
+    .vu-channel { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .vu-label { font-size: 8px; letter-spacing: .16em; color: var(--muted); text-transform: uppercase; }
+    .vu-bar { display: flex; flex-direction: column-reverse; gap: 2px; width: 22px; height: 84px; }
+    .vu-seg { flex: 1; border-radius: 1px; background: rgba(255,255,255,.05); }
+    .vu-seg.lit-g { background: var(--green); box-shadow: 0 0 3px rgba(45,232,121,.5); }
+    .vu-seg.lit-y { background: #e8c81a; box-shadow: 0 0 3px rgba(232,200,26,.5); }
+    .vu-seg.lit-r { background: var(--red); box-shadow: 0 0 3px rgba(230,59,59,.6); }
+
     /* ── SCROLLBAR ── */
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -308,8 +318,23 @@
     </div>
   </div>
 
-  <!-- RIGHT: ENV + MOD + REVERB -->
+  <!-- RIGHT: VU + ENV + MOD + REVERB -->
   <div id="col-right">
+    <div class="panel">
+      <div class="panel-title">VU Meter</div>
+      <div class="panel-body" style="padding:8px 10px">
+        <div class="vu-meters">
+          <div class="vu-channel">
+            <div class="vu-bar" id="vu-bar-l"></div>
+            <div class="vu-label">L</div>
+          </div>
+          <div class="vu-channel">
+            <div class="vu-bar" id="vu-bar-r"></div>
+            <div class="vu-label">R</div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="panel">
       <div class="panel-title">Envelopes</div>
       <div class="panel-body" id="env-body"></div>
@@ -557,6 +582,10 @@ function buildAudio() {
   n.lim.ratio.value = 14; n.lim.attack.value = 0.003; n.lim.release.value = 0.10;
   n.masterGain = actx.createGain(); n.masterGain.gain.value = ST.master;
   rvMix.connect(n.masterGain); n.masterGain.connect(n.lim); n.lim.connect(actx.destination);
+  n.vuAnalyser = actx.createAnalyser();
+  n.vuAnalyser.fftSize = 256;
+  n.vuAnalyser.smoothingTimeConstant = 0.8;
+  n.lim.connect(n.vuAnalyser);
 
   /* ── LFOs ── */
   n.lfos = []; n.lfoDepth = [];
@@ -995,10 +1024,57 @@ function buildReverbSection() {
   body.appendChild(row);
 }
 
+/* ── VU Meter ── */
+function buildVUSection() {
+  const SEGS = 20;
+  function makeBar(id) {
+    const bar = document.getElementById(id);
+    for (let i = 0; i < SEGS; i++) {
+      const s = document.createElement('div'); s.className = 'vu-seg';
+      bar.appendChild(s);
+    }
+    return bar;
+  }
+  const barL = makeBar('vu-bar-l');
+  const barR = makeBar('vu-bar-r');
+  const buf  = new Uint8Array(256);
+  let peakL = 0, peakR = 0;
+
+  function tick() {
+    requestAnimationFrame(tick);
+    if (!ENG || !ENG.nodes.vuAnalyser) {
+      [barL, barR].forEach(b => b.querySelectorAll('.vu-seg').forEach(s => s.className = 'vu-seg'));
+      return;
+    }
+    ENG.nodes.vuAnalyser.getByteTimeDomainData(buf);
+    let sum = 0;
+    for (let i = 0; i < buf.length; i++) { const s = (buf[i] - 128) / 128; sum += s * s; }
+    const rms   = Math.sqrt(sum / buf.length);
+    const level = Math.min(1, rms * 7);
+
+    peakL = Math.max(peakL * 0.92, level);
+    peakR = Math.max(peakR * 0.90, Math.max(0, level - 0.04));
+
+    [barL, barR].forEach((bar, bi) => {
+      const lit = Math.round((bi === 0 ? peakL : peakR) * SEGS);
+      bar.querySelectorAll('.vu-seg').forEach((seg, i) => {
+        seg.className = 'vu-seg';
+        if (i < lit) {
+          if (i >= SEGS - 2)      seg.classList.add('lit-r');
+          else if (i >= SEGS - 6) seg.classList.add('lit-y');
+          else                    seg.classList.add('lit-g');
+        }
+      });
+    });
+  }
+  tick();
+}
+
 /* ── Patch Matrix ── */
 function buildMatrix() {
   const grid = document.getElementById('matrix-grid');
   grid.style.gridTemplateColumns = '44px repeat(' + N_DST + ', 26px)';
+  grid.style.gap = '2px';
   grid.style.display = 'grid';
 
   /* Header row */
@@ -1188,6 +1264,7 @@ document.addEventListener('DOMContentLoaded', () => {
   buildOscSection();
   buildNoiseSection();
   buildVCFSection();
+  buildVUSection();
   buildEnvSection();
   buildModSection();
   buildReverbSection();
