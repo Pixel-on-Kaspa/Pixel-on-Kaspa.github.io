@@ -269,17 +269,11 @@
     </div>
   </div>
 
-  <!-- COL-CENTER: TRAP ENV + XY PAD + PATCH MATRIX -->
+  <!-- COL-CENTER: TRAP ENV + PATCH MATRIX -->
   <div id="col-center">
     <div class="panel">
       <div class="panel-title">Trapezoid Envelope</div>
       <div class="panel-body" id="env-body"></div>
-    </div>
-    <div class="panel">
-      <div class="panel-title">XY Joystick <span>drag to modulate</span></div>
-      <div class="panel-body" style="padding:6px">
-        <canvas id="joystick-canvas" width="240" height="100"></canvas>
-      </div>
     </div>
     <div class="panel" style="flex:1">
       <div class="panel-title">
@@ -292,7 +286,7 @@
     </div>
   </div>
 
-  <!-- COL-3: VU METER + MASTER -->
+  <!-- COL-3: VU METER + MASTER + JOYSTICK -->
   <div id="col-3">
     <div class="panel">
       <div class="panel-title">VU Meter</div>
@@ -304,6 +298,12 @@
     <div class="panel">
       <div class="panel-title">Master</div>
       <div class="panel-body" id="master-body"></div>
+    </div>
+    <div class="panel" style="grid-column:1/-1">
+      <div class="panel-title">XY Joystick <span>drag to modulate</span></div>
+      <div class="panel-body" style="padding:6px">
+        <canvas id="joystick-canvas" width="240" height="100"></canvas>
+      </div>
     </div>
   </div>
 
