@@ -169,22 +169,22 @@
     .mat-row-lbl {
       font-size: 8px; color: var(--muted); letter-spacing: .04em;
       display: flex; align-items: center; justify-content: flex-end;
-      padding-right: 8px; height: 34px; white-space: nowrap;
+      padding-right: 6px; height: 24px; white-space: nowrap;
     }
     .mat-cell {
-      width: 34px; height: 34px;
+      width: 24px; height: 24px;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; position: relative;
     }
     .mat-cell::after {
-      content: ''; width: 11px; height: 11px; border-radius: 50%;
+      content: ''; width: 8px; height: 8px; border-radius: 50%;
       border: 1px solid rgba(255,255,255,.13); background: rgba(255,255,255,.03);
       transition: all .1s; position: relative; z-index: 1;
     }
     .mat-cell:hover::after { border-color: rgba(255,255,255,.32); background: rgba(255,255,255,.06); }
     .mat-cell.on::after {
       background: var(--green); border-color: var(--green);
-      box-shadow: 0 0 8px rgba(45,232,121,.65); width: 13px; height: 13px;
+      box-shadow: 0 0 6px rgba(45,232,121,.65); width: 9px; height: 9px;
     }
     .mat-cell.disabled { opacity: .25; pointer-events: none; }
 
@@ -291,8 +291,12 @@
     </div>
   </div>
 
-  <!-- CENTER: PATCH MATRIX -->
+  <!-- CENTER: OUTPUT FILTER + PATCH MATRIX -->
   <div id="col-center">
+    <div class="panel">
+      <div class="panel-title">Output Filter / VCF</div>
+      <div class="panel-body" id="vcf-body"></div>
+    </div>
     <div class="panel" style="flex:1">
       <div class="panel-title">
         Patch Matrix
@@ -304,12 +308,8 @@
     </div>
   </div>
 
-  <!-- RIGHT: VCF + ENV + MOD + REVERB -->
+  <!-- RIGHT: ENV + MOD + REVERB -->
   <div id="col-right">
-    <div class="panel">
-      <div class="panel-title">Filter / VCF</div>
-      <div class="panel-body" id="vcf-body"></div>
-    </div>
     <div class="panel">
       <div class="panel-title">Envelopes</div>
       <div class="panel-body" id="env-body"></div>
@@ -998,7 +998,7 @@ function buildReverbSection() {
 /* ── Patch Matrix ── */
 function buildMatrix() {
   const grid = document.getElementById('matrix-grid');
-  grid.style.gridTemplateColumns = '56px repeat(' + N_DST + ', 36px)';
+  grid.style.gridTemplateColumns = '44px repeat(' + N_DST + ', 26px)';
   grid.style.display = 'grid';
 
   /* Header row */
