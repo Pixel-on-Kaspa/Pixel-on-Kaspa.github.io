@@ -119,6 +119,28 @@
     .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
     .btnSm{padding:8px 12px;font-size:13px}
 
+    /* REC button active state */
+    .btnRec.recording{
+      border-color: rgba(255,60,60,.80);
+      color: #ff4040;
+      background: rgba(255,60,60,.12);
+      pointer-events:none;
+    }
+
+    /* countdown overlay on canvas */
+    #sketchWrap{ position:relative; }
+    #recOverlay{
+      display:none;
+      position:absolute; top:10px; left:50%; transform:translateX(-50%);
+      background: rgba(0,0,0,.72);
+      color:#ff4040;
+      font-size:14px;font-weight:900;letter-spacing:.12em;
+      padding:5px 12px;border-radius:999px;
+      pointer-events:none;
+      white-space:nowrap;
+    }
+    #recOverlay.show{ display:block; }
+
     .muted{opacity:.76}
     pre{
       margin:10px 0 0;
@@ -159,11 +181,14 @@
           <span class="chip" id="status">boot…</span>
         </div>
         <div class="panelBody">
-          <div id="sketchWrap"></div>
+          <div id="sketchWrap">
+            <div id="recOverlay"></div>
+          </div>
 
           <div class="row">
             <button class="btn btnPrimary btnSm" id="btnPause" type="button">Pause</button>
             <button class="btn btnSm" id="btnShot" type="button">PNG</button>
+            <button class="btn btnSm btnRec" id="btnRec" type="button">REC 8s</button>
             <button class="btn btnSm" id="btnReset" type="button">Reset</button>
             <button class="btn btnPrimary btnSm" id="btnRand" type="button">Randomize</button>
             <button class="btn btnSm" id="btnCopy" type="button">Copy share URL</button>
@@ -516,9 +541,88 @@ circle(y,x,4*cos(g));f+=B/8}`;
 
   document.getElementById("btnShot").addEventListener("click", ()=>{
     if(!p5instance) return;
-    // p5 saves via built-in
     p5instance.saveCanvas(`koma_${Date.now()}`, "png");
   });
+
+  // ── REC 8s ──
+  const btnRec     = document.getElementById("btnRec");
+  const recOverlay = document.getElementById("recOverlay");
+  let isRecording  = false;
+
+  btnRec.addEventListener("click", () => {
+    if(isRecording || !p5instance) return;
+    isRecording = true;
+    btnRec.classList.add("recording");
+    btnRec.textContent = "● REC";
+    btnRec.disabled = true;
+
+    const REC_DURATION = 8000;
+    const chunks = [];
+
+    // p5 P2D canvas is a regular 2D canvas — captureStream() works directly.
+    const cnv = p5instance.canvas;
+    let stream;
+    try {
+      stream = cnv.captureStream(60);
+    } catch(e) {
+      alert("captureStream not supported in this browser.");
+      endRec(); return;
+    }
+
+    const FORMATS = [
+      "video/mp4;codecs=avc1.42E01E",
+      "video/mp4;codecs=h264",
+      "video/webm;codecs=vp9",
+      "video/webm",
+    ];
+    let rec;
+    for (const mime of FORMATS) {
+      if (!MediaRecorder.isTypeSupported(mime)) continue;
+      try { rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 }); break; }
+      catch(e) {}
+    }
+    if (!rec) rec = new MediaRecorder(stream, { videoBitsPerSecond: 8_000_000 });
+
+    const actualMime = rec.mimeType || "video/webm";
+    const actualExt  = actualMime.includes("mp4") ? "mp4" : "webm";
+
+    rec.ondataavailable = e => { if(e.data.size > 0) chunks.push(e.data); };
+    rec.onstop = () => {
+      const blob = new Blob(chunks, { type: actualMime });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href = url;
+      a.download = `koma_${Date.now()}.${actualExt}`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+      endRec();
+    };
+
+    rec.start(100);
+
+    const start = performance.now();
+    function updateOverlay(){
+      const elapsed   = performance.now() - start;
+      const remaining = Math.ceil((REC_DURATION - elapsed) / 1000);
+      if(elapsed >= REC_DURATION){
+        recOverlay.classList.remove("show");
+        recOverlay.textContent = "";
+        rec.stop();
+        return;
+      }
+      recOverlay.classList.add("show");
+      recOverlay.textContent = remaining > 0 ? `● REC ${remaining}` : "● REC";
+      requestAnimationFrame(updateOverlay);
+    }
+    requestAnimationFrame(updateOverlay);
+  });
+
+  function endRec(){
+    isRecording = false;
+    btnRec.classList.remove("recording");
+    btnRec.textContent = "REC 8s";
+    btnRec.disabled = false;
+  }
 
   // if canvas size changes, rebuild for crispness
   let lastSize = params.size;
