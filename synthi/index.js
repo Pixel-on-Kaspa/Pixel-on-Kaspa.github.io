@@ -1157,7 +1157,7 @@
 
       const amp = (0.86 + 0.16 * Math.sin(TAU * (p.ampRate * p.nowSec)));
       const dens = (0.62 + 0.38 * Math.sin(TAU * (p.densRate * p.nowSec + 0.2)));
-      const phiSpread = p.phiSpreadBase * (0.55 + 1.05 * (1 - dens)) + d3VisPhiSprd;
+      const phiSpread = p.phiSpreadBase * (0.55 + 1.05 * (1 - dens));
       const phiBase = p.phi + (driftOn ? driftPhase : 0);
 
       const q = clamp(quality * qAuto, 0.20, 1.20);
@@ -1201,10 +1201,8 @@
           const phiPoint = layerPhi + (rr() * 2 - 1) * phiSpread;
           const { x, y } = xyAt(t, pLayer, phiPoint, p.nowSec);
 
-          const flutterX = d4VisFlutter * Math.sin(p.nowSec * 47.3 + i * 0.11);
-          const flutterY = d4VisFlutter * Math.cos(p.nowSec * 53.7 + i * 0.07);
-          const px0 = (cx + x * sx * amp + flutterX) | 0;
-          const py0 = (cy - y * sy * amp + flutterY) | 0;
+          const px0 = (cx + x * sx * amp) | 0;
+          const py0 = (cy - y * sy * amp) | 0;
           const px = (px0 + (((rr() * 2 - 1) * jitterK) | 0));
           const py = (py0 + (((rr() * 2 - 1) * jitterK) | 0));
 
