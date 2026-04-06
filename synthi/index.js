@@ -1208,6 +1208,8 @@
           : Math.floor(N * 0.5 / Math.max(1, nLayers - 1));
         const layerPhi = phiBase + layerPhases[li];
 
+        // batch all rects into a single path → one fill() call per layer
+        ctx2d.beginPath();
         for (let i = 0; i < layerN; i++) {
           const t = rr() * TWIN;
           const phiPoint = layerPhi + (rr() * 2 - 1) * phiSpread;
@@ -1219,10 +1221,11 @@
           const py = (py0 + (((rr() * 2 - 1) * jitterK) | 0));
 
           if (px <= 0 || py <= 0 || px >= W || py >= H) continue;
-          ctx2d.fillRect(px, py, s, s);
-          if ((i & 31) === 0 && (rr() < 0.65 + 0.30 * aH)) ctx2d.fillRect(px + s, py, s, s);
-          if ((i & 63) === 0 && (rr() < 0.55 + 0.35 * aH)) ctx2d.fillRect(px, py + s, s, s);
+          ctx2d.rect(px, py, s, s);
+          if ((i & 31) === 0 && (rr() < 0.65 + 0.30 * aH)) ctx2d.rect(px + s, py, s, s);
+          if ((i & 63) === 0 && (rr() < 0.55 + 0.35 * aH)) ctx2d.rect(px, py + s, s, s);
         }
+        ctx2d.fill();
 
         ctx2d.restore();
       }
@@ -1241,8 +1244,12 @@
       log("RUNTIME ERROR: " + (err?.message || err));
     }
 
-    requestAnimationFrame(tick);
+    if (!document.hidden) requestAnimationFrame(tick);
   }
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) requestAnimationFrame(tick);
+  });
 
   requestAnimationFrame(tick);
   log("SYNTHI running. Press A for audio. Beat toggle in UI.");
