@@ -439,43 +439,8 @@
     pre.gain.value = 0.65; // pre-gain raised for analyser sensitivity
     sum.connect(pre);
 
-    // ── 4 parallel delay lines ──
-    const delayOut = actx.createGain();
-
-    function makeParallelDelay(time, fb, wet) {
-      const dNode = actx.createDelay(2.0);
-      dNode.delayTime.value = clamp(time, 0, 2);
-      const fbGain = actx.createGain();
-      fbGain.gain.value = clamp(fb, 0, 0.95);
-      const clip = makeSoftClipper(actx, 0.85);
-      const wetGain = actx.createGain();
-      wetGain.gain.value = clamp(wet, 0, 1);
-      pre.connect(dNode);
-      dNode.connect(fbGain);
-      fbGain.connect(clip);
-      clip.connect(dNode);
-      dNode.connect(wetGain);
-      wetGain.connect(delayOut);
-      return { dNode, fbGain, wetGain };
-    }
-
-    const pd1 = makeParallelDelay(d1Time, d1Fb, d1Wet);
-    const pd2 = makeParallelDelay(d2Time, d2Fb, d2Wet);
-    const pd3 = makeParallelDelay(d3Time, d3Fb, d3Wet);
-    const pd4 = makeParallelDelay(d4Time, d4Fb, d4Wet);
-
-    const dryGain = actx.createGain();
-    dryGain.gain.value = 0.60;
-    pre.connect(dryGain);
-
-    // master delay mix gain — scales all 4 delay wet outputs together
-    const delayMixGain = actx.createGain();
-    delayMixGain.gain.value = delayMix;
-    delayOut.connect(delayMixGain);
-
     const mixBus = actx.createGain();
-    dryGain.connect(mixBus);
-    delayMixGain.connect(mixBus);
+    pre.connect(mixBus);
 
     // tap mixBus directly into analysers so delay echoes register
     // before the limiter can suppress them
@@ -543,8 +508,6 @@
       muted: false,
       _noiseBuf: null,
       oscSin, oscTri, oscDet,
-      pd1, pd2, pd3, pd4,
-      delayMixGain,
       distNode, filterNode, rvWet, rvDry,
       chorusDelay, chorusLFO, chorusLFOGain, chorusWetGain,
       setMute(on) {
@@ -561,33 +524,7 @@
         this.oscTri.frequency.setTargetAtTime(f2 * 2, this.ctx.currentTime, 0.015);
         this.oscDet.frequency.setTargetAtTime(f2 * (1 + pEffNow.detune * 0.5), this.ctx.currentTime, 0.015);
       },
-      setFeedback(pEffNow, fbOnNow, fbMulNow) {
-        const s2 = fbOnNow ? clamp(fbMulNow, 0, 1.2) : 0.0;
-        const t = this.ctx.currentTime;
-        this.pd1.fbGain.gain.setTargetAtTime(clamp(d1Fb * s2, 0, 0.95), t, 0.02);
-        this.pd2.fbGain.gain.setTargetAtTime(clamp(d2Fb * s2, 0, 0.95), t, 0.02);
-        this.pd3.fbGain.gain.setTargetAtTime(clamp(d3Fb * s2, 0, 0.95), t, 0.02);
-        this.pd4.fbGain.gain.setTargetAtTime(clamp(d4Fb * s2, 0, 0.95), t, 0.02);
-      },
-      setDelayParams() {
-        const t = this.ctx.currentTime;
-        this.pd1.dNode.delayTime.setTargetAtTime(clamp(d1Time,0,2), t, 0.02);
-        this.pd1.fbGain.gain.setTargetAtTime(clamp(d1Fb,0,0.95), t, 0.02);
-        this.pd1.wetGain.gain.setTargetAtTime(d1Wet, t, 0.02);
-        this.pd2.dNode.delayTime.setTargetAtTime(clamp(d2Time,0,2), t, 0.02);
-        this.pd2.fbGain.gain.setTargetAtTime(clamp(d2Fb,0,0.95), t, 0.02);
-        this.pd2.wetGain.gain.setTargetAtTime(d2Wet, t, 0.02);
-        this.pd3.dNode.delayTime.setTargetAtTime(clamp(d3Time,0,2), t, 0.02);
-        this.pd3.fbGain.gain.setTargetAtTime(clamp(d3Fb,0,0.95), t, 0.02);
-        this.pd3.wetGain.gain.setTargetAtTime(d3Wet, t, 0.02);
-        this.pd4.dNode.delayTime.setTargetAtTime(clamp(d4Time,0,2), t, 0.02);
-        this.pd4.fbGain.gain.setTargetAtTime(clamp(d4Fb,0,0.95), t, 0.02);
-        this.pd4.wetGain.gain.setTargetAtTime(d4Wet, t, 0.02);
-        this.delayMixGain.gain.setTargetAtTime(delayMix, t, 0.02);
-      },
-      setDelayMix() {
-        this.delayMixGain.gain.setTargetAtTime(delayMix, this.ctx.currentTime, 0.02);
-      },
+      setFeedback() {},
       setEffectParams() {
         const t = this.ctx.currentTime;
         this.rvWet.gain.setTargetAtTime(reverbWet, t, 0.05);
@@ -694,11 +631,6 @@
   };
 
   // ── delay bank state ──
-  let d1Time = 0.15, d1Fb = 0.60, d1Wet = 0.50;
-  let d2Time = 0.30, d2Fb = 0.50, d2Wet = 0.40;
-  let d3Time = 0.70, d3Fb = 0.40, d3Wet = 0.30;
-  let d4Time = 0.08, d4Fb = 0.60, d4Wet = 0.40;
-  let delayMix = 0.75;
 
   // ── effects state ──
   let reverbWet    = 0.30;
@@ -1066,19 +998,6 @@
     });
   }
 
-  bindRangeSlider("d1TimeSlider","d1TimeVal", ()=>d1Time, v=>{d1Time=v;}, v=>v.toFixed(2)+"s", ()=>{ if(audio) audio.setDelayParams(); });
-  bindRangeSlider("d1FbSlider",  "d1FbVal",   ()=>d1Fb,   v=>{d1Fb=clamp(v,0,0.95);}, v=>v.toFixed(2), ()=>{ if(audio) audio.setDelayParams(); });
-  bindRangeSlider("d1WetSlider", "d1WetVal",  ()=>d1Wet,  v=>{d1Wet=clamp(v,0,1);}, v=>v.toFixed(2), ()=>{ if(audio) audio.setDelayParams(); });
-  bindRangeSlider("d2TimeSlider","d2TimeVal", ()=>d2Time, v=>{d2Time=v;}, v=>v.toFixed(2)+"s", ()=>{ if(audio) audio.setDelayParams(); });
-  bindRangeSlider("d2FbSlider",  "d2FbVal",   ()=>d2Fb,   v=>{d2Fb=clamp(v,0,0.95);}, v=>v.toFixed(2), ()=>{ if(audio) audio.setDelayParams(); });
-  bindRangeSlider("d2WetSlider", "d2WetVal",  ()=>d2Wet,  v=>{d2Wet=clamp(v,0,1);}, v=>v.toFixed(2), ()=>{ if(audio) audio.setDelayParams(); });
-  bindRangeSlider("d3TimeSlider","d3TimeVal", ()=>d3Time, v=>{d3Time=v;}, v=>v.toFixed(2)+"s", ()=>{ if(audio) audio.setDelayParams(); });
-  bindRangeSlider("d3FbSlider",  "d3FbVal",   ()=>d3Fb,   v=>{d3Fb=clamp(v,0,0.95);}, v=>v.toFixed(2), ()=>{ if(audio) audio.setDelayParams(); });
-  bindRangeSlider("d3WetSlider", "d3WetVal",  ()=>d3Wet,  v=>{d3Wet=clamp(v,0,1);}, v=>v.toFixed(2), ()=>{ if(audio) audio.setDelayParams(); });
-  bindRangeSlider("d4TimeSlider","d4TimeVal", ()=>d4Time, v=>{d4Time=v;}, v=>v.toFixed(2)+"s", ()=>{ if(audio) audio.setDelayParams(); });
-  bindRangeSlider("d4FbSlider",  "d4FbVal",   ()=>d4Fb,   v=>{d4Fb=clamp(v,0,0.95);}, v=>v.toFixed(2), ()=>{ if(audio) audio.setDelayParams(); });
-  bindRangeSlider("d4WetSlider", "d4WetVal",  ()=>d4Wet,  v=>{d4Wet=clamp(v,0,1);}, v=>v.toFixed(2), ()=>{ if(audio) audio.setDelayParams(); });
-  bindRangeSlider("delayMixSlider", "delayMixVal", ()=>delayMix, v=>{delayMix=clamp(v,0,1);}, v=>v.toFixed(2), ()=>{ if(audio) audio.setDelayMix(); });
 
   // ── effects UI bindings ──
   bindRangeSlider("reverbWetSlider",    "reverbWetVal",    ()=>reverbWet,    v=>{reverbWet=clamp(v,0,1);},       v=>v.toFixed(2),        ()=>{ if(audio) audio.setEffectParams(); });
@@ -1206,18 +1125,11 @@
       const expoReact = clamp(0.85 + (3.20 * aB + 0.35 * snareFlash) * R, 0.40, 3.00);
       const warpReact = clamp(0.80 + (3.50 * aH) * R, 0.00, 2.40);
 
-      // ── delay → visual modulation ──
-      const dMix = delayMix;
-      const d1VisWarp    = d1Fb * d1Wet * dMix * 0.55;  // d1 short echo → warp
-      const d2VisDens    = 1 + d2Fb * d2Wet * dMix * 0.90; // d2 medium → density
-      const d3VisPhiSprd = d3Fb * d3Wet * dMix * 0.10;  // d3 long → phiSpread boost
-      const d4VisFlutter = d4Fb * d4Wet * dMix * 10.0;  // d4 flutter → pixel jitter
-
-      const densityMulEff = clamp(densityMul * densReact * d2VisDens, 0.2, 3.5);
+      const densityMulEff = clamp(densityMul * densReact, 0.2, 3.5);
       const exposureEff   = clamp(exposure   * expoReact, 0.4, 3.2);
 
       const warpMulUser = warpMul;
-      if (audio && warpOn) warpMul = clamp(warpMul * warpReact + d1VisWarp, 0, 2.0);
+      if (audio && warpOn) warpMul = clamp(warpMul * warpReact, 0, 2.0);
       const p = effective(now);
       warpMul = warpMulUser;
 
