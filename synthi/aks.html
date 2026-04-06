@@ -497,9 +497,9 @@ const PC_MAP = {
 ═══════════════════════════════════════════════════════════════════════ */
 const ST = {
   oscs: [
-    { level: 0.70, tune: 0,    wave: 'sawtooth', drift: 2.0 },
-    { level: 0.50, tune: 0.07, wave: 'square',   drift: 2.0 },
-    { level: 0.30, tune: -12,  wave: 'triangle', drift: 2.0 },
+    { level: 0.70, tune: 0,    wave: 'sawtooth', drift: 2.0, range: 0 },
+    { level: 0.50, tune: 0.07, wave: 'square',   drift: 2.0, range: 0 },
+    { level: 0.30, tune: -12,  wave: 'triangle', drift: 2.0, range: 0 },
   ],
   noise:  { type: 'white', level: 0.05 },
   env:    { attack: 0.08, on: 0.20, decay: 0.30, off: 0.40, loop: false },
@@ -665,7 +665,7 @@ function buildAudio() {
   n.oscs = ST.oscs.map((st, i) => {
     const osc  = actx.createOscillator();
     osc.type   = st.wave;
-    osc.frequency.value = 440 * semisToR(st.tune);
+    osc.frequency.value = 440 * semisToR(st.tune + st.range);
     const gain = actx.createGain(); gain.gain.value = st.level;
     // Drift oscillator
     const driftOsc  = actx.createOscillator(); driftOsc.type = 'sine';
@@ -847,7 +847,7 @@ function noteOn(midi, vel = 0.82) {
   const tc = ST.glide > 0.001 ? ST.glide / 3.5 : 0.001;
 
   n.oscs.forEach((o, i) => {
-    o.osc.frequency.setTargetAtTime(hz * semisToR(ST.oscs[i].tune), t, tc);
+    o.osc.frequency.setTargetAtTime(hz * semisToR(ST.oscs[i].tune + ST.oscs[i].range), t, tc);
   });
 
   // Direct VCA schedule (fallback if env not in matrix)
@@ -944,7 +944,7 @@ function buildOscSection() {
         st.tune = v;
         if (ENG && ST.currentNote !== null) {
           const hz = midiToHz(clamp(ST.currentNote + ST.master.tune, 0, 127));
-          ENG.nodes.oscs[i].osc.frequency.setTargetAtTime(hz * semisToR(v), actx.currentTime, 0.02);
+          ENG.nodes.oscs[i].osc.frequency.setTargetAtTime(hz * semisToR(v + st.range), actx.currentTime, 0.02);
         }
       }
     });
@@ -970,6 +970,25 @@ function buildOscSection() {
       wb.appendChild(b);
     });
     block.appendChild(wb);
+
+    const fb = document.createElement('div'); fb.className = 'wave-btns'; fb.style.marginTop = '3px';
+    [['−2o',-24],['−1o',-12],[' 0 ',0],['+1o',12],['+2o',24]].forEach(([lbl, semis]) => {
+      const b = document.createElement('button'); b.className = 'wave-btn'; b.textContent = lbl;
+      if (st.range === semis) b.classList.add('active');
+      b.addEventListener('click', () => {
+        st.range = semis;
+        fb.querySelectorAll('.wave-btn').forEach(x => x.classList.toggle('active', x === b));
+        if (ENG) {
+          const base = ST.currentNote !== null
+            ? midiToHz(clamp(ST.currentNote + ST.master.tune, 0, 127))
+            : 440;
+          ENG.nodes.oscs[i].osc.frequency.setTargetAtTime(base * semisToR(st.tune + semis), actx.currentTime, 0.02);
+        }
+      });
+      fb.appendChild(b);
+    });
+    block.appendChild(fb);
+
     body.appendChild(block);
   });
 }
