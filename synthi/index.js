@@ -228,6 +228,7 @@
   /* ---------- audio ---------- */
   let audio = null;
   let masterVol = 0.70;
+  let beatVol   = 0.75;
 
   let analyserF = null;
   let analyserT = null;
@@ -502,9 +503,14 @@
     oscDet.start(now);
     chorusLFO.start(now);
 
+    const drumBus = actx.createGain();
+    drumBus.gain.value = beatVol;
+    drumBus.connect(masterGain);
+
     audio = {
       ctx: actx,
       masterGain,
+      drumBus,
       muted: false,
       _noiseBuf: null,
       oscSin, oscTri, oscDet,
@@ -523,6 +529,10 @@
         this.oscSin.frequency.setTargetAtTime(f2, this.ctx.currentTime, 0.015);
         this.oscTri.frequency.setTargetAtTime(f2 * 2, this.ctx.currentTime, 0.015);
         this.oscDet.frequency.setTargetAtTime(f2 * (1 + pEffNow.detune * 0.5), this.ctx.currentTime, 0.015);
+      },
+      setBeatVol(v) {
+        beatVol = clamp(v, 0, 1);
+        this.drumBus.gain.setTargetAtTime(beatVol, this.ctx.currentTime, 0.02);
       },
       setFeedback() {},
       setEffectParams() {
@@ -550,10 +560,10 @@
 
     while (seqNextTime < nowSec + lookahead) {
       const s = seqStep & 15;
-      if (seq.kick[s])  drumKick(actx, seqNextTime, audio.masterGain, 1.0);
-      if (seq.snare[s]) drumSnare(actx, seqNextTime, audio.masterGain, 1.0);
-      if (seq.hat[s])   drumHat(actx, seqNextTime, audio.masterGain, 1.0);
-      if (seq.perc[s])  drumPerc(actx, seqNextTime, audio.masterGain, 1.0);
+      if (seq.kick[s])  drumKick(actx, seqNextTime, audio.drumBus, 1.0);
+      if (seq.snare[s]) drumSnare(actx, seqNextTime, audio.drumBus, 1.0);
+      if (seq.hat[s])   drumHat(actx, seqNextTime, audio.drumBus, 1.0);
+      if (seq.perc[s])  drumPerc(actx, seqNextTime, audio.drumBus, 1.0);
       seqStep = (seqStep + 1) & 15;
       seqNextTime += stepDur;
     }
@@ -864,6 +874,8 @@
     });
   }
 
+  bindRangeSlider("beatVolSlider", "beatVolVal", ()=>beatVol, v=>{beatVol=clamp(v,0,1);}, v=>v.toFixed(2), ()=>{ if(audio) audio.setBeatVol(beatVol); });
+
   function syncReactUI() {
     if (reactVal) reactVal.textContent = reactMul.toFixed(2);
     if (reactSlider) reactSlider.value = String(reactMul);
@@ -974,10 +986,10 @@
   function firePad(kind) {
     if (!audio) return;
     const t = audio.ctx.currentTime + 0.005;
-    if (kind === "kick") drumKick(audio.ctx, t, audio.masterGain, 1.0);
-    if (kind === "snare") drumSnare(audio.ctx, t, audio.masterGain, 1.0);
-    if (kind === "hat") drumHat(audio.ctx, t, audio.masterGain, 1.0);
-    if (kind === "perc") drumPerc(audio.ctx, t, audio.masterGain, 1.0);
+    if (kind === "kick") drumKick(audio.ctx, t, audio.drumBus, 1.0);
+    if (kind === "snare") drumSnare(audio.ctx, t, audio.drumBus, 1.0);
+    if (kind === "hat") drumHat(audio.ctx, t, audio.drumBus, 1.0);
+    if (kind === "perc") drumPerc(audio.ctx, t, audio.drumBus, 1.0);
   }
   if (padKick) padKick.addEventListener("click", () => firePad("kick"));
   if (padSnare) padSnare.addEventListener("click", () => firePad("snare"));

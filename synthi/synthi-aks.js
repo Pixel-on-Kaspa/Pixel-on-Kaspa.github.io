@@ -387,6 +387,7 @@ class AKSEngine {
       case 'osc2Wave': n.osc2.type = value; break;
       case 'osc3Wave': n.osc3.type = value; break;
 
+      case 'aksLevel':  ramp(n.voiceOut.gain, value); break;
       case 'osc1Level': ramp(n.osc1Gain.gain, value); break;
       case 'osc2Level': ramp(n.osc2Gain.gain, value); break;
       case 'osc3Level': ramp(n.osc3Gain.gain, value); break;

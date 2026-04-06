@@ -424,6 +424,13 @@
               </div>
               <input id="bpmSlider" type="range" min="60" max="180" step="1" value="120" />
             </div>
+            <div class="ctrl">
+              <div class="ctrlHead">
+                <span class="ctrlTitle">Beat Master</span>
+                <span class="ctrlVal" id="beatVolVal">0.75</span>
+              </div>
+              <input id="beatVolSlider" type="range" min="0.00" max="1.00" step="0.01" value="0.75" />
+            </div>
             <div class="padRow">
               <button class="btn btnSm btnPrimary" id="seqToggle" type="button">Beat: OFF</button>
               <button class="btn btnSm" id="padKick"  type="button">Kick</button>
@@ -499,7 +506,11 @@
             <span class="ctrlGroupChevron">▼</span>
           </div>
           <div class="ctrlGroupBody">
-            <span class="aksSubLabel">OSC 1</span>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">AKS Master</span><span class="ctrlVal" id="aks-master-val">0.82</span></div>
+              <input id="aks-master" type="range" min="0" max="1" step="0.01" value="0.82" />
+            </div>
+            <span class="aksSubLabel" style="margin-top:4px">OSC 1</span>
             <div class="ctrl">
               <div class="ctrlHead"><span class="ctrlTitle">Waveform</span></div>
               <select id="aks-osc1-wave" class="aksSelect">
@@ -1004,6 +1015,9 @@
     /* ── aksReady: all bindings live here ── */
     window.addEventListener('aksReady', function (e) {
       aks = e.detail;
+
+      /* Master */
+      bindSlider('aks-master','aks-master-val','aksLevel');
 
       /* Voice */
       bindSlider('aks-osc1-level','aks-osc1-level-val','osc1Level');
