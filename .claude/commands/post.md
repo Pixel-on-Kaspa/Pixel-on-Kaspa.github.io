@@ -8,12 +8,14 @@ Post a visual (PNG or MP4) from a local artist export folder to X profiles.
 /post --artist <name> --profile <handle>
 /post --artist <name> --promo          # weekly collection promotion post
 /post --kaspa                          # Kaspa educational post (post 3 in cycle)
+/post --nft <collection>               # NFT visual post — fetch random NFT image from chain
 ```
 
 **--artist** (required for visual posts): folder name inside `~/Desktop/pixel-exports/` — e.g. `yohei`, `koma`, `sykora`  
 **--profile** (optional): `pixelonkas`, `marekozor`, `synthicoin` — if omitted, show all three and let user pick  
 **--promo** (optional): weekly collection promotion mode — see Step 1b  
-**--kaspa** (optional): generate Kaspa educational post instead of visual — see Step 1c
+**--kaspa** (optional): generate Kaspa educational post instead of visual — see Step 1c  
+**--nft** (optional): NFT visual post — fetch a random minted NFT image and use it as visual — see Step 1d
 
 ---
 
@@ -109,6 +111,66 @@ Pick a **random topic** from the list below (rotate, don't repeat the same topic
 No media attachment for @PixelonKas and @marekozor on Kaspa posts (text-only tweet). @synthicoin still gets a visual if available.
 
 Tone: educational, not hype. Short facts or context. No "moon", no price talk.
+
+---
+
+## Step 1d — NFT Visual mode (--nft flag)
+
+Used when you want to post an actual minted NFT from one of the project's collections as the visual.  
+Replaces Step 1 — no local export folder needed.
+
+**Note:** PIXELONKAS and SYKORA are KRC-721 tokens on the **Kaspa blockchain** — they are NOT on OpenSea.  
+OpenSea is only used for the `--artist marekozor` flow (Polygon/Ethereum collections).
+
+### Supported collections
+
+| Flag value | Chain | API |
+|---|---|---|
+| `PIXELONKAS` | Kaspa | krc721.stream |
+| `SYKORA` | Kaspa | krc721.stream |
+| `MAREKOZOR` | Polygon / Ethereum | OpenSea (see Step 1) |
+
+### Kaspa NFT fetch (PIXELONKAS or SYKORA)
+
+1. Fetch up to 50 minted NFTs:
+   ```
+   GET https://mainnet.krc721.stream/api/v1/krc721/mainnet/owners/{TICK}?limit=50
+   ```
+   where `{TICK}` is `PIXELONKAS` or `SYKORA`.
+
+2. Pick a random entry from the response. Note the `tokenId`.
+
+3. Fetch metadata to get the image:
+   ```
+   GET https://mainnet.krc721.stream/api/v1/krc721/mainnet/token/{TICK}/{tokenId}
+   ```
+   Extract `image` (IPFS or HTTP URL) from the metadata.
+
+4. If the URL starts with `ipfs://`, convert to:
+   ```
+   https://ipfs.io/ipfs/{CID}/{path}
+   ```
+
+5. Download the image to `/tmp/{tick}_{tokenId}.png`.
+
+6. Fallback: if the API call fails or returns no results → use a random file from `assets/img/` matching the collection (e.g. `sykora-nft-collection-*.jpg` or `PIXELONKAS_*.png`).
+
+### NFT link in post text
+
+Include the NFT's page on kaspa.com in the post:
+```
+kaspa.com/nft/collections/{TICK}/{tokenId}
+```
+
+Include this link in every profile's post for `--nft` mode. Vary the placement (inline, end of post, after line break).
+
+### Per-profile handling for --nft
+
+All three X profiles get the **same NFT image** but different post texts (see Step 2 voices).  
+Post tone is **not promo** — treat it as a regular visual post featuring an already-minted piece.  
+Do not use "mint now" language unless combined with `--promo`.
+
+For `--nft MAREKOZOR`: delegate to the existing OpenSea flow in Step 1 (pick random collection, fetch random NFT, use its image).
 
 ---
 
