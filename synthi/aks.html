@@ -1004,7 +1004,7 @@ function buildOscSection() {
     block.appendChild(fmLbl);
 
     const kFixed = new Knob({
-      min: 20, max: 4000, value: st.fixedFreq, label: 'FREQ', fmt: fmHz,
+      min: 20, max: 4000, value: st.fixedFreq, label: 'FREQ', fmt: fmtHz,
       onChange: v => {
         st.fixedFreq = v;
         if (ENG && st.freqMode === 'FIXED') {
