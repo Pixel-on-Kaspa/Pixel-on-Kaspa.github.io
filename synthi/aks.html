@@ -364,6 +364,10 @@
         <div id="matrix-grid"></div>
       </div>
     </div>
+    <div class="panel">
+      <div class="panel-title">Output Filter / VCF</div>
+      <div class="panel-body" id="vcf-body"></div>
+    </div>
   </div>
 
   <!-- COL-3: VU METER + MASTER + JOYSTICK -->
@@ -387,12 +391,8 @@
     </div>
   </div>
 
-  <!-- COL-RIGHT: VCF + LFO1 + LFO2 + REVERB + PRESETS -->
+  <!-- COL-RIGHT: LFO1 + LFO2 + REVERB + PRESETS -->
   <div id="col-right">
-    <div class="panel">
-      <div class="panel-title">Output Filter / VCF</div>
-      <div class="panel-body" id="vcf-body"></div>
-    </div>
     <div class="panel">
       <div class="panel-title">LFO 1</div>
       <div class="panel-body" id="lfo1-body"></div>
@@ -709,9 +709,17 @@ function buildAudio() {
   n.oscs.forEach(o => o.gain.connect(n.mixer));
   n.noiseGain.connect(n.mixer);
 
+  n.inputComp = actx.createDynamicsCompressor();
+  n.inputComp.threshold.value = -18;
+  n.inputComp.knee.value = 8;
+  n.inputComp.ratio.value = 6;
+  n.inputComp.attack.value = 0.005;
+  n.inputComp.release.value = 0.15;
+  n.mixer.connect(n.inputComp);
+
   n.preDrive = actx.createWaveShaper();
   n.preDrive.curve = mkDriveCurve(ST.vcf.drive);
-  n.mixer.connect(n.preDrive);
+  n.inputComp.connect(n.preDrive);
 
   n.filter = actx.createBiquadFilter();
   n.filter.type = ST.vcf.type;
@@ -892,7 +900,6 @@ function setNoiseType(type) {
   n.noiseSrc.buffer = n.noiseBufs[type];
   n.noiseSrc.loop = true;
   n.noiseSrc.connect(n.noiseGain);
-  n.noiseSrc.connect(n.noiseTap);
   n.noiseSrc.start(actx.currentTime + 0.01);
 }
 
