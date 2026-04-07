@@ -860,13 +860,6 @@ function noteOn(midi, vel = 0.82) {
     }
   });
 
-  // Direct VCA schedule (fallback if env not in matrix)
-  const peak = clamp(0.88 * vel, 0, 0.9);
-  const vg   = n.vca.gain;
-  vg.cancelScheduledValues(t);
-  vg.setValueAtTime(0, t);
-  vg.linearRampToValueAtTime(peak, t + ST.env.attack);
-
   envGateOn(t);
 
   ST.currentNote = midi;
@@ -881,11 +874,7 @@ function noteOn(midi, vel = 0.82) {
 
 function noteOff(midi) {
   if (!ENG || !actx || ST.holdOn) return;
-  const n = ENG.nodes, t = actx.currentTime;
-  const vg = n.vca.gain;
-  vg.cancelScheduledValues(t);
-  vg.setValueAtTime(vg.value, t);
-  vg.linearRampToValueAtTime(0, t + ST.env.decay);
+  const t = actx.currentTime;
   envGateOff(t);
   if (midi !== undefined) document.querySelector(`[data-midi="${midi}"]`)?.classList.remove('active');
 }
