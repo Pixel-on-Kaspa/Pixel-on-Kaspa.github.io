@@ -497,9 +497,9 @@ const PC_MAP = {
 ═══════════════════════════════════════════════════════════════════════ */
 const ST = {
   oscs: [
-    { level: 0.70, tune: 0,    wave: 'sawtooth', drift: 2.0, range: 0 },
-    { level: 0.50, tune: 0.07, wave: 'square',   drift: 2.0, range: 0 },
-    { level: 0.30, tune: -12,  wave: 'triangle', drift: 2.0, range: 0 },
+    { level: 0.70, tune: 0,    wave: 'sawtooth', drift: 2.0, range: 0, freqMode: 'TRACK', fixedFreq: 440 },
+    { level: 0.50, tune: 0.07, wave: 'square',   drift: 2.0, range: 0, freqMode: 'TRACK', fixedFreq: 440 },
+    { level: 0.30, tune: -12,  wave: 'triangle', drift: 2.0, range: 0, freqMode: 'TRACK', fixedFreq: 440 },
   ],
   noise:  { type: 'white', level: 0.05 },
   env:    { attack: 0.08, on: 0.20, decay: 0.30, off: 0.40, loop: false },
@@ -855,7 +855,9 @@ function noteOn(midi, vel = 0.82) {
   const tc = ST.glide > 0.001 ? ST.glide / 3.5 : 0.001;
 
   n.oscs.forEach((o, i) => {
-    o.osc.frequency.setTargetAtTime(hz * semisToR(ST.oscs[i].tune + ST.oscs[i].range), t, tc);
+    if (ST.oscs[i].freqMode === 'TRACK') {
+      o.osc.frequency.setTargetAtTime(hz * semisToR(ST.oscs[i].tune + ST.oscs[i].range), t, tc);
+    }
   });
 
   // Direct VCA schedule (fallback if env not in matrix)
@@ -995,6 +997,51 @@ function buildOscSection() {
       fb.appendChild(b);
     });
     block.appendChild(fb);
+
+    // FREQ MODE buttons
+    const fmLbl = document.createElement('div'); fmLbl.className = 'sub-lbl'; fmLbl.style.marginTop = '6px';
+    fmLbl.textContent = 'FREQ MODE';
+    block.appendChild(fmLbl);
+
+    const kFixed = new Knob({
+      min: 20, max: 4000, value: st.fixedFreq, label: 'FREQ', fmt: fmHz,
+      onChange: v => {
+        st.fixedFreq = v;
+        if (ENG && st.freqMode === 'FIXED') {
+          ENG.nodes.oscs[i].osc.frequency.setTargetAtTime(v, actx.currentTime, 0.02);
+        }
+      }
+    });
+    kFixed.el.style.display = st.freqMode === 'FIXED' ? '' : 'none';
+
+    const fmRow = document.createElement('div');
+    fmRow.style.cssText = 'display:flex;flex-direction:column;gap:3px';
+
+    const fmBtns = document.createElement('div'); fmBtns.className = 'wave-btns';
+    ['FREE','TRACK','FIXED'].forEach(mode => {
+      const b = document.createElement('button'); b.className = 'wave-btn'; b.textContent = mode;
+      if (st.freqMode === mode) b.classList.add('active');
+      b.addEventListener('click', () => {
+        st.freqMode = mode;
+        fmBtns.querySelectorAll('.wave-btn').forEach(x => x.classList.toggle('active', x === b));
+        kFixed.el.style.display = mode === 'FIXED' ? '' : 'none';
+        if (ENG) {
+          if (mode === 'FIXED') {
+            ENG.nodes.oscs[i].osc.frequency.setTargetAtTime(st.fixedFreq, actx.currentTime, 0.02);
+          } else if (mode === 'TRACK' && ST.currentNote !== null) {
+            const hz = midiToHz(clamp(ST.currentNote + ST.master.tune, 0, 127));
+            ENG.nodes.oscs[i].osc.frequency.setTargetAtTime(hz * semisToR(st.tune + st.range), actx.currentTime, 0.02);
+          }
+        }
+      });
+      fmBtns.appendChild(b);
+    });
+
+    const fixedRow = document.createElement('div'); fixedRow.className = 'knob-row'; fixedRow.style.marginTop = '4px';
+    fixedRow.appendChild(kFixed.el);
+
+    fmRow.append(fmBtns, fixedRow);
+    block.appendChild(fmRow);
 
     body.appendChild(block);
   });
