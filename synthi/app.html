@@ -156,7 +156,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
     </div>
     <!-- OSC 3 — L -->
     <div class="card" id="oscCard2">
-      <div class="cardHead">OSC 3 <span class="chan-l">L</span><div class="led" id="led2"></div></div>
+      <div class="cardHead">OSC 3 <span class="chan-l">L</span><div class="led on" id="led2"></div></div>
       <div class="btnRow" id="wave2">
         <button class="btn active" data-w="sine">SIN</button>
         <button class="btn" data-w="triangle">TRI</button>
@@ -164,11 +164,11 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
       <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr2" min="0" max="1" step=".001" value=".62"><span class="v" id="fv2">—</span></div>
       <div class="sr"><label>DET</label><input type="range" id="dt2" min="-100" max="100" step="1" value="-5"><span class="v" id="dv2">-5¢</span></div>
       <div class="sr"><label>VOL</label><input type="range" id="vl2" min="0" max="1" step=".01" value=".3"><span class="v" id="vv2">0.30</span></div>
-      <button class="btn" id="on2" style="width:100%;margin-top:2px">OFF</button>
+      <button class="btn on" id="on2" style="width:100%;margin-top:2px">ON</button>
     </div>
     <!-- OSC 4 — R -->
     <div class="card" id="oscCard3">
-      <div class="cardHead">OSC 4 <span class="chan-r">R</span><div class="led" id="led3"></div></div>
+      <div class="cardHead">OSC 4 <span class="chan-r">R</span><div class="led on" id="led3"></div></div>
       <div class="btnRow" id="wave3">
         <button class="btn active" data-w="sine">SIN</button>
         <button class="btn" data-w="triangle">TRI</button>
@@ -176,7 +176,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
       <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr3" min="0" max="1" step=".001" value=".55"><span class="v" id="fv3">—</span></div>
       <div class="sr"><label>DET</label><input type="range" id="dt3" min="-100" max="100" step="1" value="3"><span class="v" id="dv3">3¢</span></div>
       <div class="sr"><label>VOL</label><input type="range" id="vl3" min="0" max="1" step=".01" value=".4"><span class="v" id="vv3">0.40</span></div>
-      <button class="btn" id="on3" style="width:100%;margin-top:2px">OFF</button>
+      <button class="btn on" id="on3" style="width:100%;margin-top:2px">ON</button>
     </div>
     <!-- SAMPLER -->
     <div class="card">
@@ -275,8 +275,8 @@ let flashKick = 0, flashSnare = 0;
 const oState = [
   { wave:"sine",     freq:.35, det:0,  vol:.6, on:true,  pan:-1 },
   { wave:"sine",     freq:.48, det:7,  vol:.5, on:true,  pan:+1 },
-  { wave:"sine",     freq:.62, det:-5, vol:.3, on:false, pan:-1 },
-  { wave:"triangle", freq:.55, det:3,  vol:.4, on:false, pan:+1 },
+  { wave:"sine",     freq:.62, det:-5, vol:.3, on:true,  pan:-1 },
+  { wave:"triangle", freq:.55, det:3,  vol:.4, on:true,  pan:+1 },
 ];
 const fx = {
   ftType:"lowpass", ftCut:.85, ftRes:1,
