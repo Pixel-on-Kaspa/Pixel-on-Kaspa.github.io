@@ -357,25 +357,31 @@ function buildAudio() {
   preMix.connect(filter);
 
   // ── STEREO DELAY ──
-  // Split stereo signal: L → delays 0,2 (D1 L, D3 L); R → delays 1,3 (D2 R, D4 R)
-  // Merge back to stereo before delayBus
+  // D1 (idx 0) + D3 (idx 2) → mergeL GainNode → ChannelMerger input 0 (L)
+  // D2 (idx 1) + D4 (idx 3) → mergeR GainNode → ChannelMerger input 1 (R)
+  // Filter output split L/R → each delay fed from its matching channel.
   const dlSplit = actx.createChannelSplitter(2);
-  const dlMerge = actx.createChannelMerger(2);
   filter.connect(dlSplit);
+
+  // Explicit merge gains so D1+D3 sum cleanly on Left, D2+D4 on Right
+  const dlMergeL = actx.createGain(); dlMergeL.gain.value = 1;
+  const dlMergeR = actx.createGain(); dlMergeR.gain.value = 1;
 
   const delays = fx.dlT.map((t, i) => {
     const d = actx.createDelay(2); d.delayTime.value = t;
     const fb = actx.createGain(); fb.gain.value = fx.dlF[i];
     const clip = softClip();
     d.connect(fb); fb.connect(clip); clip.connect(d); // feedback loop
-    // L delays: indices 0,2 → splitter ch 0 → merger ch 0
-    // R delays: indices 1,3 → splitter ch 1 → merger ch 1
-    const ch = (i === 0 || i === 2) ? 0 : 1;
-    dlSplit.connect(d, ch, 0);    // splitter output ch → delay input 0
-    d.connect(dlMerge, 0, ch);    // delay output 0 → merger input ch
+    const isL = (i === 0 || i === 2);
+    dlSplit.connect(d, isL ? 0 : 1, 0); // L or R splitter channel → delay input
+    d.connect(isL ? dlMergeL : dlMergeR); // D1+D3 → mergeL, D2+D4 → mergeR
     return { d, fb };
   });
 
+  // Recombine explicit L+R into stereo via ChannelMerger
+  const dlMerge = actx.createChannelMerger(2);
+  dlMergeL.connect(dlMerge, 0, 0); // L → merger input 0
+  dlMergeR.connect(dlMerge, 0, 1); // R → merger input 1
   const delayBus = actx.createGain();
   dlMerge.connect(delayBus);
 
@@ -407,19 +413,21 @@ function buildAudio() {
   masterG.connect(analyserF); masterG.connect(analyserT);
   analyserF.connect(actx.destination);
 
-  // ── OSCILLOSCOPE ANALYSERS — stereo L/R ──
-  // Split post-master stereo into two mono AnalyserNodes
-  const scopeSplit = actx.createChannelSplitter(2);
+  // ── OSCILLOSCOPE ANALYSERS — direct OSC routing ──
+  // OSC 1 (idx 0) + OSC 3 (idx 2) → analyserL  (Left / cyan)
+  // OSC 2 (idx 1) + OSC 4 (idx 3) → analyserR  (Right / magenta)
+  // Connected at gain node level (pre-panner) so the split is exact.
   const analyserL = actx.createAnalyser(); analyserL.fftSize = 2048;
   const analyserR = actx.createAnalyser(); analyserR.fftSize = 2048;
   const scopeBufL = new Float32Array(analyserL.fftSize);
   const scopeBufR = new Float32Array(analyserR.fftSize);
-  masterG.connect(scopeSplit);
-  scopeSplit.connect(analyserL, 0, 0); // left channel → analyserL
-  scopeSplit.connect(analyserR, 1, 0); // right channel → analyserR
+  oscs[0].g.connect(analyserL);
+  oscs[2].g.connect(analyserL);
+  oscs[1].g.connect(analyserR);
+  oscs[3].g.connect(analyserR);
 
-  nd = { oscs, preMix, filter, dlSplit, dlMerge, delays, delayBus, dryG, mixBus,
-         conv, rvWetG, rvDryG, rvOut, comp, masterG, scopeSplit,
+  nd = { oscs, preMix, filter, dlSplit, dlMergeL, dlMergeR, dlMerge, delays, delayBus, dryG, mixBus,
+         conv, rvWetG, rvDryG, rvOut, comp, masterG,
          analyserF, analyserT, fftBuf, timeBuf,
          analyserL, analyserR, scopeBufL, scopeBufR,
          _noise:null };
