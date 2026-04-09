@@ -430,6 +430,7 @@ function buildAudio() {
          conv, rvWetG, rvDryG, rvOut, comp, masterG,
          analyserF, analyserT, fftBuf, timeBuf,
          analyserL, analyserR, scopeBufL, scopeBufR,
+         scopeCanvas, scopeCtx: sctx,
          _noise:null };
 }
 
@@ -645,44 +646,43 @@ function resizeScopeCanvas() {
 }
 
 function drawScope() {
-  const W = scopeCanvas.width, H = scopeCanvas.height;
-  const cx = W / 2, cy = H / 2;
-
-  sctx.fillStyle = "#000";
-  sctx.fillRect(0, 0, W, H);
-
-  sctx.strokeStyle = "rgba(255,255,255,.07)";
-  sctx.lineWidth = 1;
-  sctx.beginPath(); sctx.moveTo(cx, 0); sctx.lineTo(cx, H); sctx.stroke();
-  sctx.beginPath(); sctx.moveTo(0, cy); sctx.lineTo(W, cy); sctx.stroke();
-
+  requestAnimationFrame(drawScope);
   if (!nd) return;
+  const bufLen = nd.analyserL.fftSize;
+  const dataL = new Float32Array(bufLen);
+  const dataR = new Float32Array(bufLen);
+  nd.analyserL.getFloatTimeDomainData(dataL);
+  nd.analyserR.getFloatTimeDomainData(dataR);
 
-  nd.analyserL.getFloatTimeDomainData(nd.scopeBufL);
-  nd.analyserR.getFloatTimeDomainData(nd.scopeBufR);
+  const cvs = nd.scopeCanvas;
+  const ctx = nd.scopeCtx;
+  const W = cvs.width;
+  const H = cvs.height;
 
-  const N = nd.scopeBufL.length;
-  const scaleX = cx * 0.9;
-  const scaleY = cy * 0.9;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
 
-  sctx.beginPath();
-  sctx.moveTo(cx + nd.scopeBufL[0] * scaleX, cy - nd.scopeBufR[0] * scaleY);
-  for (let i = 1; i < N; i++) {
-    sctx.lineTo(cx + nd.scopeBufL[i] * scaleX, cy - nd.scopeBufR[i] * scaleY);
+  ctx.beginPath();
+  ctx.strokeStyle = '#00ffff';
+  ctx.lineWidth = 1.5;
+
+  for (let i = 0; i < bufLen; i++) {
+    const x = (dataL[i] * 0.5 + 0.5) * W;
+    const y = (1 - (dataR[i] * 0.5 + 0.5)) * H;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
   }
-  sctx.strokeStyle = "#00ffff";
-  sctx.lineWidth = 1;
-  sctx.stroke();
+  ctx.stroke();
 }
 
 /* ── RENDER LOOP ── */
 function tick(now) {
   scheduleBeat();
   drawViz(now);
-  drawScope();
   requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
+drawScope(); // starts its own RAF loop
 
 /* ── RESIZE ── */
 window.addEventListener("resize", () => { resizeCanvas(); resizeScopeCanvas(); });
