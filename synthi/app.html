@@ -646,60 +646,41 @@ function resizeScopeCanvas() {
 
 function drawScope() {
   const W = scopeCanvas.width, H = scopeCanvas.height;
+  const cx = W / 2, cy = H / 2;
 
   // dark background
   sctx.fillStyle = "#020b0a";
   sctx.fillRect(0, 0, W, H);
 
-  // center divider
+  // XY crosshairs
   sctx.strokeStyle = "rgba(255,255,255,.05)";
   sctx.lineWidth = 1;
-  sctx.beginPath(); sctx.moveTo(0, H/2); sctx.lineTo(W, H/2); sctx.stroke();
-
-  // channel labels
-  sctx.font = "9px monospace";
-  sctx.fillStyle = "rgba(73,234,203,.5)";
-  sctx.fillText("L", 4, H/4 + 3);
-  sctx.fillStyle = "rgba(240,96,192,.5)";
-  sctx.fillText("R", 4, H*3/4 + 3);
+  sctx.beginPath(); sctx.moveTo(cx, 0); sctx.lineTo(cx, H); sctx.stroke();
+  sctx.beginPath(); sctx.moveTo(0, cy); sctx.lineTo(W, cy); sctx.stroke();
 
   if (!nd) {
-    // flat baseline when audio is off
-    sctx.strokeStyle = "rgba(73,234,203,.15)";
-    sctx.lineWidth = 1;
-    sctx.beginPath(); sctx.moveTo(14, H/4); sctx.lineTo(W, H/4); sctx.stroke();
-    sctx.strokeStyle = "rgba(240,96,192,.15)";
-    sctx.beginPath(); sctx.moveTo(14, H*3/4); sctx.lineTo(W, H*3/4); sctx.stroke();
+    // dot at origin when audio is off
+    sctx.fillStyle = "rgba(0,255,255,.25)";
+    sctx.beginPath(); sctx.arc(cx, cy, 2, 0, TAU); sctx.fill();
     return;
   }
 
   nd.analyserL.getFloatTimeDomainData(nd.scopeBufL);
   nd.analyserR.getFloatTimeDomainData(nd.scopeBufR);
 
+  // XY Lissajous: dataL → X axis, dataR → Y axis
   const N = nd.scopeBufL.length;
-  const scaleY = H / 4 * 0.85; // amplitude scale within each half
-  const xStep = (W - 14) / N;
+  const scaleX = cx * 0.9;
+  const scaleY = cy * 0.9;
 
-  // Left channel — cyan
   sctx.beginPath();
   for (let i = 0; i < N; i++) {
-    const x = 14 + i * xStep;
-    const y = H/4 - nd.scopeBufL[i] * scaleY;
+    const x = cx + nd.scopeBufL[i] * scaleX;
+    const y = cy - nd.scopeBufR[i] * scaleY;
     i === 0 ? sctx.moveTo(x, y) : sctx.lineTo(x, y);
   }
-  sctx.strokeStyle = "#49EACB";
-  sctx.lineWidth = 1.2;
-  sctx.stroke();
-
-  // Right channel — magenta
-  sctx.beginPath();
-  for (let i = 0; i < N; i++) {
-    const x = 14 + i * xStep;
-    const y = H*3/4 - nd.scopeBufR[i] * scaleY;
-    i === 0 ? sctx.moveTo(x, y) : sctx.lineTo(x, y);
-  }
-  sctx.strokeStyle = "#f060c0";
-  sctx.lineWidth = 1.2;
+  sctx.strokeStyle = "#00ffff";
+  sctx.lineWidth = 1;
   sctx.stroke();
 }
 
