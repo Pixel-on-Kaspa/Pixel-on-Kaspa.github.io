@@ -648,36 +648,27 @@ function drawScope() {
   const W = scopeCanvas.width, H = scopeCanvas.height;
   const cx = W / 2, cy = H / 2;
 
-  // dark background
-  sctx.fillStyle = "#020b0a";
+  sctx.fillStyle = "#000";
   sctx.fillRect(0, 0, W, H);
 
-  // XY crosshairs
-  sctx.strokeStyle = "rgba(255,255,255,.05)";
+  sctx.strokeStyle = "rgba(255,255,255,.07)";
   sctx.lineWidth = 1;
   sctx.beginPath(); sctx.moveTo(cx, 0); sctx.lineTo(cx, H); sctx.stroke();
   sctx.beginPath(); sctx.moveTo(0, cy); sctx.lineTo(W, cy); sctx.stroke();
 
-  if (!nd) {
-    // dot at origin when audio is off
-    sctx.fillStyle = "rgba(0,255,255,.25)";
-    sctx.beginPath(); sctx.arc(cx, cy, 2, 0, TAU); sctx.fill();
-    return;
-  }
+  if (!nd) return;
 
   nd.analyserL.getFloatTimeDomainData(nd.scopeBufL);
   nd.analyserR.getFloatTimeDomainData(nd.scopeBufR);
 
-  // XY Lissajous: dataL → X axis, dataR → Y axis
   const N = nd.scopeBufL.length;
   const scaleX = cx * 0.9;
   const scaleY = cy * 0.9;
 
   sctx.beginPath();
-  for (let i = 0; i < N; i++) {
-    const x = cx + nd.scopeBufL[i] * scaleX;
-    const y = cy - nd.scopeBufR[i] * scaleY;
-    i === 0 ? sctx.moveTo(x, y) : sctx.lineTo(x, y);
+  sctx.moveTo(cx + nd.scopeBufL[0] * scaleX, cy - nd.scopeBufR[0] * scaleY);
+  for (let i = 1; i < N; i++) {
+    sctx.lineTo(cx + nd.scopeBufL[i] * scaleX, cy - nd.scopeBufR[i] * scaleY);
   }
   sctx.strokeStyle = "#00ffff";
   sctx.lineWidth = 1;
@@ -760,7 +751,7 @@ for (let i=0;i<4;i++) {
       b.textContent = oState[n].on?"ON":"OFF";
       b.classList.toggle("on", oState[n].on);
       document.getElementById("led"+n).classList.toggle("on", oState[n].on);
-      if (nd) nd.oscs[n].g.gain.setTargetAtTime(oState[n].on?oState[n].vol:0, actx.currentTime, .01);
+      if (nd) nd.oscs[n].g.gain.value = oState[n].on ? oState[n].vol : 0;
     });
   })(i);
 }
