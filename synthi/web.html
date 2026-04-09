@@ -4,28 +4,37 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SYNTHI Web — EMS AKS Inspired</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:      #0d0f14;
-  --bg2:     #141720;
-  --bg3:     #1a1d26;
+  --bg:      #0a0b0e;
+  --bg2:     #111318;
+  --bg3:     #16181f;
   --border:  #2a2d3a;
+  --amber:   #ffb300;
+  --amber2:  #ffd04d;
+  --amber-dim: rgba(255,179,0,0.12);
+  --amber-glow: 0 0 8px #ffb300;
+  --green:   #00c853;
+  --green-dim: rgba(0,200,83,0.12);
+  --red:     #f44336;
+  --red-dim:   rgba(244,67,54,0.12);
   --cyan:    #00c4ff;
-  --amber:   #c8962a;
-  --green:   #4caf50;
-  --yellow:  #e6a817;
-  --red:     #e05555;
+  --yellow:  #ffb300;
   --text:    #c8ccd8;
-  --label:   #7a7f96;
-  --panel:   rgba(255,255,255,0.03);
+  --label:   #606478;
+  --panel:   rgba(255,255,255,0.025);
 }
 
 body {
-  background: radial-gradient(ellipse at 30% 20%, #121623 0%, #050608 100%);
+  background:
+    radial-gradient(ellipse at 20% 10%, #131520 0%, #07080c 80%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
   color: var(--text);
-  font-family: 'Courier New', monospace;
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
   font-size: 11px;
   min-height: 100vh;
   padding: 12px;
@@ -33,12 +42,13 @@ body {
 
 h1 {
   font-size: 13px;
-  letter-spacing: 0.2em;
-  color: var(--cyan);
+  letter-spacing: 0.22em;
+  color: var(--amber);
   margin-bottom: 12px;
   display: flex;
   align-items: center;
   gap: 12px;
+  text-shadow: 0 0 12px rgba(255,179,0,0.4);
 }
 h1 span { color: var(--label); font-size: 10px; letter-spacing: 0.1em; }
 
@@ -46,7 +56,7 @@ h1 span { color: var(--label); font-size: 10px; letter-spacing: 0.1em; }
 #app {
   display: grid;
   grid-template-columns: 220px 1fr 220px;
-  grid-template-rows: auto auto auto;
+  grid-template-rows: auto auto auto auto;
   gap: 8px;
   max-width: 980px;
   align-items: start;
@@ -57,6 +67,7 @@ h1 span { color: var(--label); font-size: 10px; letter-spacing: 0.1em; }
 #right-col    { grid-column: 3; grid-row: 1 / 3; display: flex; flex-direction: column; gap: 8px; }
 #env-panel    { grid-column: 1; grid-row: 2; }
 #master-panel { grid-column: 1 / 4; grid-row: 3; }
+#keyboard-panel { grid-column: 1 / 4; grid-row: 4; }
 
 /* ── PANEL ──────────────────────────────────────────────── */
 .panel {
@@ -64,21 +75,23 @@ h1 span { color: var(--label); font-size: 10px; letter-spacing: 0.1em; }
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 10px;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.03);
 }
 
 .panel-title {
   font-size: 9px;
-  letter-spacing: 0.18em;
-  color: var(--label);
+  letter-spacing: 0.2em;
+  color: var(--amber);
   text-transform: uppercase;
   margin-bottom: 8px;
   padding-bottom: 5px;
   border-bottom: 1px solid var(--border);
+  text-shadow: 0 0 6px rgba(255,179,0,0.25);
 }
+.panel-title span { color: var(--label); }
 
 /* ── KNOB ROW ───────────────────────────────────────────── */
 .knob-row { display: flex; flex-direction: column; gap: 6px; }
-
 .knob-item { display: flex; align-items: center; gap: 8px; }
 
 .knob-item label {
@@ -98,43 +111,51 @@ h1 span { color: var(--label); font-size: 10px; letter-spacing: 0.1em; }
   outline: none;
   cursor: pointer;
 }
-
 .knob-item input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 12px; height: 12px;
+  width: 13px; height: 13px;
   border-radius: 50%;
   background: var(--amber);
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid rgba(0,0,0,0.5);
   cursor: pointer;
-  transition: background 0.1s;
+  box-shadow: 0 0 4px rgba(255,179,0,0.4);
+  transition: background 0.1s, box-shadow 0.1s;
 }
-.knob-item input[type=range]::-webkit-slider-thumb:hover { background: var(--cyan); }
+.knob-item input[type=range]::-webkit-slider-thumb:hover {
+  background: var(--amber2);
+  box-shadow: var(--amber-glow);
+}
 
 .knob-val {
   width: 38px;
   text-align: right;
-  color: var(--cyan);
+  color: var(--amber);
   font-size: 9px;
   font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 4px rgba(255,179,0,0.3);
 }
 
 /* ── WAVE BUTTONS ───────────────────────────────────────── */
 .wave-btns { display: flex; gap: 3px; margin-top: 4px; }
 
 .wave-btn {
-  flex: 1; height: 18px;
+  flex: 1; height: 20px;
   background: var(--bg3);
   border: 1px solid var(--border);
+  border-bottom: 2px solid #000;
   color: var(--label);
   font-family: inherit; font-size: 8px;
-  cursor: pointer; border-radius: 2px;
+  cursor: pointer; border-radius: 3px;
   letter-spacing: 0.05em;
-  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  transition: background 0.1s, color 0.1s, border-color 0.1s, box-shadow 0.1s;
 }
+.wave-btn:active { border-bottom-width: 1px; margin-top: 1px; }
 .wave-btn.active {
-  background: rgba(200,150,42,0.15);
+  background: var(--amber-dim);
   border-color: var(--amber);
+  border-bottom-color: rgba(180,100,0,0.6);
   color: var(--amber);
+  box-shadow: var(--amber-glow);
 }
 
 /* ── OSC BLOCK ──────────────────────────────────────────── */
@@ -157,19 +178,23 @@ h1 span { color: var(--label); font-size: 10px; letter-spacing: 0.1em; }
 .toggle-row { display: flex; gap: 3px; margin-top: 4px; margin-bottom: 4px; }
 
 .tog-btn {
-  flex: 1; height: 18px;
+  flex: 1; height: 20px;
   background: var(--bg3);
   border: 1px solid var(--border);
+  border-bottom: 2px solid #000;
   color: var(--label);
   font-family: inherit; font-size: 8px;
-  cursor: pointer; border-radius: 2px;
+  cursor: pointer; border-radius: 3px;
   letter-spacing: 0.05em;
-  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  transition: background 0.1s, color 0.1s, border-color 0.1s, box-shadow 0.1s;
 }
+.tog-btn:active { border-bottom-width: 1px; margin-top: 1px; }
 .tog-btn.on {
-  background: rgba(200,150,42,0.14);
+  background: var(--amber-dim);
   border-color: var(--amber);
+  border-bottom-color: rgba(180,100,0,0.6);
   color: var(--amber);
+  box-shadow: var(--amber-glow);
 }
 
 /* ── MATRIX ─────────────────────────────────────────────── */
@@ -205,40 +230,52 @@ h1 span { color: var(--label); font-size: 10px; letter-spacing: 0.1em; }
   display: flex; align-items: center; justify-content: center;
   transition: background 0.08s;
 }
+/* Jack circle — physical patch socket feel */
 .mat-cell::after {
   content: '';
   display: block;
-  width: 7px; height: 7px;
+  width: 10px; height: 10px;
   border-radius: 50%;
-  background: #2a2d3a;
-  transition: all 0.1s;
+  background: #0d0f14;
+  border: 1px solid #333;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
+  transition: all 0.12s;
 }
 .mat-cell[data-s="0.5"]::after {
-  background: var(--yellow); width: 9px; height: 9px;
+  background: rgba(255,179,0,0.25);
+  border-color: var(--amber);
+  width: 10px; height: 10px;
+  box-shadow: 0 0 5px rgba(255,179,0,0.35);
 }
 .mat-cell[data-s="1"]::after {
-  background: var(--green); width: 11px; height: 11px;
-  box-shadow: 0 0 6px var(--green);
+  background: var(--amber);
+  border-color: var(--amber2);
+  width: 12px; height: 12px;
+  box-shadow: 0 0 8px var(--amber), inset 0 0 4px rgba(255,255,255,0.2);
 }
-.mat-cell:hover { background: rgba(255,255,255,0.05); }
+.mat-cell:hover { background: rgba(255,255,255,0.04); }
 
 /* ── FILTER ─────────────────────────────────────────────── */
 .filter-type-row { display: flex; gap: 3px; margin-bottom: 8px; }
 
 .ftype-btn {
-  flex: 1; height: 18px;
+  flex: 1; height: 20px;
   background: var(--bg3);
   border: 1px solid var(--border);
+  border-bottom: 2px solid #000;
   color: var(--label);
   font-family: inherit; font-size: 8px;
-  cursor: pointer; border-radius: 2px;
+  cursor: pointer; border-radius: 3px;
   letter-spacing: 0.04em;
-  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  transition: background 0.1s, color 0.1s, border-color 0.1s, box-shadow 0.1s;
 }
+.ftype-btn:active { border-bottom-width: 1px; margin-top: 1px; }
 .ftype-btn.active {
   background: rgba(0,196,255,0.1);
   border-color: var(--cyan);
+  border-bottom-color: rgba(0,120,160,0.6);
   color: var(--cyan);
+  box-shadow: 0 0 6px rgba(0,196,255,0.35);
 }
 
 /* ── XY PAD ─────────────────────────────────────────────── */
@@ -247,6 +284,7 @@ h1 span { color: var(--label); font-size: 10px; letter-spacing: 0.1em; }
   background: var(--bg3);
   border: 1px solid var(--border);
   border-radius: 3px; cursor: crosshair; touch-action: none;
+  box-shadow: inset 0 0 12px rgba(0,0,0,0.6);
 }
 .pad-labels {
   display: flex; justify-content: space-between;
@@ -259,21 +297,23 @@ h1 span { color: var(--label); font-size: 10px; letter-spacing: 0.1em; }
   background: var(--bg3);
   border: 1px solid var(--border);
   border-radius: 2px; margin-bottom: 8px; display: block;
+  box-shadow: inset 0 0 8px rgba(0,0,0,0.5);
 }
 .env-mode-row { display: flex; gap: 3px; margin-bottom: 8px; }
 
 /* ── TRIG BUTTON ────────────────────────────────────────── */
 #btnTrig {
-  flex: 1; height: 18px;
-  background: rgba(200,150,42,0.08);
+  flex: 1; height: 20px;
+  background: var(--amber-dim);
   border: 1px solid var(--amber);
+  border-bottom: 2px solid rgba(180,100,0,0.6);
   color: var(--amber);
   font-family: inherit; font-size: 8px;
-  letter-spacing: 0.1em; cursor: pointer; border-radius: 2px;
-  transition: background 0.1s;
+  letter-spacing: 0.1em; cursor: pointer; border-radius: 3px;
+  transition: background 0.1s, box-shadow 0.1s;
 }
-#btnTrig:hover  { background: rgba(200,150,42,0.2); }
-#btnTrig:active { background: rgba(200,150,42,0.35); }
+#btnTrig:hover  { background: rgba(255,179,0,0.2); box-shadow: var(--amber-glow); }
+#btnTrig:active { border-bottom-width: 1px; margin-top: 1px; background: rgba(255,179,0,0.35); }
 
 /* ── RING INFO ──────────────────────────────────────────── */
 .ring-info {
@@ -288,34 +328,127 @@ h1 span { color: var(--label); font-size: 10px; letter-spacing: 0.1em; }
   gap: 16px; flex-wrap: wrap;
 }
 .master-row .knob-item { flex: 1; min-width: 140px; }
+/* Volume knob thumb slightly larger for emphasis */
+#vol::-webkit-slider-thumb {
+  width: 16px; height: 16px;
+  box-shadow: 0 0 6px rgba(255,179,0,0.5);
+}
 
 #btnStart {
-  height: 28px; padding: 0 18px;
-  background: rgba(0,196,255,0.1);
-  border: 1px solid var(--cyan);
-  color: var(--cyan);
+  height: 30px; padding: 0 20px;
+  background: var(--green-dim);
+  border: 1px solid var(--green);
+  border-bottom: 3px solid rgba(0,100,40,0.7);
+  color: var(--green);
   font-family: inherit; font-size: 10px;
   letter-spacing: 0.18em; cursor: pointer;
   border-radius: 3px; text-transform: uppercase;
-  transition: background 0.15s; flex-shrink: 0;
+  transition: background 0.15s, box-shadow 0.15s; flex-shrink: 0;
+  box-shadow: 0 0 4px rgba(0,200,83,0.2);
 }
-#btnStart:hover { background: rgba(0,196,255,0.2); }
+#btnStart:hover { background: rgba(0,200,83,0.2); box-shadow: 0 0 10px rgba(0,200,83,0.5); }
+#btnStart:active { border-bottom-width: 1px; margin-top: 2px; }
 #btnStart.running {
-  background: rgba(76,175,80,0.12);
+  background: rgba(0,200,83,0.2);
   border-color: var(--green); color: var(--green);
+  box-shadow: 0 0 12px rgba(0,200,83,0.6);
 }
 
 #btnPanic {
-  height: 28px; padding: 0 14px;
-  background: rgba(224,85,85,0.08);
-  border: 1px solid var(--red); color: var(--red);
+  height: 30px; padding: 0 16px;
+  background: var(--red-dim);
+  border: 1px solid var(--red);
+  border-bottom: 3px solid rgba(150,20,20,0.7);
+  color: var(--red);
   font-family: inherit; font-size: 9px;
   letter-spacing: 0.12em; cursor: pointer;
-  border-radius: 3px; transition: background 0.12s;
+  border-radius: 3px;
+  transition: background 0.12s, box-shadow 0.12s;
 }
-#btnPanic:hover { background: rgba(224,85,85,0.18); }
+#btnPanic:hover { background: rgba(244,67,54,0.22); box-shadow: 0 0 10px rgba(244,67,54,0.5); }
+#btnPanic:active { border-bottom-width: 1px; margin-top: 2px; }
 
 #status { font-size: 9px; color: var(--label); letter-spacing: 0.08em; }
+
+/* ── KEYBOARD ───────────────────────────────────────────── */
+#kb-controls {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+}
+.kb-oct-btn {
+  width: 24px; height: 22px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-bottom: 2px solid #000;
+  color: var(--amber); font-family: inherit; font-size: 11px;
+  cursor: pointer; border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.1s, box-shadow 0.1s;
+}
+.kb-oct-btn:hover { background: var(--amber-dim); box-shadow: var(--amber-glow); }
+.kb-oct-btn:active { border-bottom-width: 1px; margin-top: 1px; }
+
+#kb-oct-display {
+  font-size: 10px; color: var(--amber); letter-spacing: 0.12em;
+  text-shadow: 0 0 6px rgba(255,179,0,0.4);
+  min-width: 28px; text-align: center;
+}
+#kb-range-label {
+  font-size: 8px; color: var(--label); letter-spacing: 0.06em;
+}
+#kb-hint {
+  font-size: 8px; color: var(--label); margin-left: auto;
+  letter-spacing: 0.04em; opacity: 0.7;
+}
+
+#kb-keys {
+  position: relative;
+  height: 82px;
+  user-select: none;
+}
+
+.kb-white {
+  position: absolute;
+  bottom: 0;
+  height: 82px;
+  background: #e8e0d0;
+  border: 1px solid #555;
+  border-bottom: 3px solid #888;
+  border-radius: 0 0 3px 3px;
+  cursor: pointer;
+  display: flex; align-items: flex-end; justify-content: center;
+  padding-bottom: 5px;
+  transition: background 0.06s, box-shadow 0.06s;
+  z-index: 1;
+}
+.kb-white span {
+  font-size: 7px; font-family: 'Share Tech Mono', monospace;
+  color: #666; letter-spacing: 0.04em; pointer-events: none;
+}
+.kb-white:hover { background: #f0e8d8; }
+.kb-white.active {
+  background: rgba(255,179,0,0.45);
+  border-color: var(--amber);
+  box-shadow: 0 0 10px rgba(255,179,0,0.6), inset 0 -2px 6px rgba(255,179,0,0.3);
+}
+
+.kb-black {
+  position: absolute;
+  top: 0;
+  height: 50px;
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-bottom: 3px solid var(--amber);
+  border-radius: 0 0 3px 3px;
+  cursor: pointer;
+  z-index: 2;
+  transition: background 0.06s, box-shadow 0.06s;
+}
+.kb-black:hover { background: #2a2a2a; }
+.kb-black.active {
+  background: rgba(255,179,0,0.35);
+  border-color: var(--amber);
+  box-shadow: 0 0 10px rgba(255,179,0,0.7);
+}
 
 /* ── SCROLLBAR ──────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -549,6 +682,19 @@ h1 span { color: var(--label); font-size: 10px; letter-spacing: 0.1em; }
       <button id="btnPanic">PANIC</button>
       <span id="status">offline</span>
     </div>
+  </div>
+
+  <!-- ROW 4: KEYBOARD *CTRL* (full width) ─────────────────── -->
+  <div class="panel" id="keyboard-panel">
+    <div class="panel-title">Keyboard <span>*CTRL*</span></div>
+    <div id="kb-controls">
+      <button class="kb-oct-btn" id="kb-down">◀</button>
+      <span id="kb-oct-display">C3</span>
+      <button class="kb-oct-btn" id="kb-up">▶</button>
+      <span id="kb-range-label">C3 – B4</span>
+      <span id="kb-hint">a–j = white · w e t y u = black · ◀▶ shift octave</span>
+    </div>
+    <div id="kb-keys"></div>
   </div>
 
 </div>
@@ -933,10 +1079,10 @@ function drawEnvShape(a, on, d, off) {
   c.lineTo(px(a + on), pad);
   c.lineTo(px(a + on + d), H - pad);
   c.lineTo(W, H - pad);
-  c.strokeStyle = '#c8962a';
+  c.strokeStyle = '#ffb300';
   c.lineWidth = 1.5;
   c.stroke();
-  c.fillStyle = 'rgba(200,150,42,0.07)';
+  c.fillStyle = 'rgba(255,179,0,0.07)';
   c.fill();
 }
 
@@ -971,7 +1117,7 @@ function drawPad() {
   }
 
   // Axis labels
-  pctx.fillStyle = 'rgba(122,127,150,0.45)';
+  pctx.fillStyle = 'rgba(96,100,120,0.6)';
   pctx.font = '8px Courier New';
   pctx.fillText('X', W - 12, H - 3);
   pctx.fillText('Y', 3, 11);
@@ -979,20 +1125,20 @@ function drawPad() {
   const cx = S.padX * W;
   const cy = (1 - S.padY) * H; // Y axis: up = positive
 
-  // Crosshairs
-  pctx.strokeStyle = 'rgba(0,196,255,0.2)';
+  // Amber crosshairs
+  pctx.strokeStyle = 'rgba(255,179,0,0.25)';
   pctx.lineWidth = 1;
   pctx.beginPath(); pctx.moveTo(cx, 0); pctx.lineTo(cx, H); pctx.stroke();
   pctx.beginPath(); pctx.moveTo(0, cy); pctx.lineTo(W, cy); pctx.stroke();
 
   // Cursor dot
   pctx.beginPath();
-  pctx.arc(cx, cy, 6, 0, Math.PI * 2);
-  pctx.fillStyle = '#00c4ff';
+  pctx.arc(cx, cy, 5, 0, Math.PI * 2);
+  pctx.fillStyle = '#ffb300';
   pctx.fill();
   pctx.beginPath();
-  pctx.arc(cx, cy, 10, 0, Math.PI * 2);
-  pctx.strokeStyle = 'rgba(0,196,255,0.3)';
+  pctx.arc(cx, cy, 9, 0, Math.PI * 2);
+  pctx.strokeStyle = 'rgba(255,179,0,0.35)';
   pctx.lineWidth = 1;
   pctx.stroke();
 }
@@ -1147,9 +1293,149 @@ document.getElementById('envOneShot').onclick  = () => setEnvMode('oneshot');
 document.getElementById('envOff').onclick      = () => setEnvMode('off');
 document.getElementById('btnTrig').onclick     = () => { if (S.running) triggerEnv(); };
 
+// ── KEYBOARD *CTRL* ──────────────────────────────────────────────────────────
+// Equal temperament: A4 = 440 Hz, midi note 69
+// C4 = midi 60, C3 = midi 48 (octave = midi_octave - 1 in standard notation)
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+// White key semitones within octave: C D E F G A B
+const WHITE_SEMI  = [0, 2, 4, 5, 7, 9, 11];
+// Black key definitions: semitone + boundary (right-side white index in octave)
+const BLACK_DEF   = [
+  { semi: 1,  bound: 1 }, // C# between white 0,1
+  { semi: 3,  bound: 2 }, // D# between white 1,2
+  { semi: 6,  bound: 4 }, // F# between white 3,4
+  { semi: 8,  bound: 5 }, // G# between white 4,5
+  { semi: 10, bound: 6 }, // A# between white 5,6
+];
+
+// PC keyboard: key → semitone relative to base octave
+const KEY_MAP = {
+  'a': 0, 'w': 1, 's': 2, 'e': 3, 'd': 4,
+  'f': 5, 't': 6, 'g': 7, 'y': 8, 'h': 9, 'u': 10, 'j': 11
+};
+
+let kbOctave = 3;         // base octave (C3 = midi 48)
+const kbActive = new Map(); // midi → keyEl
+
+function midiToFreq(midi) {
+  return 440 * Math.pow(2, (midi - 69) / 12);
+}
+
+function kbNoteOn(midi, keyEl) {
+  if (kbActive.has(midi)) return; // already held
+  kbActive.set(midi, keyEl);
+  if (keyEl) keyEl.classList.add('active');
+  if (!S.running) return;
+  nodes.osc1.frequency.setTargetAtTime(midiToFreq(midi), ctx.currentTime, 0.005);
+  triggerEnv();
+}
+
+function kbNoteOff(midi) {
+  const keyEl = kbActive.get(midi);
+  if (keyEl) keyEl.classList.remove('active');
+  kbActive.delete(midi);
+  // Envelope handles decay — no explicit audio note-off needed
+}
+
+function buildKeyboard() {
+  const container = document.getElementById('kb-keys');
+  container.innerHTML = '';
+  kbActive.clear();
+
+  const WHITE_COUNT = 14; // 2 octaves
+  const whiteW = 100 / WHITE_COUNT; // %
+  const blackW = whiteW * 0.62;
+
+  // White keys
+  for (let oct = 0; oct < 2; oct++) {
+    WHITE_SEMI.forEach((semi, wi) => {
+      const midi = (kbOctave + oct + 1) * 12 + semi;
+      const noteName = NOTE_NAMES[semi];
+      const globalWi = oct * 7 + wi;
+
+      const key = document.createElement('div');
+      key.className = 'kb-white';
+      key.dataset.midi = midi;
+      key.style.left  = (globalWi * whiteW) + '%';
+      key.style.width = whiteW + '%';
+
+      const lbl = document.createElement('span');
+      lbl.textContent = noteName + (kbOctave + oct);
+      key.appendChild(lbl);
+
+      key.addEventListener('mousedown',  e => { e.preventDefault(); kbNoteOn(midi, key); });
+      key.addEventListener('mouseup',    () => kbNoteOff(midi));
+      key.addEventListener('mouseleave', () => kbNoteOff(midi));
+      key.addEventListener('touchstart', e => { e.preventDefault(); kbNoteOn(midi, key); }, { passive: false });
+      key.addEventListener('touchend',   () => kbNoteOff(midi));
+      container.appendChild(key);
+    });
+  }
+
+  // Black keys (drawn on top via z-index:2)
+  for (let oct = 0; oct < 2; oct++) {
+    BLACK_DEF.forEach(({ semi, bound }) => {
+      const midi = (kbOctave + oct + 1) * 12 + semi;
+      const globalBound = oct * 7 + bound; // global boundary index
+
+      const key = document.createElement('div');
+      key.className = 'kb-black';
+      key.dataset.midi = midi;
+      // Center black key on the boundary between two white keys
+      const centerPct = globalBound * whiteW;
+      key.style.left  = (centerPct - blackW / 2) + '%';
+      key.style.width = blackW + '%';
+
+      key.addEventListener('mousedown',  e => { e.preventDefault(); kbNoteOn(midi, key); });
+      key.addEventListener('mouseup',    () => kbNoteOff(midi));
+      key.addEventListener('mouseleave', () => kbNoteOff(midi));
+      key.addEventListener('touchstart', e => { e.preventDefault(); kbNoteOn(midi, key); }, { passive: false });
+      key.addEventListener('touchend',   () => kbNoteOff(midi));
+      container.appendChild(key);
+    });
+  }
+
+  // Update range label
+  const lo = NOTE_NAMES[0] + kbOctave;
+  const hi = NOTE_NAMES[11] + (kbOctave + 1);
+  document.getElementById('kb-oct-display').textContent = 'C' + kbOctave;
+  document.getElementById('kb-range-label').textContent = lo + ' – ' + hi;
+}
+
+// Octave shift buttons
+document.getElementById('kb-down').onclick = () => {
+  if (kbOctave > 1) { kbOctave--; buildKeyboard(); }
+};
+document.getElementById('kb-up').onclick = () => {
+  if (kbOctave < 6) { kbOctave++; buildKeyboard(); }
+};
+
+// PC keyboard
+const pcHeld = new Set();
+document.addEventListener('keydown', e => {
+  if (e.repeat || e.ctrlKey || e.altKey || e.metaKey) return;
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  const semi = KEY_MAP[e.key.toLowerCase()];
+  if (semi === undefined) return;
+  const midi = (kbOctave + 1) * 12 + semi;
+  if (pcHeld.has(e.key)) return;
+  pcHeld.add(e.key);
+  // Find matching key element
+  const keyEl = document.querySelector(`#kb-keys [data-midi="${midi}"]`);
+  kbNoteOn(midi, keyEl);
+});
+document.addEventListener('keyup', e => {
+  const semi = KEY_MAP[e.key.toLowerCase()];
+  if (semi === undefined) return;
+  const midi = (kbOctave + 1) * 12 + semi;
+  pcHeld.delete(e.key);
+  kbNoteOff(midi);
+});
+
 // ── INITIAL RENDER ────────────────────────────────────────────────────────────
 drawPad();
 updateEnvPreview();
+buildKeyboard();
 </script>
 </body>
 </html>
