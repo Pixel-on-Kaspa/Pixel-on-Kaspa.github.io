@@ -603,19 +603,6 @@ function drawViz(now) {
   ctx2d.lineWidth = 1 + env.bass*2.5 + flashKick;
   ctx2d.stroke();
 
-  if (oState[2].on) {
-    ctx2d.beginPath();
-    for (let i=0;i<=steps;i++) {
-      const t = (i/steps)*T;
-      const x = cx + R*.55 * Math.sin(fA*t + vizPhase*.7);
-      const y = cy + R*.55 * Math.sin(fC*t + .3);
-      i===0 ? ctx2d.moveTo(x,y) : ctx2d.lineTo(x,y);
-    }
-    ctx2d.strokeStyle = `hsla(270,55%,55%,${bright*.45})`;
-    ctx2d.lineWidth = .7;
-    ctx2d.stroke();
-  }
-
   if (flashKick > .3) {
     ctx2d.beginPath();
     ctx2d.arc(cx, cy, R*(1.1+flashKick*.2), 0, TAU);
