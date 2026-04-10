@@ -109,6 +109,8 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
   <span class="brand">SYNTHI</span>
   <div class="transport">
     <button id="btnPlay">▶ PLAY</button>
+    <button class="btn" id="btnPng">📷 PNG</button>
+    <button class="btn" id="btnRec">⏺ MP4</button>
     <span style="font-size:11px;color:var(--muted)">BPM</span>
     <input class="bpmBox" id="bpmIn" type="number" min="40" max="240" value="120">
     <span style="font-size:11px;color:var(--muted)">VOL</span>
@@ -800,6 +802,56 @@ window.addEventListener("keydown", async e => {
       el.dispatchEvent(new Event("input"));
     }
   }
+});
+
+/* ── PNG SNAPSHOT ── */
+document.getElementById("btnPng").addEventListener("click", () => {
+  canvas.toBlob(blob => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'synthi-' + Date.now() + '.png';
+    a.click();
+  }, 'image/png');
+});
+
+/* ── WEBM RECORD (6s) ── */
+document.getElementById("btnRec").addEventListener("click", () => {
+  const btn = document.getElementById("btnRec");
+  if (btn.dataset.recording) return; // ignore click during recording
+  btn.dataset.recording = '1';
+  btn.style.background = 'rgba(220,40,40,.25)';
+  btn.style.borderColor = 'rgba(220,40,40,.7)';
+  btn.style.color = '#f87070';
+
+  const stream = canvas.captureStream(60);
+  const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+  const chunks = [];
+  recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+  recorder.onstop = () => {
+    const blob = new Blob(chunks, { type: 'video/webm' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'synthi-' + Date.now() + '.webm';
+    a.click();
+    btn.textContent = '⏺ MP4';
+    btn.style.background = '';
+    btn.style.borderColor = '';
+    btn.style.color = '';
+    delete btn.dataset.recording;
+  };
+
+  recorder.start();
+  let remaining = 6;
+  btn.textContent = `⏺ REC ${remaining}s...`;
+  const countdown = setInterval(() => {
+    remaining--;
+    if (remaining > 0) {
+      btn.textContent = `⏺ REC ${remaining}s...`;
+    } else {
+      clearInterval(countdown);
+    }
+  }, 1000);
+  setTimeout(() => { recorder.stop(); }, 6000);
 });
 
 })();
