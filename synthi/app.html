@@ -74,6 +74,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
   border-radius:50%;background:var(--accent);cursor:pointer;box-shadow:0 0 4px rgba(73,234,203,.5)}
 input[type=range].pur::-webkit-slider-thumb{background:var(--purple);box-shadow:0 0 4px rgba(155,89,182,.5)}
 input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--accent);border:none}
+.sr input[type=number].v{border:none;background:transparent;outline:none;-moz-appearance:textfield;padding:0}
+.sr input[type=number].v::-webkit-inner-spin-button,.sr input[type=number].v::-webkit-outer-spin-button{-webkit-appearance:none}
 .bpmBox{width:46px;background:rgba(255,255,255,.05);border:1px solid var(--border);
   color:var(--text);font-family:var(--mono);font-size:13px;font-weight:700;
   text-align:center;padding:3px 4px;border-radius:3px;-moz-appearance:textfield}
@@ -141,7 +143,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
         <button class="btn active" data-w="sine">SIN</button>
         <button class="btn" data-w="triangle">TRI</button>
       </div>
-      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr0" min="0" max="1" step=".0001" value=".35"><span class="v" id="fv0">—</span></div>
+      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr0" min="0" max="1" step="0.000005" value="0.01"><input class="v" type="number" id="fv0" min="0" max="20000" step="0.1" value="200"></div>
       <div class="sr"><label>DET</label><input type="range" id="dt0" min="-100" max="100" step="1" value="0"><span class="v" id="dv0">0¢</span></div>
       <div class="sr"><label>VOL</label><input type="range" id="vl0" min="0" max="1" step=".01" value=".6"><span class="v" id="vv0">0.60</span></div>
       <button class="btn on" id="on0" style="width:100%;margin-top:2px">ON</button>
@@ -153,7 +155,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
         <button class="btn active" data-w="sine">SIN</button>
         <button class="btn" data-w="triangle">TRI</button>
       </div>
-      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr1" min="0" max="1" step=".0001" value=".48"><span class="v" id="fv1">—</span></div>
+      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr1" min="0" max="1" step="0.000005" value="0.01"><input class="v" type="number" id="fv1" min="0" max="20000" step="0.1" value="200"></div>
       <div class="sr"><label>DET</label><input type="range" id="dt1" min="-100" max="100" step="1" value="0"><span class="v" id="dv1">0¢</span></div>
       <div class="sr"><label>VOL</label><input type="range" id="vl1" min="0" max="1" step=".01" value=".5"><span class="v" id="vv1">0.50</span></div>
       <button class="btn on" id="on1" style="width:100%;margin-top:2px">ON</button>
@@ -165,7 +167,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
         <button class="btn active" data-w="sine">SIN</button>
         <button class="btn" data-w="triangle">TRI</button>
       </div>
-      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr2" min="0" max="1" step=".0001" value=".62"><span class="v" id="fv2">—</span></div>
+      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr2" min="0" max="1" step="0.000005" value="0.01"><input class="v" type="number" id="fv2" min="0" max="20000" step="0.1" value="200"></div>
       <div class="sr"><label>DET</label><input type="range" id="dt2" min="-100" max="100" step="1" value="0"><span class="v" id="dv2">0¢</span></div>
       <div class="sr"><label>VOL</label><input type="range" id="vl2" min="0" max="1" step=".01" value=".3"><span class="v" id="vv2">0.30</span></div>
       <button class="btn on" id="on2" style="width:100%;margin-top:2px">ON</button>
@@ -177,7 +179,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
         <button class="btn active" data-w="sine">SIN</button>
         <button class="btn" data-w="triangle">TRI</button>
       </div>
-      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr3" min="0" max="1" step=".0001" value=".55"><span class="v" id="fv3">—</span></div>
+      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr3" min="0" max="1" step="0.000005" value="0.01"><input class="v" type="number" id="fv3" min="0" max="20000" step="0.1" value="200"></div>
       <div class="sr"><label>DET</label><input type="range" id="dt3" min="-100" max="100" step="1" value="0"><span class="v" id="dv3">0¢</span></div>
       <div class="sr"><label>VOL</label><input type="range" id="vl3" min="0" max="1" step=".01" value=".4"><span class="v" id="vv3">0.40</span></div>
       <button class="btn on" id="on3" style="width:100%;margin-top:2px">ON</button>
@@ -262,7 +264,8 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
 
 const TAU = Math.PI * 2;
 const clamp = (x,a,b) => Math.max(a, Math.min(b, x));
-const logF  = v => Math.exp(Math.log(20)    + v * Math.log(25));    // 20–500 Hz, log
+const logF  = v => v * 20000;                                        // 0–20000 Hz, linear
+const freqToSlider = hz => hz / 20000;
 const logFF = v => Math.exp(Math.log(20)    + v * Math.log(1000));  // 20–20000 Hz, filter
 
 /* ── STATE ── */
@@ -273,10 +276,10 @@ let flashKick = 0, flashSnare = 0;
 // 4 oscillators: OSC1 L(-1), OSC2 R(+1), OSC3 L(-1), OSC4 R(+1)
 // waves: SIN and TRI only
 const oState = [
-  { wave:"sine",     freq:.35, det:0,  vol:.6, on:true,  pan:-1 },
-  { wave:"sine",     freq:.48, det:0,  vol:.5, on:true,  pan:+1 },
-  { wave:"sine",     freq:.62, det:0,  vol:.3, on:true,  pan:-1 },
-  { wave:"triangle", freq:.55, det:0,  vol:.4, on:true,  pan:+1 },
+  { wave:"sine",     freq:.01, det:0, vol:.6, on:true,  pan:-1 },
+  { wave:"sine",     freq:.01, det:0, vol:.5, on:true,  pan:+1 },
+  { wave:"sine",     freq:.01, det:0, vol:.3, on:true,  pan:-1 },
+  { wave:"triangle", freq:.01, det:0, vol:.4, on:true,  pan:+1 },
 ];
 const fx = {
   ftType:"lowpass", ftCut:.85, ftRes:1,
@@ -332,8 +335,7 @@ function buildAudio() {
   const fftBuf  = new Uint8Array(analyserF.frequencyBinCount);
   const timeBuf = new Uint8Array(analyserT.fftSize);
 
-  // 4 oscillators, each with StereoPannerNode
-  // OSC1/3 → L (pan -1), OSC2/4 → R (pan +1)
+  // 4 independent oscillators — OSC1/3 → L, OSC2/4 → R
   const oscs = oState.map(s => {
     const o = actx.createOscillator();
     o.type = s.wave;
@@ -345,12 +347,10 @@ function buildAudio() {
     return { o, g, pan };
   });
 
-  // Start all oscillators at the same scheduled time to minimize phase offset
-  const startTime = actx.currentTime + 0.01;
-  oscs.forEach(n => n.o.start(startTime));
-  console.log('All oscillators scheduled to start at: ' + startTime);
+  const t = actx.currentTime + 0.01;
+  oscs.forEach(n => n.o.start(t));
 
-  const preMix = actx.createGain(); preMix.gain.value = 0.35; // slightly lower for 4 oscs
+  const preMix = actx.createGain(); preMix.gain.value = 0.35;
   oscs.forEach(n => n.pan.connect(preMix));
 
   // filter
@@ -587,20 +587,27 @@ function drawViz(now) {
   flashKick  *= 0.85;
   flashSnare *= 0.82;
 
-  const f0 = logF(oState[0].freq) * Math.pow(2, oState[0].det/1200);
-  const f2 = logF(oState[2].freq) * Math.pow(2, oState[2].det/1200);
-  const f1 = logF(oState[1].freq) * Math.pow(2, oState[1].det/1200);
-  const f3 = logF(oState[3].freq) * Math.pow(2, oState[3].det/1200);
-  const xFreq = (f0 + f2) / 2 / 80;
-  const yFreq = (f1 + f3) / 2 / 80;
+  // Math-based Lissajous — purely from oState, no audio signal
+  const hz0 = oState[0].on ? logF(oState[0].freq) * Math.pow(2, oState[0].det/1200) : 0;
+  const hz1 = oState[1].on ? logF(oState[1].freq) * Math.pow(2, oState[1].det/1200) : 0;
+  const hz2 = oState[2].on ? logF(oState[2].freq) * Math.pow(2, oState[2].det/1200) : 0;
+  const hz3 = oState[3].on ? logF(oState[3].freq) * Math.pow(2, oState[3].det/1200) : 0;
+
+  const activeL = [hz0, hz2].filter(h => h > 0);
+  const activeR = [hz1, hz3].filter(h => h > 0);
+  const xHz = activeL.length ? activeL.reduce((a,b)=>a+b)/activeL.length : 0;
+  const yHz = activeR.length ? activeR.reduce((a,b)=>a+b)/activeR.length : 0;
+
+  const xFreq = xHz / 80;
+  const yFreq = yHz / 80;
 
   const R = Math.min(W,H) * (0.36 + .12*env.level + .12*flashKick) * vizZoom;
   const steps = 8000;
   const T = TAU * 20;
 
   ctx2d.beginPath();
-  for (let i=0;i<=steps;i++) {
-    const t = (i/steps)*T;
+  for (let i = 0; i <= steps; i++) {
+    const t = (i/steps) * T;
     const xVal = oState[0].wave==='triangle' || oState[2].wave==='triangle'
       ? Math.sin(xFreq*t + vizPhase) + 0.33*Math.sin(3*xFreq*t + vizPhase)
       : Math.sin(xFreq*t + vizPhase);
@@ -629,13 +636,15 @@ function drawViz(now) {
 
   document.getElementById("vuBar").style.width = clamp(env.level*110,0,100)+"%";
 
-  const fb = nd ? `${logF(oState[0].freq).toFixed(0)}/${logF(oState[1].freq).toFixed(0)}Hz` : "—";
+  const fb = `${xHz.toFixed(0)}/${yHz.toFixed(0)}Hz`;
   document.getElementById("statusBar").textContent = playing
     ? `▶ ${bpm}BPM  step:${(seqStep-1)&15}  ${fb}  fps:${fpsAvg.toFixed(0)}`
     : `— stopped — ${fb}`;
 
-  vizPhase  += .0025 + .008*env.level;
-  vizPhaseY += .0018 + .005*env.level;
+  if (Math.abs(xHz - yHz) > 0.5) {
+    vizPhase  += .0025 + .008*env.level;
+    vizPhaseY += .0018 + .005*env.level;
+  }
 
   if (activeOffCtx) {
     activeOffCtx.drawImage(canvas, 0, 0, 2160, 2160);
@@ -690,13 +699,19 @@ for (let i=0;i<4;i++) {
         if (nd) nd.oscs[n].o.type = oState[n].wave;
       });
     });
-    // freq
+    // freq — two-way binding: slider ↔ number input
     const fe=document.getElementById("fr"+n), fv=document.getElementById("fv"+n);
-    fv.textContent = logF(oState[n].freq).toFixed(0)+"Hz";
+    fv.value = logF(oState[n].freq).toFixed(1);
     fe.addEventListener("input", () => {
       oState[n].freq = parseFloat(fe.value);
-      fv.textContent = logF(oState[n].freq).toFixed(0)+"Hz";
+      fv.value = logF(oState[n].freq).toFixed(1);
       if (nd) nd.oscs[n].o.frequency.setTargetAtTime(logF(oState[n].freq), actx.currentTime, .015);
+    });
+    fv.addEventListener("input", () => {
+      const hz = clamp(parseFloat(fv.value)||0, 0, 20000);
+      oState[n].freq = hz / 20000;
+      fe.value = oState[n].freq;
+      if (nd) nd.oscs[n].o.frequency.setTargetAtTime(hz, actx.currentTime, .015);
     });
     // detune
     const de=document.getElementById("dt"+n), dv=document.getElementById("dv"+n);
@@ -834,7 +849,7 @@ document.getElementById('btnUnison').addEventListener('click', () => {
     oState[i].freq = baseFreq;
     const el = document.getElementById('fr' + i);
     el.value = baseFreq;
-    document.getElementById('fv' + i).textContent = logF(baseFreq).toFixed(0) + 'Hz';
+    document.getElementById('fv' + i).value = logF(baseFreq).toFixed(1);
     if (nd) nd.oscs[i].o.frequency.setTargetAtTime(logF(baseFreq), actx.currentTime, .015);
   }
 });
