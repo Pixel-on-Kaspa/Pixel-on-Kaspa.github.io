@@ -528,7 +528,7 @@ function highlightStep(s) {
 /* ── VISUALIZATION (Lissajous) ── */
 const canvas = document.getElementById("vizCanvas");
 const ctx2d  = canvas.getContext("2d");
-let vizPhase = 0;
+let vizPhase = 0, vizPhaseY = 0;
 let fpsAvg = 60, fpsFrames = 0, fpsT = performance.now();
 
 function resizeCanvas() {
@@ -566,8 +566,12 @@ function drawViz(now) {
   flashKick  *= 0.85;
   flashSnare *= 0.82;
 
-  const xFreq = (logF(oState[0].freq) + logF(oState[2].freq)) / 2 / 80;
-  const yFreq = (logF(oState[1].freq) + logF(oState[3].freq)) / 2 / 80;
+  const f0 = logF(oState[0].freq) * Math.pow(2, oState[0].det/1200);
+  const f2 = logF(oState[2].freq) * Math.pow(2, oState[2].det/1200);
+  const f1 = logF(oState[1].freq) * Math.pow(2, oState[1].det/1200);
+  const f3 = logF(oState[3].freq) * Math.pow(2, oState[3].det/1200);
+  const xFreq = (f0 + f2) / 2 / 80;
+  const yFreq = (f1 + f3) / 2 / 80;
 
   const R = Math.min(W,H) * (0.36 + .12*env.level + .12*flashKick);
   const steps = 1200;
@@ -576,8 +580,14 @@ function drawViz(now) {
   ctx2d.beginPath();
   for (let i=0;i<=steps;i++) {
     const t = (i/steps)*T;
-    const x = cx + R * Math.sin(xFreq*t + vizPhase);
-    const y = cy + R * Math.sin(yFreq*t);
+    const xVal = oState[0].wave==='triangle' || oState[2].wave==='triangle'
+      ? Math.sin(xFreq*t + vizPhase) + 0.33*Math.sin(3*xFreq*t + vizPhase)
+      : Math.sin(xFreq*t + vizPhase);
+    const yVal = oState[1].wave==='triangle' || oState[3].wave==='triangle'
+      ? Math.sin(yFreq*t + vizPhaseY) + 0.33*Math.sin(3*yFreq*t + vizPhaseY)
+      : Math.sin(yFreq*t + vizPhaseY);
+    const x = cx + R * xVal;
+    const y = cy + R * yVal;
     i===0 ? ctx2d.moveTo(x,y) : ctx2d.lineTo(x,y);
   }
   ctx2d.globalCompositeOperation = "lighter";
@@ -603,7 +613,8 @@ function drawViz(now) {
     ? `▶ ${bpm}BPM  step:${(seqStep-1)&15}  ${fb}  fps:${fpsAvg.toFixed(0)}`
     : `— stopped — ${fb}`;
 
-  vizPhase += .0025 + .008*env.level;
+  vizPhase  += .0025 + .008*env.level;
+  vizPhaseY += .0018 + .005*env.level;
 }
 
 
