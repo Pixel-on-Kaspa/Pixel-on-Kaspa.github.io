@@ -139,7 +139,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
         <button class="btn active" data-w="sine">SIN</button>
         <button class="btn" data-w="triangle">TRI</button>
       </div>
-      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr0" min="0" max="1" step=".001" value=".35"><span class="v" id="fv0">—</span></div>
+      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr0" min="0" max="1" step=".0001" value=".35"><span class="v" id="fv0">—</span></div>
       <div class="sr"><label>DET</label><input type="range" id="dt0" min="-100" max="100" step="1" value="0"><span class="v" id="dv0">0¢</span></div>
       <div class="sr"><label>VOL</label><input type="range" id="vl0" min="0" max="1" step=".01" value=".6"><span class="v" id="vv0">0.60</span></div>
       <button class="btn on" id="on0" style="width:100%;margin-top:2px">ON</button>
@@ -151,8 +151,8 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
         <button class="btn active" data-w="sine">SIN</button>
         <button class="btn" data-w="triangle">TRI</button>
       </div>
-      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr1" min="0" max="1" step=".001" value=".48"><span class="v" id="fv1">—</span></div>
-      <div class="sr"><label>DET</label><input type="range" id="dt1" min="-100" max="100" step="1" value="7"><span class="v" id="dv1">7¢</span></div>
+      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr1" min="0" max="1" step=".0001" value=".48"><span class="v" id="fv1">—</span></div>
+      <div class="sr"><label>DET</label><input type="range" id="dt1" min="-100" max="100" step="1" value="0"><span class="v" id="dv1">0¢</span></div>
       <div class="sr"><label>VOL</label><input type="range" id="vl1" min="0" max="1" step=".01" value=".5"><span class="v" id="vv1">0.50</span></div>
       <button class="btn on" id="on1" style="width:100%;margin-top:2px">ON</button>
     </div>
@@ -163,7 +163,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
         <button class="btn active" data-w="sine">SIN</button>
         <button class="btn" data-w="triangle">TRI</button>
       </div>
-      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr2" min="0" max="1" step=".001" value=".62"><span class="v" id="fv2">—</span></div>
+      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr2" min="0" max="1" step=".0001" value=".62"><span class="v" id="fv2">—</span></div>
       <div class="sr"><label>DET</label><input type="range" id="dt2" min="-100" max="100" step="1" value="-5"><span class="v" id="dv2">-5¢</span></div>
       <div class="sr"><label>VOL</label><input type="range" id="vl2" min="0" max="1" step=".01" value=".3"><span class="v" id="vv2">0.30</span></div>
       <button class="btn on" id="on2" style="width:100%;margin-top:2px">ON</button>
@@ -175,8 +175,8 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
         <button class="btn active" data-w="sine">SIN</button>
         <button class="btn" data-w="triangle">TRI</button>
       </div>
-      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr3" min="0" max="1" step=".001" value=".55"><span class="v" id="fv3">—</span></div>
-      <div class="sr"><label>DET</label><input type="range" id="dt3" min="-100" max="100" step="1" value="3"><span class="v" id="dv3">3¢</span></div>
+      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr3" min="0" max="1" step=".0001" value=".55"><span class="v" id="fv3">—</span></div>
+      <div class="sr"><label>DET</label><input type="range" id="dt3" min="-100" max="100" step="1" value="0"><span class="v" id="dv3">0¢</span></div>
       <div class="sr"><label>VOL</label><input type="range" id="vl3" min="0" max="1" step=".01" value=".4"><span class="v" id="vv3">0.40</span></div>
       <button class="btn on" id="on3" style="width:100%;margin-top:2px">ON</button>
     </div>
@@ -260,7 +260,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
 
 const TAU = Math.PI * 2;
 const clamp = (x,a,b) => Math.max(a, Math.min(b, x));
-const logF  = v => Math.exp(Math.log(20)    + v * Math.log(100));   // 20–2000 Hz, log
+const logF  = v => Math.exp(Math.log(20)    + v * Math.log(25));    // 20–500 Hz, log
 const logFF = v => Math.exp(Math.log(20)    + v * Math.log(1000));  // 20–20000 Hz, filter
 
 /* ── STATE ── */
@@ -272,9 +272,9 @@ let flashKick = 0, flashSnare = 0;
 // waves: SIN and TRI only
 const oState = [
   { wave:"sine",     freq:.35, det:0,  vol:.6, on:true,  pan:-1 },
-  { wave:"sine",     freq:.48, det:7,  vol:.5, on:true,  pan:+1 },
+  { wave:"sine",     freq:.48, det:0,  vol:.5, on:true,  pan:+1 },
   { wave:"sine",     freq:.62, det:-5, vol:.3, on:true,  pan:-1 },
-  { wave:"triangle", freq:.55, det:3,  vol:.4, on:true,  pan:+1 },
+  { wave:"triangle", freq:.55, det:0,  vol:.4, on:true,  pan:+1 },
 ];
 const fx = {
   ftType:"lowpass", ftCut:.85, ftRes:1,
