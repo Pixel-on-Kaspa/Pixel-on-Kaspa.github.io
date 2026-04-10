@@ -583,7 +583,7 @@ function drawViz(now) {
 
   // trail decay — fillRect uses physical pixels to guarantee full clear
   ctx2d.globalCompositeOperation = "source-over";
-  ctx2d.globalAlpha = 0.16 + .14*env.bass + .35*flashKick;
+  ctx2d.globalAlpha = 0.08 + .06*env.bass + .2*flashKick;
   ctx2d.fillStyle = "#000";
   ctx2d.fillRect(0, 0, canvas.width, canvas.height);
   ctx2d.globalAlpha = 1;
@@ -626,9 +626,9 @@ function drawViz(now) {
     i === 0 ? ctx2d.moveTo(x, y) : ctx2d.lineTo(x, y);
   }
   ctx2d.globalCompositeOperation = "lighter";
-  const bright = clamp(.35 + .8*env.level + .6*flashKick, .2, 1);
-  ctx2d.strokeStyle = `hsla(170,80%,55%,${bright})`;
-  ctx2d.lineWidth = 1 + env.bass*2.5 + flashKick;
+  const bright = clamp(.7 + .3*env.level + .4*flashKick, .5, 1);
+  ctx2d.strokeStyle = `hsla(170,90%,70%,${bright})`;
+  ctx2d.lineWidth = 2.5 + env.bass*3 + flashKick;
   ctx2d.stroke();
 
   if (flashKick > .3) {
