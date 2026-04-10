@@ -341,9 +341,13 @@ function buildAudio() {
     const g = actx.createGain(); g.gain.value = s.on ? s.vol : 0;
     const pan = actx.createStereoPanner(); pan.pan.value = s.pan;
     o.connect(g); g.connect(pan);
-    o.start();
     return { o, g, pan };
   });
+
+  // Start all oscillators at the same scheduled time to minimize phase offset
+  const startTime = actx.currentTime + 0.01;
+  oscs.forEach(n => n.o.start(startTime));
+  console.log('All oscillators scheduled to start at: ' + startTime);
 
   const preMix = actx.createGain(); preMix.gain.value = 0.35; // slightly lower for 4 oscs
   oscs.forEach(n => n.pan.connect(preMix));
