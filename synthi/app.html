@@ -579,34 +579,30 @@ function drawViz(now) {
   flashKick  *= 0.85;
   flashSnare *= 0.82;
 
-  const fA = logF(oState[0].freq) / 80;
-  const fB = logF(oState[1].freq) / 80;
-  const fC = logF(oState[2].freq) / 80;
+  const xFreq = (logF(oState[0].freq) + logF(oState[2].freq)) / 2 / 80;
+  const yFreq = (logF(oState[1].freq) + logF(oState[3].freq)) / 2 / 80;
 
   const R = Math.min(W,H) * (0.36 + .12*env.level + .12*flashKick);
   const steps = 1200;
   const T = TAU * 6;
 
-  const hue = (fC / 25) * 160 + 155;
-  const sat = 65 + 25*env.hi;
-
   ctx2d.beginPath();
   for (let i=0;i<=steps;i++) {
     const t = (i/steps)*T;
-    const x = cx + R * Math.sin(fA*t + vizPhase);
-    const y = cy + R * Math.sin(fB*t);
+    const x = cx + R * Math.sin(xFreq*t + vizPhase);
+    const y = cy + R * Math.sin(yFreq*t);
     i===0 ? ctx2d.moveTo(x,y) : ctx2d.lineTo(x,y);
   }
   ctx2d.globalCompositeOperation = "lighter";
   const bright = clamp(.35 + .8*env.level + .6*flashKick, .2, 1);
-  ctx2d.strokeStyle = `hsla(${hue},${sat}%,58%,${bright})`;
+  ctx2d.strokeStyle = `hsla(170,80%,55%,${bright})`;
   ctx2d.lineWidth = 1 + env.bass*2.5 + flashKick;
   ctx2d.stroke();
 
   if (flashKick > .3) {
     ctx2d.beginPath();
     ctx2d.arc(cx, cy, R*(1.1+flashKick*.2), 0, TAU);
-    ctx2d.strokeStyle = `hsla(${hue},80%,70%,${flashKick*.4})`;
+    ctx2d.strokeStyle = `hsla(170,80%,70%,${flashKick*.4})`;
     ctx2d.lineWidth = flashKick*4;
     ctx2d.stroke();
   }
