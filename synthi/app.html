@@ -279,7 +279,7 @@ const oState = [
   { wave:"sine",     freq:.01, det:0, vol:.6, on:true,  pan:-1 },
   { wave:"sine",     freq:.01, det:0, vol:.5, on:true,  pan:+1 },
   { wave:"sine",     freq:.01, det:0, vol:.3, on:true,  pan:-1 },
-  { wave:"triangle", freq:.01, det:0, vol:.4, on:true,  pan:+1 },
+  { wave:"sine",     freq:.01, det:0, vol:.4, on:true,  pan:+1 },
 ];
 const fx = {
   ftType:"lowpass", ftCut:.85, ftRes:1,
@@ -544,7 +544,7 @@ function highlightStep(s) {
 /* ── VISUALIZATION (Lissajous) ── */
 const canvas = document.getElementById("vizCanvas");
 const ctx2d  = canvas.getContext("2d");
-let vizPhase = 0, vizPhaseY = 0, vizZoom = 1.0;
+let vizPhase = 0, vizPhaseY = Math.PI * 0.5, vizZoom = 1.0;
 let canvasSize = 600, canvasDpr = 1;
 let fpsAvg = 60, fpsFrames = 0, fpsT = performance.now();
 
