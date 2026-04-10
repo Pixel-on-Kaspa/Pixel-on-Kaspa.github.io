@@ -839,11 +839,21 @@ document.getElementById("btnRec").addEventListener("click", () => {
   btn.style.borderColor = 'rgba(220,40,40,.7)';
   btn.style.color = '#f87070';
 
+  // 2x resolution for recording
+  canvas.width  = canvas.clientWidth  * 2;
+  canvas.height = canvas.clientHeight * 2;
+
   const stream = canvas.captureStream(60);
-  const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+  const options = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+    ? { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 8000000 }
+    : { mimeType: 'video/webm',            videoBitsPerSecond: 8000000 };
+  const recorder = new MediaRecorder(stream, options);
   const chunks = [];
   recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
   recorder.onstop = () => {
+    // restore normal resolution
+    canvas.width  = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
     const blob = new Blob(chunks, { type: 'video/webm' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
