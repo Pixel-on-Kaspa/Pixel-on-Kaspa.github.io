@@ -101,6 +101,12 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
 /* vu */
 .vuWrap{height:5px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin-top:5px}
 .vuBar{height:100%;background:linear-gradient(90deg,var(--accent) 0%,#f0c060 70%,#f06060 100%);width:0%}
+
+/* recording */
+.btn.recording{background:rgba(220,60,60,.2);border-color:rgba(220,80,80,.5);color:#f07070}
+#recOverlay{display:none;position:absolute;top:16px;right:16px;
+  font-size:13px;font-weight:700;color:#f07070;font-family:var(--mono);letter-spacing:.06em}
+#recOverlay.show{display:block}
 </style>
 </head>
 <body>
@@ -188,7 +194,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
   </div>
 
   <!-- CENTER: CANVAS -->
-  <div id="center"><canvas id="vizCanvas"></canvas></div>
+  <div id="center"><canvas id="vizCanvas"></canvas><div id="recOverlay"></div></div>
 
   <!-- RIGHT: FX + SEQUENCER -->
   <div id="panelR">
@@ -627,6 +633,10 @@ function drawViz(now) {
 
   vizPhase  += .0025 + .008*env.level;
   vizPhaseY += .0018 + .005*env.level;
+
+  if (activeOffCtx) {
+    activeOffCtx.drawImage(canvas, 0, 0, 1440, 1440);
+  }
 }
 
 
@@ -838,49 +848,85 @@ document.getElementById("btnPng").addEventListener("click", () => {
   }, 'image/png');
 });
 
-/* ── WEBM RECORD (6s) ── */
-document.getElementById("btnRec").addEventListener("click", () => {
-  const btn = document.getElementById("btnRec");
-  if (btn.dataset.recording) return; // ignore click during recording
-  btn.dataset.recording = '1';
-  btn.style.background = 'rgba(220,40,40,.25)';
-  btn.style.borderColor = 'rgba(220,40,40,.7)';
-  btn.style.color = '#f87070';
+/* ── OFFSCREEN RECORD (6s) ── */
+const REC_DURATION = 6000;
+let isRecording = false;
+let activeOffCtx = null;
+let activeOffscreen = null;
+const recOverlay = document.getElementById('recOverlay');
+const btnRec = document.getElementById('btnRec');
 
-  // canvas is already at full DPR resolution — no resize needed
-  const stream = canvas.captureStream(60);
-  const options = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-    ? { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 25_000_000 }
-    : { mimeType: 'video/webm',            videoBitsPerSecond: 25_000_000 };
-  const recorder = new MediaRecorder(stream, options);
+btnRec.addEventListener('click', () => {
+  if (isRecording) return;
+  isRecording = true;
+  btnRec.classList.add('recording');
+  btnRec.textContent = '● REC';
+  btnRec.disabled = true;
+
   const chunks = [];
-  recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-  recorder.onstop = () => {
-    const blob = new Blob(chunks, { type: 'video/webm' });
+  const offscreen = document.createElement('canvas');
+  offscreen.width  = 1440;
+  offscreen.height = 1440;
+  activeOffscreen = offscreen;
+  activeOffCtx = offscreen.getContext('2d');
+
+  const stream = offscreen.captureStream(60);
+
+  const FORMATS = [
+    'video/mp4;codecs=avc1.42E01E',
+    'video/mp4;codecs=h264',
+    'video/webm;codecs=vp9',
+    'video/webm',
+  ];
+  let rec;
+  for (const mime of FORMATS) {
+    if (!MediaRecorder.isTypeSupported(mime)) continue;
+    try { rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 }); break; }
+    catch(e) {}
+  }
+  if (!rec) rec = new MediaRecorder(stream, { videoBitsPerSecond: 8_000_000 });
+
+  const actualMime = rec.mimeType || 'video/webm';
+  const actualExt  = actualMime.includes('mp4') ? 'mp4' : 'webm';
+
+  rec.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+  rec.onstop = () => {
+    const blob = new Blob(chunks, { type: actualMime });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'synthi-' + Date.now() + '.webm';
+    a.download = 'synthi-' + Date.now() + '.' + actualExt;
     a.click();
-    btn.textContent = '⏺ MP4';
-    btn.style.background = '';
-    btn.style.borderColor = '';
-    btn.style.color = '';
-    delete btn.dataset.recording;
+    setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+    endRec();
   };
 
-  recorder.start();
-  let remaining = 6;
-  btn.textContent = `⏺ REC ${remaining}s...`;
-  const countdown = setInterval(() => {
-    remaining--;
-    if (remaining > 0) {
-      btn.textContent = `⏺ REC ${remaining}s...`;
-    } else {
-      clearInterval(countdown);
+  rec.start(100);
+
+  const start = performance.now();
+  function updateOverlay() {
+    const elapsed = performance.now() - start;
+    const remaining = Math.ceil((REC_DURATION - elapsed) / 1000);
+    if (elapsed >= REC_DURATION) {
+      recOverlay.classList.remove('show');
+      recOverlay.textContent = '';
+      rec.stop();
+      return;
     }
-  }, 1000);
-  setTimeout(() => { recorder.stop(); }, 6000);
+    recOverlay.classList.add('show');
+    recOverlay.textContent = remaining > 0 ? '● REC ' + remaining : '● REC';
+    requestAnimationFrame(updateOverlay);
+  }
+  requestAnimationFrame(updateOverlay);
 });
+
+function endRec() {
+  isRecording = false;
+  activeOffCtx = null;
+  activeOffscreen = null;
+  btnRec.classList.remove('recording');
+  btnRec.textContent = '⏺ MP4';
+  btnRec.disabled = false;
+}
 
 })();
 </script>
