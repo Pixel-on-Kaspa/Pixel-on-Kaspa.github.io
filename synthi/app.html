@@ -120,6 +120,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
     <button class="btn" id="btnZoomIn">＋</button>
     <button class="btn" id="btnZoomOut">－</button>
     <button class="btn" id="btnUnison">UNISON</button>
+    <button class="btn" id="btnSync">⟳ SYNC</button>
     <span style="font-size:11px;color:var(--muted)">BPM</span>
     <input class="bpmBox" id="bpmIn" type="number" min="40" max="240" value="120">
     <span style="font-size:11px;color:var(--muted)">VOL</span>
@@ -836,6 +837,17 @@ document.getElementById('btnUnison').addEventListener('click', () => {
     document.getElementById('fv' + i).textContent = logF(baseFreq).toFixed(0) + 'Hz';
     if (nd) nd.oscs[i].o.frequency.setTargetAtTime(logF(baseFreq), actx.currentTime, .015);
   }
+});
+
+/* ── SYNC ── */
+document.getElementById('btnSync').addEventListener('click', () => {
+  if (!nd) return;
+  const t = actx.currentTime + 0.05;
+  const hz = logF(oState[0].freq);
+  nd.oscs.forEach((n, i) => {
+    n.o.frequency.setValueAtTime(hz, t);
+    n.o.detune.setValueAtTime(0, t);
+  });
 });
 
 /* ── ZOOM ── */
