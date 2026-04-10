@@ -533,13 +533,20 @@ function highlightStep(s) {
 const canvas = document.getElementById("vizCanvas");
 const ctx2d  = canvas.getContext("2d");
 let vizPhase = 0, vizPhaseY = 0, vizZoom = 1.0;
+let canvasSize = 600, canvasDpr = 1;
 let fpsAvg = 60, fpsFrames = 0, fpsT = performance.now();
 
 function resizeCanvas() {
-  const c = document.getElementById("center");
+  const dpr = window.devicePixelRatio || 1;
+  const c = document.getElementById('center');
   const size = Math.min(c.clientWidth, c.clientHeight) || 600;
-  canvas.width  = size;
-  canvas.height = size;
+  canvas.width  = size * dpr;
+  canvas.height = size * dpr;
+  canvas.style.width  = size + 'px';
+  canvas.style.height = size + 'px';
+  ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
+  canvasSize = size;
+  canvasDpr  = dpr;
 }
 
 function readEnv() {
@@ -558,14 +565,14 @@ function drawViz(now) {
   fpsFrames++;
   if (now-fpsT > 500) { fpsAvg = fpsAvg*.7+(fpsFrames*1000/(now-fpsT))*.3; fpsFrames=0; fpsT=now; }
 
-  const W = canvas.width, H = canvas.height, cx=W/2, cy=H/2;
+  const W = canvasSize, H = canvasSize, cx=W/2, cy=H/2;
   const env = readEnv();
 
-  // trail decay
+  // trail decay — fillRect uses physical pixels to guarantee full clear
   ctx2d.globalCompositeOperation = "source-over";
   ctx2d.globalAlpha = 0.16 + .14*env.bass + .35*flashKick;
   ctx2d.fillStyle = "#000";
-  ctx2d.fillRect(0,0,W,H);
+  ctx2d.fillRect(0, 0, canvas.width, canvas.height);
   ctx2d.globalAlpha = 1;
 
   flashKick  *= 0.85;
@@ -840,21 +847,15 @@ document.getElementById("btnRec").addEventListener("click", () => {
   btn.style.borderColor = 'rgba(220,40,40,.7)';
   btn.style.color = '#f87070';
 
-  // 2x resolution for recording
-  canvas.width  = canvas.clientWidth  * 2;
-  canvas.height = canvas.clientHeight * 2;
-
+  // canvas is already at full DPR resolution — no resize needed
   const stream = canvas.captureStream(60);
   const options = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-    ? { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 8000000 }
-    : { mimeType: 'video/webm',            videoBitsPerSecond: 8000000 };
+    ? { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 25_000_000 }
+    : { mimeType: 'video/webm',            videoBitsPerSecond: 25_000_000 };
   const recorder = new MediaRecorder(stream, options);
   const chunks = [];
   recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
   recorder.onstop = () => {
-    // restore normal resolution
-    canvas.width  = canvas.clientWidth;
-    canvas.height = canvas.clientHeight;
     const blob = new Blob(chunks, { type: 'video/webm' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
