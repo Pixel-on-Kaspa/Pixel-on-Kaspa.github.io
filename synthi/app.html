@@ -586,8 +586,8 @@ function drawViz(now) {
   const yFreq = (f1 + f3) / 2 / 80;
 
   const R = Math.min(W,H) * (0.36 + .12*env.level + .12*flashKick) * vizZoom;
-  const steps = 1200;
-  const T = TAU * 6;
+  const steps = 8000;
+  const T = TAU * 20;
 
   ctx2d.beginPath();
   for (let i=0;i<=steps;i++) {
