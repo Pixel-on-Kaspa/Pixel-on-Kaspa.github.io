@@ -548,7 +548,7 @@ function highlightStep(s) {
 /* ── VISUALIZATION (Lissajous) ── */
 const canvas = document.getElementById("vizCanvas");
 const ctx2d  = canvas.getContext("2d");
-let vizPhase = 0, vizPhaseY = Math.PI * 0.5, vizZoom = 1.0;
+let lissT = 0, vizZoom = 1.0;
 let canvasSize = 600, canvasDpr = 1;
 let fpsAvg = 60, fpsFrames = 0, fpsT = performance.now();
 
@@ -602,28 +602,28 @@ function drawViz(now) {
   const xHz = activeL.length ? activeL.reduce((a,b)=>a+b)/activeL.length : 0;
   const yHz = activeR.length ? activeR.reduce((a,b)=>a+b)/activeR.length : 0;
 
-  const xFreq = xHz / 80;
-  const yFreq = yHz / 80;
+  lissT += 0.016;
 
   const R = Math.min(W,H) * (0.36 + .12*env.level + .12*flashKick) * vizZoom;
   const steps = 8000;
-  const T = TAU * 20;
+  const minHz = Math.min(xHz > 0 ? xHz : yHz, yHz > 0 ? yHz : xHz);
+  const windowT = (xHz > 0 || yHz > 0) ? 2 / (minHz || 1) : 0.1;
 
   const xPhase = (oState[0].phase + oState[2].phase) / 2;
   const yPhase = (oState[1].phase + oState[3].phase) / 2;
 
   ctx2d.beginPath();
   for (let i = 0; i <= steps; i++) {
-    const t = (i/steps) * T;
+    const t = lissT + (i / steps) * windowT;
     const xVal = oState[0].wave==='triangle' || oState[2].wave==='triangle'
-      ? Math.sin(xFreq*t + xPhase) + 0.33*Math.sin(3*xFreq*t + xPhase)
-      : Math.sin(xFreq*t + xPhase);
+      ? Math.sin(TAU * xHz * t + xPhase) + 0.33 * Math.sin(3 * TAU * xHz * t + xPhase)
+      : Math.sin(TAU * xHz * t + xPhase);
     const yVal = oState[1].wave==='triangle' || oState[3].wave==='triangle'
-      ? Math.sin(yFreq*t + yPhase) + 0.33*Math.sin(3*yFreq*t + yPhase)
-      : Math.sin(yFreq*t + yPhase);
+      ? Math.sin(TAU * yHz * t + yPhase) + 0.33 * Math.sin(3 * TAU * yHz * t + yPhase)
+      : Math.sin(TAU * yHz * t + yPhase);
     const x = cx + R * xVal;
     const y = cy + R * yVal;
-    i===0 ? ctx2d.moveTo(x,y) : ctx2d.lineTo(x,y);
+    i === 0 ? ctx2d.moveTo(x, y) : ctx2d.lineTo(x, y);
   }
   ctx2d.globalCompositeOperation = "lighter";
   const bright = clamp(.35 + .8*env.level + .6*flashKick, .2, 1);
@@ -647,8 +647,6 @@ function drawViz(now) {
   document.getElementById("statusBar").textContent = playing
     ? `▶ ${bpm}BPM  step:${(seqStep-1)&15}  ${fb}  fps:${fpsAvg.toFixed(0)}`
     : `— stopped — ${fb}`;
-
-  // phases controlled by PHS sliders — no auto-increment
 
   if (activeOffCtx) {
     activeOffCtx.drawImage(canvas, 0, 0, 2160, 2160);
