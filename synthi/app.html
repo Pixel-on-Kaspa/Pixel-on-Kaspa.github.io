@@ -119,6 +119,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
     <button class="btn" id="btnRec">⏺ MP4</button>
     <button class="btn" id="btnZoomIn">＋</button>
     <button class="btn" id="btnZoomOut">－</button>
+    <button class="btn" id="btnUnison">UNISON</button>
     <span style="font-size:11px;color:var(--muted)">BPM</span>
     <input class="bpmBox" id="bpmIn" type="number" min="40" max="240" value="120">
     <span style="font-size:11px;color:var(--muted)">VOL</span>
@@ -818,6 +819,18 @@ window.addEventListener("keydown", async e => {
       el.value=Math.random().toFixed(3);
       el.dispatchEvent(new Event("input"));
     }
+  }
+});
+
+/* ── UNISON ── */
+document.getElementById('btnUnison').addEventListener('click', () => {
+  const baseFreq = oState[0].freq;
+  for (let i = 1; i < 4; i++) {
+    oState[i].freq = baseFreq;
+    const el = document.getElementById('fr' + i);
+    el.value = baseFreq;
+    document.getElementById('fv' + i).textContent = logF(baseFreq).toFixed(0) + 'Hz';
+    if (nd) nd.oscs[i].o.frequency.setTargetAtTime(logF(baseFreq), actx.currentTime, .015);
   }
 });
 
