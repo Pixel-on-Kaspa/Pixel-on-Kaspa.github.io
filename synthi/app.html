@@ -545,14 +545,11 @@ let fpsAvg = 60, fpsFrames = 0, fpsT = performance.now();
 function resizeCanvas() {
   const dpr = window.devicePixelRatio || 1;
   const c = document.getElementById('center');
-  const size = Math.min(c.clientWidth, c.clientHeight) || 600;
+  const size = Math.min(c.clientWidth, c.clientHeight);
   canvas.width  = size * dpr;
   canvas.height = size * dpr;
   canvas.style.width  = size + 'px';
   canvas.style.height = size + 'px';
-  ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
-  canvasSize = size;
-  canvasDpr  = dpr;
 }
 
 function readEnv() {
@@ -571,7 +568,7 @@ function drawViz(now) {
   fpsFrames++;
   if (now-fpsT > 500) { fpsAvg = fpsAvg*.7+(fpsFrames*1000/(now-fpsT))*.3; fpsFrames=0; fpsT=now; }
 
-  const W = canvasSize, H = canvasSize, cx=W/2, cy=H/2;
+  const W = canvas.width, H = canvas.height, cx=W/2, cy=H/2;
   const env = readEnv();
 
   // trail decay — fillRect uses physical pixels to guarantee full clear
@@ -635,7 +632,7 @@ function drawViz(now) {
   vizPhaseY += .0018 + .005*env.level;
 
   if (activeOffCtx) {
-    activeOffCtx.drawImage(canvas, 0, 0, 1440, 1440);
+    activeOffCtx.drawImage(canvas, 0, 0, 2160, 2160);
   }
 }
 
@@ -865,8 +862,8 @@ btnRec.addEventListener('click', () => {
 
   const chunks = [];
   const offscreen = document.createElement('canvas');
-  offscreen.width  = 1440;
-  offscreen.height = 1440;
+  offscreen.width  = 2160;
+  offscreen.height = 2160;
   activeOffscreen = offscreen;
   activeOffCtx = offscreen.getContext('2d');
 
@@ -881,10 +878,10 @@ btnRec.addEventListener('click', () => {
   let rec;
   for (const mime of FORMATS) {
     if (!MediaRecorder.isTypeSupported(mime)) continue;
-    try { rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 }); break; }
+    try { rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 25_000_000 }); break; }
     catch(e) {}
   }
-  if (!rec) rec = new MediaRecorder(stream, { videoBitsPerSecond: 8_000_000 });
+  if (!rec) rec = new MediaRecorder(stream, { videoBitsPerSecond: 25_000_000 });
 
   const actualMime = rec.mimeType || 'video/webm';
   const actualExt  = actualMime.includes('mp4') ? 'mp4' : 'webm';
@@ -900,7 +897,7 @@ btnRec.addEventListener('click', () => {
     endRec();
   };
 
-  rec.start(100);
+  rec.start(33);
 
   const start = performance.now();
   function updateOverlay() {
