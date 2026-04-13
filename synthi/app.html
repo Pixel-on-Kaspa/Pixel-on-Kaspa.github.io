@@ -24,7 +24,7 @@ input[type=range]{cursor:pointer}
 
 /* layout — footer 28px, topbar 46px → main = calc(100vh - 74px) */
 #main{display:flex;height:calc(100vh - 110px);overflow:hidden}
-#panelL,#panelR{width:220px;flex-shrink:0;overflow-y:auto;overflow-x:hidden;padding:7px;
+#panelL,#panelR{width:220px;flex-shrink:0;overflow-y:auto;overflow-x:visible;padding:7px;
   border-right:1px solid var(--border)}
 #panelR{border-right:none;border-left:1px solid var(--border)}
 #panelL::-webkit-scrollbar,#panelR::-webkit-scrollbar{width:3px}
@@ -65,7 +65,7 @@ input[type=range]{cursor:pointer}
 #btnPlay.playing{background:rgba(220,60,60,.14);border-color:rgba(220,80,80,.45);color:#f87070}
 
 /* sliders */
-.sr{display:flex;align-items:center;gap:5px;margin-bottom:4px}
+.sr{display:flex;align-items:center;gap:5px;margin-bottom:4px;overflow:visible}
 .sr label{font-size:10px;color:var(--muted);width:30px;flex-shrink:0;font-family:var(--mono)}
 .sr .v{font-size:10px;color:var(--accent);width:40px;min-width:40px;text-align:right;font-family:var(--mono);flex-shrink:0}
 input[type=range]{-webkit-appearance:none;flex:1;height:3px;background:rgba(255,255,255,.12);
@@ -74,7 +74,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
   border-radius:50%;background:var(--accent);cursor:pointer;box-shadow:0 0 4px rgba(73,234,203,.5)}
 input[type=range].pur::-webkit-slider-thumb{background:var(--purple);box-shadow:0 0 4px rgba(155,89,182,.5)}
 input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--accent);border:none}
-.sr input[type=number].v{border:none;background:transparent;outline:none;-moz-appearance:textfield;padding:0;min-width:58px;width:58px}
+.sr input[type=number].v{border:none;background:transparent;outline:none;-moz-appearance:textfield;padding:0;min-width:60px;width:60px}
 .sr input[type=number].v::-webkit-inner-spin-button,.sr input[type=number].v::-webkit-outer-spin-button{-webkit-appearance:none}
 .bpmBox{width:46px;background:rgba(255,255,255,.05);border:1px solid var(--border);
   color:var(--text);font-family:var(--mono);font-size:13px;font-weight:700;
@@ -370,10 +370,6 @@ function buildAudio() {
   const preMix = actx.createGain(); preMix.gain.value = 0.35;
   oscs.forEach(n => n.pan.connect(preMix));
 
-  // per-OSC delay send — delay routing done via per-OSC toggle
-  const preDelayMix = actx.createGain(); preDelayMix.gain.value = 1;
-  oscs.forEach(n => n.dlyG.connect(preDelayMix));
-
   // filter
   const filter = actx.createBiquadFilter();
   filter.type = fx.ftType;
@@ -381,14 +377,9 @@ function buildAudio() {
   filter.Q.value = fx.ftRes;
   preMix.connect(filter);
 
-  // ── STEREO DELAY ──
-  // D1 (idx 0) + D3 (idx 2) → mergeL GainNode → ChannelMerger input 0 (L)
-  // D2 (idx 1) + D4 (idx 3) → mergeR GainNode → ChannelMerger input 1 (R)
-  // Filter output split L/R → each delay fed from its matching channel.
-  const dlSplit = actx.createChannelSplitter(2);
-  preDelayMix.connect(dlSplit);
-
-  // Explicit merge gains so D1+D3 sum cleanly on Left, D2+D4 on Right
+  // ── STEREO DELAY — direct per-OSC routing (no ChannelSplitter) ──
+  // OSC1(L)+OSC3(L) dlyG → D1,D3 → dlMergeL
+  // OSC2(R)+OSC4(R) dlyG → D2,D4 → dlMergeR
   const dlMergeL = actx.createGain(); dlMergeL.gain.value = 1;
   const dlMergeR = actx.createGain(); dlMergeR.gain.value = 1;
 
@@ -398,8 +389,12 @@ function buildAudio() {
     const clip = softClip();
     d.connect(fb); fb.connect(clip); clip.connect(d); // feedback loop
     const isL = (i === 0 || i === 2);
-    dlSplit.connect(d, isL ? 0 : 1, 0); // L or R splitter channel → delay input
-    d.connect(isL ? dlMergeL : dlMergeR); // D1+D3 → mergeL, D2+D4 → mergeR
+    // each OSC's dlyG feeds the delay lines that match its L/R assignment
+    oscs.forEach((osc, oi) => {
+      const oscIsL = (oi === 0 || oi === 2);
+      if (oscIsL === isL) osc.dlyG.connect(d);
+    });
+    d.connect(isL ? dlMergeL : dlMergeR);
     return { d, fb };
   });
 
@@ -451,7 +446,7 @@ function buildAudio() {
   oscs[1].g.connect(analyserR);
   oscs[3].g.connect(analyserR);
 
-  nd = { oscs, preMix, preDelayMix, filter, dlSplit, dlMergeL, dlMergeR, dlMerge, delays, delayBus, dryG, mixBus,
+  nd = { oscs, preMix, filter, dlMergeL, dlMergeR, dlMerge, delays, delayBus, dryG, mixBus,
          conv, rvWetG, rvDryG, rvOut, comp, masterG,
          analyserF, analyserT, fftBuf, timeBuf,
          analyserL, analyserR, scopeBufL, scopeBufR,
@@ -459,7 +454,8 @@ function buildAudio() {
 
   // Audio graph summary:
   // oscs[i]: o → g → pan → preMix(0.35) → filter → dryG(0.65) → mixBus
-  //          pan → dlyG[i] → preDelayMix → dlSplit → D1-D4 → dlMergeL/R → dlMerge → delayBus → mixBus
+  //          dlyG[L oscs] → D1,D3 → dlMergeL → dlMerge → delayBus → mixBus
+  //          dlyG[R oscs] → D2,D4 → dlMergeR → dlMerge → delayBus → mixBus
   // mixBus → reverb(wet/dry) → rvOut → comp → masterG → analyserF → destination
   console.log('delay chain OK — dlyG gains:', oscs.map(n => n.dlyG.gain.value));
 }
@@ -748,12 +744,18 @@ function drawViz(now) {
   const lissPath = new Path2D();
   for (let i = 0; i <= steps; i++) {
     const t = lissT + (i / steps) * windowT;
-    const xVal = oState[0].wave==='triangle' || oState[2].wave==='triangle'
-      ? Math.sin(TAU * xHz * t + xPhase) + 0.33 * Math.sin(3 * TAU * xHz * t + xPhase)
-      : Math.sin(TAU * xHz * t + xPhase);
-    const yVal = oState[1].wave==='triangle' || oState[3].wave==='triangle'
-      ? Math.sin(TAU * yHz * t + yPhase) + 0.33 * Math.sin(3 * TAU * yHz * t + yPhase)
-      : Math.sin(TAU * yHz * t + yPhase);
+    const xWave = activeL.length > 0
+      ? ([oState[0], oState[2]].find(s => s.on)?.wave ?? 'sine')
+      : 'sine';
+    const yWave = activeR.length > 0
+      ? ([oState[1], oState[3]].find(s => s.on)?.wave ?? 'sine')
+      : 'sine';
+    const xVal = xWave === 'triangle'
+      ? Math.sin(TAU*xHz*t+xPhase) + 0.33*Math.sin(3*TAU*xHz*t+xPhase)
+      : Math.sin(TAU*xHz*t+xPhase);
+    const yVal = yWave === 'triangle'
+      ? Math.sin(TAU*yHz*t+yPhase) + 0.33*Math.sin(3*TAU*yHz*t+yPhase)
+      : Math.sin(TAU*yHz*t+yPhase);
     const x = cx + R * xVal;
     const y = cy + R * yVal;
     i === 0 ? lissPath.moveTo(x, y) : lissPath.lineTo(x, y);
