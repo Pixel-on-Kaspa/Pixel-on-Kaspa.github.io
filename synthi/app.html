@@ -458,6 +458,19 @@ function buildAudio() {
   //          dlyG[R oscs] → D2,D4 → dlMergeR → dlMerge → delayBus → mixBus
   // mixBus → reverb(wet/dry) → rvOut → comp → masterG → analyserF → destination
   console.log('delay chain OK — dlyG gains:', oscs.map(n => n.dlyG.gain.value));
+
+  // DEBUG — ověř delay routing
+  setTimeout(() => {
+    console.log('OSC dlyG gains:', nd.oscs.map(n => n.dlyG.gain.value));
+    console.log('delays count:', nd.delays.length);
+    console.log('delayBus connected');
+    // force test — pošli signal přímo do delay
+    const testOsc = actx.createOscillator();
+    testOsc.frequency.value = 440;
+    testOsc.connect(nd.delays[0].d);
+    testOsc.start();
+    testOsc.stop(actx.currentTime + 0.5);
+  }, 1000);
 }
 
 function restartOsc(i) {
