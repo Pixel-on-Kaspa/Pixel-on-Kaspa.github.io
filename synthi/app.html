@@ -859,18 +859,15 @@ for (let i=0;i<4;i++) {
     // freq — two-way binding: slider ↔ number input
     const fe=document.getElementById("fr"+n), fv=document.getElementById("fv"+n);
     fv.value = logF(oState[n].freq).toFixed(1);
-    const feHandler = () => {
+    fe.addEventListener("input", () => {
       oState[n].freq = parseFloat(fe.value);
       fv.value = logF(oState[n].freq).toFixed(1);
       if (nd) nd.oscs[n].o.frequency.setTargetAtTime(logF(oState[n].freq), actx.currentTime, .015);
-    };
-    fe.addEventListener("input", feHandler);
+    });
     fv.addEventListener("input", () => {
       const hz = clamp(parseFloat(fv.value) || 0, 0, 20000);
       oState[n].freq = hz / 20000;
-      fe.removeEventListener("input", feHandler);
-      fe.value = oState[n].freq;
-      requestAnimationFrame(() => fe.addEventListener("input", feHandler));
+      fe.value = oState[n].freq; // programmatic .value nezpustí input event
       if (nd) nd.oscs[n].o.frequency.setTargetAtTime(hz, actx.currentTime, .015);
     });
     // phase
