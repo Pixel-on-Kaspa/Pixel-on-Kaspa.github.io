@@ -16,14 +16,14 @@ button{font-family:inherit;cursor:pointer}
 input[type=range]{cursor:pointer}
 
 /* topbar */
-#topbar{height:46px;display:flex;align-items:center;gap:10px;padding:0 14px;
+#topbar{min-height:82px;height:auto;display:flex;align-items:center;gap:10px;padding:6px 14px;
   border-bottom:1px solid var(--border);background:rgba(5,8,8,.96);flex-shrink:0;}
 .brand{font-weight:900;letter-spacing:.18em;font-size:14px;color:var(--accent);margin-right:6px;white-space:nowrap}
 .transport{display:flex;align-items:center;gap:8px;flex:1;justify-content:center}
 #statusBar{font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap;min-width:180px;text-align:right}
 
 /* layout — footer 28px, topbar 46px → main = calc(100vh - 74px) */
-#main{display:flex;height:calc(100vh - 74px);overflow:hidden}
+#main{display:flex;height:calc(100vh - 110px);overflow:hidden}
 #panelL,#panelR{width:220px;flex-shrink:0;overflow-y:auto;overflow-x:hidden;padding:7px;
   border-right:1px solid var(--border)}
 #panelR{border-right:none;border-left:1px solid var(--border)}
@@ -67,14 +67,14 @@ input[type=range]{cursor:pointer}
 /* sliders */
 .sr{display:flex;align-items:center;gap:5px;margin-bottom:4px}
 .sr label{font-size:10px;color:var(--muted);width:30px;flex-shrink:0;font-family:var(--mono)}
-.sr .v{font-size:10px;color:var(--accent);width:40px;text-align:right;font-family:var(--mono);flex-shrink:0}
+.sr .v{font-size:10px;color:var(--accent);width:40px;min-width:40px;text-align:right;font-family:var(--mono);flex-shrink:0}
 input[type=range]{-webkit-appearance:none;flex:1;height:3px;background:rgba(255,255,255,.12);
   border-radius:2px;outline:none}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;
   border-radius:50%;background:var(--accent);cursor:pointer;box-shadow:0 0 4px rgba(73,234,203,.5)}
 input[type=range].pur::-webkit-slider-thumb{background:var(--purple);box-shadow:0 0 4px rgba(155,89,182,.5)}
 input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--accent);border:none}
-.sr input[type=number].v{border:none;background:transparent;outline:none;-moz-appearance:textfield;padding:0}
+.sr input[type=number].v{border:none;background:transparent;outline:none;-moz-appearance:textfield;padding:0;min-width:58px;width:58px}
 .sr input[type=number].v::-webkit-inner-spin-button,.sr input[type=number].v::-webkit-outer-spin-button{-webkit-appearance:none}
 .bpmBox{width:46px;background:rgba(255,255,255,.05);border:1px solid var(--border);
   color:var(--text);font-family:var(--mono);font-size:13px;font-weight:700;
@@ -157,7 +157,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
       <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr0" min="0" max="1" step="0.000001" value="0.01"><input class="v" type="number" id="fv0" min="0" max="20000" step="0.01" value="200"></div>
       <div class="sr"><label>DET</label><input type="range" id="dt0" min="-1200" max="1200" step="0.1" value="0"><span class="v" id="dv0">0.0¢</span></div>
       <div class="sr"><label>PHS</label><input type="range" id="ph0" min="0" max="6.2832" step="0.001" value="0"><span class="v" id="phv0">0.00</span></div>
-      <div class="sr"><label>VOL</label><input type="range" id="vl0" min="0" max="1" step=".01" value=".6"><span class="v" id="vv0">0.60</span></div>
+      <div class="sr"><label>VOL</label><input type="range" id="vl0" min="0" max="1" step=".01" value=".1"><span class="v" id="vv0">0.10</span></div>
       <div style="display:flex;gap:3px;margin-top:2px"><button class="btn on" id="on0" style="flex:1">ON</button><button class="btn on" id="dly0" style="flex:1">DLY</button></div>
     </div>
     <!-- OSC 2 — R -->
@@ -170,7 +170,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
       <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr1" min="0" max="1" step="0.000001" value="0.01"><input class="v" type="number" id="fv1" min="0" max="20000" step="0.01" value="200"></div>
       <div class="sr"><label>DET</label><input type="range" id="dt1" min="-1200" max="1200" step="0.1" value="0"><span class="v" id="dv1">0.0¢</span></div>
       <div class="sr"><label>PHS</label><input type="range" id="ph1" min="0" max="6.2832" step="0.001" value="1.5708"><span class="v" id="phv1">1.57</span></div>
-      <div class="sr"><label>VOL</label><input type="range" id="vl1" min="0" max="1" step=".01" value=".5"><span class="v" id="vv1">0.50</span></div>
+      <div class="sr"><label>VOL</label><input type="range" id="vl1" min="0" max="1" step=".01" value=".1"><span class="v" id="vv1">0.10</span></div>
       <div style="display:flex;gap:3px;margin-top:2px"><button class="btn on" id="on1" style="flex:1">ON</button><button class="btn on" id="dly1" style="flex:1">DLY</button></div>
     </div>
     <!-- OSC 3 — L -->
@@ -183,7 +183,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
       <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr2" min="0" max="1" step="0.000001" value="0.01"><input class="v" type="number" id="fv2" min="0" max="20000" step="0.01" value="200"></div>
       <div class="sr"><label>DET</label><input type="range" id="dt2" min="-1200" max="1200" step="0.1" value="0"><span class="v" id="dv2">0.0¢</span></div>
       <div class="sr"><label>PHS</label><input type="range" id="ph2" min="0" max="6.2832" step="0.001" value="0"><span class="v" id="phv2">0.00</span></div>
-      <div class="sr"><label>VOL</label><input type="range" id="vl2" min="0" max="1" step=".01" value=".3"><span class="v" id="vv2">0.30</span></div>
+      <div class="sr"><label>VOL</label><input type="range" id="vl2" min="0" max="1" step=".01" value=".1"><span class="v" id="vv2">0.10</span></div>
       <div style="display:flex;gap:3px;margin-top:2px"><button class="btn on" id="on2" style="flex:1">ON</button><button class="btn on" id="dly2" style="flex:1">DLY</button></div>
     </div>
     <!-- OSC 4 — R -->
@@ -196,7 +196,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
       <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr3" min="0" max="1" step="0.000001" value="0.01"><input class="v" type="number" id="fv3" min="0" max="20000" step="0.01" value="200"></div>
       <div class="sr"><label>DET</label><input type="range" id="dt3" min="-1200" max="1200" step="0.1" value="0"><span class="v" id="dv3">0.0¢</span></div>
       <div class="sr"><label>PHS</label><input type="range" id="ph3" min="0" max="6.2832" step="0.001" value="1.5708"><span class="v" id="phv3">1.57</span></div>
-      <div class="sr"><label>VOL</label><input type="range" id="vl3" min="0" max="1" step=".01" value=".4"><span class="v" id="vv3">0.40</span></div>
+      <div class="sr"><label>VOL</label><input type="range" id="vl3" min="0" max="1" step=".01" value=".1"><span class="v" id="vv3">0.10</span></div>
       <div style="display:flex;gap:3px;margin-top:2px"><button class="btn on" id="on3" style="flex:1">ON</button><button class="btn on" id="dly3" style="flex:1">DLY</button></div>
     </div>
     <!-- SAMPLER -->
@@ -291,10 +291,10 @@ let flashKick = 0, flashSnare = 0;
 // 4 oscillators: OSC1 L(-1), OSC2 R(+1), OSC3 L(-1), OSC4 R(+1)
 // waves: SIN and TRI only
 const oState = [
-  { wave:"sine", freq:.01, det:0, vol:.6, on:true, dly:true, pan:-1, phase:0 },
-  { wave:"sine", freq:.01, det:0, vol:.5, on:true, dly:true, pan:+1, phase:1.5708 },
-  { wave:"sine", freq:.01, det:0, vol:.3, on:true, dly:true, pan:-1, phase:0 },
-  { wave:"sine", freq:.01, det:0, vol:.4, on:true, dly:true, pan:+1, phase:1.5708 },
+  { wave:"sine", freq:.01, det:0, vol:.1, on:true, dly:true, pan:-1, phase:0 },
+  { wave:"sine", freq:.01, det:0, vol:.1, on:true, dly:true, pan:+1, phase:1.5708 },
+  { wave:"sine", freq:.01, det:0, vol:.1, on:true, dly:true, pan:-1, phase:0 },
+  { wave:"sine", freq:.01, det:0, vol:.1, on:true, dly:true, pan:+1, phase:1.5708 },
 ];
 const fx = {
   ftType:"lowpass", ftCut:.85, ftRes:1,
@@ -456,6 +456,12 @@ function buildAudio() {
          analyserF, analyserT, fftBuf, timeBuf,
          analyserL, analyserR, scopeBufL, scopeBufR,
          _noise:null };
+
+  // Audio graph summary:
+  // oscs[i]: o → g → pan → preMix(0.35) → filter → dryG(0.65) → mixBus
+  //          pan → dlyG[i] → preDelayMix → dlSplit → D1-D4 → dlMergeL/R → dlMerge → delayBus → mixBus
+  // mixBus → reverb(wet/dry) → rvOut → comp → masterG → analyserF → destination
+  console.log('delay chain OK — dlyG gains:', oscs.map(n => n.dlyG.gain.value));
 }
 
 function restartOsc(i) {
@@ -708,12 +714,12 @@ function drawViz(now) {
   const W = canvas.width, H = canvas.height, cx=W/2, cy=H/2;
   const env = readEnv();
 
-  // trail decay — fillRect uses physical pixels to guarantee full clear
+  // trail decay — teal-black background, alpha from DECAY knob (min 0.10)
   ctx2d.globalCompositeOperation = "source-over";
-  ctx2d.globalAlpha = decayVal + .06*env.bass + .2*flashKick;
-  ctx2d.fillStyle = "#000";
-  ctx2d.fillRect(0, 0, canvas.width, canvas.height);
   ctx2d.globalAlpha = 1;
+  const decayAlpha = Math.max(0.10, decayVal + .06*env.bass + .2*flashKick);
+  ctx2d.fillStyle = `rgba(5,13,9,${decayAlpha})`;
+  ctx2d.fillRect(0, 0, canvas.width, canvas.height);
 
   flashKick  *= 0.85;
   flashSnare *= 0.82;
@@ -739,7 +745,7 @@ function drawViz(now) {
   const xPhase = (oState[0].phase + oState[2].phase) / 2;
   const yPhase = (oState[1].phase + oState[3].phase) / 2;
 
-  ctx2d.beginPath();
+  const lissPath = new Path2D();
   for (let i = 0; i <= steps; i++) {
     const t = lissT + (i / steps) * windowT;
     const xVal = oState[0].wave==='triangle' || oState[2].wave==='triangle'
@@ -750,13 +756,20 @@ function drawViz(now) {
       : Math.sin(TAU * yHz * t + yPhase);
     const x = cx + R * xVal;
     const y = cy + R * yVal;
-    i === 0 ? ctx2d.moveTo(x, y) : ctx2d.lineTo(x, y);
+    i === 0 ? lissPath.moveTo(x, y) : lissPath.lineTo(x, y);
   }
   ctx2d.globalCompositeOperation = "lighter";
   const bright = clamp(.7 + .3*env.level + .4*flashKick, .5, 1);
-  ctx2d.strokeStyle = `hsla(170,90%,${brightVal}%,${bright})`;
-  ctx2d.lineWidth = thickVal + env.bass*3 + flashKick;
-  ctx2d.stroke();
+  const lw = thickVal + env.bass*3 + flashKick;
+  const lightness = Math.round(brightVal * 0.8); // knob 70 → 56% lightness ≈ 55%
+  // glow pass — wide, low alpha
+  ctx2d.strokeStyle = `hsla(165,85%,${lightness}%,0.15)`;
+  ctx2d.lineWidth = lw * 2.5;
+  ctx2d.stroke(lissPath);
+  // main pass
+  ctx2d.strokeStyle = `hsla(165,85%,${lightness}%,${bright})`;
+  ctx2d.lineWidth = lw;
+  ctx2d.stroke(lissPath);
 
   if (flashKick > .3) {
     ctx2d.beginPath();
