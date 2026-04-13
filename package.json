@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@kasdk/nodejs": "^0.15.2",
+    "kaspa-wasm": "^0.13.0",
+    "twitter-api-v2": "^1.29.0"
+  }
+}
