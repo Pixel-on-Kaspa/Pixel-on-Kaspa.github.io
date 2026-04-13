@@ -104,6 +104,12 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
 .vuWrap{height:5px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin-top:5px}
 .vuBar{height:100%;background:linear-gradient(90deg,var(--accent) 0%,#f0c060 70%,#f06060 100%);width:0%}
 
+/* knobs */
+.knobWrap{display:flex;flex-direction:column;align-items:center;gap:1px;cursor:ns-resize;user-select:none}
+.knobWrap canvas{display:block}
+.knobLabel{font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em}
+.knobVal{font-size:10px;color:var(--accent);font-family:var(--mono)}
+
 /* recording */
 .btn.recording{background:rgba(220,60,60,.2);border-color:rgba(220,80,80,.5);color:#f07070}
 #recOverlay{display:none;position:absolute;top:16px;right:16px;
@@ -121,6 +127,11 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
     <button class="btn" id="btnRec">⏺ MP4</button>
     <button class="btn" id="btnZoomIn">＋</button>
     <button class="btn" id="btnZoomOut">－</button>
+    <div style="display:flex;gap:16px;align-items:center">
+      <div class="knobWrap" id="knobDecayWrap"><canvas id="knobDecay" width="44" height="44"></canvas><span class="knobLabel">DECAY</span><span class="knobVal" id="knobDecayVal">0.08</span></div>
+      <div class="knobWrap" id="knobBrightWrap"><canvas id="knobBright" width="44" height="44"></canvas><span class="knobLabel">BRIGHT</span><span class="knobVal" id="knobBrightVal">70%</span></div>
+      <div class="knobWrap" id="knobThickWrap"><canvas id="knobThick" width="44" height="44"></canvas><span class="knobLabel">THICK</span><span class="knobVal" id="knobThickVal">2.5</span></div>
+    </div>
     <button class="btn" id="btnUnison">UNISON</button>
     <button class="btn" id="btnSync">⟳ SYNC</button>
     <span style="font-size:11px;color:var(--muted)">BPM</span>
@@ -545,6 +556,102 @@ function highlightStep(s) {
   });
 })();
 
+/* ── KNOB GLOBALS ── */
+let decayVal  = 0.08;
+let brightVal = 70;
+let thickVal  = 2.5;
+
+/* ── KNOB COMPONENT ── */
+function makeKnob({ canvasId, wrapId, valId, min, max, defaultVal, decimals, unit, onChange }) {
+  const cv   = document.getElementById(canvasId);
+  const wrap = document.getElementById(wrapId);
+  const valEl = document.getElementById(valId);
+  const ctx  = cv.getContext("2d");
+  const SIZE = cv.width;
+  const CX = SIZE / 2, CY = SIZE / 2, R = SIZE * 0.38;
+  const START = Math.PI * 0.75;   // 135°
+  const END   = Math.PI * 2.25;   // 405° (270° sweep)
+  const RANGE = END - START;
+  let val = defaultVal;
+
+  function draw() {
+    ctx.clearRect(0, 0, SIZE, SIZE);
+    const norm = (val - min) / (max - min);
+    const angle = START + norm * RANGE;
+
+    // track bg
+    ctx.beginPath();
+    ctx.arc(CX, CY, R, START, END);
+    ctx.strokeStyle = "rgba(255,255,255,0.10)";
+    ctx.lineWidth = 3.5;
+    ctx.lineCap = "round";
+    ctx.stroke();
+
+    // active arc
+    ctx.beginPath();
+    ctx.arc(CX, CY, R, START, angle);
+    ctx.strokeStyle = "#1D9E75";
+    ctx.lineWidth = 3.5;
+    ctx.lineCap = "round";
+    ctx.stroke();
+
+    // dot
+    const dx = CX + R * Math.cos(angle);
+    const dy = CY + R * Math.sin(angle);
+    ctx.beginPath();
+    ctx.arc(dx, dy, 3, 0, Math.PI * 2);
+    ctx.fillStyle = "#1D9E75";
+    ctx.fill();
+  }
+
+  function fmt(v) {
+    const s = v.toFixed(decimals);
+    return unit ? s + unit : s;
+  }
+
+  function set(v) {
+    val = Math.max(min, Math.min(max, v));
+    draw();
+    valEl.textContent = fmt(val);
+    onChange(val);
+  }
+
+  draw();
+  valEl.textContent = fmt(val);
+
+  // drag
+  let dragY = null;
+  wrap.addEventListener("mousedown", e => { dragY = e.clientY; e.preventDefault(); });
+  window.addEventListener("mousemove", e => {
+    if (dragY === null) return;
+    const dy = dragY - e.clientY; // up = increase
+    dragY = e.clientY;
+    set(val + dy * (max - min) / 200);
+  });
+  window.addEventListener("mouseup", () => { dragY = null; });
+
+  // wheel
+  wrap.addEventListener("wheel", e => {
+    e.preventDefault();
+    const dir = e.deltaY < 0 ? 1 : -1;
+    set(val + dir * (max - min) / 100);
+  }, { passive: false });
+
+  return { set };
+}
+
+makeKnob({ canvasId:"knobDecay",  wrapId:"knobDecayWrap",  valId:"knobDecayVal",
+  min:0.01, max:0.30, defaultVal:0.08, decimals:2, unit:"",
+  onChange: v => { decayVal = v; } });
+
+makeKnob({ canvasId:"knobBright", wrapId:"knobBrightWrap", valId:"knobBrightVal",
+  min:30,   max:100,  defaultVal:70,   decimals:0, unit:"%",
+  onChange: v => { brightVal = Math.round(v); } });
+
+makeKnob({ canvasId:"knobThick",  wrapId:"knobThickWrap",  valId:"knobThickVal",
+  min:0.5,  max:5.0,  defaultVal:2.5,  decimals:1, unit:"",
+  onChange: v => { thickVal = v; } });
+
 /* ── VISUALIZATION (Lissajous) ── */
 const canvas = document.getElementById("vizCanvas");
 const ctx2d  = canvas.getContext("2d");
@@ -583,7 +690,7 @@ function drawViz(now) {
 
   // trail decay — fillRect uses physical pixels to guarantee full clear
   ctx2d.globalCompositeOperation = "source-over";
-  ctx2d.globalAlpha = 0.08 + .06*env.bass + .2*flashKick;
+  ctx2d.globalAlpha = decayVal + .06*env.bass + .2*flashKick;
   ctx2d.fillStyle = "#000";
   ctx2d.fillRect(0, 0, canvas.width, canvas.height);
   ctx2d.globalAlpha = 1;
@@ -627,8 +734,8 @@ function drawViz(now) {
   }
   ctx2d.globalCompositeOperation = "lighter";
   const bright = clamp(.7 + .3*env.level + .4*flashKick, .5, 1);
-  ctx2d.strokeStyle = `hsla(170,90%,70%,${bright})`;
-  ctx2d.lineWidth = 2.5 + env.bass*3 + flashKick;
+  ctx2d.strokeStyle = `hsla(170,90%,${brightVal}%,${bright})`;
+  ctx2d.lineWidth = thickVal + env.bass*3 + flashKick;
   ctx2d.stroke();
 
   if (flashKick > .3) {
