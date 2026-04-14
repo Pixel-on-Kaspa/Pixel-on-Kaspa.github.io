@@ -24,13 +24,13 @@ input[type=range]{cursor:pointer}
 
 /* layout — footer 28px, topbar 46px → main = calc(100vh - 74px) */
 #main{display:flex;height:calc(100vh - 110px);overflow:hidden}
-#panelL,#panelR{width:240px;flex-shrink:0;overflow-y:auto;overflow-x:visible;padding:7px;
+#panelL,#panelR{width:260px;flex-shrink:0;overflow-y:auto;overflow-x:visible;padding:7px;
   border-right:1px solid var(--border)}
 #panelR{border-right:none;border-left:1px solid var(--border)}
 #panelL::-webkit-scrollbar,#panelR::-webkit-scrollbar{width:3px}
 #panelL::-webkit-scrollbar-thumb,#panelR::-webkit-scrollbar-thumb{background:rgba(73,234,203,.2);border-radius:2px}
 #center{flex:1;display:flex;align-items:center;justify-content:center;position:relative;background:var(--bg);overflow:hidden}
-#vizCanvas{display:block;width:min(calc(100vw - 480px),calc(100vh - 110px));height:min(calc(100vw - 480px),calc(100vh - 110px));aspect-ratio:1/1}
+#vizCanvas{display:block;width:min(calc(100vw - 520px),calc(100vh - 110px));height:min(calc(100vw - 520px),calc(100vh - 110px));aspect-ratio:1/1}
 
 
 /* footer */
