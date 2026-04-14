@@ -676,15 +676,15 @@ function makeKnob({ canvasId, wrapId, valId, min, max, defaultVal, decimals, uni
 }
 
 makeKnob({ canvasId:"knobDecay",  wrapId:"knobDecayWrap",  valId:"knobDecayVal",
-  min:0.01, max:0.30, defaultVal:0.08, decimals:2, unit:"",
+  min:0.01, max:0.60, defaultVal:0.08, decimals:2, unit:"",
   onChange: v => { decayVal = v; } });
 
 makeKnob({ canvasId:"knobBright", wrapId:"knobBrightWrap", valId:"knobBrightVal",
-  min:30,   max:100,  defaultVal:70,   decimals:0, unit:"%",
+  min:10,   max:100,  defaultVal:70,   decimals:0, unit:"%",
   onChange: v => { brightVal = Math.round(v); } });
 
 makeKnob({ canvasId:"knobThick",  wrapId:"knobThickWrap",  valId:"knobThickVal",
-  min:0.5,  max:5.0,  defaultVal:2.5,  decimals:1, unit:"",
+  min:0.1,  max:8.0,  defaultVal:2.5,  decimals:1, unit:"",
   onChange: v => { thickVal = v; } });
 
 /* ── VISUALIZATION (Lissajous) ── */
