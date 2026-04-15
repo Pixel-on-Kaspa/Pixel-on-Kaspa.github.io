@@ -665,7 +665,7 @@ function makeKnob({ canvasId, wrapId, valId, min, max, defaultVal, decimals, uni
     if (dragY === null) return;
     const dy = dragY - e.clientY; // up = increase
     dragY = e.clientY;
-    set(val + dy * (max - min) / 200);
+    set(val + dy * (max - min) / 500);
   });
   window.addEventListener("mouseup", () => { dragY = null; });
 
@@ -673,14 +673,14 @@ function makeKnob({ canvasId, wrapId, valId, min, max, defaultVal, decimals, uni
   wrap.addEventListener("wheel", e => {
     e.preventDefault();
     const dir = e.deltaY < 0 ? 1 : -1;
-    set(val + dir * (max - min) / 100);
+    set(val + dir * (max - min) / 300);
   }, { passive: false });
 
   return { set };
 }
 
 makeKnob({ canvasId:"knobDecay",  wrapId:"knobDecayWrap",  valId:"knobDecayVal",
-  min:0.00, max:0.60, defaultVal:0.05, decimals:3, unit:"",
+  min:0.001, max:0.60, defaultVal:0.05, decimals:3, unit:"",
   onChange: v => { decayVal = v; } });
 
 makeKnob({ canvasId:"knobBright", wrapId:"knobBrightWrap", valId:"knobBrightVal",
@@ -688,7 +688,7 @@ makeKnob({ canvasId:"knobBright", wrapId:"knobBrightWrap", valId:"knobBrightVal"
   onChange: v => { brightVal = Math.round(v); } });
 
 makeKnob({ canvasId:"knobThick",  wrapId:"knobThickWrap",  valId:"knobThickVal",
-  min:0.1,  max:8.0,  defaultVal:2.5,  decimals:3, unit:"",
+  min:0.001, max:8.0,  defaultVal:2.5,  decimals:3, unit:"",
   onChange: v => { thickVal = v; } });
 
 makeKnob({ canvasId:"knobHue", wrapId:"knobHueWrap", valId:"knobHueVal",
