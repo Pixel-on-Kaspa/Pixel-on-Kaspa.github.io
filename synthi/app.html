@@ -1086,14 +1086,15 @@ btnRec.addEventListener('click', () => {
   btnRec.textContent = '● REC';
   btnRec.disabled = true;
 
-  const chunks = [];
-  const offscreen = document.createElement('canvas');
-  offscreen.width  = 1440;
-  offscreen.height = 1440;
-  activeOffscreen = offscreen;
-  activeOffCtx = offscreen.getContext('2d');
+  ensureNd();
 
-  const stream = offscreen.captureStream(60);
+  const chunks = [];
+  const off = document.createElement('canvas');
+  off.width = 1440; off.height = 1440;
+  activeOffscreen = off;
+  activeOffCtx = off.getContext('2d');
+
+  const stream = off.captureStream(60);
 
   const FORMATS = [
     'video/mp4;codecs=avc1.42E01E',
@@ -1115,15 +1116,15 @@ btnRec.addEventListener('click', () => {
   rec.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
   rec.onstop = () => {
     const blob = new Blob(chunks, { type: actualMime });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'synthi-' + Date.now() + '.' + actualExt;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+    a.href = url; a.download = 'synthi-' + Date.now() + '.' + actualExt;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 3000);
     endRec();
   };
 
-  rec.start(33);
+  rec.start(100);
 
   const start = performance.now();
   function updateOverlay() {
