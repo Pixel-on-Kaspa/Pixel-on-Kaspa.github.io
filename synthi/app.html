@@ -804,7 +804,7 @@ function drawViz(now) {
     : `— stopped — ${fb}`;
 
   if (activeOffCtx) {
-    activeOffCtx.drawImage(canvas, 0, 0, 1080, 1080);
+    activeOffCtx.drawImage(canvas, 0, 0, 1440, 1440);
   }
 }
 
@@ -1076,8 +1076,8 @@ btnRec.addEventListener('click', () => {
 
   const chunks = [];
   const offscreen = document.createElement('canvas');
-  offscreen.width  = 1080;
-  offscreen.height = 1080;
+  offscreen.width  = 1440;
+  offscreen.height = 1440;
   activeOffscreen = offscreen;
   activeOffCtx = offscreen.getContext('2d');
 
