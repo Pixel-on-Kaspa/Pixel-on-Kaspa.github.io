@@ -131,6 +131,8 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
       <div class="knobWrap" id="knobDecayWrap"><canvas id="knobDecay" width="44" height="44"></canvas><span class="knobLabel">DECAY</span><span class="knobVal" id="knobDecayVal">0.08</span></div>
       <div class="knobWrap" id="knobBrightWrap"><canvas id="knobBright" width="44" height="44"></canvas><span class="knobLabel">BRIGHT</span><span class="knobVal" id="knobBrightVal">70%</span></div>
       <div class="knobWrap" id="knobThickWrap"><canvas id="knobThick" width="44" height="44"></canvas><span class="knobLabel">THICK</span><span class="knobVal" id="knobThickVal">2.5</span></div>
+      <div class="knobWrap" id="knobHueWrap"><canvas id="knobHue" width="44" height="44"></canvas><span class="knobLabel">HUE</span><span class="knobVal" id="knobHueVal">165</span></div>
+      <div class="knobWrap" id="knobContWrap"><canvas id="knobCont" width="44" height="44"></canvas><span class="knobLabel">CONT</span><span class="knobVal" id="knobContVal">85</span></div>
     </div>
     <button class="btn" id="btnUnison">UNISON</button>
     <button class="btn" id="btnSync">⟳ SYNC</button>
@@ -595,6 +597,8 @@ function highlightStep(s) {
 let decayVal  = 0.08;
 let brightVal = 70;
 let thickVal  = 2.5;
+let hueVal    = 165;
+let contVal   = 85;
 
 /* ── KNOB COMPONENT ── */
 function makeKnob({ canvasId, wrapId, valId, min, max, defaultVal, decimals, unit, onChange }) {
@@ -676,7 +680,7 @@ function makeKnob({ canvasId, wrapId, valId, min, max, defaultVal, decimals, uni
 }
 
 makeKnob({ canvasId:"knobDecay",  wrapId:"knobDecayWrap",  valId:"knobDecayVal",
-  min:0.01, max:0.60, defaultVal:0.08, decimals:2, unit:"",
+  min:0.00, max:0.60, defaultVal:0.05, decimals:2, unit:"",
   onChange: v => { decayVal = v; } });
 
 makeKnob({ canvasId:"knobBright", wrapId:"knobBrightWrap", valId:"knobBrightVal",
@@ -686,6 +690,14 @@ makeKnob({ canvasId:"knobBright", wrapId:"knobBrightWrap", valId:"knobBrightVal"
 makeKnob({ canvasId:"knobThick",  wrapId:"knobThickWrap",  valId:"knobThickVal",
   min:0.1,  max:8.0,  defaultVal:2.5,  decimals:1, unit:"",
   onChange: v => { thickVal = v; } });
+
+makeKnob({ canvasId:"knobHue", wrapId:"knobHueWrap", valId:"knobHueVal",
+  min:0, max:360, defaultVal:165, decimals:0, unit:"",
+  onChange: v => { hueVal = Math.round(v); } });
+
+makeKnob({ canvasId:"knobCont", wrapId:"knobContWrap", valId:"knobContVal",
+  min:40, max:100, defaultVal:85, decimals:0, unit:"%",
+  onChange: v => { contVal = Math.round(v); } });
 
 /* ── VISUALIZATION (Lissajous) ── */
 const canvas = document.getElementById("vizCanvas");
@@ -726,7 +738,7 @@ function drawViz(now) {
   // trail decay — teal-black background, alpha from DECAY knob (min 0.10)
   ctx2d.globalCompositeOperation = "source-over";
   ctx2d.globalAlpha = 1;
-  const decayAlpha = Math.max(0.10, decayVal + .06*env.bass + .2*flashKick);
+  const decayAlpha = Math.max(decayVal, decayVal + .06*env.bass + .2*flashKick);
   ctx2d.fillStyle = `rgba(5,13,9,${decayAlpha})`;
   ctx2d.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -778,11 +790,11 @@ function drawViz(now) {
   const lw = thickVal + env.bass*3 + flashKick;
   const lightness = Math.round(brightVal * 0.8); // knob 70 → 56% lightness ≈ 55%
   // glow pass — wide, low alpha
-  ctx2d.strokeStyle = `hsla(165,85%,${lightness}%,0.15)`;
+  ctx2d.strokeStyle = `hsla(${hueVal},${contVal}%,${lightness}%,0.15)`;
   ctx2d.lineWidth = lw * 2.5;
   ctx2d.stroke(lissPath);
   // main pass
-  ctx2d.strokeStyle = `hsla(165,85%,${lightness}%,${bright})`;
+  ctx2d.strokeStyle = `hsla(${hueVal},${contVal}%,${lightness}%,${bright})`;
   ctx2d.lineWidth = lw;
   ctx2d.stroke(lissPath);
 
