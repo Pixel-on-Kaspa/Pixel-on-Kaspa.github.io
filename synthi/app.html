@@ -785,7 +785,7 @@ function drawViz(now) {
     const y = cy + R * yVal;
     i === 0 ? lissPath.moveTo(x, y) : lissPath.lineTo(x, y);
   }
-  ctx2d.globalCompositeOperation = "lighter";
+  ctx2d.globalCompositeOperation = "source-over";
   const bright = clamp(.7 + .3*env.level + .4*flashKick, .5, 1);
   const lw = thickVal + env.bass*3 + flashKick;
   const lightness = Math.round(brightVal * 0.8); // knob 70 → 56% lightness ≈ 55%
