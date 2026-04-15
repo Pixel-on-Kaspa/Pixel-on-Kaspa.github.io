@@ -815,6 +815,9 @@ function drawViz(now) {
     ? `▶ ${bpm}BPM  step:${(seqStep-1)&15}  ${fb}  fps:${fpsAvg.toFixed(0)}`
     : `— stopped — ${fb}`;
 
+  if (activeOffCtx && activeOffscreen) {
+    activeOffCtx.drawImage(canvas, 0, 0, 1440, 1440);
+  }
 }
 
 
@@ -1084,12 +1087,13 @@ btnRec.addEventListener('click', () => {
   btnRec.disabled = true;
 
   const chunks = [];
-  const origW = canvas.width, origH = canvas.height;
-  const origStyleW = canvas.style.width, origStyleH = canvas.style.height;
-  canvas.width = 1440; canvas.height = 1440;
-  canvas.style.width = '1440px'; canvas.style.height = '1440px';
+  const offscreen = document.createElement('canvas');
+  offscreen.width  = 1440;
+  offscreen.height = 1440;
+  activeOffscreen = offscreen;
+  activeOffCtx = offscreen.getContext('2d');
 
-  const stream = canvas.captureStream(60);
+  const stream = offscreen.captureStream(60);
 
   const FORMATS = [
     'video/mp4;codecs=avc1.42E01E',
@@ -1110,9 +1114,6 @@ btnRec.addEventListener('click', () => {
 
   rec.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
   rec.onstop = () => {
-    canvas.width = origW; canvas.height = origH;
-    canvas.style.width = origStyleW; canvas.style.height = origStyleH;
-    resizeCanvas();
     const blob = new Blob(chunks, { type: actualMime });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
