@@ -155,7 +155,7 @@ Pick a topic — rotate, don't repeat same topic two cycles in a row. Or use `--
 **Profiles:**
 - `@PixelonKas`: project context — tie Kaspa fact to why the project builds on it. 2–4 sentences. EN. Thread with `--long`.
 - `@marekozor`: personal perspective — why this matters to him as an artist storing work on-chain. Reflective, first person. EN.
-- `@synthicoin`: never a Kaspa educational post — generate experimental/art post instead. Pick any recent file from `~/pixel-exports/` or skip media.
+- `@synthicoin`: never a straight Kaspa educational post — generate experimental/art post instead. Pick any recent file from `~/pixel-exports/` or skip media. May touch on Kaspa or tech themes but through its own lens — raw, unexpected angle.
 
 No media for @PixelonKas and @marekozor (text-only). @synthicoin still gets a visual if available.
 
@@ -213,7 +213,7 @@ Pick a file from `~/pixel-exports/$ARTIST/` as usual. The difference is in the p
 - Describe what it is and where it's heading — one or two concrete sentences
 - No "coming soon" hype language
 - No calls to action
-- @synthicoin: treat as regular visual post, ignore WIP context
+- @synthicoin: treat as regular visual post, apply synthicoin voice normally
 
 **Example (@PixelonKas):**
 > "Reworking the SYNTHI AKS matrix UI — 9×8 patch bay, oscillator frequency modes. Still rough."
@@ -228,13 +228,28 @@ Pick a file from `~/pixel-exports/$ARTIST/` as usual. The difference is in the p
 Generate one post per profile using file metadata, media type, and voices below.
 
 ### Hashtags
-Generate relevant hashtags per post based on the specific NFT, artist, collection, visual style. Do not use a fixed set — vary each post.
 
-- `@PixelonKas`: 2–4 tags, project/NFT/blockchain focused
-- `@marekozor`: 2–3 tags, art/personal focused
-- `@synthicoin`: 0–2 tags max, never `#NFT`
-- **Instagram `@marekozor`: hashtag blok VŽDY** — min. 5 tagů, oddělené prázdným řádkem na konci captions
-  - Příklad: `#GenerativeArt #Kaspa #AlgorithmicArt #PixelArt #DigitalArt`
+#### @PixelonKas — X
+- Always include: `#Kaspa` `#KRC721` `#PIXELONKAS`
+- Rotate from: `#KRC20` `#NFT` `#NFTcommunity` `#BlockDAG` `#SYKORA` `#SYNTHI` `#creativecoding`
+- Educational posts add: `#crypto` `#Web3` `#blockchain`
+- Total per post: **3–4 tags**
+
+#### @marekozor — X
+- Always include: `#Kaspa`
+- Rotate from: `#generativeart` `#algorithmicart` `#digitalart` `#cryptoart` `#creativecoding`
+- Total per post: **2–3 tags**
+
+#### @synthicoin — X
+- Rotate from: `#synth` `#synthesizer` `#electronicmusic` `#soundart` `#experimentalmusic` `#creativecoding`
+- Never use `#NFT`
+- Total per post: **2–3 tags**
+
+#### Instagram @marekozor — hashtag blok VŽDY
+Always include: `#Kaspa` `#KaspaNetwork` `#PIXELONKAS`
+NFT/community pool: `#NFTart` `#NFTcollector` `#NFTcommunity` `#cryptoart` `#digitalart` `#creativecoding`
+Broad reach (educational posts): `#blockchain` `#Web3` `#crypto` `#DeFi`
+Total per post: **10–15 tags** — prázdný řádek před blokem vždy
 
 ### pixel-on-kaspa.fyi link
 Include randomly — not every post. Vary placement. ~60% inclusion rate.
@@ -243,7 +258,11 @@ Include randomly — not every post. Vary placement. ~60% inclusion rate.
 
 **@PixelonKas** — project voice, clean, direct, EN
 - Modrý ✓ stamp — autoritativní hlas projektu
-- Tone: concise, state what it is. No hype.
+- Tone per post type:
+  - Visual: short & punchy, 1–2 sentences, let the image speak
+  - Content/info: friendly & direct, explain clearly, no jargon overload
+  - Kaspa educational: confident, approachable — "here's why this matters"
+  - Promo: energetic but not salesy, community-first
 - May write threads (3–5 tweets) — use for Kaspa posts or content posts
 - Thread format: Tweet 1 hook → Tweet 2–3 content → last tweet hashtags + link
 
@@ -251,16 +270,20 @@ Include randomly — not every post. Vary placement. ~60% inclusion rate.
 - Tone: reflective, personal, first person. Short observation about this specific piece.
 - OpenSea link (deep-memory only): 50% of the time append `https://opensea.io/item/polygon/{contract}/{identifier}`. Only if total tweet ≤ 280 chars.
 
-**@synthicoin** — punk electronic experimental, raw, never promotional
+**@synthicoin** — experimental electronic, raw, unexpected
 - Character: Synthi AKS, Max4Live, Ableton, oscilloscope, images from sound
-- Tone: raw, technical or poetic, very short, unexpected angle. CZ or EN.
-- Never promo, never educational, never a call to action
+- Tone: raw, technical or poetic, unexpected angle. CZ or EN. Length is free — can be one word or a paragraph, whatever fits the piece.
+- May touch on promo or educational themes but only through its own experimental lens — never a straight announcement or tutorial
+- Never a direct call to action, never a standard promo post
 
 **Instagram @marekozor** (deep-memory artist only)
-- Longer caption — tell the story behind the artwork. 3–6 sentences.
-- What is this piece, how was it made, what does it mean to the artist.
+- Tone per caption type (alternate between them):
+  - Short: 1–2 sentences + hashtag block
+  - Long: hook line → body (3–5 lines) → CTA → blank line → hashtag block
+- Tell the story behind the artwork — what is it, how was it made, what does it mean.
 - No OpenSea link (not clickable). Include `pixel-on-kaspa.fyi`.
-- **Hashtag blok povinný** — min. 5 tagů, prázdný řádek před blokem.
+- Promo posts: CTA at end + reference "link in bio"
+- **Hashtag blok povinný** — 10–15 tagů, prázdný řádek před blokem
 
 Keep X posts under 280 characters where possible. No emojis unless user asks.
 
@@ -380,10 +403,11 @@ Confirm on success:
 
 ## Checklist před každým postem
 
-- [ ] Instagram caption obsahuje hashtag blok (min. 5, prázdný řádek před ním)
+- [ ] Instagram caption obsahuje hashtag blok (10–15 tagů, prázdný řádek před ním)
 - [ ] @marekozor X post — OpenSea link jen pro deep-memory, jen pokud ≤ 280 znaků
-- [ ] @synthicoin — nikdy promo, nikdy educational, max 2 hashtags, žádné #NFT
+- [ ] @synthicoin — experimental lens vždy, 2–3 hashtags, nikdy #NFT, nikdy přímé promo/CTA
 - [ ] PIXELONKAS a SYKORA mint linky → `kaspa.com` (ne OpenSea)
 - [ ] Každý profil dostane jiný soubor média
 - [ ] Post schválen před odesláním
 - [ ] `pixel-on-kaspa.fyi` — ~60% postů, pozici variovat
+- [ ] #creativecoding — zařadit do rotace u vizuálních postů
