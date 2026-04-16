@@ -2,6 +2,9 @@
 .env
 logs/
 
+# local state (not for version control)
+.claude/post-state.json
+
 # project
 _site
 .sass-cache

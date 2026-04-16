@@ -12,7 +12,7 @@ Post a visual (PNG or MP4) from a local artist export folder to X profiles.
 /post --nft <collection>                   # NFT visual post — fetch random NFT from chain
 ```
 
-`--artist` (required for visual posts): folder name inside `~/pixel-exports/` — e.g. `yohei`, `koma`, `deep-memory`
+`--artist` (required for visual posts): folder name inside `~/Desktop/pixel-exports/` — e.g. `yohei`, `koma`, `synthi`, `deep-memory`
 `--profile` (optional): `pixelonkas`, `marekozor`, `synthicoin` — if omitted, show all three and let user pick
 `--wip` (optional): work in progress mode — different tone, shows process not result — see Step 1e
 `--promo` (optional): weekly collection promotion mode — see Step 1b
@@ -39,21 +39,46 @@ Post a visual (PNG or MP4) from a local artist export folder to X profiles.
 
 ## Step 1 — Find media files
 
-Pick a separate random file per profile from `~/pixel-exports/$ARTIST/`. Each of the three X profiles gets a different file. Instagram @marekozor reuses the @marekozor X file.
+Pick a separate random file per profile from `~/Desktop/pixel-exports/$ARTIST/`. Each of the three X profiles gets a different file. Instagram @marekozor reuses the @marekozor X file.
 
 ### Export složky
 ```
-~/pixel-exports/yohei/        — GLSL shader exporty (PNG/MP4)
-~/pixel-exports/koma/         — p5.js Koma exporty (PNG/MP4)
-~/pixel-exports/synthi/       — SYNTHI AKS exporty (PNG/MP4)
-~/pixel-exports/deep-memory/  — marekozor OpenSea kolekce (fetch live)
+~/Desktop/pixel-exports/yohei/        — GLSL shader exporty (PNG/MP4)
+~/Desktop/pixel-exports/koma/         — p5.js Koma exporty (PNG/MP4)
+~/Desktop/pixel-exports/synthi/       — SYNTHI AKS exporty (PNG/MP4)
+~/Desktop/pixel-exports/deep-memory/  — marekozor OpenSea kolekce (fetch live)
 ```
 
 > PIXELONKAS a SYKORA nemají lokální složku — média se načítají přes krc721.stream API a IPFS. Použij `--nft PIXELONKAS` nebo `--nft SYKORA`.
 
+### Artist rotation (no --artist flag)
+
+Rotation state is persisted in `.claude/post-state.json`:
+```json
+{
+  "last_artist": "yohei",
+  "last_post_at": "2026-04-16T14:32:00Z",
+  "rotation_order": ["synthi", "deep-memory", "yohei", "koma"]
+}
+```
+
+**Algorithm (execute every time --artist is not provided):**
+
+1. Read `.claude/post-state.json`
+   - If file does not exist → create it with `last_artist: null`, select `synthi` (first in rotation_order)
+   - If JSON is malformed → warn `[WARNING] post-state.json corrupted, falling back to synthi` and use `synthi`
+   - If `last_artist` is not in `rotation_order` (stale/renamed value) → start from index 0 (`synthi`)
+2. Find index of `last_artist` in `rotation_order`, select `rotation_order[(index + 1) % 4]`
+3. Proceed with selected artist
+4. After successful post → write updated `last_artist` (selected artist) and `last_post_at` (current UTC ISO timestamp) back to `.claude/post-state.json`
+
+**--artist flag override:** if `--artist <name>` is specified, skip step 1–2 (use the provided name), but still execute step 4 so rotation continues from that artist.
+
+**Dry-run mode:** NEVER write to `.claude/post-state.json` in dry-run. Dry-run is any run where posts are not actually published (user previews without confirming, or `--dry-run` flag). Rotation state must reflect only real published posts.
+
 If the folder is empty or doesn't exist, stop:
 ```
-No files found in ~/pixel-exports/$ARTIST/ — please export a file first.
+No files found in ~/Desktop/pixel-exports/$ARTIST/ — please export a file first.
 ```
 
 ### If --artist deep-memory (marekozor OpenSea collections)
@@ -125,7 +150,7 @@ Ask the user which collection to promote if not clear from context.
 ### SYNTHI
 - V přípravě — audio-vizuální kolekce ze SYNTHI AKS syntezátoru
 - Zvuk → vizuál → chain
-- Médium: náhodný soubor z `~/pixel-exports/synthi/`
+- Médium: náhodný soubor z `~/Desktop/pixel-exports/synthi/`
 - Link: `pixel-on-kaspa.fyi/synthi/`
 - Tón: teaser, experimentální — žádné konkrétní datum
 
@@ -155,7 +180,7 @@ Pick a topic — rotate, don't repeat same topic two cycles in a row. Or use `--
 **Profiles:**
 - `@PixelonKas`: project context — tie Kaspa fact to why the project builds on it. 2–4 sentences. EN. Thread with `--long`.
 - `@marekozor`: personal perspective — why this matters to him as an artist storing work on-chain. Reflective, first person. EN.
-- `@synthicoin`: never a straight Kaspa educational post — generate experimental/art post instead. Pick any recent file from `~/pixel-exports/` or skip media. May touch on Kaspa or tech themes but through its own lens — raw, unexpected angle.
+- `@synthicoin`: never a straight Kaspa educational post — generate experimental/art post instead. Pick any recent file from `~/Desktop/pixel-exports/` or skip media. May touch on Kaspa or tech themes but through its own lens — raw, unexpected angle.
 
 No media for @PixelonKas and @marekozor (text-only). @synthicoin still gets a visual if available.
 
@@ -201,7 +226,7 @@ All three X profiles get the same NFT image but different post texts. Tone: regu
 
 Work in progress — shows process, not a finished piece. Tone: open, factual, "this is what we're building."
 
-Pick a file from `~/pixel-exports/$ARTIST/` as usual. The difference is in the post text tone.
+Pick a file from `~/Desktop/pixel-exports/$ARTIST/` as usual. The difference is in the post text tone.
 
 **What WIP posts cover:**
 - New SYNTHI feature or UI change
