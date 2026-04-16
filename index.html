@@ -774,10 +774,9 @@
   const _recentMintCache = {};
   const _CACHE_TTL = 5 * 60 * 1000;
 
-  // Returns the tokenId of the most recently minted NFT (by timestamp, not by ID).
-  // Attempt 1: collection-level history endpoint (direction=back → latest mint event).
-  // Attempt 2: nfts endpoint with direction=back (may be by ID, but better than nothing).
-  // Attempt 3: fallback to highest minted ID from ranges.
+  // Returns the tokenId of the most recently minted NFT (by timestamp).
+  // Two-step: /nfts/{tick} → opScoreMod of last mint event → /ops/score/{opScoreMod} → tokenId.
+  // Falls back to ranges-derived highest ID if the API calls fail.
   async function fetchMostRecentMintId(tick, fallbackId){
     const now = Date.now();
     const cached = _recentMintCache[tick];
@@ -785,27 +784,21 @@
 
     let id = null;
 
-    // Attempt 1: collection history, most recent event
     try{
-      const raw = await fetchJson(`${STREAM_API}/history/${encodeURIComponent(tick)}?direction=back&limit=1`);
-      const entries = unwrapResult(raw);
-      const arr = Array.isArray(entries) ? entries : [];
-      const tokenId = arr[0]?.tokenId ?? arr[0]?.token_id ?? null;
-      if(tokenId != null) id = Number(tokenId);
+      // Step 1: collection info contains opScoreMod of the most recent mint event
+      const colRaw = await fetchJson(`${STREAM_API}/nfts/${encodeURIComponent(tick)}`);
+      const col = unwrapResult(colRaw);
+      const opScoreMod = col?.opScoreMod;
+      if(opScoreMod){
+        // Step 2: resolve that opScore to get the tokenId
+        const opRaw = await fetchJson(`${STREAM_API}/ops/score/${opScoreMod}`);
+        const op = unwrapResult(opRaw);
+        const tokenId = op?.opData?.tokenId ?? null;
+        if(tokenId != null) id = Number(tokenId);
+      }
     }catch(_e){}
 
-    // Attempt 2: nfts endpoint direction=back
-    if(!Number.isFinite(id)){
-      try{
-        const raw = await fetchJson(`${STREAM_API}/nfts/${encodeURIComponent(tick)}?limit=1&direction=back`);
-        const res = unwrapResult(raw);
-        const item = Array.isArray(res) ? res[0] : res;
-        const tokenId = item?.tokenId ?? item?.token_id ?? item?.id ?? null;
-        if(tokenId != null) id = Number(tokenId);
-      }catch(_e){}
-    }
-
-    // Attempt 3: fallback to highest minted ID (ranges-derived)
+    // Fallback: highest minted ID from ranges
     if(!Number.isFinite(id) && Number.isFinite(fallbackId)) id = fallbackId;
 
     if(Number.isFinite(id)) _recentMintCache[tick] = { id, ts: now };
