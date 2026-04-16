@@ -770,17 +770,46 @@
     return { url: String(raw), ipfs: null };
   }
 
-  // Try to get the most recently minted tokenId from the nfts endpoint.
-  // Falls back to null if the endpoint doesn't return a tokenId.
-  async function fetchRecentMintLabel(tick){
+  // Cache: most recently minted token per collection, 5-minute TTL
+  const _recentMintCache = {};
+  const _CACHE_TTL = 5 * 60 * 1000;
+
+  // Returns the tokenId of the most recently minted NFT (by timestamp, not by ID).
+  // Attempt 1: collection-level history endpoint (direction=back → latest mint event).
+  // Attempt 2: nfts endpoint with direction=back (may be by ID, but better than nothing).
+  // Attempt 3: fallback to highest minted ID from ranges.
+  async function fetchMostRecentMintId(tick, fallbackId){
+    const now = Date.now();
+    const cached = _recentMintCache[tick];
+    if(cached && (now - cached.ts) < _CACHE_TTL) return cached.id;
+
+    let id = null;
+
+    // Attempt 1: collection history, most recent event
     try{
-      const raw = await fetchJson(`${STREAM_API}/nfts/${encodeURIComponent(tick)}?limit=1&direction=back`);
-      const res = unwrapResult(raw);
-      const item = Array.isArray(res) ? res[0] : res;
-      const id = item?.tokenId ?? item?.token_id ?? item?.id ?? null;
-      if(id != null) return Number(id);
+      const raw = await fetchJson(`${STREAM_API}/history/${encodeURIComponent(tick)}?direction=back&limit=1`);
+      const entries = unwrapResult(raw);
+      const arr = Array.isArray(entries) ? entries : [];
+      const tokenId = arr[0]?.tokenId ?? arr[0]?.token_id ?? null;
+      if(tokenId != null) id = Number(tokenId);
     }catch(_e){}
-    return null;
+
+    // Attempt 2: nfts endpoint direction=back
+    if(!Number.isFinite(id)){
+      try{
+        const raw = await fetchJson(`${STREAM_API}/nfts/${encodeURIComponent(tick)}?limit=1&direction=back`);
+        const res = unwrapResult(raw);
+        const item = Array.isArray(res) ? res[0] : res;
+        const tokenId = item?.tokenId ?? item?.token_id ?? item?.id ?? null;
+        if(tokenId != null) id = Number(tokenId);
+      }catch(_e){}
+    }
+
+    // Attempt 3: fallback to highest minted ID (ranges-derived)
+    if(!Number.isFinite(id) && Number.isFinite(fallbackId)) id = fallbackId;
+
+    if(Number.isFinite(id)) _recentMintCache[tick] = { id, ts: now };
+    return id;
   }
 
   async function loadCover(tick){
@@ -789,36 +818,35 @@
     const hint  = qs(`#hint${tick}`);
     if(!cfg || !thumb || !hint) return;
 
-    // Cover image: use highest minted ID from ranges (reliable)
-    let coverId = null;
+    // Fallback: highest minted ID from ranges (used if timestamp-based lookup fails)
+    let rangesId = null;
     try{
       const raw = await fetchJson(`${STREAM_API}/ranges/${encodeURIComponent(tick)}`);
       const res = unwrapResult(raw);
       if(typeof res === "string" && res.trim()){
-        coverId = lastMintedIdFromAvailableRanges({ idMin: cfg.idMin, max: cfg.max, rangesString: res });
+        rangesId = lastMintedIdFromAvailableRanges({ idMin: cfg.idMin, max: cfg.max, rangesString: res });
       }
     }catch(_e){}
 
-    if(!Number.isFinite(coverId)){
+    // Most recently minted token (by timestamp)
+    const recentId = await fetchMostRecentMintId(tick, rangesId);
+
+    if(!Number.isFinite(recentId)){
       hint.textContent = "Cover unavailable";
       return;
     }
 
-    // Label: try the nfts endpoint for most recent tokenId; fall back to coverId
-    let labelId = await fetchRecentMintLabel(tick);
-    if(!Number.isFinite(labelId)) labelId = coverId;
-
-    hint.textContent = `Last mint: #${labelId}`;
+    hint.textContent = `Last mint: #${recentId}`;
 
     try{
-      const meta = await fetchMetaFromGateways(metaCandidatePaths(cfg.buri, tick, coverId));
+      const meta = await fetchMetaFromGateways(metaCandidatePaths(cfg.buri, tick, recentId));
       const { url, ipfs } = extractImage(meta);
       if(!url) throw new Error("No image in metadata");
 
       const bottomline = thumb.querySelector(".bottomline")?.outerHTML || "";
       thumb.innerHTML = `
         <img src="${url}" alt="${tick} cover" loading="lazy">
-        <span class="hint">Last mint: #${labelId}</span>
+        <span class="hint">Last mint: #${recentId}</span>
         ${bottomline}
       `;
 
@@ -831,7 +859,7 @@
         };
       }
     }catch(_e){
-      hint.textContent = `Last mint: #${labelId} (image unavailable)`;
+      hint.textContent = `Last mint: #${recentId} (image unavailable)`;
     }
   }
 
