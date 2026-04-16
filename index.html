@@ -315,6 +315,27 @@
       .topbar{height:auto;min-height:52px;padding:8px 14px;flex-wrap:wrap;gap:8px;}
       .nav{gap:4px;}
     }
+
+    /* ── NFT CARD REDESIGN ── */
+    .nft-card{background:var(--card-bg,#0e1014);border:1px solid rgba(255,255,255,.06);border-radius:14px;overflow:hidden;transition:all .3s cubic-bezier(.4,0,.2,1);}
+    .nft-card:hover{border-color:rgba(255,255,255,.12);transform:translateY(-2px);}
+    .nft-card-visual{position:relative;aspect-ratio:1/1;overflow:hidden;background:#000;}
+    .nft-card-visual img{width:100%;height:100%;object-fit:cover;transition:transform .5s cubic-bezier(.4,0,.2,1);}
+    .nft-card:hover .nft-card-visual img{transform:scale(1.04);}
+    .nft-card-visual::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.6) 0%,transparent 35%);pointer-events:none;}
+    .nft-card-badge{position:absolute;top:12px;right:12px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;font-weight:500;letter-spacing:.05em;color:rgba(255,255,255,.9);background:rgba(0,0,0,.5);backdrop-filter:blur(8px);padding:4px 8px;border-radius:4px;border:1px solid rgba(255,255,255,.08);z-index:1;}
+    .nft-card-category{position:absolute;left:16px;bottom:16px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.85);z-index:1;}
+    .nft-card-body{padding:18px 20px 20px;}
+    .nft-card-header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:8px;}
+    .nft-card-title{font-size:18px;font-weight:600;letter-spacing:.02em;color:#fff;margin:0;}
+    .nft-card-meta{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;color:rgba(255,255,255,.4);letter-spacing:.05em;white-space:nowrap;}
+    .nft-card-tagline{font-size:13.5px;line-height:1.5;color:rgba(255,255,255,.6);margin:0 0 16px;}
+    .nft-card-actions{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:500;}
+    .nft-card-action-primary{color:#22d3ee;text-decoration:none;transition:color .2s;}
+    .nft-card-action-primary:hover{color:#67e8f9;}
+    .nft-card-action{color:rgba(255,255,255,.5);text-decoration:none;background:none;border:none;cursor:pointer;font-size:13px;font-weight:500;padding:0;transition:color .2s;}
+    .nft-card-action:hover{color:rgba(255,255,255,.85);}
+    .nft-card-sep{color:rgba(255,255,255,.2);user-select:none;}
   </style>
 </head>
 <body>
@@ -368,65 +389,66 @@
     </div>
 
     <section class="cards">
-      <div class="card">
-        <div class="thumb" id="thumbPIXELONKAS">
-          <span class="hint" id="hintPIXELONKAS">Loading…</span>
-          <div class="bottomline">
-            <b>System states</b><br>
-            live captures → on-chain residue
-          </div>
+      <article class="nft-card">
+        <div class="nft-card-visual" id="thumbPIXELONKAS">
+          <span class="nft-card-badge" id="hintPIXELONKAS">…</span>
+          <span class="nft-card-category">System states</span>
         </div>
-        <div class="cardHead">
-          <b>PIXELONKAS</b>
-          <span class="chip">342 total</span>
+        <div class="nft-card-body">
+          <header class="nft-card-header">
+            <h3 class="nft-card-title">PIXELONKAS</h3>
+            <span class="nft-card-meta">342 · KRC-721</span>
+          </header>
+          <p class="nft-card-tagline">Live sound captures, frozen on-chain.</p>
+          <nav class="nft-card-actions">
+            <a href="viewer" class="nft-card-action-primary">NFTs →</a>
+            <span class="nft-card-sep">·</span>
+            <a href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer" class="nft-card-action">Mint</a>
+            <span class="nft-card-sep">·</span>
+            <button type="button" data-open-rewards="PIXELONKAS" class="nft-card-action">Rewards</button>
+          </nav>
         </div>
-        <p>342 unique system states — live sound captures frozen on-chain on the Kaspa blockDAG.</p>
-        <div class="cardActions">
-          <a class="btn btnPrimary" href="viewer">Open NFTs</a>
-          <a class="btn" href="https://kaspa.com/nft/collections/PIXELONKAS" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
-          <button class="btn btnGhost" type="button" data-open-rewards="PIXELONKAS">Rewards</button>
-        </div>
-      </div>
+      </article>
 
-      <div class="card">
-        <div class="thumb" id="thumbSYKORA">
-          <span class="hint" id="hintSYKORA">Loading…</span>
-          <div class="bottomline">
-            <b>Entities</b><br>
-            styles → instant perks
-          </div>
+      <article class="nft-card">
+        <div class="nft-card-visual" id="thumbSYKORA">
+          <span class="nft-card-badge" id="hintSYKORA">…</span>
+          <span class="nft-card-category">Entities</span>
         </div>
-        <div class="cardHead">
-          <b>SYKORA</b>
-          <span class="chip">2,518 total</span>
+        <div class="nft-card-body">
+          <header class="nft-card-header">
+            <h3 class="nft-card-title">SYKORA</h3>
+            <span class="nft-card-meta">2,518 · KRC-721</span>
+          </header>
+          <p class="nft-card-tagline">Generative entities with instant $PIXEL perks.</p>
+          <nav class="nft-card-actions">
+            <a href="viewer" class="nft-card-action-primary">NFTs →</a>
+            <span class="nft-card-sep">·</span>
+            <a href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer" class="nft-card-action">Mint</a>
+            <span class="nft-card-sep">·</span>
+            <button type="button" data-open-rewards="SYKORA" class="nft-card-action">Rewards</button>
+          </nav>
         </div>
-        <p>2518 generative entities — distinct styles, instant $PIXEL perks on mint.</p>
-        <div class="cardActions">
-          <a class="btn btnPrimary" href="viewer">Open NFTs</a>
-          <a class="btn" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
-          <button class="btn btnGhost" type="button" data-open-rewards="SYKORA">Rewards</button>
-        </div>
-      </div>
+      </article>
 
-      <div class="card">
-        <div class="thumb synthiThumb">
-          <span class="hint">REC + token</span>
+      <article class="nft-card">
+        <div class="nft-card-visual synthiThumb">
           <img class="synthiLogo" src="assets/img/logo.png" alt="SYNTHI logo" loading="lazy">
-          <div class="bottomline">
-            <b>Sound system</b><br>
-            REC streams → archive
-          </div>
+          <span class="nft-card-category">Sound system</span>
         </div>
-        <div class="cardHead">
-          <b>SYNTHI</b>
-          <span class="chip">KRC-20</span>
+        <div class="nft-card-body">
+          <header class="nft-card-header">
+            <h3 class="nft-card-title">SYNTHI</h3>
+            <span class="nft-card-meta">KRC-20</span>
+          </header>
+          <p class="nft-card-tagline">Sound system, REC streams, on-chain residue.</p>
+          <nav class="nft-card-actions">
+            <a href="synthi/" class="nft-card-action-primary">SYNTHI →</a>
+            <span class="nft-card-sep">·</span>
+            <a href="synthi/rec.html" class="nft-card-action">REC Streams</a>
+          </nav>
         </div>
-        <p>SYNTHI index — sound system, REC streams, and on-chain residue.</p>
-        <div class="cardActions">
-          <a class="btn btnPrimary" href="synthi/">Open SYNTHI</a>
-          <a class="btn" href="synthi/rec.html">REC Streams</a>
-        </div>
-      </div>
+      </article>
     </section>
 
     <div class="divider"></div>
@@ -667,12 +689,14 @@
     PIXELONKAS: {
       buri: "ipfs://bafybeih2phpjzxfrszsscpmxdr44kliaddto3sicsdh44kgx7b3f43fdvm",
       max: 342,
-      idMin: 1
+      idMin: 1,
+      category: "System states"
     },
     SYKORA: {
       buri: "ipfs://bafybeifema4upmzu7c4iipvxdagctirxf46g3htmsin6l66zm77dibfhaq",
       max: 2518,
-      idMin: 1
+      idMin: 1,
+      category: "Entities"
     }
   };
 
@@ -825,34 +849,38 @@
     const recentId = await fetchMostRecentMintId(tick, rangesId);
 
     if(!Number.isFinite(recentId)){
-      hint.textContent = "Cover unavailable";
+      hint.textContent = "—";
       return;
     }
 
-    hint.textContent = `Last mint: #${recentId}`;
+    // Badge shows just the token number, no "Last mint:" prefix
+    hint.textContent = `#${recentId}`;
 
     try{
       const meta = await fetchMetaFromGateways(metaCandidatePaths(cfg.buri, tick, recentId));
       const { url, ipfs } = extractImage(meta);
       if(!url) throw new Error("No image in metadata");
 
-      const bottomline = thumb.querySelector(".bottomline")?.outerHTML || "";
-      thumb.innerHTML = `
-        <img src="${url}" alt="${tick} cover" loading="lazy">
-        <span class="hint">Last mint: #${recentId}</span>
-        ${bottomline}
-      `;
-
-      const img = thumb.querySelector("img");
-      if(img && ipfs){
+      // Inject image into .nft-card-visual, preserve badge and category overlays
+      const badge    = thumb.querySelector(".nft-card-badge");
+      const category = thumb.querySelector(".nft-card-category");
+      thumb.innerHTML = "";
+      const img = document.createElement("img");
+      img.alt = `${tick} #${recentId}`;
+      img.loading = "lazy";
+      img.src = url;
+      if(ipfs){
         let gw = 0;
         img.onerror = () => {
           gw++;
           if(gw < IPFS_GATEWAYS.length) img.src = IPFS_GATEWAYS[gw] + ipfs;
         };
       }
+      thumb.appendChild(img);
+      if(badge)    thumb.appendChild(badge);
+      if(category) thumb.appendChild(category);
     }catch(_e){
-      hint.textContent = `Last mint: #${recentId} (image unavailable)`;
+      hint.textContent = `#${recentId}`;
     }
   }
 
