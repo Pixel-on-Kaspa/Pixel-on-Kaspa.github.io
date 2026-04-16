@@ -310,6 +310,18 @@ Include randomly — not every post. Vary placement. ~60% inclusion rate.
 - Promo posts: CTA at end + reference "link in bio"
 - **Hashtag blok povinný** — 10–15 tagů, prázdný řádek před blokem
 
+### Formát postů — zalomení řádků
+
+```
+Text postu
+
+Link na web (samostatný řádek)
+
+Hashtagy (samostatný řádek)
+```
+
+Prázdný řádek před linkem i před hashtagy vždy. Pokud link není součástí postu, hashtagy stále na samostatném řádku s prázdným řádkem před nimi.
+
 Keep X posts under 280 characters where possible. No emojis unless user asks.
 
 ---
