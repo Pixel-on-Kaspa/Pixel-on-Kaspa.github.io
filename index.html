@@ -330,12 +330,14 @@
     .nft-card-title{font-size:18px;font-weight:600;letter-spacing:.02em;color:#fff;margin:0;}
     .nft-card-meta{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;color:rgba(255,255,255,.4);letter-spacing:.05em;white-space:nowrap;}
     .nft-card-tagline{font-size:13.5px;line-height:1.5;color:rgba(255,255,255,.6);margin:0 0 16px;}
-    .nft-card-actions{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:500;}
-    .nft-card-action-primary{color:#22d3ee;text-decoration:none;transition:color .2s;}
-    .nft-card-action-primary:hover{color:#67e8f9;}
-    .nft-card-action{color:rgba(255,255,255,.5);text-decoration:none;background:none;border:none;cursor:pointer;font-size:13px;font-weight:500;padding:0;transition:color .2s;}
-    .nft-card-action:hover{color:rgba(255,255,255,.85);}
-    .nft-card-sep{color:rgba(255,255,255,.2);user-select:none;}
+    .nft-card-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+    .nft-card-action-primary{display:inline-flex;align-items:center;background:#22d3ee;color:#08090c;padding:6px 14px;border-radius:6px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.05em;text-decoration:none;transition:background .2s;line-height:1.4;}
+    .nft-card-action-primary:hover{background:#67e8f9;color:#08090c;}
+    .nft-card-action{color:rgba(255,255,255,.45);text-decoration:none;background:none;border:none;cursor:pointer;font-size:12.5px;font-weight:500;font-family:inherit;padding:0;transition:color .2s;}
+    .nft-card-action:hover{color:rgba(255,255,255,.9);}
+    .nft-card-sep{color:rgba(255,255,255,.18);user-select:none;}
+    .nft-card--empty{border-style:dashed;border-color:rgba(255,255,255,.06);opacity:.65;}
+    .nft-card--empty:hover{transform:none;border-color:rgba(255,255,255,.1);}
   </style>
 </head>
 <body>
@@ -459,64 +461,61 @@
     </div>
 
     <section class="cards">
-      <div class="card">
-        <div class="thumb artistThumb" id="komaThumb">
+      <article class="nft-card">
+        <div class="nft-card-visual artistThumb" id="komaThumb">
           <div id="komaSlideshow"></div>
-          <span class="hint">@KomaTebe</span>
-          <div class="bottomline">
-            <b>Koma Tebe</b><br>
-            p5 one-liner → live generator
-          </div>
+          <span class="nft-card-category">@KomaTebe</span>
         </div>
-        <div class="cardHead">
-          <b>KOMA • P5</b>
-          <span class="chip">artist</span>
+        <div class="nft-card-body">
+          <header class="nft-card-header">
+            <h3 class="nft-card-title">KOMA · P5</h3>
+            <span class="nft-card-meta">artist</span>
+          </header>
+          <p class="nft-card-tagline">p5 generator inspired by @KomaTebe</p>
+          <nav class="nft-card-actions">
+            <a href="pixel-p5.html" class="nft-card-action-primary">Generator →</a>
+            <span class="nft-card-sep">·</span>
+            <a href="artists.html" class="nft-card-action">Artists page</a>
+          </nav>
         </div>
-        <p>p5 generator inspired by <b>@KomaTebe</b></p>
-        <div class="cardActions">
-          <a class="btn btnPrimary" href="pixel-p5.html">Open generator</a>
-          <a class="btn btnGhost" href="artists.html">Artists page</a>
-        </div>
-      </div>
+      </article>
 
-      <div class="card">
-        <div class="thumb artistThumb" id="yoheiThumb">
+      <article class="nft-card">
+        <div class="nft-card-visual artistThumb" id="yoheiThumb">
           <div id="yoheiSlideshow"></div>
-          <span class="hint">@YoheiNishitsuji</span>
-          <div class="bottomline">
-            <b>Yohei Nishitsuji</b><br>
-            fragment shader → live viewer
-          </div>
+          <span class="nft-card-category">@YoheiNishitsuji</span>
         </div>
-        <div class="cardHead">
-          <b>YOHEI • GLSL</b>
-          <span class="chip">artist</span>
+        <div class="nft-card-body">
+          <header class="nft-card-header">
+            <h3 class="nft-card-title">YOHEI · GLSL</h3>
+            <span class="nft-card-meta">artist</span>
+          </header>
+          <p class="nft-card-tagline">GLSL fragment shader by @YoheiNishitsuji</p>
+          <nav class="nft-card-actions">
+            <a href="yohei-glsl.html" class="nft-card-action-primary">Shader →</a>
+            <span class="nft-card-sep">·</span>
+            <a href="artists.html" class="nft-card-action">Artists page</a>
+          </nav>
         </div>
-        <p>GLSL fragment by <b>@YoheiNishitsuji</b>.</p>
-        <div class="cardActions">
-          <a class="btn btnPrimary" href="yohei-glsl.html">Open shader</a>
-          <a class="btn btnGhost" href="artists.html">Artists page</a>
-        </div>
-      </div>
+      </article>
 
-      <div class="card">
-        <div class="thumb artistThumb" style="opacity:.9">
-          <span class="hint">submit</span>
-          <div class="bottomline">
-            <b>Guest slot</b><br>
-            next artist → soon
-          </div>
+      <article class="nft-card nft-card--empty">
+        <div class="nft-card-visual artistThumb">
+          <span class="nft-card-category">Guest slot</span>
         </div>
-        <div class="cardHead">
-          <b>NEXT</b>
-          <span class="chip">tba</span>
+        <div class="nft-card-body">
+          <header class="nft-card-header">
+            <h3 class="nft-card-title">NEXT</h3>
+            <span class="nft-card-meta">tba</span>
+          </header>
+          <p class="nft-card-tagline">Want a slot here? Ping us on X or TG.</p>
+          <nav class="nft-card-actions">
+            <a href="artists.html" class="nft-card-action-primary">Artists →</a>
+            <span class="nft-card-sep">·</span>
+            <a href="https://x.com/PixelonKas" target="_blank" rel="noreferrer" class="nft-card-action">Contact on X</a>
+          </nav>
         </div>
-        <p>Want a slot here? Ping us on X/TG.</p>
-        <div class="cardActions">
-          <a class="btn btnPrimary" href="artists.html">Open Artists</a>
-          <a class="btn" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">Contact on X</a>
-        </div>
-      </div>
+      </article>
     </section>
 
     <footer>
