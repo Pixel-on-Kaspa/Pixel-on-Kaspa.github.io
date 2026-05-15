@@ -274,35 +274,34 @@
     <div class="controlsSide">
       <div class="controlsHeader">Controls <span style="font-weight:500;text-transform:none;letter-spacing:.04em;opacity:.55" id="shareHint">— share: URL params</span></div>
       <div class="controlsScroll">
-        <div id="tweetNote" style="display:none;padding:8px 0 14px;font-size:11px;color:var(--accent);font-weight:700;letter-spacing:.1em;text-transform:uppercase;">Yohei Tweet — no controls</div>
 
-        <!-- MOTION -->
+        <!-- MOTION — speed shared; zoom/ox/oy Shader 1 only -->
         <div class="ctrlGroup" id="grpMotion">
           <div class="ctrlGroupHead" data-group="motion">
             <b>Motion</b><span class="arrow">▾</span>
           </div>
           <div class="ctrlGroupBody" id="bodyMotion">
             <div class="ctrl">
-              <div class="ctrlHead"><span class="ctrlTitle">Time speed</span><span class="ctrlVal" id="vSpeed">—</span></div>
+              <div class="ctrlHead"><span class="ctrlTitle" id="lblSpeed">Time speed</span><span class="ctrlVal" id="vSpeed">—</span></div>
               <input id="speed" type="range" min="0.00" max="3.00" step="0.01" value="1.00"/>
             </div>
-            <div class="ctrl">
+            <div class="ctrl s1only">
               <div class="ctrlHead"><span class="ctrlTitle">Zoom</span><span class="ctrlVal" id="vZoom">—</span></div>
               <input id="zoom" type="range" min="0.25" max="3.50" step="0.01" value="1.00"/>
             </div>
-            <div class="ctrl">
+            <div class="ctrl s1only">
               <div class="ctrlHead"><span class="ctrlTitle">Offset X</span><span class="ctrlVal" id="vOx">—</span></div>
               <input id="ox" type="range" min="-1.50" max="1.50" step="0.01" value="0.00"/>
             </div>
-            <div class="ctrl">
+            <div class="ctrl s1only">
               <div class="ctrlHead"><span class="ctrlTitle">Offset Y</span><span class="ctrlVal" id="vOy">—</span></div>
               <input id="oy" type="range" min="-1.50" max="1.50" step="0.01" value="0.00"/>
             </div>
           </div>
         </div>
 
-        <!-- GEOMETRY -->
-        <div class="ctrlGroup" id="grpGeometry">
+        <!-- GEOMETRY — Shader 1 only -->
+        <div class="ctrlGroup s1only" id="grpGeometry">
           <div class="ctrlGroupHead" data-group="geometry">
             <b>Geometry</b><span class="arrow">▾</span>
           </div>
@@ -334,8 +333,8 @@
           </div>
         </div>
 
-        <!-- TEXTURE -->
-        <div class="ctrlGroup" id="grpTexture">
+        <!-- TEXTURE — Shader 1 only -->
+        <div class="ctrlGroup s1only" id="grpTexture">
           <div class="ctrlGroupHead" data-group="texture">
             <b>Texture</b><span class="arrow">▾</span>
           </div>
@@ -359,7 +358,7 @@
           </div>
         </div>
 
-        <!-- COLOR -->
+        <!-- COLOR — hue/gain/gamma shared; sat Shader 1 only -->
         <div class="ctrlGroup" id="grpColor">
           <div class="ctrlGroupHead" data-group="color">
             <b>Color</b><span class="arrow">▾</span>
@@ -369,7 +368,7 @@
               <div class="ctrlHead"><span class="ctrlTitle">Hue</span><span class="ctrlVal" id="vHue">—</span></div>
               <input id="hue" type="range" min="-0.50" max="0.50" step="0.001" value="0.00"/>
             </div>
-            <div class="ctrl">
+            <div class="ctrl s1only">
               <div class="ctrlHead"><span class="ctrlTitle">Saturation</span><span class="ctrlVal" id="vSat">—</span></div>
               <input id="sat" type="range" min="0.00" max="1.00" step="0.001" value="0.20"/>
             </div>
@@ -384,6 +383,85 @@
           </div>
         </div>
 
+        <!-- ITERATION — Yohei Tweet only -->
+        <div class="ctrlGroup s2only" id="grpIteration">
+          <div class="ctrlGroupHead" data-group="iteration">
+            <b>Iteration</b><span class="arrow">▾</span>
+          </div>
+          <div class="ctrlGroupBody" id="bodyIteration">
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Outer steps</span><span class="ctrlVal" id="vYos">—</span></div>
+              <input id="yos" type="range" min="10" max="200" step="1" value="119"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Fold steps</span><span class="ctrlVal" id="vYfs">—</span></div>
+              <input id="yfs" type="range" min="1" max="50" step="1" value="25"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Scale</span><span class="ctrlVal" id="vYsc">—</span></div>
+              <input id="ysc" type="range" min="0.30" max="5.00" step="0.05" value="1.80"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Intensity</span><span class="ctrlVal" id="vYit">—</span></div>
+              <input id="yit" type="range" min="0.50" max="15.00" step="0.10" value="5.00"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- FOLD — Yohei Tweet only -->
+        <div class="ctrlGroup s2only" id="grpFold">
+          <div class="ctrlGroupHead" data-group="fold">
+            <b>Fold</b><span class="arrow">▾</span>
+          </div>
+          <div class="ctrlGroupBody" id="bodyFold">
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Fold X</span><span class="ctrlVal" id="vYfx">—</span></div>
+              <input id="yfx" type="range" min="-3.00" max="3.00" step="0.01" value="-0.70"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Fold Y</span><span class="ctrlVal" id="vYfy">—</span></div>
+              <input id="yfy" type="range" min="0.00" max="8.00" step="0.01" value="4.00"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Fold Z</span><span class="ctrlVal" id="vYfz">—</span></div>
+              <input id="yfz" type="range" min="-2.00" max="3.00" step="0.01" value="0.40"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Param A</span><span class="ctrlVal" id="vYpa">—</span></div>
+              <input id="ypa" type="range" min="0.10" max="6.00" step="0.01" value="2.60"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Param B</span><span class="ctrlVal" id="vYpb">—</span></div>
+              <input id="ypb" type="range" min="0.50" max="7.00" step="0.01" value="3.94"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Param C</span><span class="ctrlVal" id="vYpc">—</span></div>
+              <input id="ypc" type="range" min="0.10" max="6.00" step="0.01" value="3.30"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- YOHEI COLOR — Yohei Tweet only -->
+        <div class="ctrlGroup s2only" id="grpYColor">
+          <div class="ctrlGroupHead" data-group="ycolor">
+            <b>Hue / Sat / Bright</b><span class="arrow">▾</span>
+          </div>
+          <div class="ctrlGroupBody" id="bodyYcolor">
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Hue base</span><span class="ctrlVal" id="vYhb">—</span></div>
+              <input id="yhb" type="range" min="0.01" max="3.00" step="0.01" value="0.10"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Sat factor</span><span class="ctrlVal" id="vYsf">—</span></div>
+              <input id="ysf" type="range" min="0.00" max="3.00" step="0.01" value="0.60"/>
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Brightness</span><span class="ctrlVal" id="vYbd">—</span></div>
+              <input id="ybd" type="range" min="50" max="3000" step="10" value="900"/>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -393,6 +471,8 @@
 (() => {
   // ---------------- params ----------------
   const KEY = "yohei_params_forms_v2";
+
+  // Shader 1 params
   const ids = [
     "speed","zoom","ox","oy",
     "fov","stepk","swirl","swspd","cap","bias","amp",
@@ -401,7 +481,17 @@
     "growth"
   ];
 
-  const el = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
+  // Yohei Tweet params
+  const yIds = [
+    "yos","yfs","ysc","yit",
+    "yfx","yfy","yfz",
+    "ypa","ypb","ypc",
+    "yhb","ysf","ybd"
+  ];
+
+  const allIds = [...ids, ...yIds];
+
+  const el = Object.fromEntries(allIds.map(id => [id, document.getElementById(id)]));
   const status    = document.getElementById("status");
   const shareHint = document.getElementById("shareHint");
   const errEl     = document.getElementById("errEl");
@@ -410,6 +500,7 @@
   const num = (v)=>{ const x = parseFloat(v); return Number.isFinite(x) ? x : null; };
 
   const defaults = {
+    // Shader 1
     speed:1.00, zoom:1.00, ox:0.00, oy:0.00,
     fov:0.50, stepk:0.30,
     swirl:0.80, swspd:0.50,
@@ -417,6 +508,11 @@
     steps:99, fbm:9,
     hue:0.00, sat:0.20, gain:1.00, gamma:1.00,
     growth:0.30,
+    // Yohei Tweet
+    yos:119, yfs:25, ysc:1.80, yit:5.00,
+    yfx:-0.70, yfy:4.00, yfz:0.40,
+    ypa:2.60, ypb:3.94, ypc:3.30,
+    yhb:0.10, ysf:0.60, ybd:900,
   };
 
   const params = Object.assign({}, defaults);
@@ -424,7 +520,7 @@
   function readUrl(){
     const u = new URL(location.href);
     const out = {};
-    ids.forEach(id=>{ const v = num(u.searchParams.get(id)); if(v != null) out[id]=v; });
+    allIds.forEach(id=>{ const v = num(u.searchParams.get(id)); if(v != null) out[id]=v; });
     return out;
   }
   function readStore(){
@@ -435,17 +531,18 @@
   }
   function writeUrl(){
     const u = new URL(location.href);
-    ids.forEach(id=>u.searchParams.delete(id));
-    ids.forEach(id=>u.searchParams.set(id, String(params[id])));
+    allIds.forEach(id=>u.searchParams.delete(id));
+    allIds.forEach(id=>u.searchParams.set(id, String(params[id])));
     history.replaceState(null,"",u.toString());
   }
+  const intIds = new Set(["steps","fbm","yos","yfs"]);
   function clampToSlider(id, v){
     const e = el[id];
     if(!e) return v;
     const mn = num(e.min), mx = num(e.max);
     if(mn != null) v = Math.max(mn, v);
     if(mx != null) v = Math.min(mx, v);
-    if(id==="steps" || id==="fbm") v = Math.round(v);
+    if(intIds.has(id)) v = Math.round(v);
     return v;
   }
   function setTxt(id, txt){
@@ -454,6 +551,7 @@
   }
 
   function renderVals(){
+    // Shader 1
     setTxt("vSpeed", params.speed.toFixed(2));
     setTxt("vZoom",  params.zoom.toFixed(2));
     setTxt("vOx",    params.ox.toFixed(2));
@@ -472,10 +570,24 @@
     setTxt("vGain",  params.gain.toFixed(2));
     setTxt("vGam",    params.gamma.toFixed(2));
     setTxt("vGrowth", params.growth.toFixed(2));
+    // Yohei Tweet
+    setTxt("vYos", String(params.yos));
+    setTxt("vYfs", String(params.yfs));
+    setTxt("vYsc", params.ysc.toFixed(2));
+    setTxt("vYit", params.yit.toFixed(2));
+    setTxt("vYfx", params.yfx.toFixed(2));
+    setTxt("vYfy", params.yfy.toFixed(2));
+    setTxt("vYfz", params.yfz.toFixed(2));
+    setTxt("vYpa", params.ypa.toFixed(2));
+    setTxt("vYpb", params.ypb.toFixed(2));
+    setTxt("vYpc", params.ypc.toFixed(2));
+    setTxt("vYhb", params.yhb.toFixed(2));
+    setTxt("vYsf", params.ysf.toFixed(2));
+    setTxt("vYbd", String(params.ybd));
   }
 
   function commit(){
-    ids.forEach(id=>{
+    allIds.forEach(id=>{
       const v = num(el[id]?.value);
       params[id] = clampToSlider(id, v == null ? defaults[id] : v);
     });
@@ -483,14 +595,14 @@
   }
 
   Object.assign(params, readStore(), readUrl());
-  ids.forEach(id=>{ if(el[id]) el[id].value = String(params[id]); });
+  allIds.forEach(id=>{ if(el[id]) el[id].value = String(params[id]); });
   commit();
-  ids.forEach(id=> el[id]?.addEventListener("input", commit));
+  allIds.forEach(id=> el[id]?.addEventListener("input", commit));
 
   // ── Reset ──
   document.getElementById("btnReset").addEventListener("click", ()=>{
-    Object.assign(params, defaults);
-    ids.forEach(id=>{ if(el[id]) el[id].value = String(params[id]); });
+    const resetIds = currentShader === 2 ? [...yIds, "speed","hue","gain","gamma"] : ids;
+    resetIds.forEach(id=>{ params[id] = defaults[id]; if(el[id]) el[id].value = String(params[id]); });
     commit();
   });
 
@@ -505,12 +617,20 @@
     }
   });
 
+  // ── Shader visibility ──
+  function applyShaderVis(shader){
+    const s1 = shader === 1;
+    document.querySelectorAll('.s1only').forEach(e => e.style.display = s1 ? '' : 'none');
+    document.querySelectorAll('.s2only').forEach(e => e.style.display = s1 ? 'none' : '');
+    document.getElementById("lblSpeed").textContent = s1 ? "Time speed" : "Rotation speed";
+  }
+
   // ── Shader switch ──
   document.getElementById("btnShader1").addEventListener("click", ()=>{
     currentShader = 1;
     document.getElementById("btnShader1").classList.add("btnPrimary");
     document.getElementById("btnShader2").classList.remove("btnPrimary");
-    document.getElementById("tweetNote").style.display = "none";
+    applyShaderVis(1);
     status.textContent = (isWebGL2 ? "WebGL2" : "WebGL1") + " • running";
   });
   document.getElementById("btnShader2").addEventListener("click", ()=>{
@@ -523,7 +643,7 @@
     currentShader = 2;
     document.getElementById("btnShader2").classList.add("btnPrimary");
     document.getElementById("btnShader1").classList.remove("btnPrimary");
-    document.getElementById("tweetNote").style.display = "block";
+    applyShaderVis(2);
     status.textContent = "WebGL2 • Yohei Tweet";
   });
 
@@ -746,11 +866,33 @@ void main(){
   gl_FragColor = vec4(col, 1.0);
 }`;
 
-  // ── Shader 2: Yohei Tweet (つぶやきGLSL) ─────────────────────────────────
+  // ── Shader 2: Yohei Tweet (つぶやきGLSL) — fully parameterized ──────────
   const FRAG_TWEET_WEBGL2 = `#version 300 es
 precision highp float;
-uniform vec3 iResolution;
+uniform vec3  iResolution;
 uniform float iTime;
+
+// Shared controls (speed, hue, gain, gamma)
+uniform float uSpeed;     // rotation speed (default 0.5)
+uniform float uHueShift;  // additive hue offset
+uniform float uGain;      // post-process gain
+uniform float uGamma;     // post-process gamma
+
+// Iteration controls
+uniform float uOuterN;    // outer loop limit (default 119.)
+uniform float uFoldN;     // inner fold count (default 25.)
+uniform float uScale;     // initial s value (default 1.8)
+uniform float uIntensity; // fold intensity numerator (default 5.)
+
+// Fold geometry
+uniform vec3  uFoldOff;   // fold offset (default -.7, 4., .4)
+uniform vec3  uFoldPar;   // fold params base (default 2.6, 3.94, 3.3)
+
+// Yohei color controls
+uniform float uHueBase;   // atan x-arg for hue (default .1)
+uniform float uSatFac;    // saturation factor (default .6)
+uniform float uBrtDiv;    // brightness divisor (default 900.)
+
 out vec4 fragColor;
 
 vec3 hsv(float h,float s,float v){
@@ -764,19 +906,24 @@ void main(){
   float t=iTime;
   fragColor=vec4(0.);
   float g=0.,e=0.,s=0.;
-  for(float i=1.;i<119.;i+=1.){
+  int FOLDN=int(clamp(uFoldN,1.,100.));
+  for(float i=1.;i<uOuterN;i+=1.){
     vec3 p=vec3((gl_FragCoord.xy-.5*r)/r.x*.6+vec2(0.,1.),g-.55);
-    p.zx*=rotate2D(t*.5);
-    s=1.8;
-    for(int j=0;j<25;j++){
-      s*=e=5./dot(p,p*.5);
-      p=vec3(-.7,4.,.4)-abs(abs(p)*e-vec3(2.6,3.94+e*.15,3.3-g));
+    p.zx*=rotate2D(t*uSpeed);
+    s=uScale;
+    for(int j=0;j<100;j++){
+      if(j>=FOLDN) break;
+      s*=e=uIntensity/dot(p,p*.5);
+      p=uFoldOff-abs(abs(p)*e-vec3(uFoldPar.x,uFoldPar.y+e*.15,uFoldPar.z-g));
     }
     g+=p.y/s;
     s=log(s)+g*g;
-    fragColor.rgb+=.01-hsv(atan(i,.1),p.y*.6,s/9e2);
+    fragColor.rgb+=.01-hsv(atan(i,uHueBase)+uHueShift,p.y*uSatFac,s/uBrtDiv);
   }
-  fragColor.a=1.;
+  vec3 col=fragColor.rgb*uGain;
+  col=max(col,0.);
+  col=pow(col,vec3(1./max(0.01,uGamma)));
+  fragColor=vec4(col,1.);
 }`;
 
   function compile(type, src){
@@ -793,6 +940,10 @@ void main(){
 
   let prog, locRes, locTime, locCam, locCol, locSteps, locForm, locTex, locGrowth;
   let prog2, locRes2, locTime2;
+  let locTwSpeed, locTwHue, locTwGain, locTwGamma;
+  let locTwOuterN, locTwFoldN, locTwScale, locTwIntensity;
+  let locTwFoldOff, locTwFoldPar;
+  let locTwHueBase, locTwSatFac, locTwBrtDiv;
   let vao=null, vbo=null;
   let currentShader = 1;
 
@@ -854,8 +1005,21 @@ void main(){
         throw new Error(gl.getProgramInfoLog(prog2) || "Program link error");
       }
       gl.useProgram(prog2);
-      locRes2  = gl.getUniformLocation(prog2, "iResolution");
-      locTime2 = gl.getUniformLocation(prog2, "iTime");
+      locRes2       = gl.getUniformLocation(prog2, "iResolution");
+      locTime2      = gl.getUniformLocation(prog2, "iTime");
+      locTwSpeed    = gl.getUniformLocation(prog2, "uSpeed");
+      locTwHue      = gl.getUniformLocation(prog2, "uHueShift");
+      locTwGain     = gl.getUniformLocation(prog2, "uGain");
+      locTwGamma    = gl.getUniformLocation(prog2, "uGamma");
+      locTwOuterN   = gl.getUniformLocation(prog2, "uOuterN");
+      locTwFoldN    = gl.getUniformLocation(prog2, "uFoldN");
+      locTwScale    = gl.getUniformLocation(prog2, "uScale");
+      locTwIntensity= gl.getUniformLocation(prog2, "uIntensity");
+      locTwFoldOff  = gl.getUniformLocation(prog2, "uFoldOff");
+      locTwFoldPar  = gl.getUniformLocation(prog2, "uFoldPar");
+      locTwHueBase  = gl.getUniformLocation(prog2, "uHueBase");
+      locTwSatFac   = gl.getUniformLocation(prog2, "uSatFac");
+      locTwBrtDiv   = gl.getUniformLocation(prog2, "uBrtDiv");
       gl.useProgram(prog);
     }catch(e){
       const b2 = document.getElementById("btnShader2");
@@ -865,6 +1029,7 @@ void main(){
 
   build();
   buildTweet();
+  applyShaderVis(1);
 
   // ── Pause ──
   let paused = false;
@@ -876,38 +1041,55 @@ void main(){
     btnPause.classList.toggle("btnGhost", paused);
   });
 
+  function setUniformsTweet(w, h, time){
+    gl.useProgram(prog2);
+    gl.uniform3f(locRes2,        w, h, 1.0);
+    gl.uniform1f(locTime2,       time);
+    gl.uniform1f(locTwSpeed,     params.speed * 0.5);
+    gl.uniform1f(locTwHue,       params.hue);
+    gl.uniform1f(locTwGain,      params.gain);
+    gl.uniform1f(locTwGamma,     params.gamma);
+    gl.uniform1f(locTwOuterN,    params.yos);
+    gl.uniform1f(locTwFoldN,     params.yfs);
+    gl.uniform1f(locTwScale,     params.ysc);
+    gl.uniform1f(locTwIntensity, params.yit);
+    gl.uniform3f(locTwFoldOff,   params.yfx, params.yfy, params.yfz);
+    gl.uniform3f(locTwFoldPar,   params.ypa, params.ypb, params.ypc);
+    gl.uniform1f(locTwHueBase,   params.yhb);
+    gl.uniform1f(locTwSatFac,    params.ysf);
+    gl.uniform1f(locTwBrtDiv,    params.ybd);
+  }
+
+  function setUniformsShader1(w, h, time){
+    gl.useProgram(prog);
+    gl.uniform3f(locRes,    w, h, 1.0);
+    gl.uniform1f(locTime,   time);
+    gl.uniform4f(locCam,    params.zoom,  params.ox,    params.oy,   params.speed);
+    gl.uniform4f(locCol,    params.hue,   params.sat,   params.gain, params.gamma);
+    gl.uniform4f(locSteps,  params.steps, params.fbm,   0.0,         0.0);
+    gl.uniform4f(locForm,   params.fov,   params.stepk, params.cap,  0.0);
+    gl.uniform4f(locTex,    params.swirl, params.swspd, params.bias, params.amp);
+    gl.uniform1f(locGrowth, params.growth);
+  }
+
   // ── PNG screenshot (2x resolution) ──
   document.getElementById("btnShot").addEventListener("click", ()=>{
-    // Render at 2x display size
     const w2 = canvas.clientWidth  * 2;
     const h2 = canvas.clientHeight * 2;
     canvas.width = w2; canvas.height = h2;
     gl.viewport(0, 0, w2, h2);
-    // Draw one high-res frame
     const time = (performance.now() - t0) / 1000;
     if(currentShader === 2 && prog2){
-      gl.useProgram(prog2);
-      gl.uniform3f(locRes2, w2, h2, 1.0);
-      gl.uniform1f(locTime2, time);
+      setUniformsTweet(w2, h2, time);
     } else {
-      gl.useProgram(prog);
-      gl.uniform3f(locRes, w2, h2, 1.0);
-      gl.uniform1f(locTime, time);
-      gl.uniform4f(locCam,   params.zoom,  params.ox,    params.oy,   params.speed);
-      gl.uniform4f(locCol,   params.hue,   params.sat,   params.gain, params.gamma);
-      gl.uniform4f(locSteps, params.steps, params.fbm,   0.0,         0.0);
-      gl.uniform4f(locForm,  params.fov,   params.stepk, params.cap,  0.0);
-      gl.uniform4f(locTex,   params.swirl, params.swspd, params.bias, params.amp);
-      gl.uniform1f(locGrowth, params.growth);
+      setUniformsShader1(w2, h2, time);
     }
     if(isWebGL2){ gl.bindVertexArray(vao); gl.drawArrays(gl.TRIANGLES,0,3); }
     else{ gl.drawArrays(gl.TRIANGLES,0,6); }
-    // Save PNG
     const a = document.createElement("a");
     a.download = `yohei-glsl-${Date.now()}.png`;
     a.href = canvas.toDataURL("image/png");
     a.click();
-    // Restore normal size next frame
     requestAnimationFrame(resize);
   });
 
@@ -915,8 +1097,8 @@ void main(){
   const btnRec    = document.getElementById("btnRec");
   const recOverlay = document.getElementById("recOverlay");
   let isRecording    = false;
-  let activeOffCtx   = null; // 2D ctx of the offscreen capture canvas
-  let activeOffscreen = null; // strong ref so GC cannot collect the canvas while recording
+  let activeOffCtx   = null;
+  let activeOffscreen = null;
 
   btnRec.addEventListener("click", () => {
     if(isRecording) return;
@@ -928,20 +1110,17 @@ void main(){
     const REC_DURATION = 8000;
     const chunks = [];
 
-    // Offscreen 2D canvas at 1440×1440 — the main WebGL canvas is NEVER resized,
-    // so the GL context stays intact. tick() copies each rendered frame here via
-    // drawImage(), and captureStream() on THIS canvas feeds MediaRecorder.
     const offscreen   = document.createElement("canvas");
     offscreen.width   = 1440;
     offscreen.height  = 1440;
-    activeOffscreen   = offscreen;           // module-level strong ref (prevents GC)
+    activeOffscreen   = offscreen;
     activeOffCtx      = offscreen.getContext("2d");
     console.log("[REC] offscreen canvas:", offscreen.width, "×", offscreen.height,
                 "| main canvas:", canvas.width, "×", canvas.height);
 
     let stream;
     try{
-      stream = offscreen.captureStream(60);  // ← offscreen, NOT the WebGL canvas
+      stream = offscreen.captureStream(60);
       console.log("[REC] captureStream source: offscreen ✓");
     }catch(e){
       alert("captureStream not supported in this browser.");
@@ -949,15 +1128,11 @@ void main(){
       endRec(); return;
     }
 
-    // H.264/MP4 preferred for quality and compatibility. Specific codec strings
-    // (avc1.42E01E, h264) are tried before bare video/mp4 to avoid browsers
-    // silently selecting VP8/VP9 into an MP4 container. VP9/WebM is the fallback.
-    // Each candidate is constructed directly — isTypeSupported can lie.
     const FORMATS = [
-      "video/mp4;codecs=avc1.42E01E", // H.264 baseline — best quality/compat
-      "video/mp4;codecs=h264",         // H.264 generic
-      "video/webm;codecs=vp9",         // VP9 fallback
-      "video/webm",                    // last resort
+      "video/mp4;codecs=avc1.42E01E",
+      "video/mp4;codecs=h264",
+      "video/webm;codecs=vp9",
+      "video/webm",
     ];
 
     let rec;
@@ -966,21 +1141,18 @@ void main(){
       try {
         rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
         break;
-      } catch(e) { /* browser rejected this mime despite isTypeSupported — try next */ }
+      } catch(e) {}
     }
     if (!rec) {
-      // Let the browser pick whatever it supports
       rec = new MediaRecorder(stream, { videoBitsPerSecond: 8_000_000 });
     }
 
-    // rec.mimeType is what the browser ACTUALLY uses — may differ from what we asked for.
     const actualMime = rec.mimeType || "video/webm";
     const actualExt  = actualMime.includes("mp4") ? "mp4" : "webm";
     console.log("[REC] MediaRecorder.mimeType:", actualMime, "→ saving as ." + actualExt);
 
     rec.ondataavailable = e => { if(e.data.size > 0) chunks.push(e.data); };
     rec.onstop = () => {
-      // Use actualMime (browser-negotiated) not the requested mime — they can differ.
       const blob = new Blob(chunks, { type: actualMime });
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement("a");
@@ -991,9 +1163,8 @@ void main(){
       endRec();
     };
 
-    rec.start(100); // timeslice: flush a chunk every 100 ms for reliable collection
+    rec.start(100);
 
-    // Countdown overlay
     const start = performance.now();
     function updateOverlay(){
       const elapsed = performance.now() - start;
@@ -1013,17 +1184,14 @@ void main(){
 
   function endRec(){
     isRecording = false;
-    activeOffCtx    = null; // stop tick() from copying frames
-    activeOffscreen = null; // release canvas ref
+    activeOffCtx    = null;
+    activeOffscreen = null;
     btnRec.classList.remove("recording");
     btnRec.textContent = "REC 8s";
     btnRec.disabled = false;
   }
 
   // ── Fullscreen ──
-  // Fullscreen the wrapper, not the canvas. When the canvas itself is the
-  // fullscreen element the browser stretches it to fill the viewport; by
-  // fullscreening the parent div we can flex-centre a 100vmin square inside it.
   const fsCanvas = document.getElementById("c");
   const fsWrap   = document.querySelector(".canvasWrap");
   let fsSavedWrapStyle   = "";
@@ -1031,20 +1199,16 @@ void main(){
 
   function onFullscreenChange() {
     if (document.fullscreenElement === fsWrap) {
-      // Save current inline styles
       fsSavedWrapStyle   = fsWrap.getAttribute("style")   || "";
       fsSavedCanvasStyle = fsCanvas.getAttribute("style") || "";
-      // Wrapper fills the fullscreen viewport and centres its child
       fsWrap.style.cssText =
         "width:100vw;height:100vh;background:#050a0a;" +
         "display:flex;align-items:center;justify-content:center;";
-      // Canvas is a square taking the smaller viewport dimension
       fsCanvas.style.cssText =
         "width:100vmin !important;height:100vmin !important;" +
         "max-width:100vmin !important;max-height:100vmin !important;" +
         "position:static;transform:none;";
     } else {
-      // Restore original inline styles on exit
       fsWrap.setAttribute("style",   fsSavedWrapStyle);
       fsCanvas.setAttribute("style", fsSavedCanvasStyle);
     }
@@ -1078,19 +1242,9 @@ void main(){
     const time = (now - t0) / 1000;
 
     if(currentShader === 2 && prog2){
-      gl.useProgram(prog2);
-      gl.uniform3f(locRes2, canvas.width, canvas.height, 1.0);
-      gl.uniform1f(locTime2, time);
+      setUniformsTweet(canvas.width, canvas.height, time);
     } else {
-      gl.useProgram(prog);
-      gl.uniform3f(locRes, canvas.width, canvas.height, 1.0);
-      gl.uniform1f(locTime, time);
-      gl.uniform4f(locCam,   params.zoom,  params.ox,    params.oy,   params.speed);
-      gl.uniform4f(locCol,   params.hue,   params.sat,   params.gain, params.gamma);
-      gl.uniform4f(locSteps, params.steps, params.fbm,   0.0,         0.0);
-      gl.uniform4f(locForm,  params.fov,   params.stepk, params.cap,  0.0);
-      gl.uniform4f(locTex,    params.swirl, params.swspd, params.bias, params.amp);
-      gl.uniform1f(locGrowth, params.growth);
+      setUniformsShader1(canvas.width, canvas.height, time);
     }
 
     if(isWebGL2){
@@ -1100,7 +1254,6 @@ void main(){
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     }
 
-    // Copy current frame into the offscreen recording canvas (1440×1440)
     if(activeOffCtx) activeOffCtx.drawImage(canvas, 0, 0, 1440, 1440);
 
     if(!document.hidden) requestAnimationFrame(tick);
