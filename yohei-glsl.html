@@ -253,6 +253,8 @@
     <button class="btn" id="btnReset" type="button">Reset</button>
     <button class="btn" id="btnCopy" type="button">Copy URL</button>
     <button class="btn btnGhost btnRec" id="btnRec" type="button">REC 8s</button>
+    <button class="btn btnPrimary" id="btnShader1" type="button">Shader 1</button>
+    <button class="btn" id="btnShader2" type="button">Yohei Tweet</button>
     <button id="btnFull" style="display:inline-block !important">[ FULL ]</button>
     <span class="status" id="status">boot…</span>
   </div>
@@ -272,6 +274,7 @@
     <div class="controlsSide">
       <div class="controlsHeader">Controls <span style="font-weight:500;text-transform:none;letter-spacing:.04em;opacity:.55" id="shareHint">— share: URL params</span></div>
       <div class="controlsScroll">
+        <div id="tweetNote" style="display:none;padding:8px 0 14px;font-size:11px;color:var(--accent);font-weight:700;letter-spacing:.1em;text-transform:uppercase;">Yohei Tweet — no controls</div>
 
         <!-- MOTION -->
         <div class="ctrlGroup" id="grpMotion">
@@ -502,6 +505,28 @@
     }
   });
 
+  // ── Shader switch ──
+  document.getElementById("btnShader1").addEventListener("click", ()=>{
+    currentShader = 1;
+    document.getElementById("btnShader1").classList.add("btnPrimary");
+    document.getElementById("btnShader2").classList.remove("btnPrimary");
+    document.getElementById("tweetNote").style.display = "none";
+    status.textContent = (isWebGL2 ? "WebGL2" : "WebGL1") + " • running";
+  });
+  document.getElementById("btnShader2").addEventListener("click", ()=>{
+    if(!isWebGL2){
+      status.textContent = "WebGL2 required for Yohei Tweet";
+      return;
+    }
+    if(!prog2) buildTweet();
+    if(!prog2) return;
+    currentShader = 2;
+    document.getElementById("btnShader2").classList.add("btnPrimary");
+    document.getElementById("btnShader1").classList.remove("btnPrimary");
+    document.getElementById("tweetNote").style.display = "block";
+    status.textContent = "WebGL2 • Yohei Tweet";
+  });
+
   // ---------------- collapsible groups ----------------
   document.querySelectorAll(".ctrlGroupHead").forEach(head => {
     head.addEventListener("click", () => {
@@ -721,6 +746,39 @@ void main(){
   gl_FragColor = vec4(col, 1.0);
 }`;
 
+  // ── Shader 2: Yohei Tweet (つぶやきGLSL) ─────────────────────────────────
+  const FRAG_TWEET_WEBGL2 = `#version 300 es
+precision highp float;
+uniform vec3 iResolution;
+uniform float iTime;
+out vec4 fragColor;
+
+vec3 hsv(float h,float s,float v){
+  vec3 p=abs(fract(vec3(h)+vec3(1.,2./3.,1./3.))*6.-3.);
+  return v*mix(vec3(1.),clamp(p-1.,0.,1.),s);
+}
+mat2 rotate2D(float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c);}
+
+void main(){
+  vec2 r=iResolution.xy;
+  float t=iTime;
+  fragColor=vec4(0.);
+  float g=0.,e=0.,s=0.;
+  for(float i=1.;i<119.;i+=1.){
+    vec3 p=vec3((gl_FragCoord.xy-.5*r)/r.x*.6+vec2(0.,1.),g-.55);
+    p.zx*=rotate2D(t*.5);
+    s=1.8;
+    for(int j=0;j<25;j++){
+      s*=e=5./dot(p,p*.5);
+      p=vec3(-.7,4.,.4)-abs(abs(p)*e-vec3(2.6,3.94+e*.15,3.3-g));
+    }
+    g+=p.y/s;
+    s=log(s)+g*g;
+    fragColor.rgb+=.01-hsv(atan(i,.1),p.y*.6,s/9e2);
+  }
+  fragColor.a=1.;
+}`;
+
   function compile(type, src){
     const sh = gl.createShader(type);
     gl.shaderSource(sh, src);
@@ -734,7 +792,9 @@ void main(){
   }
 
   let prog, locRes, locTime, locCam, locCol, locSteps, locForm, locTex, locGrowth;
+  let prog2, locRes2, locTime2;
   let vao=null, vbo=null;
+  let currentShader = 1;
 
   function build(){
     try{
@@ -781,7 +841,30 @@ void main(){
     }
   }
 
+  function buildTweet(){
+    if(!isWebGL2){ return; }
+    try{
+      const vs = compile(gl.VERTEX_SHADER, VERT);
+      const fs = compile(gl.FRAGMENT_SHADER, FRAG_TWEET_WEBGL2);
+      prog2 = gl.createProgram();
+      gl.attachShader(prog2, vs);
+      gl.attachShader(prog2, fs);
+      gl.linkProgram(prog2);
+      if(!gl.getProgramParameter(prog2, gl.LINK_STATUS)){
+        throw new Error(gl.getProgramInfoLog(prog2) || "Program link error");
+      }
+      gl.useProgram(prog2);
+      locRes2  = gl.getUniformLocation(prog2, "iResolution");
+      locTime2 = gl.getUniformLocation(prog2, "iTime");
+      gl.useProgram(prog);
+    }catch(e){
+      const b2 = document.getElementById("btnShader2");
+      if(b2){ b2.disabled = true; b2.title = "Compile error: " + String(e?.message || e); }
+    }
+  }
+
   build();
+  buildTweet();
 
   // ── Pause ──
   let paused = false;
@@ -802,15 +885,21 @@ void main(){
     gl.viewport(0, 0, w2, h2);
     // Draw one high-res frame
     const time = (performance.now() - t0) / 1000;
-    gl.useProgram(prog);
-    gl.uniform3f(locRes, w2, h2, 1.0);
-    gl.uniform1f(locTime, time);
-    gl.uniform4f(locCam,   params.zoom,  params.ox,    params.oy,   params.speed);
-    gl.uniform4f(locCol,   params.hue,   params.sat,   params.gain, params.gamma);
-    gl.uniform4f(locSteps, params.steps, params.fbm,   0.0,         0.0);
-    gl.uniform4f(locForm,  params.fov,   params.stepk, params.cap,  0.0);
-    gl.uniform4f(locTex,   params.swirl, params.swspd, params.bias, params.amp);
-    gl.uniform1f(locGrowth, params.growth);
+    if(currentShader === 2 && prog2){
+      gl.useProgram(prog2);
+      gl.uniform3f(locRes2, w2, h2, 1.0);
+      gl.uniform1f(locTime2, time);
+    } else {
+      gl.useProgram(prog);
+      gl.uniform3f(locRes, w2, h2, 1.0);
+      gl.uniform1f(locTime, time);
+      gl.uniform4f(locCam,   params.zoom,  params.ox,    params.oy,   params.speed);
+      gl.uniform4f(locCol,   params.hue,   params.sat,   params.gain, params.gamma);
+      gl.uniform4f(locSteps, params.steps, params.fbm,   0.0,         0.0);
+      gl.uniform4f(locForm,  params.fov,   params.stepk, params.cap,  0.0);
+      gl.uniform4f(locTex,   params.swirl, params.swspd, params.bias, params.amp);
+      gl.uniform1f(locGrowth, params.growth);
+    }
     if(isWebGL2){ gl.bindVertexArray(vao); gl.drawArrays(gl.TRIANGLES,0,3); }
     else{ gl.drawArrays(gl.TRIANGLES,0,6); }
     // Save PNG
@@ -977,7 +1066,8 @@ void main(){
 
   function tick(now){
     resize();
-    if(!prog){ requestAnimationFrame(tick); return; }
+    const activeProg = currentShader === 2 ? prog2 : prog;
+    if(!activeProg){ requestAnimationFrame(tick); return; }
 
     if(!paused){
       last = now;
@@ -987,16 +1077,21 @@ void main(){
     }
     const time = (now - t0) / 1000;
 
-    gl.useProgram(prog);
-    gl.uniform3f(locRes, canvas.width, canvas.height, 1.0);
-    gl.uniform1f(locTime, time);
-
-    gl.uniform4f(locCam,   params.zoom,  params.ox,    params.oy,   params.speed);
-    gl.uniform4f(locCol,   params.hue,   params.sat,   params.gain, params.gamma);
-    gl.uniform4f(locSteps, params.steps, params.fbm,   0.0,         0.0);
-    gl.uniform4f(locForm,  params.fov,   params.stepk, params.cap,  0.0);
-    gl.uniform4f(locTex,    params.swirl, params.swspd, params.bias, params.amp);
-    gl.uniform1f(locGrowth, params.growth);
+    if(currentShader === 2 && prog2){
+      gl.useProgram(prog2);
+      gl.uniform3f(locRes2, canvas.width, canvas.height, 1.0);
+      gl.uniform1f(locTime2, time);
+    } else {
+      gl.useProgram(prog);
+      gl.uniform3f(locRes, canvas.width, canvas.height, 1.0);
+      gl.uniform1f(locTime, time);
+      gl.uniform4f(locCam,   params.zoom,  params.ox,    params.oy,   params.speed);
+      gl.uniform4f(locCol,   params.hue,   params.sat,   params.gain, params.gamma);
+      gl.uniform4f(locSteps, params.steps, params.fbm,   0.0,         0.0);
+      gl.uniform4f(locForm,  params.fov,   params.stepk, params.cap,  0.0);
+      gl.uniform4f(locTex,    params.swirl, params.swspd, params.bias, params.amp);
+      gl.uniform1f(locGrowth, params.growth);
+    }
 
     if(isWebGL2){
       gl.bindVertexArray(vao);
