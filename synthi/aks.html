@@ -444,6 +444,18 @@
     </div>
     <div class="kbd-hint">A–; white · W E T Y U O P black · Z/X octave</div>
   </div>
+  <div id="midi-panel" style="display:flex;flex-direction:column;gap:4px;align-self:center;padding-left:14px;border-left:1px solid var(--border2)">
+    <div class="kbd-label">MIDI In</div>
+    <span id="midi-status" style="font-size:9px;letter-spacing:.06em;color:var(--muted)">⚪ scanning…</span>
+    <div style="display:flex;gap:4px">
+      <select id="midi-device-select" class="preset-input" style="width:124px;font-size:8px;padding:2px 5px">
+        <option value="all">All devices</option>
+      </select>
+      <select id="midi-channel-select" class="preset-input" style="width:62px;font-size:8px;padding:2px 5px">
+        <option value="0">Omni</option>
+      </select>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -513,7 +525,7 @@ const ST = {
   master: { volume: 0.75, tune: 0, limiter: true },
   glide:  0,
   matrix: Array.from({ length: 9 }, () => new Array(8).fill(0)),
-  currentNote: null, holdOn: false, octShift: 0,
+  currentNote: null, holdOn: false, octShift: 0, pitchBend: 0,
 };
 // Default matrix connections
 ST.matrix[4][4] = 2; // TrapEnv → VCA (strong)
@@ -1587,6 +1599,160 @@ document.addEventListener('DOMContentLoaded', () => {
     r.readAsText(f);
   });
 });
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   MIDI CONTROLLER
+═══════════════════════════════════════════════════════════════════════ */
+'use strict';
+const MIDI = {
+  access: null,
+  inputs: new Map(),
+  selectedId: 'all',
+  channel: 0,
+  sustainOn: false,
+  sustainedNotes: new Set(),
+  activeNotes: new Set(),
+
+  async init() {
+    try { this.selectedId = localStorage.getItem('pixel.synthi.midi.deviceId') || 'all'; } catch {}
+    try { this.channel = parseInt(localStorage.getItem('pixel.synthi.midi.channel') || '0') || 0; } catch {}
+
+    const chSel = document.getElementById('midi-channel-select');
+    if (chSel) {
+      for (let c = 1; c <= 16; c++) {
+        const opt = document.createElement('option');
+        opt.value = c; opt.textContent = 'Ch ' + c;
+        chSel.appendChild(opt);
+      }
+      chSel.value = String(this.channel);
+      chSel.addEventListener('change', () => {
+        this.channel = parseInt(chSel.value) || 0;
+        try { localStorage.setItem('pixel.synthi.midi.channel', String(this.channel)); } catch {}
+      });
+    }
+
+    const devSel = document.getElementById('midi-device-select');
+    if (devSel) {
+      devSel.addEventListener('change', () => {
+        this.selectedId = devSel.value;
+        try { localStorage.setItem('pixel.synthi.midi.deviceId', this.selectedId); } catch {}
+      });
+    }
+
+    if (!navigator.requestMIDIAccess) {
+      this.updateUI('not supported in this browser');
+      return;
+    }
+    try {
+      this.access = await navigator.requestMIDIAccess({ sysex: false });
+      this.refreshDevices();
+      this.access.onstatechange = () => this.refreshDevices();
+    } catch (e) {
+      this.updateUI('permission denied');
+    }
+  },
+
+  refreshDevices() {
+    for (const input of this.inputs.values()) input.onmidimessage = null;
+    this.inputs.clear();
+    for (const input of this.access.inputs.values()) {
+      this.inputs.set(input.id, input);
+      input.onmidimessage = (msg) => this.handleMessage(msg, input.id);
+    }
+
+    const devSel = document.getElementById('midi-device-select');
+    if (devSel) {
+      while (devSel.options.length > 1) devSel.remove(1);
+      for (const [id, inp] of this.inputs) {
+        const opt = document.createElement('option');
+        opt.value = id; opt.textContent = inp.name;
+        devSel.appendChild(opt);
+      }
+      if (this.selectedId === 'all' || !this.inputs.has(this.selectedId)) {
+        devSel.value = 'all'; this.selectedId = 'all';
+      } else {
+        devSel.value = this.selectedId;
+      }
+    }
+    this.updateUI();
+  },
+
+  handleMessage(msg, deviceId) {
+    if (this.selectedId !== 'all' && this.selectedId !== deviceId) return;
+    const [status, data1, data2] = msg.data;
+    const cmd = status & 0xf0;
+    const ch  = (status & 0x0f) + 1;
+    if (this.channel !== 0 && this.channel !== ch) return;
+
+    if (cmd === 0x90 && data2 > 0) {
+      this.activeNotes.add(data1);
+      window.AKS_MIDI_NOTE_ON?.(data1, data2 / 127);
+    } else if (cmd === 0x80 || (cmd === 0x90 && data2 === 0)) {
+      if (this.sustainOn) {
+        this.sustainedNotes.add(data1);
+      } else {
+        this.activeNotes.delete(data1);
+        window.AKS_MIDI_NOTE_OFF?.(data1);
+      }
+    } else if (cmd === 0xb0) {
+      if (data1 === 64) {
+        this.sustainOn = data2 >= 64;
+        if (!this.sustainOn) {
+          this.sustainedNotes.forEach(n => {
+            this.activeNotes.delete(n);
+            window.AKS_MIDI_NOTE_OFF?.(n);
+          });
+          this.sustainedNotes.clear();
+        }
+      } else if (data1 === 1) {
+        window.AKS_MIDI_MOD_WHEEL?.(data2 / 127);
+      }
+    } else if (cmd === 0xe0) {
+      const bend = ((data2 << 7) | data1) - 8192;
+      window.AKS_MIDI_PITCH_BEND?.(bend / 8192);
+    }
+  },
+
+  updateUI(msg) {
+    const el = document.getElementById('midi-status');
+    if (!el) return;
+    if (msg) { el.textContent = '⚪ ' + msg; return; }
+    const n = this.inputs.size;
+    el.textContent = n === 0 ? '🔴 no devices' : '🟢 ' + n + (n === 1 ? ' device' : ' devices');
+  }
+};
+
+/* === MIDI adapters — call existing synth functions, no engine changes === */
+
+// AKS is monophonic: last-note priority (new note simply replaces current)
+window.AKS_MIDI_NOTE_ON = (midiNote, velocity) => {
+  noteOn(midiNote, velocity);
+};
+
+// noteOff already respects ST.holdOn internally
+window.AKS_MIDI_NOTE_OFF = (midiNote) => {
+  noteOff(midiNote);
+};
+
+// ±2 semitones pitch bend range applied via oscillator detune (cents, additive)
+window.AKS_MIDI_PITCH_BEND = (amount) => {
+  ST.pitchBend = amount * 200;
+  if (!ENG || !actx) return;
+  ENG.nodes.oscs.forEach(o => {
+    o.osc.detune.setTargetAtTime(ST.pitchBend, actx.currentTime, 0.005);
+  });
+};
+
+// Mod wheel → LFO 1 depth
+window.AKS_MIDI_MOD_WHEEL = (amount) => {
+  ST.lfos[0].depth = amount;
+  if (!ENG || !actx) return;
+  ENG.nodes.lfoNodes[0].depth.gain.setTargetAtTime(amount, actx.currentTime, 0.02);
+};
+
+document.addEventListener('DOMContentLoaded', () => MIDI.init());
 </script>
 </body>
 </html>
