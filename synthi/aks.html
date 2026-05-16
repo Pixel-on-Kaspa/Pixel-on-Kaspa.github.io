@@ -971,7 +971,9 @@ function buildOscSection() {
         st.tune = v;
         if (ENG && ST.currentNote !== null) {
           const hz = midiToHz(clamp(ST.currentNote + ST.master.tune, 0, 127));
-          ENG.nodes.oscs[i].osc.frequency.setTargetAtTime(hz * semisToR(v + st.range), actx.currentTime, 0.02);
+          const osc = ENG.nodes.oscs[i].osc;
+          osc.frequency.cancelScheduledValues(actx.currentTime);
+          osc.frequency.setTargetAtTime(hz * semisToR(v + st.range), actx.currentTime, 0.02);
         }
       }
     });
@@ -1009,7 +1011,9 @@ function buildOscSection() {
           const base = ST.currentNote !== null
             ? midiToHz(clamp(ST.currentNote + ST.master.tune, 0, 127))
             : 440;
-          ENG.nodes.oscs[i].osc.frequency.setTargetAtTime(base * semisToR(st.tune + semis), actx.currentTime, 0.02);
+          const osc = ENG.nodes.oscs[i].osc;
+          osc.frequency.cancelScheduledValues(actx.currentTime);
+          osc.frequency.setTargetAtTime(base * semisToR(st.tune + semis), actx.currentTime, 0.02);
         }
       });
       fb.appendChild(b);
@@ -1026,7 +1030,9 @@ function buildOscSection() {
       onChange: v => {
         st.fixedFreq = v;
         if (ENG && st.freqMode === 'FIXED') {
-          ENG.nodes.oscs[i].osc.frequency.setTargetAtTime(v, actx.currentTime, 0.02);
+          const osc = ENG.nodes.oscs[i].osc;
+          osc.frequency.cancelScheduledValues(actx.currentTime);
+          osc.frequency.setTargetAtTime(v, actx.currentTime, 0.02);
         }
       }
     });
@@ -1044,11 +1050,13 @@ function buildOscSection() {
         fmBtns.querySelectorAll('.wave-btn').forEach(x => x.classList.toggle('active', x === b));
         kFixed.el.style.display = mode === 'FIXED' ? '' : 'none';
         if (ENG) {
+          const osc = ENG.nodes.oscs[i].osc;
+          osc.frequency.cancelScheduledValues(actx.currentTime);
           if (mode === 'FIXED') {
-            ENG.nodes.oscs[i].osc.frequency.setTargetAtTime(st.fixedFreq, actx.currentTime, 0.02);
+            osc.frequency.setTargetAtTime(st.fixedFreq, actx.currentTime, 0.02);
           } else if (mode === 'TRACK' && ST.currentNote !== null) {
             const hz = midiToHz(clamp(ST.currentNote + ST.master.tune, 0, 127));
-            ENG.nodes.oscs[i].osc.frequency.setTargetAtTime(hz * semisToR(st.tune + st.range), actx.currentTime, 0.02);
+            osc.frequency.setTargetAtTime(hz * semisToR(st.tune + st.range), actx.currentTime, 0.02);
           }
         }
       });
