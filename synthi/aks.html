@@ -472,25 +472,29 @@ const fmtTime    = v => v < 1 ? (v * 1000).toFixed(0) + 'ms' : v.toFixed(2) + 's
 const fmtHz      = v => v >= 1000 ? (v / 1000).toFixed(1) + 'kHz' : v.toFixed(0) + 'Hz';
 
 const SOURCES = [
-  { id:'osc1',  label:'OSC 1'   },
-  { id:'osc2',  label:'OSC 2'   },
-  { id:'osc3',  label:'OSC 3'   },
-  { id:'noise', label:'NOISE'   },
-  { id:'env',   label:'TRAP ENV'},
-  { id:'lfo1',  label:'LFO 1'   },
-  { id:'lfo2',  label:'LFO 2'   },
-  { id:'joyX',  label:'JOY X'   },
-  { id:'joyY',  label:'JOY Y'   },
+  { id:'osc1',   label:'OSC 1'   },
+  { id:'osc2',   label:'OSC 2'   },
+  { id:'osc3',   label:'OSC 3'   },
+  { id:'noise',  label:'NOISE'   },
+  { id:'env',    label:'TRAP ENV'},
+  { id:'lfo1',   label:'LFO 1'   },
+  { id:'lfo2',   label:'LFO 2'   },
+  { id:'joyX',   label:'JOY X'   },
+  { id:'joyY',   label:'JOY Y'   },
+  { id:'vcfout', label:'VCF Out' },
 ];
+// type:'node'  → matrix GainNode connects to an AudioNode input (audio routing)
+// type:'param' → matrix GainNode connects to an AudioParam (CV/modulation routing)
 const DESTS = [
-  { id:'osc1f', label:'O1 ƒ', scale: 200  },
-  { id:'osc2f', label:'O2 ƒ', scale: 200  },
-  { id:'osc3f', label:'O3 ƒ', scale: 200  },
-  { id:'filtf', label:'VCF ƒ', scale: 3000 },
-  { id:'vca',   label:'VCA',   scale: 0.9  },
-  { id:'lfo1f', label:'L1 ƒ',  scale: 2.0  },
-  { id:'lfo2f', label:'L2 ƒ',  scale: 2.0  },
-  { id:'mast',  label:'MAST',  scale: 0.3  },
+  { id:'osc1f', label:'O1 ƒ',  scale: 200,  type:'param' },
+  { id:'osc2f', label:'O2 ƒ',  scale: 200,  type:'param' },
+  { id:'osc3f', label:'O3 ƒ',  scale: 200,  type:'param' },
+  { id:'filtf', label:'VCF ƒ', scale: 3000, type:'param' },
+  { id:'vcfin', label:'VCF In',scale: 1.0,  type:'node'  },
+  { id:'vca',   label:'VCA',   scale: 0.9,  type:'param' },
+  { id:'outl',  label:'Out L', scale: 1.0,  type:'node'  },
+  { id:'lfo1f', label:'L1 ƒ',  scale: 2.0,  type:'param' },
+  { id:'lfo2f', label:'L2 ƒ',  scale: 2.0,  type:'param' },
 ];
 
 const WHITE_MIDI = [48,50,52,53,55,57,59, 60,62,64,65,67,69,71];
@@ -524,12 +528,12 @@ const ST = {
   reverb: { wet: 0.20, decay: 2.0 },
   master: { volume: 0.75, tune: 0, limiter: true },
   glide:  0,
-  matrix: Array.from({ length: 9 }, () => new Array(8).fill(0)),
+  matrix: Array.from({ length: 10 }, () => new Array(9).fill(0)),
   currentNote: null, holdOn: false, octShift: 0, pitchBend: 0,
 };
-// Default matrix connections
-ST.matrix[4][4] = 2; // TrapEnv → VCA (strong)
-ST.matrix[5][3] = 1; // LFO1 → VCF freq (weak)
+// Default matrix connections (new dest indices: VCF In=4, VCA=5, Out L=6)
+ST.matrix[4][5] = 2; // TrapEnv (src 4) → VCA (dst 5) strong
+ST.matrix[5][3] = 1; // LFO1   (src 5) → VCF ƒ (dst 3) weak
 
 /* ═══════════════════════════════════════════════════════════════════════
    KNOB CLASS
@@ -589,7 +593,8 @@ class MatrixRouter {
       dests.map((dst, di) => {
         const g = actx.createGain(); g.gain.value = 0;
         src.connect(g);
-        g.connect(dst.param);
+        if (dst.type === 'node') g.connect(dst.node);
+        else                     g.connect(dst.param);
         return g;
       })
     );
@@ -717,10 +722,14 @@ function buildAudio() {
   n.joyX = actx.createConstantSource(); n.joyX.offset.value = 0.5;
   n.joyY = actx.createConstantSource(); n.joyY.offset.value = 0.5;
 
-  /* === AUDIO PATH === */
-  n.mixer = actx.createGain(); n.mixer.gain.value = 0.45;
-  n.oscs.forEach(o => o.gain.connect(n.mixer));
-  n.noiseGain.connect(n.mixer);
+  /* === AUDIO PATH ===
+     All inter-module audio connections go through patch matrix gain nodes.
+     Nothing sounds until explicitly patched in the matrix.
+
+     VCF path:  vcfIn (matrix-driven) → inputComp → preDrive → filter → vcfOut (matrix source)
+     Output path: outIn (matrix-driven) → vca (CV-gated) → reverb → master
+  */
+  n.vcfIn = actx.createGain(); n.vcfIn.gain.value = 1.0;  // matrix audio dest 4
 
   n.inputComp = actx.createDynamicsCompressor();
   n.inputComp.threshold.value = -18;
@@ -728,7 +737,7 @@ function buildAudio() {
   n.inputComp.ratio.value = 6;
   n.inputComp.attack.value = 0.005;
   n.inputComp.release.value = 0.15;
-  n.mixer.connect(n.inputComp);
+  n.vcfIn.connect(n.inputComp);
 
   n.preDrive = actx.createWaveShaper();
   n.preDrive.curve = mkDriveCurve(ST.vcf.drive);
@@ -740,8 +749,12 @@ function buildAudio() {
   n.filter.Q.value = ST.vcf.res;
   n.preDrive.connect(n.filter);
 
+  n.vcfOut = actx.createGain(); n.vcfOut.gain.value = 1.0; // matrix audio source 9
+  n.filter.connect(n.vcfOut);
+
+  n.outIn = actx.createGain(); n.outIn.gain.value = 1.0;   // matrix audio dest 6
   n.vca = actx.createGain(); n.vca.gain.value = 0;
-  n.filter.connect(n.vca);
+  n.outIn.connect(n.vca);
 
   /* Reverb */
   n.convolver = actx.createConvolver();
@@ -773,25 +786,27 @@ function buildAudio() {
 
   /* === MATRIX SOURCES AND DESTINATIONS === */
   n.matSources = [
-    n.oscs[0].tap,     // 0: OSC1
-    n.oscs[1].tap,     // 1: OSC2
-    n.oscs[2].tap,     // 2: OSC3
-    n.noiseTap,        // 3: NOISE
-    n.envCS,           // 4: TRAP ENV
+    n.oscs[0].tap,       // 0: OSC1
+    n.oscs[1].tap,       // 1: OSC2
+    n.oscs[2].tap,       // 2: OSC3
+    n.noiseTap,          // 3: NOISE
+    n.envCS,             // 4: TRAP ENV
     n.lfoNodes[0].depth, // 5: LFO1
     n.lfoNodes[1].depth, // 6: LFO2
-    n.joyX,            // 7: JOY X
-    n.joyY,            // 8: JOY Y
+    n.joyX,              // 7: JOY X
+    n.joyY,              // 8: JOY Y
+    n.vcfOut,            // 9: VCF Out (audio post-filter tap)
   ];
   n.matDests = [
-    { param: n.oscs[0].osc.frequency,      scale: DESTS[0].scale },
-    { param: n.oscs[1].osc.frequency,      scale: DESTS[1].scale },
-    { param: n.oscs[2].osc.frequency,      scale: DESTS[2].scale },
-    { param: n.filter.frequency,           scale: DESTS[3].scale },
-    { param: n.vca.gain,                   scale: DESTS[4].scale },
-    { param: n.lfoNodes[0].osc.frequency,  scale: DESTS[5].scale },
-    { param: n.lfoNodes[1].osc.frequency,  scale: DESTS[6].scale },
-    { param: n.masterGain.gain,            scale: DESTS[7].scale },
+    { type:'param', param: n.oscs[0].osc.frequency,     scale: DESTS[0].scale }, // 0 O1 ƒ
+    { type:'param', param: n.oscs[1].osc.frequency,     scale: DESTS[1].scale }, // 1 O2 ƒ
+    { type:'param', param: n.oscs[2].osc.frequency,     scale: DESTS[2].scale }, // 2 O3 ƒ
+    { type:'param', param: n.filter.frequency,          scale: DESTS[3].scale }, // 3 VCF ƒ
+    { type:'node',  node:  n.vcfIn,                     scale: DESTS[4].scale }, // 4 VCF In
+    { type:'param', param: n.vca.gain,                  scale: DESTS[5].scale }, // 5 VCA
+    { type:'node',  node:  n.outIn,                     scale: DESTS[6].scale }, // 6 Out L
+    { type:'param', param: n.lfoNodes[0].osc.frequency, scale: DESTS[7].scale }, // 7 L1 ƒ
+    { type:'param', param: n.lfoNodes[1].osc.frequency, scale: DESTS[8].scale }, // 8 L2 ƒ
   ];
 
   /* Start all nodes */
@@ -869,6 +884,7 @@ function noteOn(midi, vel = 0.82) {
 
   n.oscs.forEach((o, i) => {
     if (ST.oscs[i].freqMode === 'TRACK') {
+      o.osc.frequency.cancelScheduledValues(t);
       o.osc.frequency.setTargetAtTime(hz * semisToR(ST.oscs[i].tune + ST.oscs[i].range), t, tc);
     }
   });
@@ -1455,7 +1471,7 @@ function buildKeyboard() {
 function savePreset() {
   const name = document.getElementById('preset-name').value || 'PATCH';
   const snap = {
-    label: name, version: 3, ts: Date.now(),
+    label: name, version: 4, ts: Date.now(),
     state: {
       oscs:   ST.oscs.map(o => ({ ...o })),
       noise:  { ...ST.noise },
@@ -1476,7 +1492,7 @@ function savePreset() {
 
 function loadPreset(json) {
   try {
-    const { label, state: s } = JSON.parse(json);
+    const { label, version, state: s } = JSON.parse(json);
     if (!s) return;
     if (label) document.getElementById('preset-name').value = label;
     if (s.oscs)   s.oscs.forEach((o, i) => Object.assign(ST.oscs[i], o));
@@ -1487,11 +1503,30 @@ function loadPreset(json) {
     if (s.reverb) Object.assign(ST.reverb, s.reverb);
     if (s.master) Object.assign(ST.master, s.master);
     if (s.glide !== undefined) ST.glide = s.glide;
-    if (s.matrix) s.matrix.forEach((row, si) => row.forEach((v, di) => {
-      ST.matrix[si][di] = v;
-      const cell = document.querySelector(`.mat-cell[data-si="${si}"][data-di="${di}"]`);
-      if (cell) { cell.dataset.s = v; if (ROUTER) ROUTER.setCell(si, di, v); }
-    }));
+    if (s.matrix) {
+      // Reset current matrix
+      ST.matrix.forEach(r => r.fill(0));
+      document.querySelectorAll('.mat-cell').forEach(c => { c.dataset.s = 0; if (ROUTER) ROUTER.setCell(+c.dataset.si, +c.dataset.di, 0); });
+
+      s.matrix.forEach((row, si) => {
+        if (si >= SOURCES.length) return;
+        row.forEach((v, di_old) => {
+          if (!v) return;
+          let di = di_old;
+          // v<4 layout (version <4): dest indices shifted to make room for VCF In and Out L
+          if ((!version || version < 4) && row.length === 8) {
+            if      (di_old === 4) di = 5; // VCA: 4→5
+            else if (di_old === 5) di = 7; // L1ƒ: 5→7
+            else if (di_old === 6) di = 8; // L2ƒ: 6→8
+            else if (di_old === 7) return; // MAST dropped
+          }
+          if (di >= DESTS.length) return;
+          ST.matrix[si][di] = v;
+          const cell = document.querySelector(`.mat-cell[data-si="${si}"][data-di="${di}"]`);
+          if (cell) { cell.dataset.s = v; if (ROUTER) ROUTER.setCell(si, di, v); }
+        });
+      });
+    }
     if (ENG && actx) {
       const n = ENG.nodes, t = actx.currentTime;
       n.oscs.forEach((o, i) => {
@@ -1558,17 +1593,35 @@ document.addEventListener('DOMContentLoaded', () => {
   buildReverbSection();
   buildKeyboard();
 
-  /* Power */
+  /* Power — every click tears down and rebuilds so Power Off → On works without reload */
   document.getElementById('btn-power').addEventListener('click', async () => {
-    if (!actx) {
-      buildAudio();
-      ROUTER = new MatrixRouter(actx, ENG.nodes.matSources, ENG.nodes.matDests);
-      ROUTER.fromDOM();
+    // Tear down existing engine
+    if (actx) {
+      panicAllNotes();
+      clearTimeout(envLoopTO);
+      if (ENG) {
+        const en = ENG.nodes;
+        [
+          ...en.oscs.flatMap(o => [o.osc, o.driftOsc]),
+          en.noiseSrc,
+          ...en.lfoNodes.map(l => l.osc),
+          en.envCS, en.joyX, en.joyY,
+        ].forEach(node => { try { node.stop(); } catch(e) {} });
+      }
+      try { await actx.close(); } catch(e) {}
+      actx = null; ENG = null; ROUTER = null;
+      ST.pitchBend = 0;
+      document.getElementById('status-led').classList.remove('on');
+      document.getElementById('status-txt').textContent = 'Power Off';
     }
+    // Build fresh engine
+    buildAudio();
+    ROUTER = new MatrixRouter(actx, ENG.nodes.matSources, ENG.nodes.matDests);
+    ROUTER.fromDOM();
     if (actx.state === 'suspended') await actx.resume();
     document.getElementById('status-led').classList.add('on');
     document.getElementById('status-txt').textContent = 'RUNNING';
-    document.getElementById('btn-power').textContent  = 'RESTART';
+    document.getElementById('btn-power').textContent  = 'Restart';
     document.getElementById('freq-display').textContent = 'play a key';
   });
 
