@@ -526,7 +526,7 @@ const ST = {
   ],
   vcf:    { cutoff: 1200, res: 6.0, drive: 0.25, type: 'lowpass' },
   reverb: { wet: 0.20, decay: 2.0 },
-  master: { volume: 0.75, tune: 0, limiter: true },
+  master: { volume: 0.30, tune: 0, limiter: true },
   glide:  0,
   matrix: Array.from({ length: 10 }, () => new Array(9).fill(0)),
   vcaBias: 1.0,
@@ -761,23 +761,22 @@ function buildAudio() {
   const rvMix = actx.createGain();
   n.reverbWet.connect(rvMix); n.reverbDry.connect(rvMix);
 
-  /* Master chain */
-  n.vuAnalyser = actx.createAnalyser();
-  n.vuAnalyser.fftSize = 256; n.vuAnalyser.smoothingTimeConstant = 0.8;
-  rvMix.connect(n.vuAnalyser);
-
+  /* Master chain: reverb → master → lim → vuAnalyser → destination
+     VU reads post-limiter so it reflects what actually hits the speakers. */
   n.masterGain = actx.createGain(); n.masterGain.gain.value = ST.master.volume;
   n.lim        = actx.createDynamicsCompressor();
-  n.lim.threshold.value = -10; n.lim.knee.value = 6;
-  n.lim.ratio.value = 14; n.lim.attack.value = 0.003; n.lim.release.value = 0.10;
-  n.limGate    = actx.createGain(); n.limGate.gain.value    = 1;
-  n.limBypass  = actx.createGain(); n.limBypass.gain.value  = 0;
+  n.lim.threshold.value = -3;  n.lim.knee.value = 0;
+  n.lim.ratio.value = 20; n.lim.attack.value = 0.003; n.lim.release.value = 0.10;
+  n.limBypass  = actx.createGain(); n.limBypass.gain.value = ST.master.limiter ? 0 : 1;
   n.limOutBus  = actx.createGain();
+  n.vuAnalyser = actx.createAnalyser();
+  n.vuAnalyser.fftSize = 256; n.vuAnalyser.smoothingTimeConstant = 0.8;
 
-  n.vuAnalyser.connect(n.masterGain);
-  n.masterGain.connect(n.limGate);    n.limGate.connect(n.lim);    n.lim.connect(n.limOutBus);
-  n.masterGain.connect(n.limBypass);  n.limBypass.connect(n.limOutBus);
-  n.limOutBus.connect(actx.destination);
+  rvMix.connect(n.masterGain);
+  n.masterGain.connect(n.lim);         n.lim.connect(n.limOutBus);
+  n.masterGain.connect(n.limBypass);   n.limBypass.connect(n.limOutBus);
+  n.limOutBus.connect(n.vuAnalyser);
+  n.vuAnalyser.connect(actx.destination);
 
   /* === MATRIX SOURCES AND DESTINATIONS === */
   n.matSources = [
@@ -926,7 +925,6 @@ function setLimiter(on) {
   ST.master.limiter = on;
   if (!ENG) return;
   const t = actx.currentTime;
-  ENG.nodes.limGate.gain.setTargetAtTime(on ? 1 : 0, t, 0.01);
   ENG.nodes.limBypass.gain.setTargetAtTime(on ? 0 : 1, t, 0.01);
 }
 
