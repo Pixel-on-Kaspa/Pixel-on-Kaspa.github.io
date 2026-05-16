@@ -529,6 +529,7 @@ const ST = {
   master: { volume: 0.75, tune: 0, limiter: true },
   glide:  0,
   matrix: Array.from({ length: 10 }, () => new Array(9).fill(0)),
+  vcaBias: 1.0,
   currentNote: null, holdOn: false, octShift: 0, pitchBend: 0,
 };
 // Default matrix connections (new dest indices: VCF In=4, VCA=5, Out L=6)
@@ -726,22 +727,14 @@ function buildAudio() {
      All inter-module audio connections go through patch matrix gain nodes.
      Nothing sounds until explicitly patched in the matrix.
 
-     VCF path:  vcfIn (matrix-driven) → inputComp → preDrive → filter → vcfOut (matrix source)
-     Output path: outIn (matrix-driven) → vca (CV-gated) → reverb → master
+     VCF path:  vcfIn (matrix-driven) → preDrive → filter → vcfOut (matrix source)
+     Output path: outIn (matrix-driven) → vca (bias + CV) → reverb → master
   */
   n.vcfIn = actx.createGain(); n.vcfIn.gain.value = 1.0;  // matrix audio dest 4
 
-  n.inputComp = actx.createDynamicsCompressor();
-  n.inputComp.threshold.value = -18;
-  n.inputComp.knee.value = 8;
-  n.inputComp.ratio.value = 6;
-  n.inputComp.attack.value = 0.005;
-  n.inputComp.release.value = 0.15;
-  n.vcfIn.connect(n.inputComp);
-
   n.preDrive = actx.createWaveShaper();
   n.preDrive.curve = mkDriveCurve(ST.vcf.drive);
-  n.inputComp.connect(n.preDrive);
+  n.vcfIn.connect(n.preDrive);
 
   n.filter = actx.createBiquadFilter();
   n.filter.type = ST.vcf.type;
@@ -753,7 +746,9 @@ function buildAudio() {
   n.filter.connect(n.vcfOut);
 
   n.outIn = actx.createGain(); n.outIn.gain.value = 1.0;   // matrix audio dest 6
-  n.vca = actx.createGain(); n.vca.gain.value = 0;
+  n.vca = actx.createGain(); n.vca.gain.value = 0;         // bias + envelope sum into gain
+  n.vcaBias = actx.createConstantSource(); n.vcaBias.offset.value = ST.vcaBias;
+  n.vcaBias.connect(n.vca.gain);
   n.outIn.connect(n.vca);
 
   /* Reverb */
@@ -816,6 +811,7 @@ function buildAudio() {
   n.lfoNodes.forEach(l => l.osc.start(t0));
   n.envCS.start(t0);
   n.joyX.start(t0); n.joyY.start(t0);
+  n.vcaBias.start(t0);
 
   ENG = { nodes: n };
   return ENG;
@@ -937,7 +933,6 @@ function setLimiter(on) {
 function panicAllNotes() {
   if (!ENG || !actx) return;
   const n = ENG.nodes, t = actx.currentTime;
-  n.vca.gain.cancelScheduledValues(t); n.vca.gain.setTargetAtTime(0, t, 0.01);
   n.envCS.offset.cancelScheduledValues(t); n.envCS.offset.setTargetAtTime(0, t, 0.01);
   clearTimeout(envLoopTO);
   document.querySelectorAll('.key-w.active,.key-b.active').forEach(k => k.classList.remove('active'));
@@ -1294,7 +1289,14 @@ function buildMasterSection() {
     fmt: v => (v >= 0 ? '+' : '') + Math.round(v) + 'st',
     onChange: v => { ST.master.tune = Math.round(v); }
   });
-  row.append(kVol.el, kTune.el);
+  const kBias = new Knob({
+    min: 0, max: 2, value: ST.vcaBias, label: 'VCA BIAS',
+    onChange: v => {
+      ST.vcaBias = v;
+      if (ENG) ENG.nodes.vcaBias.offset.setTargetAtTime(v, actx.currentTime, 0.02);
+    }
+  });
+  row.append(kVol.el, kTune.el, kBias.el);
   body.appendChild(row);
 
   const br = document.createElement('div'); br.className = 'master-row';
@@ -1479,7 +1481,7 @@ function buildKeyboard() {
 function savePreset() {
   const name = document.getElementById('preset-name').value || 'PATCH';
   const snap = {
-    label: name, version: 4, ts: Date.now(),
+    label: name, version: 5, ts: Date.now(),
     state: {
       oscs:   ST.oscs.map(o => ({ ...o })),
       noise:  { ...ST.noise },
@@ -1489,6 +1491,7 @@ function savePreset() {
       reverb: { ...ST.reverb },
       master: { ...ST.master },
       glide:  ST.glide,
+      vcaBias: ST.vcaBias,
       matrix: ST.matrix.map(r => [...r]),
     }
   };
@@ -1511,6 +1514,7 @@ function loadPreset(json) {
     if (s.reverb) Object.assign(ST.reverb, s.reverb);
     if (s.master) Object.assign(ST.master, s.master);
     if (s.glide !== undefined) ST.glide = s.glide;
+    if (s.vcaBias !== undefined) ST.vcaBias = s.vcaBias;
     if (s.matrix) {
       // Reset current matrix
       ST.matrix.forEach(r => r.fill(0));
@@ -1555,6 +1559,7 @@ function loadPreset(json) {
       });
       n.reverbWet.gain.setTargetAtTime(ST.reverb.wet, t, 0.05);
       n.reverbDry.gain.setTargetAtTime(1 - ST.reverb.wet, t, 0.05);
+      n.vcaBias.offset.setTargetAtTime(ST.vcaBias, t, 0.02);
     }
   } catch(err) { console.error('[AKS] load preset failed:', err); }
 }
@@ -1613,7 +1618,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ...en.oscs.flatMap(o => [o.osc, o.driftOsc]),
           en.noiseSrc,
           ...en.lfoNodes.map(l => l.osc),
-          en.envCS, en.joyX, en.joyY,
+          en.envCS, en.joyX, en.joyY, en.vcaBias,
         ].forEach(node => { try { node.stop(); } catch(e) {} });
       }
       try { await actx.close(); } catch(e) {}
@@ -1658,6 +1663,58 @@ document.addEventListener('DOMContentLoaded', () => {
     const r = new FileReader();
     r.onload = ev => loadPreset(ev.target.result);
     r.readAsText(f);
+  });
+
+  /* Debug overlay — D key toggle */
+  const dbgEl = document.createElement('div');
+  dbgEl.id = 'aks-debug';
+  Object.assign(dbgEl.style, {
+    display: 'none', position: 'fixed', top: '8px', right: '8px',
+    background: 'rgba(0,0,0,0.82)', color: '#49EACB', font: '11px/1.6 monospace',
+    padding: '10px 14px', borderRadius: '6px', border: '1px solid #49EACB44',
+    zIndex: '9999', minWidth: '220px', pointerEvents: 'none',
+  });
+  document.body.appendChild(dbgEl);
+  let _dbgOpen = false, _dbgRaf = null;
+  const _dbgBuf = new Float32Array(256);
+
+  function _dbgUpdate() {
+    if (!_dbgOpen) return;
+    let lines = ['[AKS DEBUG]'];
+    if (!ENG || !actx) {
+      lines.push('engine: OFF');
+    } else {
+      const n = ENG.nodes;
+      lines.push('actx state : ' + actx.state);
+      lines.push('master vol : ' + (ST.master.volume).toFixed(3));
+      lines.push('vca bias   : ' + (ST.vcaBias).toFixed(3));
+      lines.push('vca gain   : ' + (n.vca.gain.value).toFixed(4));
+      const envV = n.envCS ? n.envCS.offset.value : '—';
+      lines.push('env cv     : ' + (typeof envV === 'number' ? envV.toFixed(4) : envV));
+      if (n.vuAnalyser) {
+        n.vuAnalyser.getFloatTimeDomainData(_dbgBuf);
+        let rms = 0;
+        for (let i = 0; i < _dbgBuf.length; i++) rms += _dbgBuf[i] * _dbgBuf[i];
+        rms = Math.sqrt(rms / _dbgBuf.length);
+        lines.push('out RMS    : ' + rms.toFixed(5));
+      }
+      lines.push('— patches —');
+      ST.matrix.forEach((row, si) => {
+        row.forEach((v, di) => {
+          if (v) lines.push('  [' + SOURCES[si].label + '] → [' + DESTS[di].label + '] s=' + v);
+        });
+      });
+      if (lines[lines.length - 1] === '— patches —') lines.push('  (none)');
+    }
+    dbgEl.textContent = lines.join('\n');
+    _dbgRaf = requestAnimationFrame(_dbgUpdate);
+  }
+
+  window.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.key.toLowerCase() !== 'd') return;
+    _dbgOpen = !_dbgOpen;
+    dbgEl.style.display = _dbgOpen ? 'block' : 'none';
+    if (_dbgOpen) _dbgUpdate(); else cancelAnimationFrame(_dbgRaf);
   });
 });
 </script>
