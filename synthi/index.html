@@ -745,6 +745,7 @@
   }
 </style>
 <script defer src="https://cloud.umami.is/script.js" data-website-id="6ee0e9a9-7066-4115-b91d-5667d8042abe"></script>
+<script src="https://w.soundcloud.com/player/api.js"></script>
 </head>
 <body>
 
@@ -939,6 +940,12 @@
   </div>
 </section>
 
+<!-- Hidden SoundCloud player (audio source for custom UI) -->
+<iframe id="sc-iframe" allow="autoplay"
+  src="https://w.soundcloud.com/player/?url=https%3A//soundcloud.com/user-130810224/synthix-1&auto_play=false&hide_related=true&show_comments=false&show_user=false&show_reposts=false&visual=false"
+  style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;border:none;left:-9999px"
+  aria-hidden="true"></iframe>
+
 <!-- FOOTER -->
 <footer>
   <span class="footer-left">© 2024–2026 PIXEL ON KASPA · SYNTHI sound system</span>
@@ -962,19 +969,71 @@
     waveform.appendChild(bar);
   }
 
-  // Play button toggle
-  const playBtn = document.getElementById('playBtn');
-  let isPlaying = false;
-  playBtn.addEventListener('click', () => {
-    isPlaying = !isPlaying;
-    playBtn.innerHTML = isPlaying
-      ? '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'
-      : '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6,3 20,12 6,21"/></svg>';
+  // Player controls
+  const playBtn       = document.getElementById('playBtn');
+  const progressFill  = document.getElementById('progressFill');
+  const timeElapsed   = document.getElementById('timeElapsed');
+  const timeDuration  = document.getElementById('timeDuration');
+  const progressTrack = document.querySelector('.progress-track');
 
-    if (isPlaying) animateWaveform();
+  const PLAY_ICON  = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6,3 20,12 6,21"/></svg>';
+  const PAUSE_ICON = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+
+  let isPlaying   = false;
+  let trackDuration = 0;
+
+  function fmtTime(ms) {
+    const s = Math.floor(ms / 1000);
+    return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  }
+
+  // SoundCloud Widget API
+  const scWidget = SC.Widget(document.getElementById('sc-iframe'));
+
+  scWidget.bind(SC.Widget.Events.READY, function() {
+    scWidget.getDuration(function(dur) {
+      trackDuration = dur;
+      timeDuration.textContent = fmtTime(dur);
+    });
   });
 
-  // Animate waveform bars when playing
+  scWidget.bind(SC.Widget.Events.PLAY, function() {
+    isPlaying = true;
+    playBtn.innerHTML = PAUSE_ICON;
+    animateWaveform();
+  });
+
+  scWidget.bind(SC.Widget.Events.PAUSE, function() {
+    isPlaying = false;
+    playBtn.innerHTML = PLAY_ICON;
+  });
+
+  scWidget.bind(SC.Widget.Events.PLAY_PROGRESS, function(e) {
+    if (!trackDuration) return;
+    progressFill.style.width = (e.currentPosition / trackDuration * 100) + '%';
+    timeElapsed.textContent = fmtTime(e.currentPosition);
+  });
+
+  scWidget.bind(SC.Widget.Events.FINISH, function() {
+    isPlaying = false;
+    playBtn.innerHTML = PLAY_ICON;
+    progressFill.style.width = '0%';
+    timeElapsed.textContent = '00:00';
+  });
+
+  playBtn.addEventListener('click', function() {
+    if (isPlaying) scWidget.pause(); else scWidget.play();
+  });
+
+  if (progressTrack) {
+    progressTrack.addEventListener('click', function(e) {
+      if (!trackDuration) return;
+      const rect = this.getBoundingClientRect();
+      scWidget.seekTo((e.clientX - rect.left) / rect.width * trackDuration);
+    });
+  }
+
+  // Waveform animation — runs only while playing
   function animateWaveform() {
     if (!isPlaying) return;
     const bars = waveform.querySelectorAll('.waveform-bar');
