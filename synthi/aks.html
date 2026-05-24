@@ -392,16 +392,8 @@
     </div>
   </div>
 
-  <!-- COL-RIGHT: LFO1 + LFO2 + REVERB + PRESETS -->
+  <!-- COL-RIGHT: REVERB + PRESETS + HELP -->
   <div id="col-right">
-    <div class="panel">
-      <div class="panel-title">LFO 1</div>
-      <div class="panel-body" id="lfo1-body"></div>
-    </div>
-    <div class="panel">
-      <div class="panel-title">LFO 2</div>
-      <div class="panel-body" id="lfo2-body"></div>
-    </div>
     <div class="panel">
       <div class="panel-title">Spring Reverb</div>
       <div class="panel-body" id="reverb-body"></div>
@@ -420,6 +412,20 @@
         <div style="font-size:7px;color:var(--dim);letter-spacing:.06em;line-height:1.7">
           Power on → play keys → patch matrix
         </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Patching Guide</div>
+      <div class="panel-body" style="font-size:8px;color:var(--text2);letter-spacing:.04em;line-height:1.55">
+        <div style="color:var(--amber2);margin-bottom:4px">Nothing sounds until patched.</div>
+        Try these starters:<br>
+        • OSC1 → Out L <span style="color:var(--amber)">(direct)</span><br>
+        • OSC1 → VCF In, VCF Out → Out L<br>
+        • TRAP ENV → VCA<br>
+        • OSC3 → O1 ƒ <span style="color:var(--amber)">(slow vibrato)</span><br>
+        • OSC3 → VCF ƒ <span style="color:var(--amber)">(filter sweep)</span><br>
+        • TRAP ENV → VCF ƒ + LOOP on<br>
+        <div style="margin-top:6px;color:var(--dim);font-size:7px">Shift+drag knobs for fine tune. Press D for debug overlay.</div>
       </div>
     </div>
   </div>
@@ -469,7 +475,39 @@ const semisToR   = s => Math.pow(2, s / 12);
 const clamp      = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const noteName   = n => NOTE_NAMES[((n % 12) + 12) % 12] + (Math.floor(n / 12) - 1);
 const fmtTime    = v => v < 1 ? (v * 1000).toFixed(0) + 'ms' : v.toFixed(2) + 's';
-const fmtHz      = v => v >= 1000 ? (v / 1000).toFixed(1) + 'kHz' : v.toFixed(0) + 'Hz';
+const fmtHz      = v => v >= 1000 ? (v / 1000).toFixed(1) + 'kHz'
+                       : v >= 10  ? v.toFixed(0) + 'Hz'
+                       : v >= 1   ? v.toFixed(1) + 'Hz'
+                                  : v.toFixed(2) + 'Hz';
+
+/* PeriodicWave with phase rotation — N=32 harmonics is enough resolution
+   while staying cheap to rebuild on every phase tweak.  Each shape supplies
+   its harmonic amplitudes; the phase rotates real/imag pairs together. */
+function mkPhasedWave(actx, type, phaseDeg) {
+  const N = 33; // index 0 = DC, 1..32 = harmonics
+  const real = new Float32Array(N);
+  const imag = new Float32Array(N);
+  // Base coefficients (sine-series amplitudes for canonical shapes)
+  for (let n = 1; n < N; n++) {
+    let a = 0;
+    switch (type) {
+      case 'sine':     a = (n === 1) ? 1 : 0; break;
+      case 'sawtooth': a = 2 / (Math.PI * n) * ((n % 2) ? 1 : -1); break;
+      case 'square':   a = (n % 2) ? 4 / (Math.PI * n) : 0; break;
+      case 'triangle': a = (n % 2) ? 8 / (Math.PI * Math.PI * n * n) * ((((n - 1) / 2) % 2) ? -1 : 1) : 0; break;
+    }
+    imag[n] = a; // canonical sine basis lives in imag
+  }
+  // Phase rotation: multiply each harmonic by exp(i·n·φ)
+  const phi = phaseDeg * Math.PI / 180;
+  for (let n = 1; n < N; n++) {
+    const c = Math.cos(n * phi), s = Math.sin(n * phi);
+    const re = real[n], im = imag[n];
+    real[n] = re * c - im * s;
+    imag[n] = re * s + im * c;
+  }
+  return actx.createPeriodicWave(real, imag, { disableNormalization: false });
+}
 
 const SOURCES = [
   { id:'osc1',   label:'OSC 1'   },
@@ -477,24 +515,24 @@ const SOURCES = [
   { id:'osc3',   label:'OSC 3'   },
   { id:'noise',  label:'NOISE'   },
   { id:'env',    label:'TRAP ENV'},
-  { id:'lfo1',   label:'LFO 1'   },
-  { id:'lfo2',   label:'LFO 2'   },
   { id:'joyX',   label:'JOY X'   },
   { id:'joyY',   label:'JOY Y'   },
   { id:'vcfout', label:'VCF Out' },
 ];
 // type:'node'  → matrix GainNode connects to an AudioNode input (audio routing)
 // type:'param' → matrix GainNode connects to an AudioParam (CV/modulation routing)
+// Scales are tuned so a "full" (strength 2) connection produces a clearly audible
+// modulation. Audio destinations (VCF In, Out L) intentionally peak at ~0.5 so
+// stacking multiple pins doesn't blow up the bus — a post-bus soft saturator
+// catches anything beyond that.
 const DESTS = [
-  { id:'osc1f', label:'O1 ƒ',  scale: 200,  type:'param' },
-  { id:'osc2f', label:'O2 ƒ',  scale: 200,  type:'param' },
-  { id:'osc3f', label:'O3 ƒ',  scale: 200,  type:'param' },
-  { id:'filtf', label:'VCF ƒ', scale: 3000, type:'param' },
-  { id:'vcfin', label:'VCF In',scale: 1.0,  type:'node'  },
-  { id:'vca',   label:'VCA',   scale: 0.9,  type:'param' },
-  { id:'outl',  label:'Out L', scale: 1.0,  type:'node'  },
-  { id:'lfo1f', label:'L1 ƒ',  scale: 2.0,  type:'param' },
-  { id:'lfo2f', label:'L2 ƒ',  scale: 2.0,  type:'param' },
+  { id:'osc1f', label:'O1 ƒ',  scale: 800,  type:'param' },
+  { id:'osc2f', label:'O2 ƒ',  scale: 800,  type:'param' },
+  { id:'osc3f', label:'O3 ƒ',  scale: 50,   type:'param' },
+  { id:'filtf', label:'VCF ƒ', scale: 6000, type:'param' },
+  { id:'vcfin', label:'VCF In',scale: 0.5,  type:'node'  },
+  { id:'vca',   label:'VCA',   scale: 1.5,  type:'param' },
+  { id:'outl',  label:'Out L', scale: 0.5,  type:'node'  },
 ];
 
 const WHITE_MIDI = [48,50,52,53,55,57,59, 60,62,64,65,67,69,71];
@@ -513,32 +551,42 @@ const PC_MAP = {
    STATE
 ═══════════════════════════════════════════════════════════════════════ */
 const ST = {
+  // Each OSC: hz = absolute base frequency, level, phase (0–360°), wave shape.
+  // OSC1/OSC2 are audio-rate (1 Hz – 10 kHz) and track keyboard ratiometrically
+  // (frequency = hz × 2^((midi-69)/12)).  OSC3 is sub-audio (0.01 Hz – 50 Hz),
+  // does NOT track keyboard — it's the modulator (replaces what LFO used to do).
   oscs: [
-    { level: 0.30, tune: 0,    wave: 'sawtooth', drift: 2.0, range: 0, freqMode: 'TRACK', fixedFreq: 440 },
-    { level: 0.30, tune: 0.07, wave: 'square',   drift: 2.0, range: 0, freqMode: 'TRACK', fixedFreq: 440 },
-    { level: 0.30, tune: -12,  wave: 'triangle', drift: 2.0, range: 0, freqMode: 'TRACK', fixedFreq: 440 },
+    { hz: 220, level: 0.30, phase:   0, wave: 'sawtooth' },
+    { hz: 330, level: 0.30, phase:  90, wave: 'square'   },
+    { hz:   2, level: 0.30, phase:   0, wave: 'sine'     },
   ],
   noise:  { type: 'white', level: 0.05 },
+  // Trapezoidal envelope: A → ON (hold @ 1) → D → OFF (hold @ 0).
+  // Fires complete cycle on each note trigger.  loop = auto-retrigger forever.
   env:    { attack: 0.08, on: 0.20, decay: 0.30, off: 0.40, loop: false },
-  lfos: [
-    { rate: 0.50, depth: 0.40, wave: 'sine'     },
-    { rate: 0.12, depth: 0.30, wave: 'triangle' },
-  ],
   vcf:    { cutoff: 1200, res: 6.0, drive: 0.25, type: 'lowpass' },
   reverb: { wet: 0.20, decay: 2.0 },
-  master: { volume: 0.50, tune: 0, limiter: true },
+  master: { volume: 0.50, tune: 0, limiter: true, drift: 1.5 },
   glide:  0,
-  matrix: Array.from({ length: 10 }, () => new Array(9).fill(0)),
+  matrix: Array.from({ length: SOURCES.length }, () => new Array(DESTS.length).fill(0)),
   vcaBias: 0.0,
   currentNote: null, holdOn: false, octShift: 0, pitchBend: 0,
 };
 
 /* ═══════════════════════════════════════════════════════════════════════
    KNOB CLASS
+   `taper` reshapes the knob's response curve:
+     'lin'  — linear (default)
+     'log'  — exponential range, e.g. 20 Hz – 20 kHz where rotation halfway
+              lands on √(min·max). Used for all frequency / cutoff knobs.
+     'cube' — perceptual loudness: value = norm³ so low end resolves finely.
+   Drag travel is 220 px for fine control + Shift slows by 4×.
 ═══════════════════════════════════════════════════════════════════════ */
 class Knob {
-  constructor({ min, max, value, label, fmt, decimals, step, onChange }) {
+  constructor({ min, max, value, label, fmt, decimals, step, onChange, taper }) {
     this.min = min; this.max = max; this.step = step || null;
+    this.taper = taper || 'lin';
+    if (this.taper === 'log' && (min <= 0 || max <= 0)) this.taper = 'lin';
     this.value = value !== undefined ? value : min;
     const d = decimals !== undefined ? decimals : (max - min < 10 ? 2 : 1);
     this.fmt = fmt || (v => v.toFixed(d));
@@ -554,14 +602,16 @@ class Knob {
     this._i = inn;
     this._upd();
 
-    let sy, sv;
+    let sy, sn;
     k.addEventListener('mousedown', e => {
-      sy = e.clientY; sv = this.value; e.preventDefault();
+      sy = e.clientY; sn = this._valToNorm(this.value); e.preventDefault();
       const move = e => {
+        const speed = e.shiftKey ? 880 : 220;
         const dy = sy - e.clientY;
-        let nv = sv + (dy / 200) * (this.max - this.min);
-        nv = clamp(nv, this.min, this.max);
+        const norm = clamp(sn + dy / speed, 0, 1);
+        let nv = this._normToVal(norm);
         if (this.step) nv = Math.round(nv / this.step) * this.step;
+        nv = clamp(nv, this.min, this.max);
         this.value = nv; this._upd(); this.onChange(nv);
       };
       const up = () => {
@@ -572,7 +622,18 @@ class Knob {
       window.addEventListener('mouseup', up);
     });
   }
-  _deg() { return -140 + (this.value - this.min) / (this.max - this.min) * 280; }
+  _valToNorm(v) {
+    v = clamp(v, this.min, this.max);
+    if (this.taper === 'log')  return Math.log(v / this.min) / Math.log(this.max / this.min);
+    if (this.taper === 'cube') return Math.cbrt((v - this.min) / (this.max - this.min));
+    return (v - this.min) / (this.max - this.min);
+  }
+  _normToVal(n) {
+    if (this.taper === 'log')  return this.min * Math.pow(this.max / this.min, n);
+    if (this.taper === 'cube') return this.min + (this.max - this.min) * (n * n * n);
+    return this.min + (this.max - this.min) * n;
+  }
+  _deg() { return -140 + this._valToNorm(this.value) * 280; }
   _upd() {
     this._i.style.setProperty('--deg', this._deg() + 'deg');
     this._v.textContent = this.fmt(this.value);
@@ -582,6 +643,10 @@ class Knob {
 
 /* ═══════════════════════════════════════════════════════════════════════
    MATRIX ROUTER
+   Strength 0 = off, 1 = weak (40% scale), 2 = strong (full scale).
+   Weak is intentionally 40%, not 50%, so the perceptual jump from off→weak
+   is clearly audible (matches Synthi pin feel where even a single pin moves
+   things noticeably).
 ═══════════════════════════════════════════════════════════════════════ */
 class MatrixRouter {
   constructor(actx, sources, dests) {
@@ -599,7 +664,7 @@ class MatrixRouter {
   }
   setCell(si, di, strength) {
     const scale = this.dests[di].scale;
-    const val = [0, scale * 0.5, scale][strength];
+    const val = [0, scale * 0.40, scale][strength];
     this.gains[si][di].gain.setTargetAtTime(val, this.actx.currentTime, 0.02);
   }
   fromDOM() {
@@ -677,19 +742,27 @@ function buildAudio() {
   n.mkSpringIR = mkSpringIR;
   n.mkDriveCurve = mkDriveCurve;
 
-  /* === OSCILLATORS === */
+  /* === OSCILLATORS ===
+     Phase is realised via a custom PeriodicWave for each shape with the
+     requested phase rotation applied to its harmonics.  This is the only
+     way to control oscillator starting phase in Web Audio without restarting
+     the node (which would click).  Phase changes rebuild the wave (~µs cost). */
+  n.mkWave = (type, phaseDeg) => mkPhasedWave(actx, type, phaseDeg);
+
   n.oscs = ST.oscs.map((st, i) => {
     const osc  = actx.createOscillator();
-    osc.type   = st.wave;
-    osc.frequency.value = 440 * semisToR(st.tune + st.range);
+    osc.setPeriodicWave(mkPhasedWave(actx, st.wave, st.phase));
+    osc.frequency.value = st.hz;
     const gain = actx.createGain(); gain.gain.value = st.level;
-    // Drift oscillator
+    // Slow per-oscillator drift — voltage instability of analog VCOs.
+    // Disabled for OSC3 (it's already slow, drift would dominate).
     const driftOsc  = actx.createOscillator(); driftOsc.type = 'sine';
-    driftOsc.frequency.value = 0.10 + Math.random() * 0.20;
-    const driftGain = actx.createGain(); driftGain.gain.value = st.drift;
+    driftOsc.frequency.value = 0.07 + Math.random() * 0.13;
+    const driftGain = actx.createGain();
+    driftGain.gain.value = i === 2 ? 0 : ST.master.drift;
     driftOsc.connect(driftGain); driftGain.connect(osc.frequency);
     osc.connect(gain);
-    // Tap for matrix
+    // Tap for matrix (post-level so muting the OSC also mutes its modulation).
     const tap = actx.createGain(); tap.gain.value = 1.0; gain.connect(tap);
     return { osc, gain, driftOsc, driftGain, tap };
   });
@@ -707,15 +780,6 @@ function buildAudio() {
   /* === TRAP ENV === */
   n.envCS = actx.createConstantSource(); n.envCS.offset.value = 0;
 
-  /* === LFOs === */
-  n.lfoNodes = ST.lfos.map(st => {
-    const osc   = actx.createOscillator();
-    osc.type    = st.wave; osc.frequency.value = st.rate;
-    const depth = actx.createGain(); depth.gain.value = st.depth;
-    osc.connect(depth);
-    return { osc, depth };
-  });
-
   /* === JOYSTICK === */
   n.joyX = actx.createConstantSource(); n.joyX.offset.value = 0.5;
   n.joyY = actx.createConstantSource(); n.joyY.offset.value = 0.5;
@@ -724,14 +788,26 @@ function buildAudio() {
      All inter-module audio connections go through patch matrix gain nodes.
      Nothing sounds until explicitly patched in the matrix.
 
-     VCF path:  vcfIn (matrix-driven) → preDrive → filter → vcfOut (matrix source)
-     Output path: outIn (matrix-driven) → vca (bias + CV) → reverb → master
-  */
-  n.vcfIn = actx.createGain(); n.vcfIn.gain.value = 1.0;  // matrix audio dest 4
+     VCF path:  vcfIn → vcfSat → preDrive → filter → vcfOut (matrix source)
+     Output path: outIn → outSat → vca (bias + CV) → DC blocker → reverb → master
+
+     vcfSat / outSat are soft tanh saturators that compensate for matrix-pin
+     stacking — without them, patching 4 pins into Out L would multiply the
+     signal 4×, blowing the limiter.  Tanh smoothly bends anything above ~0.7
+     back toward unity, so 1 pin sounds ~the same as 4. */
+  const softSatCurve = (() => {
+    const N = 1024, c = new Float32Array(N), k = 1.8;
+    for (let i = 0; i < N; i++) { const x = (i * 2 / (N - 1)) - 1; c[i] = Math.tanh(x * k) / Math.tanh(k); }
+    return c;
+  })();
+
+  n.vcfIn = actx.createGain(); n.vcfIn.gain.value = 1.0;  // matrix audio dest
+  n.vcfSat = actx.createWaveShaper(); n.vcfSat.curve = softSatCurve; n.vcfSat.oversample = '2x';
+  n.vcfIn.connect(n.vcfSat);
 
   n.preDrive = actx.createWaveShaper();
   n.preDrive.curve = mkDriveCurve(ST.vcf.drive);
-  n.vcfIn.connect(n.preDrive);
+  n.vcfSat.connect(n.preDrive);
 
   n.filter = actx.createBiquadFilter();
   n.filter.type = ST.vcf.type;
@@ -739,30 +815,43 @@ function buildAudio() {
   n.filter.Q.value = ST.vcf.res;
   n.preDrive.connect(n.filter);
 
-  n.vcfOut = actx.createGain(); n.vcfOut.gain.value = 1.0; // matrix audio source 9
+  n.vcfOut = actx.createGain(); n.vcfOut.gain.value = 1.0; // matrix audio source
   n.filter.connect(n.vcfOut);
 
-  n.outIn = actx.createGain(); n.outIn.gain.value = 1.0;   // matrix audio dest 6
+  n.outIn = actx.createGain(); n.outIn.gain.value = 1.0;   // matrix audio dest
+  n.outSat = actx.createWaveShaper(); n.outSat.curve = softSatCurve; n.outSat.oversample = '2x';
+  n.outIn.connect(n.outSat);
+
   n.vca = actx.createGain(); n.vca.gain.value = 0;         // bias + envelope sum into gain
   n.vcaBias = actx.createConstantSource(); n.vcaBias.offset.value = ST.vcaBias;
   n.vcaBias.connect(n.vca.gain);
-  n.outIn.connect(n.vca);
+  n.outSat.connect(n.vca);
+
+  /* DC blocker — 5 Hz highpass kills any subsonic drift that would
+     otherwise eat headroom and bump the limiter constantly. */
+  n.dcBlock = actx.createBiquadFilter();
+  n.dcBlock.type = 'highpass';
+  n.dcBlock.frequency.value = 5;
+  n.dcBlock.Q.value = 0.7;
+  n.vca.connect(n.dcBlock);
 
   /* Reverb */
   n.convolver = actx.createConvolver();
   n.convolver.buffer = mkSpringIR(ST.reverb.decay);
   n.reverbWet = actx.createGain(); n.reverbWet.gain.value = ST.reverb.wet;
   n.reverbDry = actx.createGain(); n.reverbDry.gain.value = 1 - ST.reverb.wet;
-  n.vca.connect(n.convolver); n.convolver.connect(n.reverbWet);
-  n.vca.connect(n.reverbDry);
+  n.dcBlock.connect(n.convolver); n.convolver.connect(n.reverbWet);
+  n.dcBlock.connect(n.reverbDry);
   const rvMix = actx.createGain();
   n.reverbWet.connect(rvMix); n.reverbDry.connect(rvMix);
 
   /* Master chain: reverb → master → lim → vuAnalyser → destination
-     VU reads post-limiter so it reflects what actually hits the speakers. */
+     VU reads post-limiter so it reflects what actually hits the speakers.
+     Threshold pulled to −6 dB to leave 6 dB of headroom — the soft sats
+     handle most of the transient work; this catches anything that slips. */
   n.masterGain = actx.createGain(); n.masterGain.gain.value = ST.master.volume;
   n.lim        = actx.createDynamicsCompressor();
-  n.lim.threshold.value = -3;  n.lim.knee.value = 0;
+  n.lim.threshold.value = -6;  n.lim.knee.value = 2;
   n.lim.ratio.value = 20; n.lim.attack.value = 0.003; n.lim.release.value = 0.10;
   n.limBypass  = actx.createGain(); n.limBypass.gain.value = ST.master.limiter ? 0 : 1;
   n.limOutBus  = actx.createGain();
@@ -775,36 +864,32 @@ function buildAudio() {
   n.limOutBus.connect(n.vuAnalyser);
   n.vuAnalyser.connect(actx.destination);
 
-  /* === MATRIX SOURCES AND DESTINATIONS === */
+  /* === MATRIX SOURCES AND DESTINATIONS ===
+     Indices must match SOURCES[] / DESTS[] above exactly. */
   n.matSources = [
-    n.oscs[0].tap,       // 0: OSC1
-    n.oscs[1].tap,       // 1: OSC2
-    n.oscs[2].tap,       // 2: OSC3
-    n.noiseTap,          // 3: NOISE
-    n.envCS,             // 4: TRAP ENV
-    n.lfoNodes[0].depth, // 5: LFO1
-    n.lfoNodes[1].depth, // 6: LFO2
-    n.joyX,              // 7: JOY X
-    n.joyY,              // 8: JOY Y
-    n.vcfOut,            // 9: VCF Out (audio post-filter tap)
+    n.oscs[0].tap, // 0: OSC1
+    n.oscs[1].tap, // 1: OSC2
+    n.oscs[2].tap, // 2: OSC3
+    n.noiseTap,    // 3: NOISE
+    n.envCS,       // 4: TRAP ENV
+    n.joyX,        // 5: JOY X
+    n.joyY,        // 6: JOY Y
+    n.vcfOut,      // 7: VCF Out
   ];
   n.matDests = [
-    { type:'param', param: n.oscs[0].osc.frequency,     scale: DESTS[0].scale }, // 0 O1 ƒ
-    { type:'param', param: n.oscs[1].osc.frequency,     scale: DESTS[1].scale }, // 1 O2 ƒ
-    { type:'param', param: n.oscs[2].osc.frequency,     scale: DESTS[2].scale }, // 2 O3 ƒ
-    { type:'param', param: n.filter.frequency,          scale: DESTS[3].scale }, // 3 VCF ƒ
-    { type:'node',  node:  n.vcfIn,                     scale: DESTS[4].scale }, // 4 VCF In
-    { type:'param', param: n.vca.gain,                  scale: DESTS[5].scale }, // 5 VCA
-    { type:'node',  node:  n.outIn,                     scale: DESTS[6].scale }, // 6 Out L
-    { type:'param', param: n.lfoNodes[0].osc.frequency, scale: DESTS[7].scale }, // 7 L1 ƒ
-    { type:'param', param: n.lfoNodes[1].osc.frequency, scale: DESTS[8].scale }, // 8 L2 ƒ
+    { type:'param', param: n.oscs[0].osc.frequency, scale: DESTS[0].scale }, // 0 O1 ƒ
+    { type:'param', param: n.oscs[1].osc.frequency, scale: DESTS[1].scale }, // 1 O2 ƒ
+    { type:'param', param: n.oscs[2].osc.frequency, scale: DESTS[2].scale }, // 2 O3 ƒ
+    { type:'param', param: n.filter.frequency,      scale: DESTS[3].scale }, // 3 VCF ƒ
+    { type:'node',  node:  n.vcfIn,                 scale: DESTS[4].scale }, // 4 VCF In
+    { type:'param', param: n.vca.gain,              scale: DESTS[5].scale }, // 5 VCA
+    { type:'node',  node:  n.outIn,                 scale: DESTS[6].scale }, // 6 Out L
   ];
 
   /* Start all nodes */
   const t0 = actx.currentTime + 0.04;
   n.oscs.forEach(o => { o.osc.start(t0); o.driftOsc.start(t0); });
   n.noiseSrc.start(t0);
-  n.lfoNodes.forEach(l => l.osc.start(t0));
   n.envCS.start(t0);
   n.joyX.start(t0); n.joyY.start(t0);
   n.vcaBias.start(t0);
@@ -814,50 +899,46 @@ function buildAudio() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   ENVELOPE GATE
+   TRAPEZOIDAL ENVELOPE (EMS Synthi style)
+
+   Single trigger fires the full shape:   ATTACK → ON → DECAY → OFF
+   Output ramps 0→1 over ATTACK, holds at 1 for ON seconds, ramps 1→0 over
+   DECAY, then rests at 0 for OFF seconds.  This is a real trapezoid — fully
+   defined by the four time knobs, NOT gate-dependent.  Key release does not
+   interrupt the cycle.
+
+   If loop=ON, the next cycle is scheduled automatically after the OFF rest,
+   producing a free-running envelope just like a real Synthi.
 ═══════════════════════════════════════════════════════════════════════ */
 let envLoopTO = null;
 
-function envGateOn(t) {
+function envFire(t) {
   if (!ENG || !actx) return;
+  clearTimeout(envLoopTO);
+  const { attack, on, decay, off, loop } = ST.env;
   const cs = ENG.nodes.envCS;
+
   cs.offset.cancelScheduledValues(t);
   cs.offset.setValueAtTime(0, t);
-  cs.offset.linearRampToValueAtTime(1, t + ST.env.attack);
-  // If loop mode, schedule the cycle
-  if (ST.env.loop) _schedEnvLoop(t + ST.env.attack);
+  cs.offset.linearRampToValueAtTime(1, t + attack);
+  cs.offset.setValueAtTime(1, t + attack + on);
+  cs.offset.linearRampToValueAtTime(0, t + attack + on + decay);
+  cs.offset.setValueAtTime(0, t + attack + on + decay + off);
+
+  if (loop) {
+    const cycleMs = (attack + on + decay + off) * 1000;
+    // schedule next fire ~20ms before the previous cycle's OFF ends so the
+    // ramps line up seamlessly
+    envLoopTO = setTimeout(() => {
+      if (!ST.env.loop || !ENG) return;
+      envFire(actx.currentTime + 0.01);
+    }, Math.max(50, cycleMs - 20));
+  }
 }
 
-function envGateOff(t) {
-  if (!ENG || !actx) return;
-  if (ST.env.loop) return; // loop handles itself
-  const cs = ENG.nodes.envCS;
-  cs.offset.cancelScheduledValues(t);
-  cs.offset.setValueAtTime(1, t);
-  cs.offset.linearRampToValueAtTime(0, t + ST.env.decay);
-}
-
-function _schedEnvLoop(tHoldEnd) {
+function envStop() {
   clearTimeout(envLoopTO);
-  const { on, decay, off, attack } = ST.env;
-  // Schedule: hold for `on` then decay
-  const cs = ENG.nodes.envCS;
-  cs.offset.setValueAtTime(1, tHoldEnd);
-  cs.offset.setValueAtTime(1, tHoldEnd + on);
-  cs.offset.linearRampToValueAtTime(0, tHoldEnd + on + decay);
-  // Re-trigger after full cycle
-  const loopMs = (on + decay + off) * 1000;
-  envLoopTO = setTimeout(() => {
-    if (!ST.env.loop || !ENG) return;
-    const t2 = actx.currentTime + 0.01;
-    cs.offset.setValueAtTime(0, t2);
-    cs.offset.linearRampToValueAtTime(1, t2 + attack);
-    _schedEnvLoop(t2 + attack);
-  }, loopMs - 20);
-}
-
-function envLoopStop() {
-  clearTimeout(envLoopTO);
+  envLoopTO = null;
   if (!ENG || !actx) return;
   const cs = ENG.nodes.envCS;
   cs.offset.cancelScheduledValues(actx.currentTime);
@@ -866,22 +947,30 @@ function envLoopStop() {
 
 /* ═══════════════════════════════════════════════════════════════════════
    NOTE ON / OFF
+
+   OSC1 / OSC2 track the keyboard ratiometrically: frequency = Hz × 2^((midi-69)/12).
+   The Hz knob therefore acts as the per-oscillator base pitch at A4.
+   OSC3 does NOT track — it stays at its dialled Hz (0.01 – 50 Hz LFO range).
+
+   noteOn fires the trapezoid envelope; noteOff is purely a UI/state event
+   because the trapezoid runs its full course regardless of gate.
 ═══════════════════════════════════════════════════════════════════════ */
 function noteOn(midi, vel = 0.82) {
   if (!ENG || !actx) return;
   const n  = ENG.nodes;
   const t  = actx.currentTime;
-  const hz = midiToHz(clamp(midi + ST.master.tune, 0, 127));
+  const m  = clamp(midi + ST.master.tune, 0, 127);
+  const hz = midiToHz(m);
+  const ratio = Math.pow(2, (m - 69) / 12);
   const tc = ST.glide > 0.001 ? ST.glide / 3.5 : 0.001;
 
   n.oscs.forEach((o, i) => {
-    if (ST.oscs[i].freqMode === 'TRACK') {
-      o.osc.frequency.cancelScheduledValues(t);
-      o.osc.frequency.setTargetAtTime(hz * semisToR(ST.oscs[i].tune + ST.oscs[i].range), t, tc);
-    }
+    if (i === 2) return; // OSC3 ignores keyboard
+    o.osc.frequency.cancelScheduledValues(t);
+    o.osc.frequency.setTargetAtTime(ST.oscs[i].hz * ratio, t, tc);
   });
 
-  envGateOn(t);
+  envFire(t);
 
   ST.currentNote = midi;
   document.querySelector(`[data-midi="${midi}"]`)?.classList.add('active');
@@ -895,8 +984,7 @@ function noteOn(midi, vel = 0.82) {
 
 function noteOff(midi) {
   if (!ENG || !actx || ST.holdOn) return;
-  const t = actx.currentTime;
-  envGateOff(t);
+  // Trapezoid envelope completes its own cycle — nothing to do here besides UI.
   if (midi !== undefined) document.querySelector(`[data-midi="${midi}"]`)?.classList.remove('active');
 }
 
@@ -927,9 +1015,7 @@ function setLimiter(on) {
 
 function panicAllNotes() {
   if (!ENG || !actx) return;
-  const n = ENG.nodes, t = actx.currentTime;
-  n.envCS.offset.cancelScheduledValues(t); n.envCS.offset.setTargetAtTime(0, t, 0.01);
-  clearTimeout(envLoopTO);
+  envStop();
   document.querySelectorAll('.key-w.active,.key-b.active').forEach(k => k.classList.remove('active'));
 }
 
@@ -937,127 +1023,75 @@ function panicAllNotes() {
    UI BUILDERS
 ═══════════════════════════════════════════════════════════════════════ */
 
-/* ── OSC SECTION ── */
+/* ── OSC SECTION ──
+   Three knobs per oscillator: Hz (log taper, range depends on OSC role),
+   LEVEL (cube taper for perceptual loudness), PHASE (0–360°).
+   OSC1 / OSC2 are audio-rate.  OSC3 is sub-audio (0.01 – 50 Hz) — the slow
+   modulator that replaces the old LFOs. */
 function buildOscSection() {
   const body = document.getElementById('osc-body');
   ST.oscs.forEach((st, i) => {
     const block = document.createElement('div'); block.className = 'osc-block';
     const lbl   = document.createElement('div'); lbl.className   = 'block-label';
-    lbl.textContent = 'OSC ' + (i+1);
+    lbl.textContent = 'OSC ' + (i+1) + (i === 2 ? '  ·  SUB / LFO' : '');
     block.appendChild(lbl);
 
+    const isSub = (i === 2);
+    const hzMin = isSub ? 0.01 : 1;
+    const hzMax = isSub ? 50   : 10000;
+
     const row = document.createElement('div'); row.className = 'knob-row';
+
+    const kHz = new Knob({
+      min: hzMin, max: hzMax, value: st.hz, label: 'HZ',
+      taper: 'log', fmt: fmtHz,
+      onChange: v => {
+        st.hz = v;
+        if (!ENG) return;
+        const osc = ENG.nodes.oscs[i].osc;
+        osc.frequency.cancelScheduledValues(actx.currentTime);
+        if (isSub || ST.currentNote === null) {
+          osc.frequency.setTargetAtTime(v, actx.currentTime, 0.02);
+        } else {
+          const m = clamp(ST.currentNote + ST.master.tune, 0, 127);
+          const ratio = Math.pow(2, (m - 69) / 12);
+          osc.frequency.setTargetAtTime(v * ratio, actx.currentTime, 0.02);
+        }
+      }
+    });
+
     const kLvl = new Knob({
-      min: 0, max: 1, value: st.level, label: 'LEVEL',
+      min: 0, max: 1, value: st.level, label: 'LEVEL', taper: 'cube',
       onChange: v => {
         st.level = v;
         if (ENG) ENG.nodes.oscs[i].gain.gain.setTargetAtTime(v, actx.currentTime, 0.02);
       }
     });
-    const kTune = new Knob({
-      min: -24, max: 24, value: st.tune, label: 'TUNE', step: 0.5,
-      fmt: v => (v >= 0 ? '+' : '') + v.toFixed(1) + 'st',
+
+    const kPhase = new Knob({
+      min: 0, max: 360, value: st.phase, label: 'PHASE',
+      fmt: v => v.toFixed(0) + '°',
       onChange: v => {
-        st.tune = v;
-        if (ENG && ST.currentNote !== null) {
-          const hz = midiToHz(clamp(ST.currentNote + ST.master.tune, 0, 127));
-          const osc = ENG.nodes.oscs[i].osc;
-          osc.frequency.cancelScheduledValues(actx.currentTime);
-          osc.frequency.setTargetAtTime(hz * semisToR(v + st.range), actx.currentTime, 0.02);
-        }
+        st.phase = v;
+        if (ENG) ENG.nodes.oscs[i].osc.setPeriodicWave(ENG.nodes.mkWave(st.wave, v));
       }
     });
-    const kDrift = new Knob({
-      min: 0, max: 8, value: st.drift, label: 'DRIFT',
-      onChange: v => {
-        st.drift = v;
-        if (ENG) ENG.nodes.oscs[i].driftGain.gain.setTargetAtTime(v, actx.currentTime, 0.1);
-      }
-    });
-    row.append(kLvl.el, kTune.el, kDrift.el);
+
+    row.append(kHz.el, kLvl.el, kPhase.el);
     block.appendChild(row);
 
     const wb = document.createElement('div'); wb.className = 'wave-btns';
-    [['SAW','sawtooth'],['SQR','square'],['SIN','sine'],['TRI','triangle']].forEach(([lbl,wv]) => {
+    [['SIN','sine'],['TRI','triangle'],['SAW','sawtooth'],['SQR','square']].forEach(([lbl,wv]) => {
       const b = document.createElement('button'); b.className = 'wave-btn'; b.textContent = lbl;
       if (st.wave === wv) b.classList.add('active');
       b.addEventListener('click', () => {
         st.wave = wv;
         wb.querySelectorAll('.wave-btn').forEach(x => x.classList.toggle('active', x === b));
-        if (ENG) ENG.nodes.oscs[i].osc.type = wv;
+        if (ENG) ENG.nodes.oscs[i].osc.setPeriodicWave(ENG.nodes.mkWave(wv, st.phase));
       });
       wb.appendChild(b);
     });
     block.appendChild(wb);
-
-    const fb = document.createElement('div'); fb.className = 'wave-btns'; fb.style.marginTop = '3px';
-    [['−2o',-24],['−1o',-12],[' 0 ',0],['+1o',12],['+2o',24]].forEach(([lbl, semis]) => {
-      const b = document.createElement('button'); b.className = 'wave-btn'; b.textContent = lbl;
-      if (st.range === semis) b.classList.add('active');
-      b.addEventListener('click', () => {
-        st.range = semis;
-        fb.querySelectorAll('.wave-btn').forEach(x => x.classList.toggle('active', x === b));
-        if (ENG) {
-          const base = ST.currentNote !== null
-            ? midiToHz(clamp(ST.currentNote + ST.master.tune, 0, 127))
-            : 440;
-          const osc = ENG.nodes.oscs[i].osc;
-          osc.frequency.cancelScheduledValues(actx.currentTime);
-          osc.frequency.setTargetAtTime(base * semisToR(st.tune + semis), actx.currentTime, 0.02);
-        }
-      });
-      fb.appendChild(b);
-    });
-    block.appendChild(fb);
-
-    // FREQ MODE buttons
-    const fmLbl = document.createElement('div'); fmLbl.className = 'sub-lbl'; fmLbl.style.marginTop = '6px';
-    fmLbl.textContent = 'FREQ MODE';
-    block.appendChild(fmLbl);
-
-    const kFixed = new Knob({
-      min: 20, max: 4000, value: st.fixedFreq, label: 'FREQ', fmt: fmtHz,
-      onChange: v => {
-        st.fixedFreq = v;
-        if (ENG && st.freqMode === 'FIXED') {
-          const osc = ENG.nodes.oscs[i].osc;
-          osc.frequency.cancelScheduledValues(actx.currentTime);
-          osc.frequency.setTargetAtTime(v, actx.currentTime, 0.02);
-        }
-      }
-    });
-    kFixed.el.style.display = st.freqMode === 'FIXED' ? '' : 'none';
-
-    const fmRow = document.createElement('div');
-    fmRow.style.cssText = 'display:flex;flex-direction:column;gap:3px';
-
-    const fmBtns = document.createElement('div'); fmBtns.className = 'wave-btns';
-    ['FREE','TRACK','FIXED'].forEach(mode => {
-      const b = document.createElement('button'); b.className = 'wave-btn'; b.textContent = mode;
-      if (st.freqMode === mode) b.classList.add('active');
-      b.addEventListener('click', () => {
-        st.freqMode = mode;
-        fmBtns.querySelectorAll('.wave-btn').forEach(x => x.classList.toggle('active', x === b));
-        kFixed.el.style.display = mode === 'FIXED' ? '' : 'none';
-        if (ENG) {
-          const osc = ENG.nodes.oscs[i].osc;
-          osc.frequency.cancelScheduledValues(actx.currentTime);
-          if (mode === 'FIXED') {
-            osc.frequency.setTargetAtTime(st.fixedFreq, actx.currentTime, 0.02);
-          } else if (mode === 'TRACK' && ST.currentNote !== null) {
-            const hz = midiToHz(clamp(ST.currentNote + ST.master.tune, 0, 127));
-            osc.frequency.setTargetAtTime(hz * semisToR(st.tune + st.range), actx.currentTime, 0.02);
-          }
-        }
-      });
-      fmBtns.appendChild(b);
-    });
-
-    const fixedRow = document.createElement('div'); fixedRow.className = 'knob-row'; fixedRow.style.marginTop = '4px';
-    fixedRow.appendChild(kFixed.el);
-
-    fmRow.append(fmBtns, fixedRow);
-    block.appendChild(fmRow);
 
     body.appendChild(block);
   });
@@ -1090,18 +1124,21 @@ function buildNoiseSection() {
   body.appendChild(wb);
 }
 
-/* ── ENV SECTION ── */
+/* ── ENV SECTION ──
+   Knob tapers are exponential ('log') because envelope times are perceived
+   logarithmically — a 5 ms → 10 ms change is as noticeable as 1 s → 2 s.
+   Loop toggle fires the envelope once immediately so the user hears the change. */
 function buildEnvSection() {
   const body = document.getElementById('env-body');
   const row  = document.createElement('div'); row.className = 'knob-row';
   [
     { key:'attack', lbl:'ATK', min:0.001, max:4 },
-    { key:'on',     lbl:'ON',  min:0.01,  max:8 },
-    { key:'decay',  lbl:'DEC', min:0.01,  max:8 },
-    { key:'off',    lbl:'OFF', min:0.01,  max:4 },
+    { key:'on',     lbl:'ON',  min:0.005, max:8 },
+    { key:'decay',  lbl:'DEC', min:0.005, max:8 },
+    { key:'off',    lbl:'OFF', min:0.005, max:4 },
   ].forEach(({ key, lbl, min, max }) => {
     const k = new Knob({
-      min, max, value: ST.env[key], label: lbl, fmt: fmtTime,
+      min, max, value: ST.env[key], label: lbl, fmt: fmtTime, taper: 'log',
       onChange: v => { ST.env[key] = v; }
     });
     row.appendChild(k.el);
@@ -1109,21 +1146,25 @@ function buildEnvSection() {
   body.appendChild(row);
 
   const br = document.createElement('div'); br.className = 'master-row';
+
+  const btnTrig = document.createElement('button');
+  btnTrig.className = 'btn-sm';
+  btnTrig.textContent = 'TRIG';
+  btnTrig.addEventListener('click', () => {
+    if (ENG && actx) envFire(actx.currentTime + 0.01);
+  });
+
   const btnLoop = document.createElement('button');
   btnLoop.className = 'btn-sm' + (ST.env.loop ? ' active' : '');
   btnLoop.textContent = 'LOOP';
   btnLoop.addEventListener('click', () => {
     ST.env.loop = !ST.env.loop;
     btnLoop.classList.toggle('active', ST.env.loop);
-    if (!ST.env.loop) envLoopStop();
-    else if (ENG) {
-      const t = actx.currentTime + 0.01;
-      ENG.nodes.envCS.offset.setValueAtTime(0, t);
-      ENG.nodes.envCS.offset.linearRampToValueAtTime(1, t + ST.env.attack);
-      _schedEnvLoop(t + ST.env.attack);
-    }
+    if (!ST.env.loop) envStop();
+    else if (ENG && actx) envFire(actx.currentTime + 0.01);
   });
-  br.appendChild(btnLoop);
+
+  br.append(btnTrig, btnLoop);
   body.appendChild(br);
 }
 
@@ -1275,7 +1316,7 @@ function buildMasterSection() {
   const row  = document.createElement('div'); row.className = 'knob-row';
 
   const kVol = new Knob({
-    min: 0, max: 1, value: ST.master.volume, label: 'VOLUME',
+    min: 0, max: 1, value: ST.master.volume, label: 'VOLUME', taper: 'cube',
     onChange: v => {
       ST.master.volume = v;
       if (ENG) ENG.nodes.masterGain.gain.setTargetAtTime(v, actx.currentTime, 0.02);
@@ -1293,7 +1334,21 @@ function buildMasterSection() {
       if (ENG) ENG.nodes.vcaBias.offset.setTargetAtTime(v, actx.currentTime, 0.02);
     }
   });
-  row.append(kVol.el, kTune.el, kBias.el);
+  const kDrift = new Knob({
+    min: 0, max: 6, value: ST.master.drift, label: 'DRIFT', taper: 'cube',
+    fmt: v => v.toFixed(2) + 'Hz',
+    onChange: v => {
+      ST.master.drift = v;
+      if (!ENG) return;
+      // Apply only to audio-rate oscs (OSC1, OSC2). OSC3 stays steady so it can
+      // be used as a precise modulator without wandering.
+      ENG.nodes.oscs.forEach((o, i) => {
+        if (i === 2) return;
+        o.driftGain.gain.setTargetAtTime(v, actx.currentTime, 0.1);
+      });
+    }
+  });
+  row.append(kVol.el, kTune.el, kBias.el, kDrift.el);
   body.appendChild(row);
 
   const br = document.createElement('div'); br.className = 'master-row';
@@ -1330,21 +1385,21 @@ function buildFilterSection() {
 
   const kCut = new Knob({
     min: 20, max: 12000, value: ST.vcf.cutoff, label: 'CUTOFF',
-    fmt: fmtHz,
+    fmt: fmtHz, taper: 'log',
     onChange: v => {
       ST.vcf.cutoff = v;
       if (ENG) ENG.nodes.filter.frequency.setTargetAtTime(v, actx.currentTime, 0.02);
     }
   });
   const kRes = new Knob({
-    min: 0.1, max: 20, value: ST.vcf.res, label: 'RES', decimals: 1,
+    min: 0.1, max: 20, value: ST.vcf.res, label: 'RES', decimals: 1, taper: 'log',
     onChange: v => {
       ST.vcf.res = v;
       if (ENG) ENG.nodes.filter.Q.setTargetAtTime(v, actx.currentTime, 0.02);
     }
   });
   const kDrv = new Knob({
-    min: 0, max: 1, value: ST.vcf.drive, label: 'DRIVE',
+    min: 0, max: 1, value: ST.vcf.drive, label: 'DRIVE', taper: 'cube',
     onChange: v => {
       ST.vcf.drive = v;
       if (ENG) ENG.nodes.preDrive.curve = ENG.nodes.mkDriveCurve(v);
@@ -1367,51 +1422,13 @@ function buildFilterSection() {
   body.appendChild(wb);
 }
 
-/* ── LFO SECTION ── */
-function buildLFOSection(bodyId, idx) {
-  const body = document.getElementById(bodyId);
-  const st   = ST.lfos[idx];
-  const row  = document.createElement('div'); row.className = 'knob-row';
-
-  const kRate = new Knob({
-    min: 0.01, max: 20, value: st.rate, label: 'RATE',
-    fmt: v => v.toFixed(2) + 'Hz',
-    onChange: v => {
-      st.rate = v;
-      if (ENG) ENG.nodes.lfoNodes[idx].osc.frequency.setTargetAtTime(v, actx.currentTime, 0.02);
-    }
-  });
-  const kDep = new Knob({
-    min: 0, max: 1, value: st.depth, label: 'DEPTH',
-    onChange: v => {
-      st.depth = v;
-      if (ENG) ENG.nodes.lfoNodes[idx].depth.gain.setTargetAtTime(v, actx.currentTime, 0.02);
-    }
-  });
-  row.append(kRate.el, kDep.el);
-  body.appendChild(row);
-
-  const wb = document.createElement('div'); wb.className = 'wave-btns'; wb.style.marginTop = '5px';
-  [['SIN','sine'],['TRI','triangle'],['SAW','sawtooth'],['SQR','square']].forEach(([lbl,wv]) => {
-    const b = document.createElement('button'); b.className = 'wave-btn'; b.textContent = lbl;
-    if (st.wave === wv) b.classList.add('active');
-    b.addEventListener('click', () => {
-      st.wave = wv;
-      wb.querySelectorAll('.wave-btn').forEach(x => x.classList.toggle('active', x === b));
-      if (ENG) ENG.nodes.lfoNodes[idx].osc.type = wv;
-    });
-    wb.appendChild(b);
-  });
-  body.appendChild(wb);
-}
-
 /* ── REVERB SECTION ── */
 function buildReverbSection() {
   const body = document.getElementById('reverb-body');
   const row  = document.createElement('div'); row.className = 'knob-row';
 
   const kWet = new Knob({
-    min: 0, max: 1, value: ST.reverb.wet, label: 'WET',
+    min: 0, max: 1, value: ST.reverb.wet, label: 'WET', taper: 'cube',
     onChange: v => {
       ST.reverb.wet = v;
       if (ENG) {
@@ -1422,7 +1439,7 @@ function buildReverbSection() {
   });
   const kDec = new Knob({
     min: 0.3, max: 5, value: ST.reverb.decay, label: 'DECAY',
-    fmt: v => v.toFixed(1) + 's',
+    fmt: v => v.toFixed(1) + 's', taper: 'log',
     onChange: v => {
       ST.reverb.decay = v;
       clearTimeout(_reverbTO);
@@ -1478,12 +1495,11 @@ function buildKeyboard() {
 function savePreset() {
   const name = document.getElementById('preset-name').value || 'PATCH';
   const snap = {
-    label: name, version: 5, ts: Date.now(),
+    label: name, version: 6, ts: Date.now(),
     state: {
       oscs:   ST.oscs.map(o => ({ ...o })),
       noise:  { ...ST.noise },
       env:    { ...ST.env },
-      lfos:   ST.lfos.map(l => ({ ...l })),
       vcf:    { ...ST.vcf },
       reverb: { ...ST.reverb },
       master: { ...ST.master },
@@ -1500,36 +1516,34 @@ function savePreset() {
 
 function loadPreset(json) {
   try {
-    const { label, version, state: s } = JSON.parse(json);
+    const { label, state: s } = JSON.parse(json);
     if (!s) return;
     if (label) document.getElementById('preset-name').value = label;
-    if (s.oscs)   s.oscs.forEach((o, i) => Object.assign(ST.oscs[i], o));
+    // OSCs — keep only the new fields; old presets (with tune/range/etc.) get
+    // sensible defaults via the merge.  Anything unrecognised is ignored.
+    if (s.oscs) s.oscs.forEach((o, i) => {
+      if (!ST.oscs[i]) return;
+      if (typeof o.hz === 'number')    ST.oscs[i].hz    = o.hz;
+      if (typeof o.level === 'number') ST.oscs[i].level = o.level;
+      if (typeof o.phase === 'number') ST.oscs[i].phase = o.phase;
+      if (typeof o.wave === 'string')  ST.oscs[i].wave  = o.wave;
+    });
     if (s.noise)  Object.assign(ST.noise,  s.noise);
     if (s.env)    Object.assign(ST.env,    s.env);
-    if (s.lfos)   s.lfos.forEach((l, i) => Object.assign(ST.lfos[i], l));
     if (s.vcf)    Object.assign(ST.vcf,    s.vcf);
     if (s.reverb) Object.assign(ST.reverb, s.reverb);
     if (s.master) Object.assign(ST.master, s.master);
     if (s.glide !== undefined) ST.glide = s.glide;
     if (s.vcaBias !== undefined) ST.vcaBias = s.vcaBias;
     if (s.matrix) {
-      // Reset current matrix
       ST.matrix.forEach(r => r.fill(0));
-      document.querySelectorAll('.mat-cell').forEach(c => { c.dataset.s = 0; if (ROUTER) ROUTER.setCell(+c.dataset.si, +c.dataset.di, 0); });
-
+      document.querySelectorAll('.mat-cell').forEach(c => {
+        c.dataset.s = 0; if (ROUTER) ROUTER.setCell(+c.dataset.si, +c.dataset.di, 0);
+      });
       s.matrix.forEach((row, si) => {
         if (si >= SOURCES.length) return;
-        row.forEach((v, di_old) => {
-          if (!v) return;
-          let di = di_old;
-          // v<4 layout (version <4): dest indices shifted to make room for VCF In and Out L
-          if ((!version || version < 4) && row.length === 8) {
-            if      (di_old === 4) di = 5; // VCA: 4→5
-            else if (di_old === 5) di = 7; // L1ƒ: 5→7
-            else if (di_old === 6) di = 8; // L2ƒ: 6→8
-            else if (di_old === 7) return; // MAST dropped
-          }
-          if (di >= DESTS.length) return;
+        row.forEach((v, di) => {
+          if (!v || di >= DESTS.length) return;
           ST.matrix[si][di] = v;
           const cell = document.querySelector(`.mat-cell[data-si="${si}"][data-di="${di}"]`);
           if (cell) { cell.dataset.s = v; if (ROUTER) ROUTER.setCell(si, di, v); }
@@ -1539,9 +1553,10 @@ function loadPreset(json) {
     if (ENG && actx) {
       const n = ENG.nodes, t = actx.currentTime;
       n.oscs.forEach((o, i) => {
-        o.osc.type = ST.oscs[i].wave;
+        o.osc.setPeriodicWave(n.mkWave(ST.oscs[i].wave, ST.oscs[i].phase));
         o.gain.gain.setTargetAtTime(ST.oscs[i].level, t, 0.02);
-        o.driftGain.gain.setTargetAtTime(ST.oscs[i].drift, t, 0.1);
+        o.driftGain.gain.setTargetAtTime(i === 2 ? 0 : ST.master.drift, t, 0.1);
+        o.osc.frequency.setTargetAtTime(ST.oscs[i].hz, t, 0.02);
       });
       n.noiseGain.gain.setTargetAtTime(ST.noise.level, t, 0.02);
       n.filter.frequency.setTargetAtTime(ST.vcf.cutoff, t, 0.02);
@@ -1549,11 +1564,6 @@ function loadPreset(json) {
       n.filter.type = ST.vcf.type;
       n.preDrive.curve = n.mkDriveCurve(ST.vcf.drive);
       n.masterGain.gain.setTargetAtTime(ST.master.volume, t, 0.02);
-      n.lfoNodes.forEach((l, i) => {
-        l.osc.frequency.setTargetAtTime(ST.lfos[i].rate, t, 0.02);
-        l.depth.gain.setTargetAtTime(ST.lfos[i].depth, t, 0.02);
-        l.osc.type = ST.lfos[i].wave;
-      });
       n.reverbWet.gain.setTargetAtTime(ST.reverb.wet, t, 0.05);
       n.reverbDry.gain.setTargetAtTime(1 - ST.reverb.wet, t, 0.05);
       n.vcaBias.offset.setTargetAtTime(ST.vcaBias, t, 0.02);
@@ -1598,8 +1608,6 @@ document.addEventListener('DOMContentLoaded', () => {
   buildVUSection();
   buildMasterSection();
   buildFilterSection();
-  buildLFOSection('lfo1-body', 0);
-  buildLFOSection('lfo2-body', 1);
   buildReverbSection();
   buildKeyboard();
 
@@ -1614,7 +1622,6 @@ document.addEventListener('DOMContentLoaded', () => {
         [
           ...en.oscs.flatMap(o => [o.osc, o.driftOsc]),
           en.noiseSrc,
-          ...en.lfoNodes.map(l => l.osc),
           en.envCS, en.joyX, en.joyY, en.vcaBias,
         ].forEach(node => { try { node.stop(); } catch(e) {} });
       }
@@ -1863,11 +1870,12 @@ window.AKS_MIDI_PITCH_BEND = (amount) => {
   });
 };
 
-// Mod wheel → LFO 1 depth
+// Mod wheel → OSC3 level (OSC3 is the slow modulator that replaces the old LFO,
+// so MW depth maps naturally onto how loud the modulation source is)
 window.AKS_MIDI_MOD_WHEEL = (amount) => {
-  ST.lfos[0].depth = amount;
+  ST.oscs[2].level = amount;
   if (!ENG || !actx) return;
-  ENG.nodes.lfoNodes[0].depth.gain.setTargetAtTime(amount, actx.currentTime, 0.02);
+  ENG.nodes.oscs[2].gain.gain.setTargetAtTime(amount, actx.currentTime, 0.02);
 };
 
 document.addEventListener('DOMContentLoaded', () => MIDI.init());
