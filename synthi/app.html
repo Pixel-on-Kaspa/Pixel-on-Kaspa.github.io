@@ -47,10 +47,6 @@ input[type=range]{cursor:pointer}
 .chan-l{font-size:9px;color:#49EACB;letter-spacing:.06em;margin-left:4px;opacity:.8}
 .chan-r{font-size:9px;color:#f060c0;letter-spacing:.06em;margin-left:4px;opacity:.8}
 
-/* delay sub-labels */
-.dlSub{font-size:9px;color:var(--muted);letter-spacing:.1em;margin:5px 0 3px;
-  padding-bottom:2px;border-bottom:1px solid rgba(255,255,255,.05)}
-
 /* buttons */
 .btn{display:inline-flex;align-items:center;justify-content:center;
   padding:4px 9px;border-radius:3px;font-size:11px;font-weight:700;
@@ -80,14 +76,6 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
   color:var(--text);font-family:var(--mono);font-size:13px;font-weight:700;
   text-align:center;padding:3px 4px;border-radius:3px;-moz-appearance:textfield}
 .bpmBox::-webkit-inner-spin-button,.bpmBox::-webkit-outer-spin-button{-webkit-appearance:none}
-
-/* pads */
-.padGrid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:3px}
-.pad{padding:14px 0;border-radius:3px;font-size:11px;font-weight:700;letter-spacing:.05em;
-  border:1px solid rgba(155,89,182,.3);background:rgba(155,89,182,.07);color:var(--purple);line-height:1.6}
-.pad:hover{background:rgba(155,89,182,.18)}
-.pad.hit{background:rgba(155,89,182,.5)!important;border-color:var(--purple)!important}
-.pad.loaded{border-color:rgba(73,234,203,.4);color:var(--accent)}
 
 /* sequencer */
 #seqWrap{margin-top:4px}
@@ -148,70 +136,59 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
 
 <div id="main">
 
-  <!-- LEFT: OSC BANK + SAMPLER -->
+  <!-- LEFT: OSC BANK -->
   <div id="panelL">
-    <!-- OSC 1 — L -->
+    <!-- OSC 1 — L  (default 200 Hz = slider 0.333 on log 20–20 000 Hz) -->
     <div class="card" id="oscCard0">
       <div class="cardHead">OSC 1 <span class="chan-l">L</span><div class="led on" id="led0"></div></div>
       <div class="btnRow" id="wave0">
         <button class="btn active" data-w="sine">SIN</button>
         <button class="btn" data-w="triangle">TRI</button>
       </div>
-      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr0" min="0" max="1" step="0.000001" value="0.01"><input class="v" type="number" id="fv0" min="0" max="20000" step="0.01" value="200"></div>
+      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr0" min="0" max="1" step="0.000001" value="0.333"><input class="v" type="number" id="fv0" min="20" max="20000" step="0.01" value="200"></div>
       <div class="sr"><label>DET</label><input type="range" id="dt0" min="-1200" max="1200" step="0.1" value="0"><span class="v" id="dv0">0.0¢</span></div>
       <div class="sr"><label>PHS</label><input type="range" id="ph0" min="0" max="6.2832" step="0.001" value="0"><span class="v" id="phv0">0.00</span></div>
       <div class="sr"><label>VOL</label><input type="range" id="vl0" min="0" max="1" step=".01" value=".1"><span class="v" id="vv0">0.10</span></div>
-      <div style="display:flex;gap:3px;margin-top:2px"><button class="btn on" id="on0" style="flex:1">ON</button><button class="btn on" id="dly0" style="flex:1">DLY</button></div>
+      <button class="btn on" id="on0" style="margin-top:2px;width:100%">ON</button>
     </div>
-    <!-- OSC 2 — R -->
+    <!-- OSC 2 — R  (default 300 Hz → 2:3 with OSC1) -->
     <div class="card" id="oscCard1">
       <div class="cardHead">OSC 2 <span class="chan-r">R</span><div class="led on" id="led1"></div></div>
       <div class="btnRow" id="wave1">
         <button class="btn active" data-w="sine">SIN</button>
         <button class="btn" data-w="triangle">TRI</button>
       </div>
-      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr1" min="0" max="1" step="0.000001" value="0.01"><input class="v" type="number" id="fv1" min="0" max="20000" step="0.01" value="200"></div>
+      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr1" min="0" max="1" step="0.000001" value="0.392"><input class="v" type="number" id="fv1" min="20" max="20000" step="0.01" value="300"></div>
       <div class="sr"><label>DET</label><input type="range" id="dt1" min="-1200" max="1200" step="0.1" value="0"><span class="v" id="dv1">0.0¢</span></div>
       <div class="sr"><label>PHS</label><input type="range" id="ph1" min="0" max="6.2832" step="0.001" value="1.5708"><span class="v" id="phv1">1.57</span></div>
       <div class="sr"><label>VOL</label><input type="range" id="vl1" min="0" max="1" step=".01" value=".1"><span class="v" id="vv1">0.10</span></div>
-      <div style="display:flex;gap:3px;margin-top:2px"><button class="btn on" id="on1" style="flex:1">ON</button><button class="btn on" id="dly1" style="flex:1">DLY</button></div>
+      <button class="btn on" id="on1" style="margin-top:2px;width:100%">ON</button>
     </div>
-    <!-- OSC 3 — L -->
+    <!-- OSC 3 — L  (default 400 Hz → 1:2 with OSC1, octave up) -->
     <div class="card" id="oscCard2">
       <div class="cardHead">OSC 3 <span class="chan-l">L</span><div class="led on" id="led2"></div></div>
       <div class="btnRow" id="wave2">
         <button class="btn active" data-w="sine">SIN</button>
         <button class="btn" data-w="triangle">TRI</button>
       </div>
-      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr2" min="0" max="1" step="0.000001" value="0.01"><input class="v" type="number" id="fv2" min="0" max="20000" step="0.01" value="200"></div>
+      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr2" min="0" max="1" step="0.000001" value="0.434"><input class="v" type="number" id="fv2" min="20" max="20000" step="0.01" value="400"></div>
       <div class="sr"><label>DET</label><input type="range" id="dt2" min="-1200" max="1200" step="0.1" value="0"><span class="v" id="dv2">0.0¢</span></div>
       <div class="sr"><label>PHS</label><input type="range" id="ph2" min="0" max="6.2832" step="0.001" value="0"><span class="v" id="phv2">0.00</span></div>
       <div class="sr"><label>VOL</label><input type="range" id="vl2" min="0" max="1" step=".01" value=".1"><span class="v" id="vv2">0.10</span></div>
-      <div style="display:flex;gap:3px;margin-top:2px"><button class="btn on" id="on2" style="flex:1">ON</button><button class="btn on" id="dly2" style="flex:1">DLY</button></div>
+      <button class="btn on" id="on2" style="margin-top:2px;width:100%">ON</button>
     </div>
-    <!-- OSC 4 — R -->
+    <!-- OSC 4 — R  (default 600 Hz → 1:2 with OSC2) -->
     <div class="card" id="oscCard3">
       <div class="cardHead">OSC 4 <span class="chan-r">R</span><div class="led on" id="led3"></div></div>
       <div class="btnRow" id="wave3">
         <button class="btn active" data-w="sine">SIN</button>
         <button class="btn" data-w="triangle">TRI</button>
       </div>
-      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr3" min="0" max="1" step="0.000001" value="0.01"><input class="v" type="number" id="fv3" min="0" max="20000" step="0.01" value="200"></div>
+      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr3" min="0" max="1" step="0.000001" value="0.493"><input class="v" type="number" id="fv3" min="20" max="20000" step="0.01" value="600"></div>
       <div class="sr"><label>DET</label><input type="range" id="dt3" min="-1200" max="1200" step="0.1" value="0"><span class="v" id="dv3">0.0¢</span></div>
       <div class="sr"><label>PHS</label><input type="range" id="ph3" min="0" max="6.2832" step="0.001" value="1.5708"><span class="v" id="phv3">1.57</span></div>
       <div class="sr"><label>VOL</label><input type="range" id="vl3" min="0" max="1" step=".01" value=".1"><span class="v" id="vv3">0.10</span></div>
-      <div style="display:flex;gap:3px;margin-top:2px"><button class="btn on" id="on3" style="flex:1">ON</button><button class="btn on" id="dly3" style="flex:1">DLY</button></div>
-    </div>
-    <!-- SAMPLER -->
-    <div class="card">
-      <div class="cardHead">SAMPLER</div>
-      <div class="padGrid">
-        <button class="pad" id="pad0">PAD 1<br><small>Q</small></button>
-        <button class="pad" id="pad1">PAD 2<br><small>W</small></button>
-        <button class="pad" id="pad2">PAD 3<br><small>E</small></button>
-        <button class="pad" id="pad3">PAD 4<br><small>R</small></button>
-      </div>
-      <div style="margin-top:5px;font-size:10px;color:var(--muted);text-align:center">drop audio file onto pad</div>
+      <button class="btn on" id="on3" style="margin-top:2px;width:100%">ON</button>
     </div>
   </div>
 
@@ -229,23 +206,6 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
       </div>
       <div class="sr"><label>CUT</label><input type="range" id="ftCut" min="0" max="1" step=".001" value=".85"><span class="v" id="ftCutV">—</span></div>
       <div class="sr"><label>RES</label><input type="range" id="ftRes" min="0" max="20" step=".1" value="1"><span class="v" id="ftResV">1.0</span></div>
-    </div>
-
-    <!-- STEREO DELAY — 4 lines: D1 L, D2 R, D3 L, D4 R -->
-    <div class="card">
-      <div class="cardHead">DELAY</div>
-      <div class="dlSub" style="color:#49EACB">D1 L</div>
-      <div class="sr"><label>T</label><input type="range" id="dl1t" min=".05" max="1.2" step=".01" value=".15"><span class="v" id="dl1tv">0.15s</span></div>
-      <div class="sr"><label>F</label><input type="range" id="dl1f" min="0" max=".9" step=".01" value=".5"><span class="v" id="dl1fv">0.50</span></div>
-      <div class="dlSub" style="color:#f060c0">D2 R</div>
-      <div class="sr"><label>T</label><input type="range" id="dl2t" min=".05" max="1.2" step=".01" value=".35"><span class="v" id="dl2tv">0.35s</span></div>
-      <div class="sr"><label>F</label><input type="range" id="dl2f" min="0" max=".9" step=".01" value=".35"><span class="v" id="dl2fv">0.35</span></div>
-      <div class="dlSub" style="color:#49EACB">D3 L</div>
-      <div class="sr"><label>T</label><input type="range" id="dl3t" min=".05" max="1.2" step=".01" value=".70"><span class="v" id="dl3tv">0.70s</span></div>
-      <div class="sr"><label>F</label><input type="range" id="dl3f" min="0" max=".9" step=".01" value=".25"><span class="v" id="dl3fv">0.25</span></div>
-      <div class="dlSub" style="color:#f060c0">D4 R</div>
-      <div class="sr"><label>T</label><input type="range" id="dl4t" min=".05" max="1.2" step=".01" value=".50"><span class="v" id="dl4tv">0.50s</span></div>
-      <div class="sr"><label>F</label><input type="range" id="dl4f" min="0" max=".9" step=".01" value=".30"><span class="v" id="dl4fv">0.30</span></div>
     </div>
 
     <div class="card">
@@ -270,7 +230,6 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
 <div id="footer">
   <span>SPC play/stop</span>
   <span>1/2/3/4 osc on/off</span>
-  <span>Q/W/E/R pads</span>
   <span>F filter sweep</span>
   <span>Z randomize freqs</span>
   <span>A init audio</span>
@@ -282,9 +241,28 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
 
 const TAU = Math.PI * 2;
 const clamp = (x,a,b) => Math.max(a, Math.min(b, x));
-const logF  = v => v * 20000;                                        // 0–20000 Hz, linear
-const freqToSlider = hz => hz / 20000;
+// Frequency slider: 20–20 000 Hz, logarithmic (musically-spaced).
+// v=0.000 → 20 Hz   v=0.333 → 200 Hz   v=0.667 → 2 000 Hz   v=1.000 → 20 000 Hz
+const logF  = v => 20 * Math.pow(1000, clamp(v, 0, 1));
+const freqToSlider = hz => clamp(Math.log(Math.max(20, hz) / 20) / Math.log(1000), 0, 1);
 const logFF = v => Math.exp(Math.log(20)    + v * Math.log(1000));  // 20–20000 Hz, filter
+
+// gcd / small-integer ratio helpers — used to lock the Lissajous render window
+// to the actual closed-period of the freq pair, and to display p:q ratio.
+function gcdInt(a, b) { a = Math.abs(a|0); b = Math.abs(b|0); while (b) { [a,b] = [b, a%b]; } return a || 1; }
+function approxRatio(a, b, maxDen = 32) {
+  if (!(a > 0) || !(b > 0)) return null;
+  const r = a / b;
+  let best = { p: 1, q: 1, err: Infinity };
+  for (let q = 1; q <= maxDen; q++) {
+    const p = Math.round(r * q);
+    if (!p) continue;
+    const err = Math.abs(r - p / q);
+    if (err < best.err) best = { p, q, err };
+    if (err < 1e-4) break;
+  }
+  return best;
+}
 
 /* ── STATE ── */
 let actx = null, playing = false, bpm = 120;
@@ -292,17 +270,16 @@ let seqStep = 0, seqNextTime = 0, prevSeqStep = -1;
 let flashKick = 0, flashSnare = 0;
 
 // 4 oscillators: OSC1 L(-1), OSC2 R(+1), OSC3 L(-1), OSC4 R(+1)
-// waves: SIN and TRI only
+// Defaults form a clean 2:3:4:6 stack (200 / 300 / 400 / 600 Hz) so
+// the Lissajous closes immediately on page load.
 const oState = [
-  { wave:"sine", freq:.01, det:0, vol:.1, on:true, dly:true, pan:-1, phase:0 },
-  { wave:"sine", freq:.01, det:0, vol:.1, on:true, dly:true, pan:+1, phase:1.5708 },
-  { wave:"sine", freq:.01, det:0, vol:.1, on:true, dly:true, pan:-1, phase:0 },
-  { wave:"sine", freq:.01, det:0, vol:.1, on:true, dly:true, pan:+1, phase:1.5708 },
+  { wave:"sine", freq:0.333, det:0, vol:.1, on:true, pan:-1, phase:0 },
+  { wave:"sine", freq:0.392, det:0, vol:.1, on:true, pan:+1, phase:1.5708 },
+  { wave:"sine", freq:0.434, det:0, vol:.1, on:true, pan:-1, phase:0 },
+  { wave:"sine", freq:0.493, det:0, vol:.1, on:true, pan:+1, phase:1.5708 },
 ];
 const fx = {
   ftType:"lowpass", ftCut:.85, ftRes:1,
-  // 4 stereo delay lines: indices 0,2 = L; indices 1,3 = R
-  dlT:[.15,.35,.70,.50], dlF:[.5,.35,.25,.30],
   rvWet:.25, rvSz:2,
   cpThr:-18, cpRat:4,
   vol:.70,
@@ -314,7 +291,6 @@ const seq = {
   perc:  [0,0,0,1,0,0,1,0,0,0,0,1,0,1,0,0],
 };
 const TRACKS = ["kick","snare","hat","perc"];
-const pads = [null,null,null,null];
 const seqBtns = { kick:[],snare:[],hat:[],perc:[] };
 
 let nd = null; // audio nodes object
@@ -336,12 +312,6 @@ function reverbIR(sec, decay=3) {
   }
   return buf;
 }
-function softClip() {
-  const n=256, c=new Float32Array(n);
-  for (let i=0;i<n;i++){const x=(i/(n-1))*2-1; c[i]=Math.tanh(1.5*x);}
-  const ws = actx.createWaveShaper(); ws.curve=c; return ws;
-}
-
 /* ── BUILD AUDIO GRAPH ── */
 function buildAudio() {
   if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
@@ -361,57 +331,27 @@ function buildAudio() {
     o.detune.value = s.det;
     const g = actx.createGain(); g.gain.value = s.on ? s.vol : 0;
     const pan = actx.createStereoPanner(); pan.pan.value = s.pan;
-    const dlyG = actx.createGain(); dlyG.gain.value = s.dly ? 1 : 0;
     o.connect(g); g.connect(pan);
-    pan.connect(dlyG);
-    return { o, g, pan, dlyG };
+    return { o, g, pan };
   });
 
   const t = actx.currentTime + 0.01;
   oscs.forEach(n => n.o.start(t));
 
-  const preMix = actx.createGain(); preMix.gain.value = 0.35;
+  const preMix = actx.createGain(); preMix.gain.value = 0.55;
   oscs.forEach(n => n.pan.connect(preMix));
 
-  // filter
+  // filter → mixBus → reverb wet/dry → comp → master.
+  // No delay chain — the previous short comb-filtered echoes were dirtying
+  // the Lissajous render by adding non-harmonic spectral content.
   const filter = actx.createBiquadFilter();
   filter.type = fx.ftType;
   filter.frequency.value = logFF(fx.ftCut);
   filter.Q.value = fx.ftRes;
   preMix.connect(filter);
 
-  // ── STEREO DELAY — direct per-OSC routing (no ChannelSplitter) ──
-  // OSC1(L)+OSC3(L) dlyG → D1,D3 → dlMergeL
-  // OSC2(R)+OSC4(R) dlyG → D2,D4 → dlMergeR
-  const dlMergeL = actx.createGain(); dlMergeL.gain.value = 1;
-  const dlMergeR = actx.createGain(); dlMergeR.gain.value = 1;
-
-  const delays = fx.dlT.map((t, i) => {
-    const d = actx.createDelay(2); d.delayTime.value = t;
-    const fb = actx.createGain(); fb.gain.value = fx.dlF[i];
-    const clip = softClip();
-    d.connect(fb); fb.connect(clip); clip.connect(d); // feedback loop
-    const isL = (i === 0 || i === 2);
-    // each OSC's dlyG feeds the delay lines that match its L/R assignment
-    oscs.forEach((osc, oi) => {
-      const oscIsL = (oi === 0 || oi === 2);
-      if (oscIsL === isL) osc.dlyG.connect(d);
-    });
-    d.connect(isL ? dlMergeL : dlMergeR);
-    return { d, fb };
-  });
-
-  // Recombine explicit L+R into stereo via ChannelMerger
-  const dlMerge = actx.createChannelMerger(2);
-  dlMergeL.connect(dlMerge, 0, 0); // L → merger input 0
-  dlMergeR.connect(dlMerge, 0, 1); // R → merger input 1
-  const delayBus = actx.createGain();
-  dlMerge.connect(delayBus);
-
-  const dryG = actx.createGain(); dryG.gain.value = 0.65;
-  filter.connect(dryG);
   const mixBus = actx.createGain();
-  dryG.connect(mixBus); delayBus.connect(mixBus);
+  filter.connect(mixBus);
 
   // reverb
   const conv = actx.createConvolver(); conv.buffer = reverbIR(fx.rvSz);
@@ -449,31 +389,15 @@ function buildAudio() {
   oscs[1].g.connect(analyserR);
   oscs[3].g.connect(analyserR);
 
-  nd = { oscs, preMix, filter, dlMergeL, dlMergeR, dlMerge, delays, delayBus, dryG, mixBus,
+  nd = { oscs, preMix, filter, mixBus,
          conv, rvWetG, rvDryG, rvOut, comp, masterG,
          analyserF, analyserT, fftBuf, timeBuf,
          analyserL, analyserR, scopeBufL, scopeBufR,
          _noise:null };
 
   // Audio graph summary:
-  // oscs[i]: o → g → pan → preMix(0.35) → filter → dryG(0.65) → mixBus
-  //          dlyG[L oscs] → D1,D3 → dlMergeL → dlMerge → delayBus → mixBus
-  //          dlyG[R oscs] → D2,D4 → dlMergeR → dlMerge → delayBus → mixBus
-  // mixBus → reverb(wet/dry) → rvOut → comp → masterG → analyserF → destination
-  console.log('delay chain OK — dlyG gains:', oscs.map(n => n.dlyG.gain.value));
-
-  // DEBUG — ověř delay routing
-  setTimeout(() => {
-    console.log('OSC dlyG gains:', nd.oscs.map(n => n.dlyG.gain.value));
-    console.log('delays count:', nd.delays.length);
-    console.log('delayBus connected');
-    // force test — pošli signal přímo do delay
-    const testOsc = actx.createOscillator();
-    testOsc.frequency.value = 440;
-    testOsc.connect(nd.delays[0].d);
-    testOsc.start();
-    testOsc.stop(actx.currentTime + 0.5);
-  }, 1000);
+  //   oscs[i]: o → g → pan → preMix(0.55) → filter → mixBus
+  //   mixBus → reverb(wet/dry) → rvOut → comp → masterG → analyserF → destination
 }
 
 function restartOsc(i) {
@@ -492,7 +416,7 @@ function restartOsc(i) {
 
 function teardownAudio() {
   if (!nd) return;
-  try { nd.oscs.forEach(n => { n.o.stop(); n.o.disconnect(); n.g.disconnect(); n.pan.disconnect(); n.dlyG.disconnect(); }); } catch{}
+  try { nd.oscs.forEach(n => { n.o.stop(); n.o.disconnect(); n.g.disconnect(); n.pan.disconnect(); }); } catch{}
   nd = null;
 }
 
@@ -746,42 +670,65 @@ function drawViz(now) {
   flashKick  *= 0.85;
   flashSnare *= 0.82;
 
-  // Math-based Lissajous — purely from oState, no audio signal
-  const hz0 = oState[0].on ? logF(oState[0].freq) * Math.pow(2, oState[0].det/1200) : 0;
-  const hz1 = oState[1].on ? logF(oState[1].freq) * Math.pow(2, oState[1].det/1200) : 0;
-  const hz2 = oState[2].on ? logF(oState[2].freq) * Math.pow(2, oState[2].det/1200) : 0;
-  const hz3 = oState[3].on ? logF(oState[3].freq) * Math.pow(2, oState[3].det/1200) : 0;
+  // Math-based Lissajous — purely from oState, no audio signal.
+  // Each OSC contributes its own wave shape, phase and amplitude.  OSC1+OSC3
+  // sum into X (left channel), OSC2+OSC4 into Y (right channel).  Previously
+  // the code averaged frequencies and used only the FIRST active osc's wave —
+  // that's why OSC3/OSC4 SIN/TRI buttons appeared dead in the visual.
+  const oscs = oState.map(s => ({
+    on:    s.on,
+    hz:    logF(s.freq) * Math.pow(2, s.det / 1200),
+    wave:  s.wave,
+    phase: s.phase,
+    vol:   s.vol,
+  }));
+  const sample = (o, t) => {
+    if (!o.on) return 0;
+    const arg = TAU * o.hz * t + o.phase;
+    return o.wave === 'triangle'
+      ? o.vol * (Math.sin(arg) + 0.33 * Math.sin(3 * arg))
+      : o.vol * Math.sin(arg);
+  };
 
-  const activeL = [hz0, hz2].filter(h => h > 0);
-  const activeR = [hz1, hz3].filter(h => h > 0);
-  const xHz = activeL.length ? activeL.reduce((a,b)=>a+b)/activeL.length : 0;
-  const yHz = activeR.length ? activeR.reduce((a,b)=>a+b)/activeR.length : 0;
+  // Per-channel normaliser keeps the figure scaled regardless of how many
+  // oscs are on, so toggling OSC3 off doesn't double the X amplitude.
+  const xVol = (oscs[0].on?oscs[0].vol:0) + (oscs[2].on?oscs[2].vol:0);
+  const yVol = (oscs[1].on?oscs[1].vol:0) + (oscs[3].on?oscs[3].vol:0);
+  const xNorm = xVol > 0 ? 1 / xVol : 0;
+  const yNorm = yVol > 0 ? 1 / yVol : 0;
 
+  // Render window = exact LCM period of the active freqs (so the Lissajous
+  // closes cleanly).  For arbitrary freqs we approximate with small-integer
+  // ratios via the same helper used for the status-bar display.
+  const xFreqs = [oscs[0], oscs[2]].filter(o => o.on && o.hz > 0).map(o => o.hz);
+  const yFreqs = [oscs[1], oscs[3]].filter(o => o.on && o.hz > 0).map(o => o.hz);
+  const allFreqs = [...xFreqs, ...yFreqs];
+
+  // Mean for status display (kept simple — exact ratio shown separately).
+  const xHz = xFreqs.length ? xFreqs.reduce((a,b)=>a+b) / xFreqs.length : 0;
+  const yHz = yFreqs.length ? yFreqs.reduce((a,b)=>a+b) / yFreqs.length : 0;
+
+  function lissajousPeriod(freqs) {
+    if (!freqs.length) return 0.1;
+    if (freqs.length === 1) return 4 / freqs[0]; // 4 cycles of the single freq
+    // Scale to ints (×100 → 1 Hz resolution), take GCD → fundamental Hz
+    const ints = freqs.map(f => Math.max(1, Math.round(f * 100)));
+    const g = ints.reduce(gcdInt);
+    const fundamental = g / 100;
+    // Cap window so very-low fundamentals don't lock up the loop
+    return Math.min(2.0, 1 / fundamental);
+  }
+  const windowT = lissajousPeriod(allFreqs);
   lissT += 0.016;
 
   const R = Math.min(W,H) * (0.36 + .12*env.level + .12*flashKick) * vizZoom;
   const steps = 8000;
-  const minHz = Math.min(xHz > 0 ? xHz : yHz, yHz > 0 ? yHz : xHz);
-  const windowT = (xHz > 0 || yHz > 0) ? 2 / (minHz || 1) : 0.1;
-
-  const xPhase = (oState[0].phase + oState[2].phase) / 2;
-  const yPhase = (oState[1].phase + oState[3].phase) / 2;
 
   const lissPath = new Path2D();
   for (let i = 0; i <= steps; i++) {
     const t = lissT + (i / steps) * windowT;
-    const xWave = activeL.length > 0
-      ? ([oState[0], oState[2]].find(s => s.on)?.wave ?? 'sine')
-      : 'sine';
-    const yWave = activeR.length > 0
-      ? ([oState[1], oState[3]].find(s => s.on)?.wave ?? 'sine')
-      : 'sine';
-    const xVal = xWave === 'triangle'
-      ? Math.sin(TAU*xHz*t+xPhase) + 0.33*Math.sin(3*TAU*xHz*t+xPhase)
-      : Math.sin(TAU*xHz*t+xPhase);
-    const yVal = yWave === 'triangle'
-      ? Math.sin(TAU*yHz*t+yPhase) + 0.33*Math.sin(3*TAU*yHz*t+yPhase)
-      : Math.sin(TAU*yHz*t+yPhase);
+    const xVal = (sample(oscs[0], t) + sample(oscs[2], t)) * xNorm;
+    const yVal = (sample(oscs[1], t) + sample(oscs[3], t)) * yNorm;
     const x = cx + R * xVal;
     const y = cy + R * yVal;
     i === 0 ? lissPath.moveTo(x, y) : lissPath.lineTo(x, y);
@@ -811,7 +758,11 @@ function drawViz(now) {
 
   document.getElementById("vuBar").style.width = clamp(env.level*110,0,100)+"%";
 
-  const fb = `${xHz.toFixed(0)}/${yHz.toFixed(0)}Hz`;
+  // Ratio of the primary stereo pair (OSC1 X : OSC2 Y) — gives the user the
+  // pure musical relationship at a glance (1:1, 2:3, 3:5 …).
+  const ratio = approxRatio(oscs[0].hz, oscs[1].hz);
+  const rTxt  = (oscs[0].on && oscs[1].on && ratio) ? `${ratio.p}:${ratio.q}` : '—';
+  const fb = `X ${xHz.toFixed(1)}Hz  Y ${yHz.toFixed(1)}Hz  ratio ${rTxt}`;
   document.getElementById("statusBar").textContent = playing
     ? `▶ ${bpm}BPM  step:${(seqStep-1)&15}  ${fb}  fps:${fpsAvg.toFixed(0)}`
     : `— stopped — ${fb}`;
@@ -869,18 +820,19 @@ for (let i=0;i<4;i++) {
         if (nd) restartOsc(n);
       });
     });
-    // freq — two-way binding: slider ↔ number input
+    // freq — two-way binding: slider (log 20–20 000 Hz) ↔ number input (Hz)
     const fe=document.getElementById("fr"+n), fv=document.getElementById("fv"+n);
-    fv.value = logF(oState[n].freq).toFixed(1);
+    fv.value = logF(oState[n].freq).toFixed(2);
     fe.addEventListener("input", () => {
       oState[n].freq = parseFloat(fe.value);
-      fv.value = logF(oState[n].freq).toFixed(1);
-      if (nd) nd.oscs[n].o.frequency.setTargetAtTime(logF(oState[n].freq), actx.currentTime, .015);
+      const hz = logF(oState[n].freq);
+      fv.value = hz.toFixed(2);
+      if (nd) nd.oscs[n].o.frequency.setTargetAtTime(hz, actx.currentTime, .015);
     });
     fv.addEventListener("input", () => {
-      const hz = clamp(parseFloat(fv.value) || 0, 0, 20000);
-      oState[n].freq = hz / 20000;
-      fe.value = oState[n].freq; // programmatic .value nezpustí input event
+      const hz = clamp(parseFloat(fv.value) || 20, 20, 20000);
+      oState[n].freq = freqToSlider(hz);
+      fe.value = oState[n].freq; // programmatic .value doesn't fire 'input'
       if (nd) nd.oscs[n].o.frequency.setTargetAtTime(hz, actx.currentTime, .015);
     });
     // phase
@@ -910,13 +862,6 @@ for (let i=0;i<4;i++) {
       document.getElementById("led"+n).classList.toggle("on", oState[n].on);
       if (nd) nd.oscs[n].g.gain.value = oState[n].on ? oState[n].vol : 0;
     });
-    // dly
-    document.getElementById("dly"+n).addEventListener("click", () => {
-      oState[n].dly = !oState[n].dly;
-      const b = document.getElementById("dly"+n);
-      b.classList.toggle("on", oState[n].dly);
-      if (nd) nd.oscs[n].dlyG.gain.setTargetAtTime(oState[n].dly ? 1 : 0, actx.currentTime, .02);
-    });
   })(i);
 }
 
@@ -938,17 +883,6 @@ document.getElementById("ftRow").querySelectorAll("[data-ft]").forEach(b => {
   e.addEventListener("input",()=>{fx.ftRes=parseFloat(e.value);v.textContent=fx.ftRes.toFixed(1);if(nd)nd.filter.Q.value=fx.ftRes;});
 })();
 
-/* ── DELAY CONTROLS (all 4) ── */
-for (let i=0;i<4;i++) {
-  (n => {
-    const dn=n+1;
-    const te=document.getElementById("dl"+dn+"t"), tv=document.getElementById("dl"+dn+"tv");
-    const fe=document.getElementById("dl"+dn+"f"), fv=document.getElementById("dl"+dn+"fv");
-    te.addEventListener("input",()=>{fx.dlT[n]=parseFloat(te.value);tv.textContent=fx.dlT[n].toFixed(2)+"s";if(nd)nd.delays[n].d.delayTime.setTargetAtTime(fx.dlT[n],actx.currentTime,.02);});
-    fe.addEventListener("input",()=>{fx.dlF[n]=parseFloat(fe.value);fv.textContent=fx.dlF[n].toFixed(2);if(nd)nd.delays[n].fb.gain.setTargetAtTime(fx.dlF[n],actx.currentTime,.02);});
-  })(i);
-}
-
 /* ── REVERB CONTROLS ── */
 (()=>{
   const we=document.getElementById("rvWet"),wv=document.getElementById("rvWetV");
@@ -965,38 +899,6 @@ for (let i=0;i<4;i++) {
   re.addEventListener("input",()=>{fx.cpRat=parseFloat(re.value);rv.textContent=fx.cpRat+":1";if(nd)nd.comp.ratio.value=fx.cpRat;});
 })();
 
-/* ── SAMPLER PADS ── */
-for (let i=0;i<4;i++) {
-  (n => {
-    const btn=document.getElementById("pad"+n);
-    btn.addEventListener("click",()=>{ ensureNd(); firePad(n); });
-    btn.addEventListener("dragover",e=>{e.preventDefault();btn.style.borderColor="var(--accent)";});
-    btn.addEventListener("dragleave",()=>btn.style.borderColor="");
-    btn.addEventListener("drop",e=>{
-      e.preventDefault(); btn.style.borderColor="";
-      const f=e.dataTransfer.files[0]; if(!f) return;
-      f.arrayBuffer().then(ab=>{
-        if(!actx) actx=new(window.AudioContext||window.webkitAudioContext)();
-        actx.decodeAudioData(ab,buf=>{
-          pads[n]=buf;
-          btn.classList.add("loaded");
-          btn.childNodes[0].textContent=f.name.slice(0,6);
-        });
-      });
-    });
-  })(i);
-}
-function firePad(n) {
-  if (!nd || !pads[n]) return;
-  const src = actx.createBufferSource();
-  src.buffer = pads[n];
-  src.connect(nd.masterG);
-  src.start();
-  const btn=document.getElementById("pad"+n);
-  btn.classList.add("hit");
-  setTimeout(()=>btn.classList.remove("hit"),120);
-}
-
 /* ── KEYBOARD ── */
 window.addEventListener("keydown", async e => {
   if (e.target.tagName==="INPUT") return;
@@ -1006,10 +908,6 @@ window.addEventListener("keydown", async e => {
   if (k==="2") document.getElementById("on1").click();
   if (k==="3") document.getElementById("on2").click();
   if (k==="4") document.getElementById("on3").click();
-  if (k==="q"||k==="Q"){ensureNd();firePad(0);}
-  if (k==="w"||k==="W"){ensureNd();firePad(1);}
-  if (k==="e"||k==="E"){ensureNd();firePad(2);}
-  if (k==="r"||k==="R"){ensureNd();firePad(3);}
   if (k==="a"||k==="A"){ensureNd();}
   if (k==="f"||k==="F"){
     const el=document.getElementById("ftCut");
