@@ -75,19 +75,6 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
 .bpmBox{width:46px;background:rgba(255,255,255,.05);border:1px solid var(--border);
   color:var(--text);font-family:var(--mono);font-size:13px;font-weight:700;
   text-align:center;padding:3px 4px;border-radius:3px;-moz-appearance:textfield}
-.bpmBox::-webkit-inner-spin-button,.bpmBox::-webkit-outer-spin-button{-webkit-appearance:none}
-
-/* sequencer */
-#seqWrap{margin-top:4px}
-#seqGrid{display:grid;gap:2px}
-.trkLbl{font-size:9px;color:var(--muted);font-family:var(--mono);
-  display:flex;align-items:center;letter-spacing:.06em;padding-right:2px}
-.sq{width:100%;aspect-ratio:1/1;border-radius:2px;border:1px solid rgba(255,255,255,.07);
-  background:rgba(255,255,255,.04);font-size:0;padding:0}
-.sq.on{background:rgba(73,234,203,.22);border-color:rgba(73,234,203,.45)}
-.sq.cur{outline:1px solid var(--accent);outline-offset:-1px}
-.sq.fire{background:rgba(73,234,203,.6)!important}
-
 /* vu */
 .vuWrap{height:5px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin-top:5px}
 .vuBar{height:100%;background:linear-gradient(90deg,var(--accent) 0%,#f0c060 70%,#f06060 100%);width:0%}
@@ -120,13 +107,9 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
       <div class="knobWrap" id="knobDecayWrap"><canvas id="knobDecay" width="44" height="44"></canvas><span class="knobLabel">DECAY</span><span class="knobVal" id="knobDecayVal">0.08</span></div>
       <div class="knobWrap" id="knobBrightWrap"><canvas id="knobBright" width="44" height="44"></canvas><span class="knobLabel">BRIGHT</span><span class="knobVal" id="knobBrightVal">70%</span></div>
       <div class="knobWrap" id="knobThickWrap"><canvas id="knobThick" width="44" height="44"></canvas><span class="knobLabel">THICK</span><span class="knobVal" id="knobThickVal">2.5</span></div>
-      <div class="knobWrap" id="knobHueWrap"><canvas id="knobHue" width="44" height="44"></canvas><span class="knobLabel">HUE</span><span class="knobVal" id="knobHueVal">165</span></div>
-      <div class="knobWrap" id="knobContWrap"><canvas id="knobCont" width="44" height="44"></canvas><span class="knobLabel">CONT</span><span class="knobVal" id="knobContVal">85</span></div>
     </div>
     <button class="btn" id="btnUnison">UNISON</button>
     <button class="btn" id="btnSync">⟳ SYNC</button>
-    <span style="font-size:11px;color:var(--muted)">BPM</span>
-    <input class="bpmBox" id="bpmIn" type="number" min="40" max="240" value="120">
     <span style="font-size:11px;color:var(--muted)">VOL</span>
     <input type="range" id="masterVol" min="0" max="1" step="0.01" value="0.7" style="width:72px">
     <span id="masterVolV" style="font-size:11px;color:var(--accent);font-family:var(--mono);width:30px">0.70</span>
@@ -195,33 +178,20 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
   <!-- CENTER: CANVAS -->
   <div id="center"><canvas id="vizCanvas"></canvas><div id="recOverlay"></div></div>
 
-  <!-- RIGHT: FX + SEQUENCER -->
+  <!-- RIGHT: COLOR ENGINE -->
   <div id="panelR">
     <div class="card">
-      <div class="cardHead">FILTER</div>
-      <div class="btnRow" id="ftRow">
-        <button class="btn active" data-ft="lowpass">LP</button>
-        <button class="btn" data-ft="highpass">HP</button>
-        <button class="btn" data-ft="bandpass">BP</button>
-      </div>
-      <div class="sr"><label>CUT</label><input type="range" id="ftCut" min="0" max="1" step=".001" value=".85"><span class="v" id="ftCutV">—</span></div>
-      <div class="sr"><label>RES</label><input type="range" id="ftRes" min="0" max="20" step=".1" value="1"><span class="v" id="ftResV">1.0</span></div>
-    </div>
-
-    <div class="card">
-      <div class="cardHead">REVERB</div>
-      <div class="sr"><label>WET</label><input type="range" id="rvWet" min="0" max="1" step=".01" value=".25"><span class="v" id="rvWetV">0.25</span></div>
-      <div class="sr"><label>SIZE</label><input type="range" id="rvSz" min=".5" max="5" step=".1" value="2"><span class="v" id="rvSzV">2.0s</span></div>
+      <div class="cardHead">COLOR ENGINE</div>
+      <div class="sr"><label>HUE</label><input type="range" id="ceHue" min="0" max="360" step="1" value="165"><span class="v" id="ceHueV">165</span></div>
+      <div class="sr"><label>SPAN</label><input type="range" id="ceSpan" min="0" max="360" step="1" value="0"><span class="v" id="ceSpanV">0°</span></div>
+      <div class="sr"><label>SAT</label><input type="range" id="ceSat" min="0" max="100" step="1" value="85"><span class="v" id="ceSatV">85%</span></div>
+      <div class="sr"><label>BRT</label><input type="range" id="ceBrt" min="10" max="100" step="1" value="70"><span class="v" id="ceBrtV">70%</span></div>
+      <div class="sr"><label>GLOW</label><input type="range" id="ceGlow" min="0" max="1" step="0.01" value="0.15"><span class="v" id="ceGlowV">0.15</span></div>
+      <div class="sr"><label>SPEED</label><input type="range" id="ceSpeed" min="0" max="120" step="1" value="0"><span class="v" id="ceSpeedV">0°/s</span></div>
     </div>
     <div class="card">
-      <div class="cardHead">COMP</div>
-      <div class="sr"><label>THR</label><input type="range" id="cpThr" min="-60" max="0" step="1" value="-18"><span class="v" id="cpThrV">-18dB</span></div>
-      <div class="sr"><label>RATIO</label><input type="range" id="cpRat" min="1" max="20" step=".5" value="4"><span class="v" id="cpRatV">4:1</span></div>
+      <div class="cardHead">LEVEL</div>
       <div class="vuWrap"><div class="vuBar" id="vuBar"></div></div>
-    </div>
-    <div class="card">
-      <div class="cardHead">SEQUENCER</div>
-      <div id="seqWrap"><div id="seqGrid"></div></div>
     </div>
   </div>
 </div>
@@ -230,7 +200,6 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
 <div id="footer">
   <span>SPC play/stop</span>
   <span>1/2/3/4 osc on/off</span>
-  <span>F filter sweep</span>
   <span>Z randomize freqs</span>
   <span>A init audio</span>
 </div>
@@ -254,7 +223,6 @@ const freqToSlider = hz => {
   if (hz <= 20) return clamp((hz / 20) * _LZ, 0, _LZ);
   return clamp(_LZ + (1 - _LZ) * Math.log(hz / 20) / Math.log(1000), 0, 1);
 };
-const logFF = v => Math.exp(Math.log(20)    + v * Math.log(1000));  // 20–20000 Hz, filter
 
 // gcd / small-integer ratio helpers — used to lock the Lissajous render window
 // to the actual closed-period of the freq pair, and to display p:q ratio.
@@ -274,53 +242,17 @@ function approxRatio(a, b, maxDen = 32) {
 }
 
 /* ── STATE ── */
-let actx = null, playing = false, bpm = 120;
-let seqStep = 0, seqNextTime = 0, prevSeqStep = -1;
-let flashKick = 0, flashSnare = 0;
+let actx = null, playing = false;
 
-// 4 oscillators: OSC1 L(-1), OSC2 R(+1), OSC3 L(-1), OSC4 R(+1)
-// Defaults form a clean 2:3:4:6 stack (200 / 300 / 400 / 600 Hz) so
-// the Lissajous closes immediately on page load.
 const oState = [
   { wave:"sine", freq:0.340000, det:0, vol:.1, on:true, pan:-1, phase:0 },
   { wave:"sine", freq:0.398110, det:0, vol:.1, on:true, pan:+1, phase:1.5708 },
   { wave:"sine", freq:0.439340, det:0, vol:.1, on:true, pan:-1, phase:0 },
   { wave:"sine", freq:0.497450, det:0, vol:.1, on:true, pan:+1, phase:1.5708 },
 ];
-const fx = {
-  ftType:"lowpass", ftCut:.85, ftRes:1,
-  rvWet:.25, rvSz:2,
-  cpThr:-18, cpRat:4,
-  vol:.70,
-};
-const seq = {
-  kick:  [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],
-  snare: [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],
-  hat:   [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0],
-  perc:  [0,0,0,1,0,0,1,0,0,0,0,1,0,1,0,0],
-};
-const TRACKS = ["kick","snare","hat","perc"];
-const seqBtns = { kick:[],snare:[],hat:[],perc:[] };
+let masterVol = 0.70;
 
-let nd = null; // audio nodes object
-
-/* ── AUDIO HELPERS ── */
-function noiseBuffer() {
-  const len = actx.sampleRate;
-  const buf = actx.createBuffer(1, len, actx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i=0;i<len;i++) d[i] = Math.random()*2-1;
-  return buf;
-}
-function reverbIR(sec, decay=3) {
-  const len = Math.floor(actx.sampleRate * sec);
-  const buf = actx.createBuffer(2, len, actx.sampleRate);
-  for (let c=0;c<2;c++) {
-    const d = buf.getChannelData(c);
-    for (let i=0;i<len;i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/len, decay);
-  }
-  return buf;
-}
+let nd = null;
 /* ── BUILD AUDIO GRAPH ── */
 function buildAudio() {
   if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
@@ -328,11 +260,8 @@ function buildAudio() {
   teardownAudio();
 
   const analyserF = actx.createAnalyser(); analyserF.fftSize = 2048;
-  const analyserT = actx.createAnalyser(); analyserT.fftSize = 1024;
   const fftBuf  = new Uint8Array(analyserF.frequencyBinCount);
-  const timeBuf = new Uint8Array(analyserT.fftSize);
 
-  // 4 independent oscillators — OSC1/3 → L, OSC2/4 → R
   const oscs = oState.map(s => {
     const o = actx.createOscillator();
     o.type = s.wave;
@@ -347,48 +276,12 @@ function buildAudio() {
   const t = actx.currentTime + 0.01;
   oscs.forEach(n => n.o.start(t));
 
-  const preMix = actx.createGain(); preMix.gain.value = 0.55;
-  oscs.forEach(n => n.pan.connect(preMix));
+  const masterG = actx.createGain(); masterG.gain.value = masterVol;
+  oscs.forEach(n => n.pan.connect(masterG));
 
-  // filter → mixBus → reverb wet/dry → comp → master.
-  // No delay chain — the previous short comb-filtered echoes were dirtying
-  // the Lissajous render by adding non-harmonic spectral content.
-  const filter = actx.createBiquadFilter();
-  filter.type = fx.ftType;
-  filter.frequency.value = logFF(fx.ftCut);
-  filter.Q.value = fx.ftRes;
-  preMix.connect(filter);
-
-  const mixBus = actx.createGain();
-  filter.connect(mixBus);
-
-  // reverb
-  const conv = actx.createConvolver(); conv.buffer = reverbIR(fx.rvSz);
-  const rvWetG = actx.createGain(); rvWetG.gain.value = fx.rvWet;
-  const rvDryG = actx.createGain(); rvDryG.gain.value = 1 - fx.rvWet;
-  mixBus.connect(conv); conv.connect(rvWetG);
-  mixBus.connect(rvDryG);
-  const rvOut = actx.createGain();
-  rvWetG.connect(rvOut); rvDryG.connect(rvOut);
-
-  // compressor
-  const comp = actx.createDynamicsCompressor();
-  comp.threshold.value = fx.cpThr; comp.ratio.value = fx.cpRat;
-  comp.knee.value = 6; comp.attack.value = 0.005; comp.release.value = 0.1;
-  rvOut.connect(comp);
-
-  // master
-  const masterG = actx.createGain(); masterG.gain.value = fx.vol;
-  comp.connect(masterG);
-
-  // existing Lissajous analysers
-  masterG.connect(analyserF); masterG.connect(analyserT);
+  masterG.connect(analyserF);
   analyserF.connect(actx.destination);
 
-  // ── OSCILLOSCOPE ANALYSERS — direct OSC routing ──
-  // OSC 1 (idx 0) + OSC 3 (idx 2) → analyserL  (Left / cyan)
-  // OSC 2 (idx 1) + OSC 4 (idx 3) → analyserR  (Right / magenta)
-  // Connected at gain node level (pre-panner) so the split is exact.
   const analyserL = actx.createAnalyser(); analyserL.fftSize = 2048;
   const analyserR = actx.createAnalyser(); analyserR.fftSize = 2048;
   const scopeBufL = new Float32Array(analyserL.fftSize);
@@ -398,15 +291,8 @@ function buildAudio() {
   oscs[1].g.connect(analyserR);
   oscs[3].g.connect(analyserR);
 
-  nd = { oscs, preMix, filter, mixBus,
-         conv, rvWetG, rvDryG, rvOut, comp, masterG,
-         analyserF, analyserT, fftBuf, timeBuf,
-         analyserL, analyserR, scopeBufL, scopeBufR,
-         _noise:null };
-
-  // Audio graph summary:
-  //   oscs[i]: o → g → pan → preMix(0.55) → filter → mixBus
-  //   mixBus → reverb(wet/dry) → rvOut → comp → masterG → analyserF → destination
+  nd = { oscs, masterG, analyserF, fftBuf,
+         analyserL, analyserR, scopeBufL, scopeBufR };
 }
 
 function restartOsc(i) {
@@ -429,110 +315,19 @@ function teardownAudio() {
   nd = null;
 }
 
-/* ── DRUM SYNTH ── */
 function ensureNd() {
   if (!actx) buildAudio();
   if (!nd) buildAudio();
 }
-function kick(when) {
-  const g = actx.createGain();
-  g.gain.setValueAtTime(.001,when); g.gain.exponentialRampToValueAtTime(.9,when+.003);
-  g.gain.exponentialRampToValueAtTime(.001,when+.22);
-  const o = actx.createOscillator(); o.type="sine";
-  o.frequency.setValueAtTime(140,when); o.frequency.exponentialRampToValueAtTime(38,when+.18);
-  o.connect(g); g.connect(nd.masterG); o.start(when); o.stop(when+.25);
-}
-function snare(when) {
-  nd._noise = nd._noise || noiseBuffer();
-  const n = actx.createBufferSource(); n.buffer = nd._noise;
-  const hp = actx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=900;
-  const g = actx.createGain();
-  g.gain.setValueAtTime(.001,when); g.gain.exponentialRampToValueAtTime(.55,when+.005);
-  g.gain.exponentialRampToValueAtTime(.001,when+.18);
-  n.connect(hp); hp.connect(g); g.connect(nd.masterG); n.start(when); n.stop(when+.20);
-  const o=actx.createOscillator(); const og=actx.createGain();
-  o.type="triangle"; o.frequency.value=210;
-  og.gain.setValueAtTime(.001,when); og.gain.exponentialRampToValueAtTime(.2,when+.004);
-  og.gain.exponentialRampToValueAtTime(.001,when+.07);
-  o.connect(og); og.connect(nd.masterG); o.start(when); o.stop(when+.1);
-}
-function hat(when) {
-  nd._noise = nd._noise || noiseBuffer();
-  const n = actx.createBufferSource(); n.buffer = nd._noise;
-  const hp = actx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=7000;
-  const g = actx.createGain();
-  g.gain.setValueAtTime(.001,when); g.gain.exponentialRampToValueAtTime(.28,when+.001);
-  g.gain.exponentialRampToValueAtTime(.001,when+.05);
-  n.connect(hp); hp.connect(g); g.connect(nd.masterG); n.start(when); n.stop(when+.06);
-}
-function perc(when) {
-  const g = actx.createGain();
-  g.gain.setValueAtTime(.001,when); g.gain.exponentialRampToValueAtTime(.4,when+.003);
-  g.gain.exponentialRampToValueAtTime(.001,when+.12);
-  const f0 = 380+Math.random()*320;
-  const o = actx.createOscillator(); o.type="sine";
-  o.frequency.setValueAtTime(f0,when); o.frequency.exponentialRampToValueAtTime(f0*.4,when+.1);
-  const bp = actx.createBiquadFilter(); bp.type="bandpass"; bp.frequency.value=1800; bp.Q.value=5;
-  o.connect(g); g.connect(bp); bp.connect(nd.masterG); o.start(when); o.stop(when+.15);
-}
-
-/* ── SEQUENCER SCHEDULER ── */
-function scheduleBeat() {
-  if (!nd || !playing) return;
-  const step = 60/bpm/4;
-  while (seqNextTime < actx.currentTime + 0.12) {
-    const s = seqStep & 15;
-    if (seq.kick[s])  { kick(seqNextTime);  flashKick  = 1; }
-    if (seq.snare[s]) { snare(seqNextTime); flashSnare = 1; }
-    if (seq.hat[s])   hat(seqNextTime);
-    if (seq.perc[s])  perc(seqNextTime);
-    highlightStep(s);
-    seqStep = (seqStep+1) & 15;
-    seqNextTime += step;
-  }
-}
-
-function highlightStep(s) {
-  if (prevSeqStep >= 0) {
-    TRACKS.forEach(t => {
-      seqBtns[t][prevSeqStep]?.classList.remove("cur","fire");
-    });
-  }
-  TRACKS.forEach(t => {
-    const b = seqBtns[t][s];
-    if (b) { b.classList.add("cur"); if(seq[t][s]) b.classList.add("fire"); }
-  });
-  prevSeqStep = s;
-}
-
-/* ── BUILD SEQUENCER UI ── */
-(function() {
-  const grid = document.getElementById("seqGrid");
-  grid.style.gridTemplateColumns = "22px repeat(16,1fr)";
-  TRACKS.forEach(t => {
-    const lbl = document.createElement("div");
-    lbl.className = "trkLbl";
-    lbl.textContent = t[0].toUpperCase();
-    grid.appendChild(lbl);
-    for (let i=0;i<16;i++) {
-      const b = document.createElement("button");
-      b.className = "sq" + (seq[t][i] ? " on" : "");
-      b.addEventListener("click", () => {
-        seq[t][i] ^= 1;
-        b.classList.toggle("on", !!seq[t][i]);
-      });
-      seqBtns[t].push(b);
-      grid.appendChild(b);
-    }
-  });
-})();
 
 /* ── KNOB GLOBALS ── */
 let decayVal  = 0.08;
 let brightVal = 70;
 let thickVal  = 2.5;
-let hueVal    = 165;
-let contVal   = 85;
+
+/* ── COLOR ENGINE STATE ── */
+let ceHue = 165, ceSpan = 0, ceSat = 85, ceBrt = 70;
+let ceGlow = 0.15, ceSpeed = 0, cePhase = 0;
 
 /* ── KNOB COMPONENT ── */
 function makeKnob({ canvasId, wrapId, valId, min, max, defaultVal, decimals, unit, onChange }) {
@@ -625,14 +420,6 @@ makeKnob({ canvasId:"knobThick",  wrapId:"knobThickWrap",  valId:"knobThickVal",
   min:0.001, max:8.0,  defaultVal:2.5,  decimals:3, unit:"",
   onChange: v => { thickVal = v; } });
 
-makeKnob({ canvasId:"knobHue", wrapId:"knobHueWrap", valId:"knobHueVal",
-  min:0, max:360, defaultVal:165, decimals:0, unit:"",
-  onChange: v => { hueVal = Math.round(v); } });
-
-makeKnob({ canvasId:"knobCont", wrapId:"knobContWrap", valId:"knobContVal",
-  min:40, max:100, defaultVal:85, decimals:0, unit:"%",
-  onChange: v => { contVal = Math.round(v); } });
-
 /* ── VISUALIZATION (Lissajous) ── */
 const canvas = document.getElementById("vizCanvas");
 const ctx2d  = canvas.getContext("2d");
@@ -669,21 +456,12 @@ function drawViz(now) {
   const W = canvas.width, H = canvas.height, cx=W/2, cy=H/2;
   const env = readEnv();
 
-  // trail decay — teal-black background, alpha from DECAY knob (min 0.10)
   ctx2d.globalCompositeOperation = "source-over";
   ctx2d.globalAlpha = 1;
-  const decayAlpha = Math.max(decayVal, decayVal + .06*env.bass + .2*flashKick);
+  const decayAlpha = Math.max(decayVal, decayVal + .06*env.bass);
   ctx2d.fillStyle = `rgba(5,13,9,${decayAlpha})`;
-  ctx2d.fillRect(0, 0, canvas.width, canvas.height);
+  ctx2d.fillRect(0, 0, W, H);
 
-  flashKick  *= 0.85;
-  flashSnare *= 0.82;
-
-  // Math-based Lissajous — purely from oState, no audio signal.
-  // Each OSC contributes its own wave shape, phase and amplitude.  OSC1+OSC3
-  // sum into X (left channel), OSC2+OSC4 into Y (right channel).  Previously
-  // the code averaged frequencies and used only the FIRST active osc's wave —
-  // that's why OSC3/OSC4 SIN/TRI buttons appeared dead in the visual.
   const oscs = oState.map(s => ({
     on:    s.on,
     hz:    logF(s.freq) * Math.pow(2, s.det / 1200),
@@ -699,71 +477,73 @@ function drawViz(now) {
       : o.vol * Math.sin(arg);
   };
 
-  // Per-channel normaliser keeps the figure scaled regardless of how many
-  // oscs are on, so toggling OSC3 off doesn't double the X amplitude.
   const xVol = (oscs[0].on?oscs[0].vol:0) + (oscs[2].on?oscs[2].vol:0);
   const yVol = (oscs[1].on?oscs[1].vol:0) + (oscs[3].on?oscs[3].vol:0);
   const xNorm = xVol > 0 ? 1 / xVol : 0;
   const yNorm = yVol > 0 ? 1 / yVol : 0;
 
-  // Render window = exact LCM period of the active freqs (so the Lissajous
-  // closes cleanly).  For arbitrary freqs we approximate with small-integer
-  // ratios via the same helper used for the status-bar display.
   const xFreqs = [oscs[0], oscs[2]].filter(o => o.on && o.hz > 0).map(o => o.hz);
   const yFreqs = [oscs[1], oscs[3]].filter(o => o.on && o.hz > 0).map(o => o.hz);
   const allFreqs = [...xFreqs, ...yFreqs];
 
-  // Mean for status display (kept simple — exact ratio shown separately).
-  const xHz = xFreqs.length ? xFreqs.reduce((a,b)=>a+b) / xFreqs.length : 0;
-  const yHz = yFreqs.length ? yFreqs.reduce((a,b)=>a+b) / yFreqs.length : 0;
-
   function lissajousPeriod(freqs) {
     if (!freqs.length) return 0.1;
-    if (freqs.length === 1) return 4 / freqs[0]; // 4 cycles of the single freq
-    // Scale to ints (×100 → 1 Hz resolution), take GCD → fundamental Hz
+    if (freqs.length === 1) return 4 / freqs[0];
     const ints = freqs.map(f => Math.max(1, Math.round(f * 100)));
     const g = ints.reduce(gcdInt);
     const fundamental = g / 100;
-    // Cap window so very-low fundamentals don't lock up the loop
     return Math.min(2.0, 1 / fundamental);
   }
   const windowT = lissajousPeriod(allFreqs);
   lissT += 0.016;
 
-  const R = Math.min(W,H) * (0.36 + .12*env.level + .12*flashKick) * vizZoom;
+  const R = Math.min(W,H) * (0.36 + .12*env.level) * vizZoom;
   const steps = 8000;
 
-  const lissPath = new Path2D();
+  // precompute points
+  const pts = new Array(steps + 1);
   for (let i = 0; i <= steps; i++) {
     const t = lissT + (i / steps) * windowT;
     const xVal = (sample(oscs[0], t) + sample(oscs[2], t)) * xNorm;
     const yVal = (sample(oscs[1], t) + sample(oscs[3], t)) * yNorm;
-    const x = cx + R * xVal;
-    const y = cy + R * yVal;
-    i === 0 ? lissPath.moveTo(x, y) : lissPath.lineTo(x, y);
-  }
-  ctx2d.globalCompositeOperation = "source-over";
-  const bright = clamp(.7 + .3*env.level + .4*flashKick, .5, 1);
-  const lw = thickVal + env.bass*3 + flashKick;
-  const lightness = Math.round(brightVal * 0.8); // knob 70 → 56% lightness ≈ 55%
-  // glow pass — wide, low alpha
-  ctx2d.strokeStyle = `hsla(${hueVal},${contVal}%,${lightness}%,0.15)`;
-  ctx2d.lineWidth = lw * 2.5;
-  ctx2d.stroke(lissPath);
-  // main pass
-  ctx2d.strokeStyle = `hsla(${hueVal},${contVal}%,${lightness}%,${bright})`;
-  ctx2d.lineWidth = lw;
-  ctx2d.stroke(lissPath);
-
-  if (flashKick > .3) {
-    ctx2d.beginPath();
-    ctx2d.arc(cx, cy, R*(1.1+flashKick*.2), 0, TAU);
-    ctx2d.strokeStyle = `hsla(170,80%,70%,${flashKick*.4})`;
-    ctx2d.lineWidth = flashKick*4;
-    ctx2d.stroke();
+    pts[i] = { x: cx + R * xVal, y: cy + R * yVal };
   }
 
+  // color engine
+  cePhase = (cePhase + ceSpeed * 0.016) % 360;
+  const baseHue = (ceHue + cePhase) % 360;
+  const lightness = Math.round(ceBrt * 0.8);
+  const bright = clamp(.7 + .3*env.level, .5, 1);
+  const lw = thickVal + env.bass*3;
+
   ctx2d.globalCompositeOperation = "source-over";
+
+  if (ceSpan < 1) {
+    const p = new Path2D();
+    for (let i = 0; i <= steps; i++) i ? p.lineTo(pts[i].x, pts[i].y) : p.moveTo(pts[i].x, pts[i].y);
+    ctx2d.strokeStyle = `hsla(${baseHue},${ceSat}%,${lightness}%,${ceGlow})`;
+    ctx2d.lineWidth = lw * 2.5;
+    ctx2d.stroke(p);
+    ctx2d.strokeStyle = `hsla(${baseHue},${ceSat}%,${lightness}%,${bright})`;
+    ctx2d.lineWidth = lw;
+    ctx2d.stroke(p);
+  } else {
+    const SEGS = 64;
+    const segLen = Math.ceil(steps / SEGS);
+    for (let s = 0; s < SEGS; s++) {
+      const from = s * segLen;
+      const to = Math.min(from + segLen, steps);
+      const p = new Path2D();
+      for (let i = from; i <= to; i++) i === from ? p.moveTo(pts[i].x, pts[i].y) : p.lineTo(pts[i].x, pts[i].y);
+      const h = (baseHue + (s / SEGS) * ceSpan) % 360;
+      ctx2d.strokeStyle = `hsla(${h},${ceSat}%,${lightness}%,${ceGlow})`;
+      ctx2d.lineWidth = lw * 2.5;
+      ctx2d.stroke(p);
+      ctx2d.strokeStyle = `hsla(${h},${ceSat}%,${lightness}%,${bright})`;
+      ctx2d.lineWidth = lw;
+      ctx2d.stroke(p);
+    }
+  }
 
   document.getElementById("vuBar").style.width = clamp(env.level*110,0,100)+"%";
 
@@ -773,7 +553,7 @@ function drawViz(now) {
   const rTxt  = (oscs[0].on && oscs[1].on && ratio) ? `${ratio.p}:${ratio.q}` : '—';
   const fb = `${oscTxt}  ratio ${rTxt}`;
   document.getElementById("statusBar").textContent = playing
-    ? `▶ ${bpm}BPM  step:${(seqStep-1)&15}  ${fb}  fps:${fpsAvg.toFixed(0)}`
+    ? `▶ ${fb}  fps:${fpsAvg.toFixed(0)}`
     : `— stopped — ${fb}`;
 
   if (activeOffCtx && activeOffscreen) {
@@ -781,10 +561,8 @@ function drawViz(now) {
   }
 }
 
-
 /* ── RENDER LOOP ── */
 function tick(now) {
-  scheduleBeat();
   drawViz(now);
   requestAnimationFrame(tick);
 }
@@ -798,23 +576,20 @@ resizeCanvas();
 function togglePlay() {
   if (!playing) {
     ensureNd();
-    playing = true; seqStep = 0; seqNextTime = actx.currentTime + .05;
+    playing = true;
     document.getElementById("btnPlay").textContent = "■ STOP";
     document.getElementById("btnPlay").classList.add("playing");
   } else {
     playing = false;
     document.getElementById("btnPlay").textContent = "▶ PLAY";
     document.getElementById("btnPlay").classList.remove("playing");
-    if (prevSeqStep>=0) TRACKS.forEach(t=>seqBtns[t][prevSeqStep]?.classList.remove("cur","fire"));
-    prevSeqStep=-1;
   }
 }
 document.getElementById("btnPlay").addEventListener("click", togglePlay);
-document.getElementById("bpmIn").addEventListener("input", e => { bpm = clamp(parseInt(e.target.value)||120,40,240); });
 document.getElementById("masterVol").addEventListener("input", e => {
-  fx.vol = parseFloat(e.target.value);
-  document.getElementById("masterVolV").textContent = fx.vol.toFixed(2);
-  if (nd) nd.masterG.gain.value = fx.vol;
+  masterVol = parseFloat(e.target.value);
+  document.getElementById("masterVolV").textContent = masterVol.toFixed(2);
+  if (nd) nd.masterG.gain.value = masterVol;
 });
 
 /* ── OSC CONTROLS (all 4) ── */
@@ -874,38 +649,18 @@ for (let i=0;i<4;i++) {
   })(i);
 }
 
-/* ── FILTER CONTROLS ── */
-document.getElementById("ftRow").querySelectorAll("[data-ft]").forEach(b => {
-  b.addEventListener("click", () => {
-    document.getElementById("ftRow").querySelectorAll(".btn").forEach(x=>x.classList.remove("active"));
-    b.classList.add("active"); fx.ftType=b.dataset.ft;
-    if (nd) nd.filter.type=fx.ftType;
-  });
-});
+/* ── COLOR ENGINE CONTROLS ── */
 (()=>{
-  const e=document.getElementById("ftCut"), v=document.getElementById("ftCutV");
-  const upd=()=>{fx.ftCut=parseFloat(e.value);const hz=logFF(fx.ftCut);v.textContent=hz>=1000?(hz/1000).toFixed(1)+"k":hz.toFixed(0)+"Hz";if(nd)nd.filter.frequency.setTargetAtTime(hz,actx.currentTime,.01);};
-  upd(); e.addEventListener("input",upd);
-})();
-(()=>{
-  const e=document.getElementById("ftRes"),v=document.getElementById("ftResV");
-  e.addEventListener("input",()=>{fx.ftRes=parseFloat(e.value);v.textContent=fx.ftRes.toFixed(1);if(nd)nd.filter.Q.value=fx.ftRes;});
-})();
-
-/* ── REVERB CONTROLS ── */
-(()=>{
-  const we=document.getElementById("rvWet"),wv=document.getElementById("rvWetV");
-  we.addEventListener("input",()=>{fx.rvWet=parseFloat(we.value);wv.textContent=fx.rvWet.toFixed(2);if(nd){nd.rvWetG.gain.setTargetAtTime(fx.rvWet,actx.currentTime,.05);nd.rvDryG.gain.setTargetAtTime(1-fx.rvWet,actx.currentTime,.05);}});
-  const se=document.getElementById("rvSz"),sv=document.getElementById("rvSzV");
-  se.addEventListener("input",()=>{fx.rvSz=parseFloat(se.value);sv.textContent=fx.rvSz.toFixed(1)+"s";});
-})();
-
-/* ── COMPRESSOR CONTROLS ── */
-(()=>{
-  const te=document.getElementById("cpThr"),tv=document.getElementById("cpThrV");
-  te.addEventListener("input",()=>{fx.cpThr=parseFloat(te.value);tv.textContent=fx.cpThr+"dB";if(nd)nd.comp.threshold.value=fx.cpThr;});
-  const re=document.getElementById("cpRat"),rv=document.getElementById("cpRatV");
-  re.addEventListener("input",()=>{fx.cpRat=parseFloat(re.value);rv.textContent=fx.cpRat+":1";if(nd)nd.comp.ratio.value=fx.cpRat;});
+  const bind = (id, valId, getter, setter, fmt) => {
+    const el = document.getElementById(id), vEl = document.getElementById(valId);
+    el.addEventListener("input", () => { setter(parseFloat(el.value)); vEl.textContent = fmt(getter()); });
+  };
+  bind("ceHue",  "ceHueV",  ()=>ceHue,  v=>{ceHue=Math.round(v);},  v=>v);
+  bind("ceSpan", "ceSpanV", ()=>ceSpan, v=>{ceSpan=Math.round(v);},  v=>v+"°");
+  bind("ceSat",  "ceSatV",  ()=>ceSat,  v=>{ceSat=Math.round(v);},   v=>v+"%");
+  bind("ceBrt",  "ceBrtV",  ()=>ceBrt,  v=>{ceBrt=Math.round(v);},   v=>v+"%");
+  bind("ceGlow", "ceGlowV", ()=>ceGlow, v=>{ceGlow=v;},              v=>v.toFixed(2));
+  bind("ceSpeed","ceSpeedV",()=>ceSpeed,v=>{ceSpeed=Math.round(v);},  v=>v+"°/s");
 })();
 
 /* ── KEYBOARD ── */
@@ -918,11 +673,6 @@ window.addEventListener("keydown", async e => {
   if (k==="3") document.getElementById("on2").click();
   if (k==="4") document.getElementById("on3").click();
   if (k==="a"||k==="A"){ensureNd();}
-  if (k==="f"||k==="F"){
-    const el=document.getElementById("ftCut");
-    let v=0; el.value=0;
-    const sw=setInterval(()=>{ v+=.04; if(v>1){clearInterval(sw);return;} el.value=v; el.dispatchEvent(new Event("input")); },35);
-  }
   if (k==="z"||k==="Z"){
     for(let i=0;i<4;i++){
       const el=document.getElementById("fr"+i);
