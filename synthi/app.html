@@ -458,7 +458,7 @@ function drawViz(now) {
 
   ctx2d.globalCompositeOperation = "source-over";
   ctx2d.globalAlpha = 1;
-  const decayAlpha = Math.max(decayVal, decayVal + .06*env.bass);
+  const decayAlpha = decayVal * (1 + .75*env.bass);
   ctx2d.fillStyle = `rgba(5,13,9,${decayAlpha})`;
   ctx2d.fillRect(0, 0, W, H);
 
