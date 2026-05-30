@@ -724,7 +724,7 @@ document.getElementById("btnPng").addEventListener("click", () => {
   canvas.toBlob(blob => {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'synthi-' + Date.now() + '.png';
+    a.download = 'synthi-lissajous-' + Date.now() + '.png';
     a.click();
   }, 'image/png');
 });
@@ -774,7 +774,7 @@ btnRec.addEventListener('click', () => {
     const blob = new Blob(chunks, { type: actualMime });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'synthi-' + Date.now() + '.' + actualExt;
+    a.href = url; a.download = 'synthi-lissajous-' + Date.now() + '.' + actualExt;
     document.body.appendChild(a); a.click();
     setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 3000);
     endRec();
