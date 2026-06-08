@@ -795,12 +795,13 @@
         carve(-h,  h, -h + tri,  h, -h,  h - tri);  // bite BL corner
         break;
       case 'syk-half':
-        // top half + V-cut from top edge + positive wedge hanging below
+        // top half + corner bites from top + right-triangle wedge hanging below
         p.noStroke();
         p.rect(-h, -h, s, h);
-        carve(0, -h, -tri * 0.55, -h, 0, -h + tri * 0.8);
-        carve(0, -h,  tri * 0.55, -h, 0, -h + tri * 0.8);
-        add(-tri * 0.55, 0, tri * 0.55, 0, 0, tri);
+        // bite from top-left corner of the half
+        carve(-h, -h, -h + tri, -h, -h, -h + tri);
+        // wedge below the half (right angle at (0,0), legs right and down)
+        add(0, 0, tri, 0, 0, tri);
         break;
       case 'syk-diag':
         // diagonal half (TL) — bite from hypotenuse + small accent in white area
@@ -845,9 +846,10 @@
         p.vertex(-q/2,  -h + q);
         p.vertex(-h,    -h + q);
         p.endShape(p.CLOSE);
-        carve(0, -h, -tri * 0.55, -h, 0, -h + tri * 0.7);
-        carve(0, -h,  tri * 0.55, -h, 0, -h + tri * 0.7);
-        add(-q/2 - tri * 0.6, h, q/2 + tri * 0.6, h, 0, h - tri * 0.8);
+        // bite from top-left corner of the bar
+        carve(-h, -h, -h + tri, -h, -h, -h + tri);
+        // wedge attached to bottom of stem (right angle at bottom-left of stem)
+        add(-q/2, h, -q/2 + tri, h, -q/2, h - tri);
         break;
       case 'syk-step': {
         // staircase + bite from one step + accent in empty triangle area
@@ -892,18 +894,22 @@
         add(h, h, h - tri, h, h, h - tri);
         break;
       case 'syk-bar':
-        // central vertical bar + V-cut at top + wedge protruding right
+        // central vertical bar + corner bite from top + wedge protruding right at midpoint
         p.noStroke();
         p.rect(-q/2, -h, q, s);
-        carve(-q/2, -h, q/2, -h, 0, -h + Math.min(tri, q * 2));
-        add(q/2, -tri * 0.4, q/2 + tri, 0, q/2, tri * 0.4);
+        // bite from top-left corner of the bar (right angle at (-q/2, -h))
+        carve(-q/2, -h, -q/2 + Math.min(tri, q), -h, -q/2, -h + Math.min(tri, q * 1.5));
+        // wedge sticking out right (right angle at (q/2, 0))
+        add(q/2, 0, q/2 + tri, 0, q/2, tri);
         break;
       case 'syk-cross':
-        // plus sign + cut from one arm tip + diagonal accents in quadrant
+        // plus sign + corner bite from one arm tip + diagonal accents in quadrant
         p.noStroke();
         p.rect(-q/2, -h, q, s);
         p.rect(-h, -q/2, s, q);
-        carve(h, -q/2, h, q/2, h - Math.min(tri, q * 1.5), 0);
+        // bite top-right corner of right arm (right angle at (h, -q/2))
+        carve(h, -q/2, h - Math.min(tri, q * 1.5), -q/2, h, -q/2 + Math.min(tri, q));
+        // accent in TL quadrant (right angle at (-q/2, -q/2), legs up-left)
         add(-q/2, -q/2, -q/2 - tri, -q/2, -q/2, -q/2 - tri);
         break;
       case 'syk-frame':
@@ -936,17 +942,18 @@
         // positive bridge between the two — small triangle at (0,0) reaching into TR quadrant
         add(0, 0, tri, 0, 0, -tri);
         break;
-      case 'syk-stripes':
-        // two horizontal bands + V-cut from one stripe + connecting triangle between bands
+      case 'syk-stripes': {
+        // two horizontal bands + corner bite from top stripe + right-triangle bridge in the gap
         p.noStroke();
         p.rect(-h, -h, s, q);
         p.rect(-h,  0, s, q);
-        // V cut from the top stripe
-        carve(0, -h, tri * 0.5, -h, 0, -h + Math.min(tri * 0.7, q));
-        carve(0, -h, -tri * 0.5, -h, 0, -h + Math.min(tri * 0.7, q));
-        // connecting positive triangle between the two stripes
-        add(-tri * 0.4, -h + q, tri * 0.4, -h + q, 0, 0);
+        // bite from top-left of the top stripe (right angle at (-h, -h))
+        carve(-h, -h, -h + tri, -h, -h, -h + Math.min(tri, q));
+        // bridge in the gap (right angle at top-left, vertical leg = gap height)
+        const sw = Math.min(tri, h * 0.6);
+        add(-sw/2, -h + q, sw/2, -h + q, -sw/2, 0);
         break;
+      }
 
 
       case 'line':
