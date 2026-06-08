@@ -233,6 +233,39 @@
     .synthiThumb{
       background:radial-gradient(circle at center,rgba(73,234,203,.07) 0,#070c0c 65%);
     }
+    .sykoraLabThumb{
+      background:#070c0c;
+      position:relative;
+      overflow:hidden;
+    }
+    .sykoraLabThumb::before{
+      /* 4×4 mini Sýkora-style mosaic */
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        /* row 1 */
+        linear-gradient(135deg,#f5f5f5 50%,transparent 50%) 0/25% 25% no-repeat,
+        linear-gradient(45deg,#f5f5f5 50%,transparent 50%) 25% 0/25% 25% no-repeat,
+        linear-gradient(0deg,#f5f5f5 50%,transparent 50%) 50% 0/25% 25% no-repeat,
+        linear-gradient(180deg,transparent 0,transparent 100%) 75% 0/25% 25% no-repeat,
+        /* row 2 */
+        linear-gradient(0deg,#f5f5f5 100%,#f5f5f5 100%) 0 25%/25% 25% no-repeat,
+        linear-gradient(225deg,#f5f5f5 50%,transparent 50%) 25% 25%/25% 25% no-repeat,
+        linear-gradient(90deg,#f5f5f5 50%,transparent 50%) 50% 25%/25% 25% no-repeat,
+        linear-gradient(315deg,#f5f5f5 50%,transparent 50%) 75% 25%/25% 25% no-repeat,
+        /* row 3 */
+        linear-gradient(45deg,#f5f5f5 50%,transparent 50%) 0 50%/25% 25% no-repeat,
+        linear-gradient(180deg,transparent 0,transparent 100%) 25% 50%/25% 25% no-repeat,
+        linear-gradient(0deg,#f5f5f5 50%,transparent 50%) 50% 50%/25% 25% no-repeat,
+        linear-gradient(135deg,#f5f5f5 50%,transparent 50%) 75% 50%/25% 25% no-repeat,
+        /* row 4 */
+        linear-gradient(315deg,#f5f5f5 50%,transparent 50%) 0 75%/25% 25% no-repeat,
+        linear-gradient(0deg,#f5f5f5 100%,#f5f5f5 100%) 25% 75%/25% 25% no-repeat,
+        linear-gradient(225deg,#f5f5f5 50%,transparent 50%) 50% 75%/25% 25% no-repeat,
+        linear-gradient(90deg,#f5f5f5 50%,transparent 50%) 75% 75%/25% 25% no-repeat;
+      opacity:.85;
+    }
     .artistThumb{
       background:radial-gradient(circle at center,rgba(73,234,203,.05) 0,#070c0c 65%);
     }
@@ -435,6 +468,31 @@
       </article>
 
       <article class="nft-card">
+        <div class="nft-card-visual sykoraLabThumb">
+          <span class="nft-card-category">Generator</span>
+        </div>
+        <div class="nft-card-body">
+          <header class="nft-card-header">
+            <h3 class="nft-card-title">SÝKORA LAB</h3>
+            <span class="nft-card-meta">rule builder</span>
+          </header>
+          <p class="nft-card-tagline">Algorithmic compositions in Sýkora's element vocabulary.</p>
+          <nav class="nft-card-actions">
+            <a href="sykora-lab.html" class="nft-card-action-primary">Open Lab →</a>
+          </nav>
+        </div>
+      </article>
+    </section>
+
+    <div class="divider"></div>
+
+    <div class="sectionTitle">
+      SOUND SYSTEMS
+      <span>Synth surfaces — pick one and start patching.</span>
+    </div>
+
+    <section class="cards">
+      <article class="nft-card">
         <div class="nft-card-visual synthiThumb">
           <img class="synthiLogo" src="assets/img/logo.png" alt="SYNTHI logo" loading="lazy">
           <span class="nft-card-category">Sound system</span>
@@ -442,13 +500,47 @@
         <div class="nft-card-body">
           <header class="nft-card-header">
             <h3 class="nft-card-title">SYNTHI</h3>
-            <span class="nft-card-meta">KRC-20</span>
+            <span class="nft-card-meta">Web Audio</span>
           </header>
-          <p class="nft-card-tagline">Sound system, REC streams, on-chain residue.</p>
+          <p class="nft-card-tagline">Original sound system — REC streams, on-chain residue.</p>
           <nav class="nft-card-actions">
-            <a href="synthi/" class="nft-card-action-primary">SYNTHI →</a>
+            <a href="synthi/" class="nft-card-action-primary">Open →</a>
             <span class="nft-card-sep">·</span>
             <a href="synthi/rec.html" class="nft-card-action">REC Streams</a>
+          </nav>
+        </div>
+      </article>
+
+      <article class="nft-card">
+        <div class="nft-card-visual synthiThumb">
+          <img class="synthiLogo" src="assets/img/logo.png" alt="SYNTHI AKS logo" loading="lazy">
+          <span class="nft-card-category">AKS patch</span>
+        </div>
+        <div class="nft-card-body">
+          <header class="nft-card-header">
+            <h3 class="nft-card-title">SYNTHI AKS</h3>
+            <span class="nft-card-meta">matrix</span>
+          </header>
+          <p class="nft-card-tagline">EMS AKS-style patch matrix — pins, oscillators, envelopes.</p>
+          <nav class="nft-card-actions">
+            <a href="synthi/aks.html" class="nft-card-action-primary">Open AKS →</a>
+          </nav>
+        </div>
+      </article>
+
+      <article class="nft-card">
+        <div class="nft-card-visual synthiThumb">
+          <img class="synthiLogo" src="assets/img/logo.png" alt="SYNTHI Web logo" loading="lazy">
+          <span class="nft-card-category">Web synth</span>
+        </div>
+        <div class="nft-card-body">
+          <header class="nft-card-header">
+            <h3 class="nft-card-title">SYNTHI WEB</h3>
+            <span class="nft-card-meta">Web Audio API</span>
+          </header>
+          <p class="nft-card-tagline">Browser-native synth inspired by EMS AKS architecture.</p>
+          <nav class="nft-card-actions">
+            <a href="synthi/web.html" class="nft-card-action-primary">Open Web →</a>
           </nav>
         </div>
       </article>
