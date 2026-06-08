@@ -214,21 +214,19 @@
               <button class="chipBtn" data-motif="syk-bar">Bar</button>
               <button class="chipBtn" data-motif="syk-cross">Cross</button>
               <button class="chipBtn" data-motif="syk-frame">Frame</button>
-              <button class="chipBtn" data-motif="syk-arch">Arch</button>
-              <button class="chipBtn" data-motif="syk-pie">Pie</button>
               <button class="chipBtn" data-motif="syk-double">Double</button>
               <button class="chipBtn" data-motif="syk-stripes">Stripes</button>
             </div>
             <div class="muted" style="margin-top:8px;font-size:11px;line-height:1.4">
-              ★ Sýkora = 16 abstract black-fill elements × 4 rotations. Each element is built from a base shape plus characteristic +/− triangles (chamfers, accents, V-cuts, bridges) — Triangle sliders modulate them.
+              ★ Sýkora = 14 abstract black-fill elements × 4 rotations, fully straight-edge. Each element is built from a base shape plus characteristic +/− triangles (chamfers, accents, V-cuts, bridges) — Triangle sliders modulate them.
             </div>
           </div>
 
           <div class="ctrl">
             <div class="ctrlHead"><div class="ctrlTitle">Triangle size</div><div class="ctrlVal" id="vLength">—</div></div>
-            <input id="motifLength" type="range" min="0.2" max="1.0" step="0.01" value="0.55">
+            <input id="motifLength" type="range" min="0.2" max="2.0" step="0.01" value="0.9">
             <div class="muted" style="margin-top:6px;font-size:11px;line-height:1.4">
-              Size of the +/− triangles built into every element.
+              Size of the +/− triangles built into every element. Above ~1.2 they exceed the cell and overlap neighbours.
             </div>
           </div>
 
@@ -405,7 +403,7 @@
 
   const defaults = {
     motif: 'syk-mixed',
-    motifLength: 0.55,
+    motifLength: 0.9,
     motifThickness: 4.0,
     gridSize: 12,
     rotationMode: 'random',
@@ -435,7 +433,7 @@
   const intg = v => { const x = parseInt(v, 10); return Number.isFinite(x) ? x : null; };
 
   const enumKeys = {
-    motif:       ['syk-mixed','syk-full','syk-half','syk-diag','syk-quarter','syk-L','syk-T','syk-step','syk-notch','syk-corner','syk-bar','syk-cross','syk-frame','syk-arch','syk-pie','syk-double','syk-stripes'],
+    motif:       ['syk-mixed','syk-full','syk-half','syk-diag','syk-quarter','syk-L','syk-T','syk-step','syk-notch','syk-corner','syk-bar','syk-cross','syk-frame','syk-double','syk-stripes'],
     rotationMode:['fixed','step','random','radial'],
     scaleMode:   ['uniform','gradient','pulse','random'],
     mirrorMode:  ['off','h','v','both','alt'],
@@ -443,8 +441,8 @@
     animMode:    ['rotate','wave','drift','breathe'],
     field:       ['none','regions','flow','both'],
   };
-  const fullCellMotifs = new Set(['syk-mixed','syk-full','syk-half','syk-diag','syk-quarter','syk-L','syk-T','syk-step','syk-notch','syk-corner','syk-bar','syk-cross','syk-frame','syk-arch','syk-pie','syk-double','syk-stripes']);
-  const sykElements = ['syk-full','syk-half','syk-diag','syk-quarter','syk-L','syk-T','syk-step','syk-notch','syk-corner','syk-bar','syk-cross','syk-frame','syk-arch','syk-pie','syk-double','syk-stripes'];
+  const fullCellMotifs = new Set(['syk-mixed','syk-full','syk-half','syk-diag','syk-quarter','syk-L','syk-T','syk-step','syk-notch','syk-corner','syk-bar','syk-cross','syk-frame','syk-double','syk-stripes']);
+  const sykElements = ['syk-full','syk-half','syk-diag','syk-quarter','syk-L','syk-T','syk-step','syk-notch','syk-corner','syk-bar','syk-cross','syk-frame','syk-double','syk-stripes'];
 
   function readStore(){
     try { return JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); } catch { return {}; }
@@ -761,11 +759,11 @@
       q = (s / 4) * Math.max(0.35, Math.min(1.6, factor));
     }
     // ── per-cell triangle modulation (built into every Sýkora element) ──
-    // Trim size (motifLength 0.2-1.0) sets the +/- triangle leg length.
-    // Trim balance (motifThickness 0.5-8.0) decides whether negatives, positives, or both render.
-    const lenN = Math.max(0, Math.min(1, (state.motifLength - 0.2) / 0.8));
-    const triBase = h * (0.20 + lenN * 0.60);
-    const triJit  = (typeof r === 'number') ? (0.65 + rand01(state.seed, r|0, c|0, 13) * 0.55) : 1;
+    // Triangle size (motifLength 0.2-2.0) sets the +/- triangle leg length.
+    // Triangle balance (motifThickness 0.5-8.0) decides whether negatives, positives, or both render.
+    const lenN = Math.max(0, Math.min(1, (state.motifLength - 0.2) / 1.8));
+    const triBase = h * (0.30 + lenN * 1.40);
+    const triJit  = (typeof r === 'number') ? (0.70 + rand01(state.seed, r|0, c|0, 13) * 0.60) : 1;
     const tri     = triBase * triJit;
     const mix     = Math.max(0, Math.min(1, (state.motifThickness - 0.5) / 7.5));
     const showNeg = mix < 0.92 && tri > 1.0;
@@ -928,46 +926,6 @@
         // small triangle accent inside the hole
         add(0, 0, Math.min(tri, q - 2), 0, 0, Math.min(tri, q - 2));
         break;
-      case 'syk-arch': {
-        // square with quarter-circle bite + accent in the cut + chamfer opposite corner
-        p.noStroke();
-        p.beginShape();
-        p.vertex(-h, -h);
-        p.vertex( h/2, -h);
-        const A_STEPS = 16;
-        for (let i = 1; i <= A_STEPS; i++) {
-          const t = i / A_STEPS;
-          const a = Math.PI - t * (Math.PI / 2);
-          p.vertex(h + Math.cos(a) * (h/2), -h + Math.sin(a) * (h/2));
-        }
-        p.vertex( h,  h);
-        p.vertex(-h,  h);
-        p.endShape(p.CLOSE);
-        // accent inside the empty arch area
-        add(h, -h, h - tri, -h, h, -h + tri);
-        // chamfer the opposite corner
-        carve(-h, h, -h + tri, h, -h, h - tri);
-        break;
-      }
-      case 'syk-pie': {
-        // quarter-disk + radial bite + accent on the curved edge
-        p.noStroke();
-        p.beginShape();
-        p.vertex(-h, -h);
-        p.vertex(0, -h);
-        const P_STEPS = 16;
-        for (let i = 1; i <= P_STEPS; i++) {
-          const t = i / P_STEPS;
-          const a = t * (Math.PI / 2);
-          p.vertex(-h + Math.cos(a) * h, -h + Math.sin(a) * h);
-        }
-        p.endShape(p.CLOSE);
-        // radial slice (carve a wedge from the pie)
-        carve(-h, -h, -h + tri * 0.9, -h + tri * 0.3, -h + tri * 0.3, -h + tri * 0.9);
-        // accent in BR empty area
-        add(h, h, h - tri, h, h, h - tri);
-        break;
-      }
       case 'syk-double':
         // two diagonal quarters + small bridge triangles in the gap
         p.noStroke();
@@ -1538,16 +1496,15 @@
   // PRESETS
   // ───────────────────────────────────────────────────────────────
   const presets = [
-    { name: '12×12 classic', state: { motif:'syk-mixed', motifLength:0.55, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0,   mirrorMode:'off', density:1,   spacing:1, colorMode:'mono',     seed:1337, animSpeed:0,    animMode:'rotate', field:'none',    fieldScale:0.35 } },
-    { name: '12×12 varied', state: { motif:'syk-mixed', motifLength:0.55, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0.7, mirrorMode:'off', density:1,   spacing:1, colorMode:'mono',     seed:88,   animSpeed:0,    animMode:'rotate', field:'none',    fieldScale:0.35 } },
-    { name: '16×16 dense', state: { motif:'syk-mixed', motifLength:0.55, motifThickness:4, gridSize:16, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0,   mirrorMode:'off', density:1,   spacing:1, colorMode:'mono',     seed:42,   animSpeed:0,    animMode:'rotate', field:'none',    fieldScale:0.35 } },
-    { name: 'Regions', state: { motif:'syk-mixed', motifLength:0.55, motifThickness:4, gridSize:14, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0.3, mirrorMode:'off', density:0.7, spacing:1, colorMode:'mono',     seed:7,    animSpeed:0,    animMode:'rotate', field:'regions', fieldScale:0.35 } },
-    { name: 'Inverse', state: { motif:'syk-mixed', motifLength:0.55, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0,   mirrorMode:'off', density:1,   spacing:1, colorMode:'mono-inv', seed:300,  animSpeed:0,    animMode:'rotate', field:'none',    fieldScale:0.35 } },
-    { name: 'Frames only', state: { motif:'syk-frame', motifLength:0.55, motifThickness:4, gridSize:10, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0.5, mirrorMode:'off', density:1, spacing:1, colorMode:'mono', seed:55, animSpeed:0, animMode:'rotate', field:'none', fieldScale:0.35 } },
-    { name: 'Arches', state: { motif:'syk-arch', motifLength:0.55, motifThickness:4, gridSize:10, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0, mirrorMode:'off', density:1, spacing:1, colorMode:'mono', seed:21, animSpeed:0, animMode:'rotate', field:'none', fieldScale:0.35 } },
-    { name: 'Steps', state: { motif:'syk-step', motifLength:0.55, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0, mirrorMode:'off', density:1, spacing:1, colorMode:'mono', seed:888, animSpeed:0, animMode:'rotate', field:'none', fieldScale:0.35 } },
-    { name: 'Stripes', state: { motif:'syk-stripes', motifLength:0.55, motifThickness:4, gridSize:10, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0, mirrorMode:'off', density:1, spacing:1, colorMode:'mono', seed:11, animSpeed:0, animMode:'rotate', field:'none', fieldScale:0.35 } },
-    { name: 'Slow drift', state: { motif:'syk-mixed', motifLength:0.55, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0.4, mirrorMode:'off', density:1, spacing:1, colorMode:'mono', seed:555, animSpeed:0.15, animMode:'drift', field:'flow', fieldScale:0.3 } },
+    { name: '12×12 classic', state: { motif:'syk-mixed', motifLength:0.9, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0,   mirrorMode:'off', density:1,   spacing:1, colorMode:'mono',     seed:1337, animSpeed:0,    animMode:'rotate', field:'none',    fieldScale:0.35 } },
+    { name: '12×12 varied', state: { motif:'syk-mixed', motifLength:0.9, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0.7, mirrorMode:'off', density:1,   spacing:1, colorMode:'mono',     seed:88,   animSpeed:0,    animMode:'rotate', field:'none',    fieldScale:0.35 } },
+    { name: '16×16 dense', state: { motif:'syk-mixed', motifLength:0.9, motifThickness:4, gridSize:16, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0,   mirrorMode:'off', density:1,   spacing:1, colorMode:'mono',     seed:42,   animSpeed:0,    animMode:'rotate', field:'none',    fieldScale:0.35 } },
+    { name: 'Regions', state: { motif:'syk-mixed', motifLength:0.9, motifThickness:4, gridSize:14, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0.3, mirrorMode:'off', density:0.7, spacing:1, colorMode:'mono',     seed:7,    animSpeed:0,    animMode:'rotate', field:'regions', fieldScale:0.35 } },
+    { name: 'Inverse', state: { motif:'syk-mixed', motifLength:0.9, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0,   mirrorMode:'off', density:1,   spacing:1, colorMode:'mono-inv', seed:300,  animSpeed:0,    animMode:'rotate', field:'none',    fieldScale:0.35 } },
+    { name: 'Frames only', state: { motif:'syk-frame', motifLength:0.9, motifThickness:4, gridSize:10, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0.5, mirrorMode:'off', density:1, spacing:1, colorMode:'mono', seed:55, animSpeed:0, animMode:'rotate', field:'none', fieldScale:0.35 } },
+    { name: 'Steps', state: { motif:'syk-step', motifLength:0.9, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0, mirrorMode:'off', density:1, spacing:1, colorMode:'mono', seed:888, animSpeed:0, animMode:'rotate', field:'none', fieldScale:0.35 } },
+    { name: 'Stripes', state: { motif:'syk-stripes', motifLength:0.9, motifThickness:4, gridSize:10, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0, mirrorMode:'off', density:1, spacing:1, colorMode:'mono', seed:11, animSpeed:0, animMode:'rotate', field:'none', fieldScale:0.35 } },
+    { name: 'Slow drift', state: { motif:'syk-mixed', motifLength:0.9, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0.4, mirrorMode:'off', density:1, spacing:1, colorMode:'mono', seed:555, animSpeed:0.15, animMode:'drift', field:'flow', fieldScale:0.3 } },
   ];
 
   function renderPresets(){
