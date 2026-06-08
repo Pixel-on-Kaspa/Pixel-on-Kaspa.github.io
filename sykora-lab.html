@@ -1,0 +1,1600 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Sýkora Lab • Pixel on Kaspa</title>
+  <style>
+    :root{
+      --bg1:#121623; --bg2:#050608;
+      --panel: rgba(0,0,0,.18);
+      --border: rgba(255,255,255,.12);
+      --muted: rgba(255,255,255,.70);
+      --accent:#00c4ff;
+      --shadow: 0 18px 35px rgba(0,0,0,.50);
+      --text:#f5f5f5;
+      --radius: 18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
+      background: radial-gradient(circle at top, var(--bg1) 0, var(--bg2) 52%);
+      color:var(--text);
+      min-height:100vh;
+    }
+    a{color:inherit}
+    .wrap{max-width:1280px;margin:0 auto;padding:18px 16px 56px}
+
+    .topbar{
+      display:flex;align-items:center;justify-content:space-between;gap:14px;
+      border:1px solid var(--border);
+      border-radius:16px;
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      padding:12px 14px;
+      box-shadow: var(--shadow);
+    }
+    .brand{
+      display:flex;align-items:baseline;gap:10px;
+      letter-spacing:.14em;text-transform:uppercase;font-weight:900;white-space:nowrap;
+    }
+    .brand small{opacity:.7;font-weight:700;letter-spacing:.08em;text-transform:none;white-space:nowrap;}
+    .nav{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center;}
+    .btn{
+      text-decoration:none;
+      display:inline-flex;align-items:center;gap:8px;
+      padding:9px 14px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.88);
+      font-weight:850;
+      transition: background .15s, color .15s, transform .15s, border-color .15s;
+      white-space:nowrap;line-height:1;cursor:pointer;user-select:none;
+    }
+    .btn:hover{background: rgba(255,255,255,.12);color:#fff;transform: translateY(-1px);}
+    .btnPrimary{
+      border-color: rgba(0,196,255,.70);
+      color: var(--accent);
+      background: rgba(0,196,255,.08);
+    }
+    .btnPrimary:hover{background: var(--accent); color:#020308;}
+    .btnGhost{ background: transparent; border-color: rgba(255,255,255,.16); opacity:.95; }
+
+    .grid{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns: 240px 1fr 280px;
+      gap:14px;
+      align-items:start;
+    }
+    .panel{
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.18);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .panelHead{
+      padding:12px 14px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      display:flex;justify-content:space-between;align-items:center;gap:10px;
+    }
+    .panelHead b{
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      font-size:12px;
+      opacity:.92;
+    }
+    .chip{
+      padding:6px 10px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      opacity:.85;
+      font-size:12px;
+      white-space:nowrap;
+      max-width: 52ch;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+    .panelBody{padding:14px}
+
+    #sketchWrap{
+      width:100%;
+      aspect-ratio:1/1;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background:#0a0c12;
+      overflow:hidden;
+      position:relative;
+      cursor: crosshair;
+    }
+    canvas{display:block;width:100%;height:100%}
+
+    #recOverlay{
+      display:none;
+      position:absolute; top:10px; left:50%; transform:translateX(-50%);
+      background: rgba(0,0,0,.72);
+      color:#ff4040;
+      font-size:14px;font-weight:900;letter-spacing:.12em;
+      padding:5px 12px;border-radius:999px;
+      pointer-events:none;
+      white-space:nowrap;
+    }
+    #recOverlay.show{ display:block; }
+
+    .ctrl{border:1px solid rgba(255,255,255,.12);background: rgba(255,255,255,.04);border-radius:14px;padding:10px 12px;margin-top:10px;}
+    .ctrl:first-child{margin-top:0;}
+    .ctrlHead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .ctrlTitle{font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.9;font-weight:900;margin:0;}
+    .ctrlVal{font-size:12px;opacity:.75;white-space:nowrap}
+    input[type="range"]{width:100%}
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .btnSm{padding:8px 12px;font-size:13px}
+
+    /* radio chip group */
+    .chipGroup{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .chipBtn{
+      padding:6px 10px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.04);
+      color: rgba(255,255,255,.78);
+      font-size:12px;font-weight:700;
+      cursor:pointer;user-select:none;
+      transition: all .12s;
+    }
+    .chipBtn:hover{background: rgba(255,255,255,.10);color:#fff;}
+    .chipBtn.active{
+      border-color: rgba(0,196,255,.7);
+      color: var(--accent);
+      background: rgba(0,196,255,.10);
+    }
+
+    /* preset gallery row */
+    .presets{margin-top:14px}
+    .presetsRow{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+
+    /* REC button active state */
+    .btnRec.recording{
+      border-color: rgba(255,60,60,.80);
+      color: #ff4040;
+      background: rgba(255,60,60,.12);
+      pointer-events:none;
+    }
+
+    .muted{opacity:.76}
+
+    @media (max-width: 1080px){
+      .grid{grid-template-columns:1fr;}
+      #sketchWrap{aspect-ratio: 1/1;}
+    }
+  </style>
+  <script defer src="https://cloud.umami.is/script.js" data-website-id="6ee0e9a9-7066-4115-b91d-5667d8042abe"></script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        SÝKORA LAB <small>rule builder · pixel on kaspa</small>
+      </div>
+      <div class="nav">
+        <a class="btn" href="/">Home</a>
+        <a class="btn" href="/artists">Artists</a>
+        <a class="btn" href="/pixel-p5.html">Koma</a>
+        <a class="btn btnPrimary" href="/sykora-lab.html">Lab</a>
+        <a class="btn btnGhost" href="https://kaspa.com/nft/collections/SYKORA" target="_blank" rel="noreferrer">SYKORA</a>
+      </div>
+    </div>
+
+    <section class="grid">
+
+      <!-- LEFT: motif -->
+      <div class="panel">
+        <div class="panelHead">
+          <b>Motif</b>
+          <span class="chip" id="motifChip">line</span>
+        </div>
+        <div class="panelBody">
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Primitive</div></div>
+            <div class="chipGroup" id="motifGroup">
+              <button class="chipBtn" data-motif="syk-mixed">Sýkora ★</button>
+              <button class="chipBtn" data-motif="syk-full">Full</button>
+              <button class="chipBtn" data-motif="syk-half">Half</button>
+              <button class="chipBtn" data-motif="syk-diag">Diag</button>
+              <button class="chipBtn" data-motif="syk-quarter">Quarter</button>
+              <button class="chipBtn" data-motif="syk-L">L</button>
+              <button class="chipBtn" data-motif="syk-T">T</button>
+              <button class="chipBtn" data-motif="syk-step">Step</button>
+              <button class="chipBtn" data-motif="syk-notch">Notch</button>
+              <button class="chipBtn" data-motif="syk-corner">Corner</button>
+              <button class="chipBtn" data-motif="syk-bar">Bar</button>
+              <button class="chipBtn" data-motif="syk-cross">Cross</button>
+              <button class="chipBtn" data-motif="syk-frame">Frame</button>
+              <button class="chipBtn" data-motif="syk-arch">Arch</button>
+              <button class="chipBtn" data-motif="syk-pie">Pie</button>
+              <button class="chipBtn" data-motif="syk-double">Double</button>
+              <button class="chipBtn" data-motif="syk-stripes">Stripes</button>
+            </div>
+            <div class="muted" style="margin-top:8px;font-size:11px;line-height:1.4">
+              ★ Sýkora = 16 abstract black-fill elements × 4 rotations. Each element is built from a base shape plus characteristic +/− triangles (chamfers, accents, V-cuts, bridges) — Triangle sliders modulate them.
+            </div>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Triangle size</div><div class="ctrlVal" id="vLength">—</div></div>
+            <input id="motifLength" type="range" min="0.2" max="1.0" step="0.01" value="0.55">
+            <div class="muted" style="margin-top:6px;font-size:11px;line-height:1.4">
+              Size of the +/− triangles built into every element.
+            </div>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Triangle balance</div><div class="ctrlVal" id="vThick">—</div></div>
+            <input id="motifThickness" type="range" min="0.5" max="8" step="0.1" value="4">
+            <div class="muted" style="margin-top:6px;font-size:11px;line-height:1.4">
+              Low = only negatives (white carves). High = only positives (black accents). Mid = both.
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- CENTER: canvas -->
+      <div class="panel">
+        <div class="panelHead">
+          <b>Composition</b>
+          <span class="chip" id="status">boot…</span>
+        </div>
+        <div class="panelBody">
+          <div id="sketchWrap">
+            <div id="recOverlay"></div>
+          </div>
+
+          <div class="row">
+            <button class="btn btnPrimary btnSm" id="btnRand" type="button">Randomize</button>
+            <button class="btn btnSm" id="btnReseed" type="button">New seed</button>
+            <button class="btn btnSm" id="btnReset" type="button">Reset</button>
+            <button class="btn btnSm" id="btnClearOv" type="button">Clear overrides</button>
+            <button class="btn btnSm" id="btnShot" type="button">PNG</button>
+            <button class="btn btnSm btnRec" id="btnRec" type="button">REC 8s</button>
+            <button class="btn btnSm" id="btnCopy" type="button">Copy share URL</button>
+          </div>
+
+          <div class="muted" style="margin-top:10px;line-height:1.55;font-size:13px;">
+            Inspired by Zdeněk Sýkora's macrostructures and lines. Define a motif, set the rules, click any cell to override its rotation.
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: rules -->
+      <div class="panel">
+        <div class="panelHead">
+          <b>Rules</b>
+          <span class="chip" id="overrideChip">0 overrides</span>
+        </div>
+        <div class="panelBody">
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Grid size</div><div class="ctrlVal" id="vGrid">—</div></div>
+            <input id="gridSize" type="range" min="3" max="24" step="1" value="12">
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Rotation</div></div>
+            <div class="chipGroup" id="rotGroup">
+              <button class="chipBtn" data-rot="fixed">Fixed</button>
+              <button class="chipBtn" data-rot="step">Step</button>
+              <button class="chipBtn" data-rot="random">Random</button>
+              <button class="chipBtn" data-rot="radial">Radial</button>
+            </div>
+            <div class="ctrlHead" style="margin-top:8px"><div class="ctrlTitle" style="font-size:11px;opacity:.6">base</div><div class="ctrlVal" id="vRotBase">—</div></div>
+            <input id="rotationBase" type="range" min="-3.14" max="3.14" step="0.01" value="0">
+            <div class="ctrlHead" style="margin-top:8px"><div class="ctrlTitle" style="font-size:11px;opacity:.6">step</div><div class="ctrlVal" id="vRotStep">—</div></div>
+            <input id="rotationStep" type="range" min="0" max="1.57" step="0.01" value="0.25">
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Scale</div></div>
+            <div class="chipGroup" id="scaleGroup">
+              <button class="chipBtn" data-scale="uniform">Uniform</button>
+              <button class="chipBtn" data-scale="gradient">Gradient</button>
+              <button class="chipBtn" data-scale="pulse">Pulse</button>
+              <button class="chipBtn" data-scale="random">Random</button>
+            </div>
+            <div class="ctrlHead" style="margin-top:8px"><div class="ctrlTitle" style="font-size:11px;opacity:.6">base</div><div class="ctrlVal" id="vScaleBase">—</div></div>
+            <input id="scaleBase" type="range" min="0.2" max="4.0" step="0.01" value="1.0">
+            <div class="ctrlHead" style="margin-top:8px"><div class="ctrlTitle" style="font-size:11px;opacity:.6">variation</div><div class="ctrlVal" id="vScaleVar">—</div></div>
+            <input id="scaleVar" type="range" min="0" max="1.5" step="0.01" value="0.3">
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Mirror</div></div>
+            <div class="chipGroup" id="mirrorGroup">
+              <button class="chipBtn" data-mirror="off">Off</button>
+              <button class="chipBtn" data-mirror="h">Horiz</button>
+              <button class="chipBtn" data-mirror="v">Vert</button>
+              <button class="chipBtn" data-mirror="both">Both</button>
+              <button class="chipBtn" data-mirror="alt">Alt</button>
+            </div>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Density</div><div class="ctrlVal" id="vDensity">—</div></div>
+            <input id="density" type="range" min="0.05" max="1.0" step="0.01" value="1.0">
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Spacing</div><div class="ctrlVal" id="vSpacing">—</div></div>
+            <input id="spacing" type="range" min="0.5" max="1.0" step="0.01" value="0.9">
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Color</div></div>
+            <div class="chipGroup" id="colorGroup">
+              <button class="chipBtn" data-color="mono">Mono</button>
+              <button class="chipBtn" data-color="mono-inv">Mono inv</button>
+              <button class="chipBtn" data-color="2tone">2-tone</button>
+              <button class="chipBtn" data-color="palette">Palette</button>
+            </div>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Seed</div><div class="ctrlVal" id="vSeed">—</div></div>
+            <input id="seed" type="range" min="0" max="9999" step="1" value="1337">
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Field</div></div>
+            <div class="chipGroup" id="fieldGroup">
+              <button class="chipBtn" data-field="none">Off</button>
+              <button class="chipBtn" data-field="regions">Regions</button>
+              <button class="chipBtn" data-field="flow">Flow</button>
+              <button class="chipBtn" data-field="both">Both</button>
+            </div>
+            <div class="ctrlHead" style="margin-top:8px"><div class="ctrlTitle" style="font-size:11px;opacity:.6">scale</div><div class="ctrlVal" id="vFieldScale">—</div></div>
+            <input id="fieldScale" type="range" min="0.05" max="1.5" step="0.01" value="0.35">
+            <div class="muted" style="margin-top:8px;font-size:11px;line-height:1.4">
+              Regions = density clumps into blob-like areas. Flow = rotation curves smoothly across the grid. Try with organic motifs.
+            </div>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrlHead"><div class="ctrlTitle">Motion</div><div class="ctrlVal" id="vAnim">—</div></div>
+            <input id="animSpeed" type="range" min="0" max="2" step="0.01" value="0">
+            <div class="chipGroup" id="animGroup" style="margin-top:8px">
+              <button class="chipBtn" data-anim="rotate">Rotate</button>
+              <button class="chipBtn" data-anim="wave">Wave</button>
+              <button class="chipBtn" data-anim="drift">Drift</button>
+              <button class="chipBtn" data-anim="breathe">Breathe</button>
+            </div>
+            <div class="muted" style="margin-top:8px;font-size:11px;line-height:1.4">
+              Set speed &gt; 0 to animate. Rotate spins every cell, Wave / Drift modulate angles, Breathe pulses scale.
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+
+    <!-- PRESETS -->
+    <div class="panel presets" style="margin-top:14px">
+      <div class="panelHead">
+        <b>Presets</b>
+        <span class="chip">click to load</span>
+      </div>
+      <div class="panelBody">
+        <div class="presetsRow" id="presetsRow"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- p5 (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
+
+<script>
+(() => {
+  // ───────────────────────────────────────────────────────────────
+  // STATE
+  // ───────────────────────────────────────────────────────────────
+  const STATE_KEY = "sykora_lab_v1";
+
+  const defaults = {
+    motif: 'syk-mixed',
+    motifLength: 0.55,
+    motifThickness: 4.0,
+    gridSize: 12,
+    rotationMode: 'random',
+    rotationBase: 0.0,
+    rotationStep: 0.25,
+    scaleMode: 'uniform',
+    scaleBase: 1.0,
+    scaleVar: 0.0,
+    mirrorMode: 'off',
+    density: 1.0,
+    spacing: 1.0,
+    colorMode: 'mono',
+    seed: 1337,
+    animSpeed: 0.0,
+    animMode: 'rotate',
+    field: 'none',
+    fieldScale: 0.35,
+  };
+
+  const state = Object.assign({}, defaults);
+  let overrides = {}; // "r,c" -> rotation delta in radians (NaN means skip)
+
+  // ───────────────────────────────────────────────────────────────
+  // PERSISTENCE (localStorage + URL)
+  // ───────────────────────────────────────────────────────────────
+  const num = v => { const x = parseFloat(v); return Number.isFinite(x) ? x : null; };
+  const intg = v => { const x = parseInt(v, 10); return Number.isFinite(x) ? x : null; };
+
+  const enumKeys = {
+    motif:       ['syk-mixed','syk-full','syk-half','syk-diag','syk-quarter','syk-L','syk-T','syk-step','syk-notch','syk-corner','syk-bar','syk-cross','syk-frame','syk-arch','syk-pie','syk-double','syk-stripes'],
+    rotationMode:['fixed','step','random','radial'],
+    scaleMode:   ['uniform','gradient','pulse','random'],
+    mirrorMode:  ['off','h','v','both','alt'],
+    colorMode:   ['mono','mono-inv','2tone','palette'],
+    animMode:    ['rotate','wave','drift','breathe'],
+    field:       ['none','regions','flow','both'],
+  };
+  const fullCellMotifs = new Set(['syk-mixed','syk-full','syk-half','syk-diag','syk-quarter','syk-L','syk-T','syk-step','syk-notch','syk-corner','syk-bar','syk-cross','syk-frame','syk-arch','syk-pie','syk-double','syk-stripes']);
+  const sykElements = ['syk-full','syk-half','syk-diag','syk-quarter','syk-L','syk-T','syk-step','syk-notch','syk-corner','syk-bar','syk-cross','syk-frame','syk-arch','syk-pie','syk-double','syk-stripes'];
+
+  function readStore(){
+    try { return JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); } catch { return {}; }
+  }
+  function writeStore(){
+    try {
+      localStorage.setItem(STATE_KEY, JSON.stringify({ ...state, _ov: encodeOverrides() }));
+    } catch {}
+  }
+  function readUrl(){
+    const u = new URL(location.href);
+    const out = {};
+    for (const k of Object.keys(defaults)){
+      const v = u.searchParams.get(k);
+      if (v == null) continue;
+      if (enumKeys[k]) {
+        if (enumKeys[k].includes(v)) out[k] = v;
+      } else {
+        const n = num(v);
+        if (n != null) out[k] = (k === 'gridSize' || k === 'seed') ? Math.round(n) : n;
+      }
+    }
+    const ov = u.searchParams.get('ov');
+    if (ov) decodeOverrides(ov);
+    return out;
+  }
+  function writeUrl(){
+    const u = new URL(location.href);
+    for (const k of Object.keys(defaults)) u.searchParams.set(k, String(state[k]));
+    const ov = encodeOverrides();
+    if (ov) u.searchParams.set('ov', ov); else u.searchParams.delete('ov');
+    history.replaceState(null, "", u.toString());
+  }
+
+  function encodeOverrides(){
+    const keys = Object.keys(overrides);
+    if (!keys.length) return "";
+    // "r,c:val;r,c:val" — val is rotation in 1/100 rad, or "x" for skip
+    return keys.map(k=>{
+      const v = overrides[k];
+      if (Number.isNaN(v)) return `${k}:x`;
+      return `${k}:${Math.round(v*100)}`;
+    }).join(';');
+  }
+  function decodeOverrides(str){
+    overrides = {};
+    for (const part of str.split(';')) {
+      const [k, v] = part.split(':');
+      if (!k || v == null) continue;
+      if (v === 'x') overrides[k] = NaN;
+      else {
+        const n = parseInt(v, 10);
+        if (Number.isFinite(n)) overrides[k] = n / 100;
+      }
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────
+  // DOM
+  // ───────────────────────────────────────────────────────────────
+  const wrap = document.getElementById('sketchWrap');
+  const status = document.getElementById('status');
+  const motifChip = document.getElementById('motifChip');
+  const overrideChip = document.getElementById('overrideChip');
+
+  const sliders = {
+    motifLength: 'vLength',
+    motifThickness: 'vThick',
+    gridSize: 'vGrid',
+    rotationBase: 'vRotBase',
+    rotationStep: 'vRotStep',
+    scaleBase: 'vScaleBase',
+    scaleVar: 'vScaleVar',
+    density: 'vDensity',
+    spacing: 'vSpacing',
+    seed: 'vSeed',
+    animSpeed: 'vAnim',
+    fieldScale: 'vFieldScale',
+  };
+
+  const groups = {
+    motif:        { id: 'motifGroup',  attr: 'data-motif',  key: 'motif' },
+    rotationMode: { id: 'rotGroup',    attr: 'data-rot',    key: 'rotationMode' },
+    scaleMode:    { id: 'scaleGroup',  attr: 'data-scale',  key: 'scaleMode' },
+    mirrorMode:   { id: 'mirrorGroup', attr: 'data-mirror', key: 'mirrorMode' },
+    colorMode:    { id: 'colorGroup',  attr: 'data-color',  key: 'colorMode' },
+    animMode:     { id: 'animGroup',   attr: 'data-anim',   key: 'animMode' },
+    field:        { id: 'fieldGroup',  attr: 'data-field',  key: 'field' },
+  };
+
+  // ───────────────────────────────────────────────────────────────
+  // UI BIND
+  // ───────────────────────────────────────────────────────────────
+  function fmt(k, v){
+    if (k === 'seed' || k === 'gridSize') return String(v);
+    if (k === 'density' || k === 'spacing') return v.toFixed(2);
+    if (k === 'motifThickness') return v.toFixed(1);
+    if (k === 'rotationBase' || k === 'rotationStep') return v.toFixed(2);
+    if (k === 'animSpeed') return v === 0 ? 'off' : v.toFixed(2);
+    if (k === 'fieldScale') return v.toFixed(2);
+    return v.toFixed(2);
+  }
+  function renderVals(){
+    for (const k of Object.keys(sliders)) {
+      const el = document.getElementById(sliders[k]);
+      if (el) el.textContent = fmt(k, state[k]);
+    }
+    motifChip.textContent = state.motif;
+    const n = Object.keys(overrides).length;
+    overrideChip.textContent = `${n} override${n === 1 ? '' : 's'}`;
+  }
+  function syncGroups(){
+    for (const k of Object.keys(groups)) {
+      const g = groups[k];
+      const root = document.getElementById(g.id);
+      if (!root) continue;
+      for (const btn of root.querySelectorAll('.chipBtn')) {
+        btn.classList.toggle('active', btn.getAttribute(g.attr) === state[g.key]);
+      }
+    }
+  }
+  function syncSliders(){
+    for (const k of Object.keys(sliders)) {
+      const el = document.getElementById(k);
+      if (el) el.value = String(state[k]);
+    }
+  }
+  function commitAndRedraw(){
+    writeStore();
+    writeUrl();
+    renderVals();
+    applyAnimMode(p5instance);
+    requestRedraw();
+  }
+
+  // sliders
+  for (const k of Object.keys(sliders)){
+    const el = document.getElementById(k);
+    if (!el) continue;
+    el.addEventListener('input', () => {
+      const v = num(el.value);
+      if (v == null) return;
+      state[k] = (k === 'gridSize' || k === 'seed') ? Math.round(v) : v;
+      commitAndRedraw();
+    });
+  }
+
+  // chip groups
+  for (const k of Object.keys(groups)){
+    const g = groups[k];
+    const root = document.getElementById(g.id);
+    if (!root) continue;
+    root.addEventListener('click', e => {
+      const btn = e.target.closest('.chipBtn');
+      if (!btn) return;
+      const val = btn.getAttribute(g.attr);
+      if (!val) return;
+      state[g.key] = val;
+      syncGroups();
+      commitAndRedraw();
+    });
+  }
+
+  // ───────────────────────────────────────────────────────────────
+  // RNG
+  // ───────────────────────────────────────────────────────────────
+  function hash32(a, b, c){
+    let x = (a | 0) + ((b | 0) * 374761393) + ((c | 0) * 668265263);
+    x = (x ^ (x >>> 13)) * 1274126177;
+    x = (x ^ (x >>> 16)) >>> 0;
+    return x;
+  }
+  function rand01(seed, r, c, salt=0){
+    return (hash32(seed + salt * 17, r, c) % 100000) / 100000;
+  }
+  // smooth value noise in [0,1] — used by field mode to create regions/currents
+  function smoothNoise(x, y, seed, salt=0){
+    const xi = Math.floor(x), yi = Math.floor(y);
+    const xf = x - xi, yf = y - yi;
+    const s = seed + salt * 23;
+    const tl = (hash32(s, xi,     yi    ) % 100000) / 100000;
+    const tr = (hash32(s, xi + 1, yi    ) % 100000) / 100000;
+    const bl = (hash32(s, xi,     yi + 1) % 100000) / 100000;
+    const br = (hash32(s, xi + 1, yi + 1) % 100000) / 100000;
+    const sx = xf * xf * (3 - 2 * xf);
+    const sy = yf * yf * (3 - 2 * yf);
+    const top = tl + (tr - tl) * sx;
+    const bot = bl + (br - bl) * sx;
+    return top + (bot - top) * sy;
+  }
+  // fractal noise — two octaves for richer regions
+  function fractalNoise(x, y, seed, salt=0){
+    const n1 = smoothNoise(x, y, seed, salt);
+    const n2 = smoothNoise(x * 2, y * 2, seed, salt + 1) * 0.5;
+    return (n1 + n2) / 1.5;
+  }
+
+  // ───────────────────────────────────────────────────────────────
+  // RULE COMPUTATION
+  // ───────────────────────────────────────────────────────────────
+  let phase = 0;
+
+  function rotationFor(r, c, N){
+    const m = state.rotationMode;
+    let base;
+    if (m === 'fixed') base = state.rotationBase;
+    else if (m === 'step')  base = state.rotationBase + (r + c) * state.rotationStep;
+    else if (m === 'random'){
+      // for cell-filling motifs, snap to PI/2 increments so tiles connect across the grid
+      if (fullCellMotifs.has(state.motif)) {
+        const q = Math.floor(rand01(state.seed, r, c, 1) * 4);
+        base = state.rotationBase + q * (Math.PI / 2);
+      } else {
+        base = state.rotationBase + rand01(state.seed, r, c, 1) * Math.PI * 2;
+      }
+    }
+    else if (m === 'radial'){
+      const cx = (N - 1) / 2, cy = (N - 1) / 2;
+      base = state.rotationBase + Math.atan2(r - cy, c - cx);
+    }
+    else base = 0;
+
+    // flow field — smooth-noise rotation overlay so adjacent cells curve together
+    if (state.field === 'flow' || state.field === 'both'){
+      const n = smoothNoise(c * state.fieldScale, r * state.fieldScale, state.seed, 5);
+      let delta = (n - 0.5) * Math.PI * 2;
+      // for cell-filling tiles, snap so they still connect at edges
+      if (fullCellMotifs.has(state.motif)) delta = Math.round(delta / (Math.PI / 2)) * (Math.PI / 2);
+      base += delta;
+    }
+
+    // animation modulation
+    if (state.animSpeed > 0){
+      const am = state.animMode;
+      if (am === 'rotate') base += phase;
+      else if (am === 'wave')   base += Math.sin(phase + (r + c) * 0.35) * 0.6;
+      else if (am === 'drift')  base += Math.sin(phase * 0.7 + r * 0.5) * 0.4 + Math.cos(phase * 0.5 + c * 0.5) * 0.4;
+      // 'breathe' modulates scale only — no rotation
+    }
+    return base;
+  }
+  function scaleFor(r, c, N){
+    const m = state.scaleMode;
+    let s;
+    if (m === 'uniform') s = state.scaleBase;
+    else if (m === 'gradient'){
+      const t = (N <= 1) ? 0.5 : (r + c) / (2 * (N - 1));
+      s = state.scaleBase * (1 + state.scaleVar * (t - 0.5) * 2);
+    }
+    else if (m === 'pulse'){
+      const cx = (N - 1) / 2, cy = (N - 1) / 2;
+      const d = Math.hypot(c - cx, r - cy) / (N / 2);
+      s = state.scaleBase * (1 + state.scaleVar * Math.cos(d * Math.PI));
+    }
+    else if (m === 'random'){
+      s = state.scaleBase * (1 + state.scaleVar * (rand01(state.seed, r, c, 2) * 2 - 1));
+    }
+    else s = state.scaleBase;
+
+    // breathe animation: pulse scale over time
+    if (state.animSpeed > 0 && state.animMode === 'breathe'){
+      const wobble = Math.sin(phase + (r + c) * 0.4);
+      s *= 1 + 0.3 * wobble;
+    }
+    return s;
+  }
+  function mirrorFor(r, c){
+    const m = state.mirrorMode;
+    if (m === 'off')  return { x: 1, y: 1 };
+    if (m === 'h')    return { x: (c % 2) ? -1 : 1, y: 1 };
+    if (m === 'v')    return { x: 1, y: (r % 2) ? -1 : 1 };
+    if (m === 'both') return { x: (c % 2) ? -1 : 1, y: (r % 2) ? -1 : 1 };
+    if (m === 'alt')  return { x: ((r + c) % 2) ? -1 : 1, y: 1 };
+    return { x: 1, y: 1 };
+  }
+  function colorFor(r, c, N){
+    const m = state.colorMode;
+    if (m === 'mono')     return { fg: [22, 22, 26], bg: 244 };
+    if (m === 'mono-inv') return { fg: [240, 240, 244], bg: 12 };
+    if (m === '2tone'){
+      const alt = (r + c) % 2;
+      return { fg: alt ? [0, 196, 255] : [240, 240, 240], bg: 12 };
+    }
+    if (m === 'palette'){
+      const palette = [
+        [0, 196, 255],   // cyan
+        [240, 60, 180],  // magenta
+        [255, 200, 60],  // yellow
+        [240, 240, 240], // off-white
+      ];
+      const idx = hash32(state.seed, r, c) % palette.length;
+      return { fg: palette[idx], bg: 12 };
+    }
+    return { fg: [240, 240, 240], bg: 12 };
+  }
+
+  // ───────────────────────────────────────────────────────────────
+  // MOTIF DRAWING
+  // ───────────────────────────────────────────────────────────────
+  // background grayscale for the current color mode — used by negative decoration triangles to "carve"
+  function bgVal(){
+    return state.colorMode === 'mono-inv' ? 12 : 244;
+  }
+
+  function drawMotif(p, type, size, r, c){
+    const s = size; // already scaled
+    const h = s / 2;
+    // q = quarter unit for sýkora elements; varies per-cell when scaleVar > 0
+    // so L arms, T stems, frame thickness, notch size jitter across the grid
+    let q = s / 4;
+    if (typeof r === 'number' && state.scaleVar > 0 && type !== 'syk-mixed') {
+      const v = rand01(state.seed, r|0, c|0, 11) * 2 - 1; // -1..1
+      const factor = 1 + state.scaleVar * v * 0.7;        // ±70% at max
+      q = (s / 4) * Math.max(0.35, Math.min(1.6, factor));
+    }
+    // ── per-cell triangle modulation (built into every Sýkora element) ──
+    // Trim size (motifLength 0.2-1.0) sets the +/- triangle leg length.
+    // Trim balance (motifThickness 0.5-8.0) decides whether negatives, positives, or both render.
+    const lenN = Math.max(0, Math.min(1, (state.motifLength - 0.2) / 0.8));
+    const triBase = h * (0.20 + lenN * 0.60);
+    const triJit  = (typeof r === 'number') ? (0.65 + rand01(state.seed, r|0, c|0, 13) * 0.55) : 1;
+    const tri     = triBase * triJit;
+    const mix     = Math.max(0, Math.min(1, (state.motifThickness - 0.5) / 7.5));
+    const showNeg = mix < 0.92 && tri > 1.0;
+    const showPos = mix > 0.08 && tri > 1.0;
+    // helpers — carve cuts a white triangle out of the black mass, add paints a positive triangle
+    const carve = (x1, y1, x2, y2, x3, y3) => {
+      if (!showNeg) return;
+      p.push(); p.noStroke(); p.fill(bgVal());
+      p.triangle(x1, y1, x2, y2, x3, y3);
+      p.pop();
+    };
+    const add = (x1, y1, x2, y2, x3, y3) => {
+      if (!showPos) return;
+      p.triangle(x1, y1, x2, y2, x3, y3);
+    };
+    switch (type) {
+      // ── Sýkora elements (filled area) ──────────────────────────
+      case 'syk-mixed': {
+        // pick one of N elements per cell, deterministic by seed+r+c
+        const pick = sykElements[Math.floor(rand01(state.seed, r|0, c|0, 9) * sykElements.length)];
+        drawMotif(p, pick, size, r, c);
+        return;
+      }
+      case 'syk-full':
+        // square with two diagonal corner bites (only negatives are visible — already fully black)
+        p.noStroke();
+        p.rect(-h, -h, s, s);
+        carve( h, -h,  h - tri, -h,  h, -h + tri);  // bite TR corner
+        carve(-h,  h, -h + tri,  h, -h,  h - tri);  // bite BL corner
+        break;
+      case 'syk-half':
+        // top half + V-cut from top edge + positive wedge hanging below
+        p.noStroke();
+        p.rect(-h, -h, s, h);
+        carve(0, -h, -tri * 0.55, -h, 0, -h + tri * 0.8);
+        carve(0, -h,  tri * 0.55, -h, 0, -h + tri * 0.8);
+        add(-tri * 0.55, 0, tri * 0.55, 0, 0, tri);
+        break;
+      case 'syk-diag':
+        // diagonal half (TL) — bite from hypotenuse + small accent in white area
+        p.noStroke();
+        p.triangle(-h, -h, h, -h, -h, h);
+        carve(0, 0, -tri * 0.7, 0, 0, tri * 0.7);
+        add(h, h, h - tri, h, h, h - tri);
+        break;
+      case 'syk-quarter':
+        // TL quarter — bite outer corner + small extension into adjacent empty quadrant
+        p.noStroke();
+        p.rect(-h, -h, h, h);
+        carve(-h, -h, -h + tri, -h, -h, -h + tri);
+        add(0, -h, tri, -h, 0, -h + tri);
+        break;
+      case 'syk-L':
+        // L-shape — chamfer the inner corner + diagonal accent in the empty quadrant
+        p.noStroke();
+        p.beginShape();
+        p.vertex(-h, -h);
+        p.vertex( h, -h);
+        p.vertex( h, -h + q);
+        p.vertex(-h + q, -h + q);
+        p.vertex(-h + q,  h);
+        p.vertex(-h,      h);
+        p.endShape(p.CLOSE);
+        // chamfer the L's inner corner (carve into black)
+        carve(-h + q, -h + q, -h + q - Math.min(tri, q), -h + q, -h + q, -h + q - Math.min(tri, q));
+        // small black triangle in BR empty area
+        add(h, h, h - tri, h, h, h - tri);
+        break;
+      case 'syk-T':
+        // T-shape — V-cut from middle of top bar + extension at bottom of stem
+        p.noStroke();
+        p.beginShape();
+        p.vertex(-h,    -h);
+        p.vertex( h,    -h);
+        p.vertex( h,    -h + q);
+        p.vertex( q/2,  -h + q);
+        p.vertex( q/2,   h);
+        p.vertex(-q/2,   h);
+        p.vertex(-q/2,  -h + q);
+        p.vertex(-h,    -h + q);
+        p.endShape(p.CLOSE);
+        carve(0, -h, -tri * 0.55, -h, 0, -h + tri * 0.7);
+        carve(0, -h,  tri * 0.55, -h, 0, -h + tri * 0.7);
+        add(-q/2 - tri * 0.6, h, q/2 + tri * 0.6, h, 0, h - tri * 0.8);
+        break;
+      case 'syk-step': {
+        // staircase + bite from one step + accent in empty triangle area
+        p.noStroke();
+        const N_STEPS = 4;
+        const stp = s / N_STEPS;
+        p.beginShape();
+        p.vertex(-h, -h);
+        for (let i = 1; i <= N_STEPS; i++) {
+          p.vertex(-h + i * stp,     -h + (i - 1) * stp);
+          p.vertex(-h + i * stp,     -h + i * stp);
+        }
+        p.vertex(-h, h);
+        p.endShape(p.CLOSE);
+        // bite from the second step
+        carve(-h + stp * 2, -h + stp, -h + stp * 2 - Math.min(tri, stp), -h + stp, -h + stp * 2, -h + stp + Math.min(tri, stp));
+        // accent in upper-right empty area
+        add(h, -h, h - tri, -h, h, -h + tri);
+        break;
+      }
+      case 'syk-notch':
+        // square with corner notch + chamfer at notch's inner corner + accent in notch
+        p.noStroke();
+        p.beginShape();
+        p.vertex(-h,           -h);
+        p.vertex(-h + 3*q,     -h);
+        p.vertex(-h + 3*q,     -h + q);
+        p.vertex( h,           -h + q);
+        p.vertex( h,            h);
+        p.vertex(-h,            h);
+        p.endShape(p.CLOSE);
+        // chamfer the notch's inner corner
+        carve(-h + 3*q, -h + q, -h + 3*q - Math.min(tri, q*1.5), -h + q, -h + 3*q, -h + q + Math.min(tri, q*1.5));
+        // small accent in the empty notch
+        add(h, -h, h - tri, -h, h, -h + tri);
+        break;
+      case 'syk-corner':
+        // corner triangle + bite from its hypotenuse + sister triangle far corner
+        p.noStroke();
+        p.triangle(-h, -h, -h + 2*q, -h, -h, -h + 2*q);
+        carve(-h + q, -h + q, -h + q - Math.min(tri * 0.7, q), -h + q, -h + q, -h + q - Math.min(tri * 0.7, q));
+        add(h, h, h - tri, h, h, h - tri);
+        break;
+      case 'syk-bar':
+        // central vertical bar + V-cut at top + wedge protruding right
+        p.noStroke();
+        p.rect(-q/2, -h, q, s);
+        carve(-q/2, -h, q/2, -h, 0, -h + Math.min(tri, q * 2));
+        add(q/2, -tri * 0.4, q/2 + tri, 0, q/2, tri * 0.4);
+        break;
+      case 'syk-cross':
+        // plus sign + cut from one arm tip + diagonal accents in quadrant
+        p.noStroke();
+        p.rect(-q/2, -h, q, s);
+        p.rect(-h, -q/2, s, q);
+        carve(h, -q/2, h, q/2, h - Math.min(tri, q * 1.5), 0);
+        add(-q/2, -q/2, -q/2 - tri, -q/2, -q/2, -q/2 - tri);
+        break;
+      case 'syk-frame':
+        // square ring + diagonal corner cuts on outer edge + accents inside the hole
+        p.noStroke();
+        p.beginShape();
+        p.vertex(-h, -h);
+        p.vertex( h, -h);
+        p.vertex( h,  h);
+        p.vertex(-h,  h);
+        p.beginContour();
+        p.vertex(-h + q, -h + q);
+        p.vertex(-h + q,  h - q);
+        p.vertex( h - q,  h - q);
+        p.vertex( h - q, -h + q);
+        p.endContour();
+        p.endShape(p.CLOSE);
+        // outer corner cut (TR)
+        carve(h, -h, h - Math.min(tri, q*0.9), -h, h, -h + Math.min(tri, q*0.9));
+        // small triangle accent inside the hole
+        add(0, 0, Math.min(tri, q - 2), 0, 0, Math.min(tri, q - 2));
+        break;
+      case 'syk-arch': {
+        // square with quarter-circle bite + accent in the cut + chamfer opposite corner
+        p.noStroke();
+        p.beginShape();
+        p.vertex(-h, -h);
+        p.vertex( h/2, -h);
+        const A_STEPS = 16;
+        for (let i = 1; i <= A_STEPS; i++) {
+          const t = i / A_STEPS;
+          const a = Math.PI - t * (Math.PI / 2);
+          p.vertex(h + Math.cos(a) * (h/2), -h + Math.sin(a) * (h/2));
+        }
+        p.vertex( h,  h);
+        p.vertex(-h,  h);
+        p.endShape(p.CLOSE);
+        // accent inside the empty arch area
+        add(h, -h, h - tri, -h, h, -h + tri);
+        // chamfer the opposite corner
+        carve(-h, h, -h + tri, h, -h, h - tri);
+        break;
+      }
+      case 'syk-pie': {
+        // quarter-disk + radial bite + accent on the curved edge
+        p.noStroke();
+        p.beginShape();
+        p.vertex(-h, -h);
+        p.vertex(0, -h);
+        const P_STEPS = 16;
+        for (let i = 1; i <= P_STEPS; i++) {
+          const t = i / P_STEPS;
+          const a = t * (Math.PI / 2);
+          p.vertex(-h + Math.cos(a) * h, -h + Math.sin(a) * h);
+        }
+        p.endShape(p.CLOSE);
+        // radial slice (carve a wedge from the pie)
+        carve(-h, -h, -h + tri * 0.9, -h + tri * 0.3, -h + tri * 0.3, -h + tri * 0.9);
+        // accent in BR empty area
+        add(h, h, h - tri, h, h, h - tri);
+        break;
+      }
+      case 'syk-double':
+        // two diagonal quarters + small bridge triangles in the gap
+        p.noStroke();
+        p.rect(-h, -h, h, h);
+        p.rect(0,   0, h, h);
+        // bite from outer corner of TL
+        carve(-h, -h, -h + tri, -h, -h, -h + tri);
+        // positive bridge between the two — small triangle at (0,0) reaching into TR quadrant
+        add(0, 0, tri, 0, 0, -tri);
+        break;
+      case 'syk-stripes':
+        // two horizontal bands + V-cut from one stripe + connecting triangle between bands
+        p.noStroke();
+        p.rect(-h, -h, s, q);
+        p.rect(-h,  0, s, q);
+        // V cut from the top stripe
+        carve(0, -h, tri * 0.5, -h, 0, -h + Math.min(tri * 0.7, q));
+        carve(0, -h, -tri * 0.5, -h, 0, -h + Math.min(tri * 0.7, q));
+        // connecting positive triangle between the two stripes
+        add(-tri * 0.4, -h + q, tri * 0.4, -h + q, 0, 0);
+        break;
+
+
+      case 'line':
+        p.line(-h, 0, h, 0);
+        break;
+      case 'arc':
+        p.noFill();
+        p.arc(0, 0, s, s, 0, Math.PI);
+        break;
+      case 'cross':
+        p.line(-h, 0, h, 0);
+        p.line(0, -h, 0, h);
+        break;
+      case 'dot':
+        p.noStroke();
+        p.circle(0, 0, s * 0.55);
+        break;
+      case 'triangle':
+        p.noFill();
+        p.triangle(-h, s / 3, h, s / 3, 0, -s * 0.65);
+        break;
+      case 'truchet-arc':
+        // two quarter arcs at opposite corners — classic Truchet tile
+        p.noFill();
+        p.arc(-h, -h, s, s, 0, Math.PI / 2);          // top-left corner arc
+        p.arc( h,  h, s, s, Math.PI, 1.5 * Math.PI);  // bottom-right corner arc
+        break;
+      case 'truchet-diag':
+        // diagonal line edge-to-edge
+        p.line(-h, -h, h, h);
+        break;
+      case 'wave':
+        // sine wave edge-to-edge
+        p.noFill();
+        p.beginShape();
+        const W_STEPS = 28;
+        for (let i = 0; i <= W_STEPS; i++) {
+          const t = i / W_STEPS;
+          const x = -h + t * s;
+          const y = Math.sin(t * Math.PI * 2) * (s * 0.22);
+          p.vertex(x, y);
+        }
+        p.endShape();
+        break;
+      case 'double-arc':
+        // two half arcs back-to-back, edge-to-edge
+        p.noFill();
+        p.arc(-h, 0, s, s, -Math.PI / 2, Math.PI / 2);  // arc on left side, bulging right
+        p.arc( h, 0, s, s, Math.PI / 2, 1.5 * Math.PI); // arc on right side, bulging left
+        break;
+      case 'quarter':
+        // single quarter arc from mid-top to mid-right, like a flow
+        p.noFill();
+        p.arc(h, -h, s, s, Math.PI / 2, Math.PI);
+        break;
+      case 'blob': {
+        // asymmetric soft mass — reads as a creature, cell, organ in aggregate
+        p.noStroke();
+        const blobR = [0.46, 0.50, 0.40, 0.48, 0.32, 0.46, 0.38, 0.50];
+        p.beginShape();
+        for (let i = 0; i < 8; i++) {
+          const a = (i / 8) * Math.PI * 2;
+          const r = s * blobR[i];
+          p.curveVertex(Math.cos(a) * r, Math.sin(a) * r);
+        }
+        // close the curve
+        for (let i = 0; i < 3; i++) {
+          const a = (i / 8) * Math.PI * 2;
+          const r = s * blobR[i];
+          p.curveVertex(Math.cos(a) * r, Math.sin(a) * r);
+        }
+        p.endShape();
+        break;
+      }
+      case 'eye':
+        // almond / lens with pupil + iris ring + lashes
+        p.push(); p.noFill();
+        p.beginShape();
+        for (let i = 0; i <= 18; i++) {
+          const t = i / 18;
+          p.curveVertex(-h + t * s, -Math.sin(t * Math.PI) * s * 0.24);
+        }
+        p.endShape();
+        p.beginShape();
+        for (let i = 0; i <= 18; i++) {
+          const t = i / 18;
+          p.curveVertex(-h + t * s,  Math.sin(t * Math.PI) * s * 0.24);
+        }
+        p.endShape();
+        p.circle(0, 0, s * 0.26); // iris ring
+        p.pop();
+        p.push(); p.noStroke();
+        p.circle(0, 0, s * 0.13); // pupil
+        p.pop();
+        // lashes
+        for (let i = -2; i <= 2; i++) {
+          p.line(i * s * 0.13, -s * 0.18, i * s * 0.13, -s * 0.30);
+        }
+        break;
+      case 'drop':
+        // teardrop — point up, rounded bottom
+        p.noStroke();
+        p.beginShape();
+        p.vertex(0, -s * 0.5);
+        p.bezierVertex( s * 0.35, -s * 0.28,  s * 0.42,  s * 0.22, 0, s * 0.48);
+        p.bezierVertex(-s * 0.42,  s * 0.22, -s * 0.35, -s * 0.28, 0, -s * 0.5);
+        p.endShape(p.CLOSE);
+        break;
+      case 'petal':
+        // asymmetric leaf with central vein + stem
+        p.push(); p.noFill();
+        p.beginShape();
+        p.vertex(-s * 0.40, s * 0.28);
+        p.bezierVertex(-s * 0.46, -s * 0.20,  s * 0.00, -s * 0.50,  s * 0.42, -s * 0.30);
+        p.bezierVertex( s * 0.10,  s * 0.02, -s * 0.20,  s * 0.34, -s * 0.40,  s * 0.28);
+        p.endShape();
+        // central vein
+        p.beginShape();
+        p.vertex(-s * 0.35, s * 0.25);
+        p.bezierVertex(-s * 0.10, s * 0.00, s * 0.10, -s * 0.20, s * 0.35, -s * 0.28);
+        p.endShape();
+        p.pop();
+        break;
+      case 'finger':
+        // three prongs of unequal length — fingers, grass, antennae
+        p.line(-s * 0.26,  s * 0.40, -s * 0.26, -s * 0.20);
+        p.line( s * 0.00,  s * 0.40,  s * 0.00, -s * 0.46);
+        p.line( s * 0.26,  s * 0.40,  s * 0.26, -s * 0.08);
+        break;
+      case 'comma':
+        // curved tapering form with terminal dot — gesture, weight, breath
+        p.push(); p.noFill();
+        p.beginShape();
+        p.vertex(0, -s * 0.42);
+        p.bezierVertex( s * 0.36, -s * 0.36,  s * 0.44,  s * 0.04,  s * 0.00,  s * 0.36);
+        p.bezierVertex(-s * 0.16,  s * 0.42, -s * 0.06,  s * 0.14,  0,        -s * 0.42);
+        p.endShape();
+        p.pop();
+        p.push(); p.noStroke();
+        p.circle(0, -s * 0.42, s * 0.10);
+        p.pop();
+        break;
+
+      // ── complex composites ─────────────────────────────────────
+      case 'mandala': {
+        // radial 8-arm + center ring + dots
+        const arms = 8;
+        for (let i = 0; i < arms; i++){
+          const a = (i / arms) * Math.PI * 2;
+          const cx = Math.cos(a), cy = Math.sin(a);
+          p.line(cx * s * 0.10, cy * s * 0.10, cx * s * 0.40, cy * s * 0.40);
+          p.push(); p.noStroke();
+          p.circle(cx * s * 0.45, cy * s * 0.45, s * 0.08);
+          p.pop();
+        }
+        p.push(); p.noFill();
+        p.circle(0, 0, s * 0.22);
+        p.circle(0, 0, s * 0.50);
+        p.pop();
+        p.push(); p.noStroke();
+        p.circle(0, 0, s * 0.07);
+        p.pop();
+        break;
+      }
+      case 'glyph': {
+        // pseudo-character — stem + bar + arc + accent
+        p.line(0, -s * 0.40, 0, s * 0.35);
+        p.line(-s * 0.25, -s * 0.10, s * 0.30, -s * 0.05);
+        p.push(); p.noFill();
+        p.arc(s * 0.18, s * 0.22, s * 0.32, s * 0.32, Math.PI, 1.7 * Math.PI);
+        p.pop();
+        p.push(); p.noStroke();
+        p.circle(-s * 0.32, s * 0.30, s * 0.10);
+        p.pop();
+        break;
+      }
+      case 'mask': {
+        // face — outer frame + eyes + mouth
+        p.push(); p.noFill();
+        p.beginShape();
+        p.vertex(-s * 0.30, -s * 0.42);
+        p.bezierVertex(-s * 0.48, -s * 0.18, -s * 0.48, s * 0.20, -s * 0.18, s * 0.45);
+        p.bezierVertex( s * 0.18,  s * 0.50,  s * 0.48, s * 0.20,  s * 0.45, -s * 0.15);
+        p.bezierVertex( s * 0.42, -s * 0.45,  s * 0.05, -s * 0.50, -s * 0.30, -s * 0.42);
+        p.endShape();
+        p.pop();
+        p.push(); p.noStroke();
+        p.circle(-s * 0.15, -s * 0.10, s * 0.11);
+        p.circle( s * 0.15, -s * 0.10, s * 0.11);
+        p.pop();
+        p.push(); p.noFill();
+        p.arc(0, s * 0.18, s * 0.30, s * 0.15, 0.1, Math.PI - 0.1);
+        p.pop();
+        break;
+      }
+      case 'spiral': {
+        // logarithmic spiral
+        p.push(); p.noFill();
+        p.beginShape();
+        const turns = 2.6, steps = 90;
+        for (let i = 0; i <= steps; i++){
+          const t = i / steps;
+          const a = t * turns * Math.PI * 2;
+          const r = t * s * 0.46;
+          p.curveVertex(Math.cos(a) * r, Math.sin(a) * r);
+        }
+        p.endShape();
+        p.pop();
+        p.push(); p.noStroke();
+        p.circle(s * 0.46, 0, s * 0.07);
+        p.pop();
+        break;
+      }
+      case 'knot': {
+        // lemniscate (figure-8) + small ring at each lobe
+        p.push(); p.noFill();
+        p.beginShape();
+        const KNOT_STEPS = 80;
+        for (let i = 0; i <= KNOT_STEPS; i++){
+          const t = (i / KNOT_STEPS) * Math.PI * 2;
+          const x = Math.sin(t) * s * 0.45;
+          const y = Math.sin(t * 2) * s * 0.22;
+          p.curveVertex(x, y);
+        }
+        p.endShape();
+        p.circle(-s * 0.32, 0, s * 0.10);
+        p.circle( s * 0.32, 0, s * 0.10);
+        p.pop();
+        break;
+      }
+      case 'branch': {
+        // trunk + 2 forks + 2 twigs
+        p.line(0,  s * 0.45, 0, -s * 0.20);
+        p.line(0, -s * 0.20, -s * 0.28, -s * 0.45);
+        p.line(0, -s * 0.20,  s * 0.28, -s * 0.45);
+        p.line(0,  s * 0.10, -s * 0.22, -s * 0.05);
+        p.line(0, -s * 0.05,  s * 0.22, -s * 0.22);
+        // bud dots
+        p.push(); p.noStroke();
+        p.circle(-s * 0.28, -s * 0.45, s * 0.08);
+        p.circle( s * 0.28, -s * 0.45, s * 0.08);
+        p.circle(-s * 0.22, -s * 0.05, s * 0.05);
+        p.circle( s * 0.22, -s * 0.22, s * 0.05);
+        p.pop();
+        break;
+      }
+      case 'sigil': {
+        // outer circle + internal cross + crescent + dot
+        p.push(); p.noFill();
+        p.circle(0, 0, s * 0.78);
+        p.pop();
+        p.line(-s * 0.25, 0, s * 0.25, 0);
+        p.line(0, -s * 0.30, 0, s * 0.05);
+        p.push(); p.noFill();
+        p.arc(0, s * 0.20, s * 0.30, s * 0.18, 0.1, Math.PI - 0.1);
+        p.pop();
+        p.push(); p.noStroke();
+        p.circle(0, s * 0.30, s * 0.08);
+        p.pop();
+        break;
+      }
+      case 'cluster': {
+        // 5-7 small dots of varying size — constellation
+        p.push(); p.noStroke();
+        const offs = [
+          [-0.30, -0.25, 0.12],
+          [ 0.25, -0.20, 0.14],
+          [-0.10,  0.20, 0.16],
+          [ 0.20,  0.30, 0.09],
+          [ 0.00, -0.05, 0.07],
+          [-0.25,  0.05, 0.06],
+        ];
+        for (const [ox, oy, r] of offs) p.circle(ox * s, oy * s, r * s);
+        p.pop();
+        // thin connecting lines (constellation)
+        p.line(-s * 0.30, -s * 0.25,  s * 0.00, -s * 0.05);
+        p.line( s * 0.00, -s * 0.05,  s * 0.25, -s * 0.20);
+        p.line( s * 0.00, -s * 0.05, -s * 0.10,  s * 0.20);
+        p.line(-s * 0.10,  s * 0.20,  s * 0.20,  s * 0.30);
+        break;
+      }
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────
+  // p5 SKETCH
+  // ───────────────────────────────────────────────────────────────
+  let p5instance = null;
+  let dirty = true;
+
+  function requestRedraw(){
+    dirty = true;
+    if (p5instance) p5instance.redraw();
+  }
+
+  function makeSketch(p){
+    p.setup = () => {
+      const W = wrap.clientWidth;
+      const cnv = p.createCanvas(W, W);
+      cnv.parent(wrap);
+      p.pixelDensity(Math.min(2, window.devicePixelRatio || 1));
+      applyAnimMode(p);
+      dirty = true;
+      p.redraw();
+    };
+
+    p.windowResized = () => {
+      const W = wrap.clientWidth;
+      if (W && Math.abs(W - p.width) > 2) {
+        p.resizeCanvas(W, W);
+        dirty = true;
+        p.redraw();
+      }
+    };
+
+    p.draw = () => {
+      // animation: advance phase and always redraw while looping
+      if (state.animSpeed > 0){
+        phase += state.animSpeed * 0.03;
+      } else if (!dirty) {
+        return;
+      }
+      dirty = false;
+
+      const W = p.width;
+      const N = state.gridSize;
+      const cellSize = W / N;
+      const drawSize = cellSize * state.spacing;
+
+      const baseCol = colorFor(0, 0, N);
+      p.background(baseCol.bg);
+      p.noStroke();
+
+      for (let r = 0; r < N; r++){
+        for (let c = 0; c < N; c++){
+          // density — field mode 'regions' uses smooth noise so populated cells form blob-like regions
+          let densityPass;
+          if (state.field === 'regions' || state.field === 'both') {
+            const n = fractalNoise(c * state.fieldScale, r * state.fieldScale, state.seed, 3);
+            densityPass = n < state.density;
+          } else {
+            densityPass = rand01(state.seed, r, c, 3) <= state.density;
+          }
+          if (!densityPass) continue;
+
+          const key = `${r},${c}`;
+          const ov = overrides[key];
+          if (Number.isNaN(ov)) continue;
+
+          let rot = rotationFor(r, c, N);
+          if (typeof ov === 'number' && !Number.isNaN(ov)) rot += ov;
+
+          const sc  = scaleFor(r, c, N);
+          const mir = mirrorFor(r, c);
+          const col = colorFor(r, c, N);
+
+          const cx = c * cellSize + cellSize / 2;
+          const cy = r * cellSize + cellSize / 2;
+
+          p.push();
+          p.translate(cx, cy);
+          p.rotate(rot);
+          p.scale(mir.x, mir.y);
+          const baseMotifSize = fullCellMotifs.has(state.motif) ? drawSize : drawSize * state.motifLength;
+          const motifSize = baseMotifSize * sc;
+
+          // stroke + fill colors
+          p.stroke(col.fg[0], col.fg[1], col.fg[2]);
+          p.fill(col.fg[0], col.fg[1], col.fg[2]);
+          p.strokeWeight(state.motifThickness);
+          p.strokeCap(p.SQUARE);
+          drawMotif(p, state.motif, motifSize, r, c);
+          p.pop();
+        }
+      }
+
+      status.textContent = `${N}×${N} · seed ${state.seed} · ${state.motif}`;
+    };
+
+    p.mousePressed = () => {
+      if (p.mouseX < 0 || p.mouseY < 0 || p.mouseX >= p.width || p.mouseY >= p.height) return;
+      const N = state.gridSize;
+      const cellSize = p.width / N;
+      const c = Math.floor(p.mouseX / cellSize);
+      const r = Math.floor(p.mouseY / cellSize);
+      if (r < 0 || r >= N || c < 0 || c >= N) return;
+      const key = `${r},${c}`;
+      const cur = overrides[key];
+      // cycle: undefined → +PI/2 → +PI → +3PI/2 → skip → undefined
+      if (cur === undefined)            overrides[key] = Math.PI / 2;
+      else if (Math.abs(cur - Math.PI/2)   < 0.01) overrides[key] = Math.PI;
+      else if (Math.abs(cur - Math.PI)     < 0.01) overrides[key] = 3 * Math.PI / 2;
+      else if (Math.abs(cur - 3*Math.PI/2) < 0.01) overrides[key] = NaN; // skip
+      else                                         delete overrides[key];
+      commitAndRedraw();
+    };
+  }
+
+  function rebuildSketch(){
+    if (p5instance){ try { p5instance.remove(); } catch {} }
+    p5instance = new p5(makeSketch);
+  }
+
+  function applyAnimMode(p){
+    if (!p) return;
+    if (state.animSpeed > 0) p.loop();
+    else p.noLoop();
+  }
+
+  // ───────────────────────────────────────────────────────────────
+  // BUTTONS
+  // ───────────────────────────────────────────────────────────────
+  document.getElementById('btnReset').addEventListener('click', () => {
+    Object.assign(state, defaults);
+    overrides = {};
+    syncSliders(); syncGroups(); commitAndRedraw();
+  });
+  document.getElementById('btnReseed').addEventListener('click', () => {
+    state.seed = Math.floor(Math.random() * 10000);
+    syncSliders(); commitAndRedraw();
+  });
+  document.getElementById('btnClearOv').addEventListener('click', () => {
+    overrides = {};
+    commitAndRedraw();
+  });
+  document.getElementById('btnRand').addEventListener('click', () => {
+    // motif: 70% mixed (full Sýkora vocabulary), 30% single element
+    state.motif = Math.random() < 0.7 ? 'syk-mixed' : sykElements[Math.floor(Math.random() * sykElements.length)];
+    state.rotationMode = 'random';
+    state.rotationBase = (Math.random() * 2 - 1) * 0.4;
+    state.scaleMode = 'uniform';
+    state.scaleBase = 1.0;
+    state.scaleVar = Math.random() * 0.8;
+    state.mirrorMode = 'off';
+    state.density = 0.5 + Math.random() * 0.5;
+    state.gridSize = 8 + Math.floor(Math.random() * 10);
+    state.seed = Math.floor(Math.random() * 10000);
+    state.spacing = 1.0;
+    state.motifLength = 0.3 + Math.random() * 0.7;     // trim size
+    state.motifThickness = 0.5 + Math.random() * 7.5;  // trim balance (neg ↔ pos)
+    state.animSpeed = Math.random() < 0.6 ? 0 : 0.1 + Math.random() * 0.4;
+    state.animMode = ['rotate','wave','drift','breathe'][Math.floor(Math.random()*4)];
+    const fieldRoll = Math.random();
+    state.field = fieldRoll < 0.5 ? 'none' : (fieldRoll < 0.8 ? 'regions' : 'flow');
+    state.fieldScale = 0.2 + Math.random() * 0.5;
+    state.colorMode = Math.random() < 0.85 ? 'mono' : 'mono-inv';
+    syncSliders(); syncGroups(); commitAndRedraw();
+  });
+
+  document.getElementById('btnShot').addEventListener('click', () => {
+    if (!p5instance) return;
+    p5instance.saveCanvas(`sykora_${state.seed}_${Date.now()}`, 'png');
+  });
+
+  const btnCopy = document.getElementById('btnCopy');
+  btnCopy.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(location.href);
+      btnCopy.textContent = 'Copied!';
+      setTimeout(() => btnCopy.textContent = 'Copy share URL', 900);
+    } catch {
+      btnCopy.textContent = 'Copy failed';
+      setTimeout(() => btnCopy.textContent = 'Copy share URL', 900);
+    }
+  });
+
+  // ───────────────────────────────────────────────────────────────
+  // REC 8s
+  // ───────────────────────────────────────────────────────────────
+  const btnRec     = document.getElementById('btnRec');
+  const recOverlay = document.getElementById('recOverlay');
+  let isRecording  = false;
+
+  btnRec.addEventListener('click', () => {
+    if (isRecording || !p5instance) return;
+    isRecording = true;
+    btnRec.classList.add('recording');
+    btnRec.textContent = '● REC';
+    btnRec.disabled = true;
+
+    const REC_DURATION = 8000;
+    const chunks = [];
+    const cnv = p5instance.canvas;
+
+    let stream;
+    try { stream = cnv.captureStream(60); }
+    catch { alert('captureStream not supported.'); endRec(); return; }
+
+    const FORMATS = [
+      'video/mp4;codecs=avc1.42E01E',
+      'video/mp4;codecs=h264',
+      'video/webm;codecs=vp9',
+      'video/webm',
+    ];
+    let rec;
+    for (const mime of FORMATS) {
+      if (!MediaRecorder.isTypeSupported(mime)) continue;
+      try { rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 }); break; } catch {}
+    }
+    if (!rec) rec = new MediaRecorder(stream, { videoBitsPerSecond: 8_000_000 });
+
+    const actualMime = rec.mimeType || 'video/webm';
+    const actualExt  = actualMime.includes('mp4') ? 'mp4' : 'webm';
+
+    rec.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+    rec.onstop = () => {
+      const blob = new Blob(chunks, { type: actualMime });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url;
+      a.download = `sykora_${state.seed}_${Date.now()}.${actualExt}`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+      endRec();
+    };
+
+    // continuous redraw during recording so the captured stream has frames
+    let recTimer = setInterval(() => { dirty = true; p5instance.redraw(); }, 1000 / 30);
+
+    rec.start(100);
+    const start = performance.now();
+    function tick(){
+      const elapsed = performance.now() - start;
+      const remaining = Math.ceil((REC_DURATION - elapsed) / 1000);
+      if (elapsed >= REC_DURATION){
+        clearInterval(recTimer);
+        recOverlay.classList.remove('show');
+        recOverlay.textContent = '';
+        rec.stop();
+        return;
+      }
+      recOverlay.classList.add('show');
+      recOverlay.textContent = remaining > 0 ? `● REC ${remaining}` : '● REC';
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  });
+
+  function endRec(){
+    isRecording = false;
+    btnRec.classList.remove('recording');
+    btnRec.textContent = 'REC 8s';
+    btnRec.disabled = false;
+  }
+
+  // ───────────────────────────────────────────────────────────────
+  // PRESETS
+  // ───────────────────────────────────────────────────────────────
+  const presets = [
+    { name: '12×12 classic', state: { motif:'syk-mixed', motifLength:0.55, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0,   mirrorMode:'off', density:1,   spacing:1, colorMode:'mono',     seed:1337, animSpeed:0,    animMode:'rotate', field:'none',    fieldScale:0.35 } },
+    { name: '12×12 varied', state: { motif:'syk-mixed', motifLength:0.55, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0.7, mirrorMode:'off', density:1,   spacing:1, colorMode:'mono',     seed:88,   animSpeed:0,    animMode:'rotate', field:'none',    fieldScale:0.35 } },
+    { name: '16×16 dense', state: { motif:'syk-mixed', motifLength:0.55, motifThickness:4, gridSize:16, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0,   mirrorMode:'off', density:1,   spacing:1, colorMode:'mono',     seed:42,   animSpeed:0,    animMode:'rotate', field:'none',    fieldScale:0.35 } },
+    { name: 'Regions', state: { motif:'syk-mixed', motifLength:0.55, motifThickness:4, gridSize:14, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0.3, mirrorMode:'off', density:0.7, spacing:1, colorMode:'mono',     seed:7,    animSpeed:0,    animMode:'rotate', field:'regions', fieldScale:0.35 } },
+    { name: 'Inverse', state: { motif:'syk-mixed', motifLength:0.55, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0,   mirrorMode:'off', density:1,   spacing:1, colorMode:'mono-inv', seed:300,  animSpeed:0,    animMode:'rotate', field:'none',    fieldScale:0.35 } },
+    { name: 'Frames only', state: { motif:'syk-frame', motifLength:0.55, motifThickness:4, gridSize:10, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0.5, mirrorMode:'off', density:1, spacing:1, colorMode:'mono', seed:55, animSpeed:0, animMode:'rotate', field:'none', fieldScale:0.35 } },
+    { name: 'Arches', state: { motif:'syk-arch', motifLength:0.55, motifThickness:4, gridSize:10, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0, mirrorMode:'off', density:1, spacing:1, colorMode:'mono', seed:21, animSpeed:0, animMode:'rotate', field:'none', fieldScale:0.35 } },
+    { name: 'Steps', state: { motif:'syk-step', motifLength:0.55, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0, mirrorMode:'off', density:1, spacing:1, colorMode:'mono', seed:888, animSpeed:0, animMode:'rotate', field:'none', fieldScale:0.35 } },
+    { name: 'Stripes', state: { motif:'syk-stripes', motifLength:0.55, motifThickness:4, gridSize:10, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0, mirrorMode:'off', density:1, spacing:1, colorMode:'mono', seed:11, animSpeed:0, animMode:'rotate', field:'none', fieldScale:0.35 } },
+    { name: 'Slow drift', state: { motif:'syk-mixed', motifLength:0.55, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0.4, mirrorMode:'off', density:1, spacing:1, colorMode:'mono', seed:555, animSpeed:0.15, animMode:'drift', field:'flow', fieldScale:0.3 } },
+  ];
+
+  function renderPresets(){
+    const root = document.getElementById('presetsRow');
+    root.innerHTML = '';
+    for (const ps of presets) {
+      const b = document.createElement('button');
+      b.className = 'btn btnSm';
+      b.textContent = ps.name;
+      b.addEventListener('click', () => {
+        Object.assign(state, defaults, ps.state);
+        overrides = {};
+        syncSliders(); syncGroups(); commitAndRedraw();
+      });
+      root.appendChild(b);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────
+  // BOOT
+  // ───────────────────────────────────────────────────────────────
+  const stored = readStore();
+  if (stored && typeof stored === 'object') {
+    if (stored._ov) decodeOverrides(stored._ov);
+    delete stored._ov;
+    Object.assign(state, stored);
+  }
+  Object.assign(state, readUrl());
+
+  // sanitize enums
+  for (const k of Object.keys(enumKeys)){
+    if (!enumKeys[k].includes(state[k])) state[k] = defaults[k];
+  }
+
+  syncSliders();
+  syncGroups();
+  renderPresets();
+  renderVals();
+  rebuildSketch();
+  writeUrl();
+
+  // redraw on resize
+  window.addEventListener('resize', () => {
+    if (p5instance) p5instance.windowResized();
+  });
+
+})();
+</script>
+</body>
+</html>
