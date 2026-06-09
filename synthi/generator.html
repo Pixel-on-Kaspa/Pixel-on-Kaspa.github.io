@@ -2,48 +2,57 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SYNTHI • GENERATOR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#050a0a" />
+  <title>SYNTHI • AKS</title>
   <style>
     :root {
       --bg:         #050a0a;
       --bg2:        #080e0e;
       --bg3:        #0c1212;
-      --border:     rgba(255,255,255,.08);
-      --border2:    rgba(255,255,255,.14);
+      --bg4:        #101616;
+      --border:     rgba(255,255,255,.09);
+      --border2:    rgba(255,255,255,.16);
       --accent:     #9B59B6;
-      --accent-dim: rgba(155,89,182,.12);
-      --accent-glow:rgba(155,89,182,.30);
+      --accent-dim: rgba(155,89,182,.14);
+      --accent-glow:rgba(155,89,182,.34);
       --green:      #2de879;
-      --green-dim:  rgba(45,232,121,.10);
+      --green-dim:  rgba(45,232,121,.12);
       --amber:      #e8a020;
+      --red:        #e63b3b;
+      --cyan:       #00c4ff;
       --text:       #e8eaf0;
-      --muted:      rgba(255,255,255,.42);
-      --muted2:     rgba(255,255,255,.22);
+      --muted:      rgba(255,255,255,.48);
+      --muted2:     rgba(255,255,255,.26);
+      --safe-top:    env(safe-area-inset-top, 0px);
+      --safe-bot:    env(safe-area-inset-bottom, 0px);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; overflow: hidden; }
-    body {
-      font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    html, body {
+      min-height: 100%;
       background: var(--bg);
+    }
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,"Segoe UI",sans-serif;
       color: var(--text);
-      display: flex;
-      flex-direction: column;
-      font-size: 12px;
+      font-size: 13px;
+      line-height: 1.35;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-text-size-adjust: 100%;
+      padding-bottom: var(--safe-bot);
+      overflow-x: hidden;
     }
 
     /* ── TOPBAR ── */
     .topbar {
-      height: 46px;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 14px;
+      position: sticky; top: 0; z-index: 60;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; padding: 10px 14px;
+      padding-top: calc(10px + var(--safe-top));
       border-bottom: 1px solid var(--border);
-      background: rgba(5,10,10,.97);
+      background: rgba(5,10,10,.94);
       backdrop-filter: blur(12px);
-      z-index: 100;
+      -webkit-backdrop-filter: blur(12px);
     }
     .brand {
       display: flex; align-items: center; gap: 9px;
@@ -53,305 +62,351 @@
     }
     .brand img { width: 24px; height: 24px; border-radius: 5px; display: block; }
     .pur { color: var(--accent); }
-    .nav { display: flex; gap: 5px; align-items: center; }
+    .nav { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 
     /* ── BUTTONS ── */
     .btn {
       text-decoration: none;
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 6px 12px; border-radius: 4px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 8px 12px; border-radius: 6px;
       border: 1px solid var(--border2);
       background: rgba(255,255,255,.05);
-      color: rgba(255,255,255,.85);
-      font-size: 11px; font-weight: 700; font-family: inherit;
-      transition: background .12s, border-color .12s;
+      color: rgba(255,255,255,.88);
+      font-size: 12px; font-weight: 700; font-family: inherit;
+      transition: background .12s, border-color .12s, color .12s;
       white-space: nowrap; cursor: pointer; user-select: none;
+      -webkit-user-select: none;
       line-height: 1; letter-spacing: .04em;
+      touch-action: manipulation;
     }
-    .btn:hover { background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.22); }
-    .btnPrimary {
-      border-color: var(--accent-glow);
-      background: var(--accent-dim);
-      color: var(--accent);
-    }
-    .btnPrimary:hover { background: rgba(155,89,182,.20); }
-    .btnActive {
-      border-color: var(--green);
-      background: var(--green-dim);
-      color: var(--green);
-    }
-    .btnSm { padding: 5px 10px; font-size: 11px; }
+    .btn:hover { background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.24); }
+    .btn:active { transform: translateY(1px); }
+    .btnPrimary { border-color: var(--accent-glow); background: var(--accent-dim); color: var(--accent); }
+    .btnPrimary:hover { background: rgba(155,89,182,.22); }
+    .btnActive { border-color: var(--green); background: var(--green-dim); color: var(--green); }
+    .btnSm { padding: 6px 10px; font-size: 11px; }
+    .btnGhost { background: transparent; }
 
-    /* ── TOOLBAR ── */
-    .toolbar {
-      flex-shrink: 0;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      padding: 0 12px;
-      border-bottom: 1px solid var(--border);
-      background: var(--bg2);
-    }
-    .toolbarSep { width: 1px; height: 20px; background: var(--border2); margin: 0 3px; }
-    .toolbarHint {
-      margin-left: auto;
-      font-size: 10px;
-      color: var(--muted);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      letter-spacing: .03em;
-    }
-
-    /* ── MAIN 3-COL GRID ── */
-    .main {
-      flex: 1;
+    /* ── CONTROL BAR (transport + VU + MIDI + master) ── */
+    .ctrlbar {
+      position: sticky; top: 48px; z-index: 55;
       display: grid;
-      grid-template-columns: 230px 1fr 270px;
-      overflow: hidden;
-      min-height: 0;
-    }
-
-    /* ── SIDE PANELS ── */
-    .sidePanel {
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      border-right: 1px solid var(--border);
-    }
-    .sidePanel:last-child { border-right: none; border-left: 1px solid var(--border); }
-
-    .panelHead {
-      flex-shrink: 0;
-      height: 30px;
-      display: flex;
+      grid-template-columns: auto auto 1fr auto;
+      gap: 10px;
       align-items: center;
-      padding: 0 12px;
+      padding: 10px 14px;
       border-bottom: 1px solid var(--border);
-      background: var(--bg2);
-      font-size: 9px;
-      letter-spacing: .18em;
-      text-transform: uppercase;
-      font-weight: 900;
-      color: var(--muted);
+      background: linear-gradient(180deg, var(--bg2), var(--bg));
     }
-    .panelHead .dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      margin-right: 8px; flex-shrink: 0;
+    @media (max-width: 760px) {
+      .ctrlbar {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        position: static;
+      }
+      .ctrlbar > .vuWrap { grid-column: 1 / -1; order: 5; }
+      .ctrlbar > .masterWrap { grid-column: 1 / -1; order: 6; }
+      .ctrlbar > .midiWrap { grid-column: 1 / -1; order: 4; }
     }
-    .panelHeadLeft .dot  { background: var(--accent); box-shadow: 0 0 6px var(--accent-glow); }
-    .panelHeadRight .dot { background: var(--green);  box-shadow: 0 0 6px rgba(45,232,121,.4); }
 
-    .panelScroll {
-      flex: 1;
-      overflow-y: auto;
-      padding: 10px;
+    .vuWrap {
+      display: flex; flex-direction: column; gap: 4px;
+      padding: 6px 10px; border: 1px solid var(--border);
+      border-radius: 6px; background: rgba(0,0,0,.35);
+      min-width: 0;
     }
-    .panelScroll::-webkit-scrollbar { width: 3px; }
-    .panelScroll::-webkit-scrollbar-track { background: transparent; }
-    .panelScroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 2px; }
+    .vuLabel {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 9px; letter-spacing: .16em; text-transform: uppercase;
+      color: var(--muted); font-weight: 800;
+    }
+    .vuLabel .vuDb { color: var(--green); font-family: ui-monospace, monospace; letter-spacing: .04em; }
+    #vuCanvas { display: block; width: 100%; height: 18px; border-radius: 3px; background: #000; }
 
-    /* ── CANVAS CENTER ── */
-    .canvasSide {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      background: #000;
-      position: relative;
+    .midiWrap, .masterWrap {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 10px; border: 1px solid var(--border);
+      border-radius: 6px; background: rgba(255,255,255,.025);
+      min-width: 0;
     }
-    .canvasWrap {
-      position: relative;
-      width:  min(calc(100vw - 510px), calc(100vh - 90px));
-      height: min(calc(100vw - 510px), calc(100vh - 90px));
-      flex-shrink: 0;
+    .midiWrap label, .masterWrap label {
+      font-size: 9px; letter-spacing: .16em; text-transform: uppercase;
+      color: var(--muted); font-weight: 800;
     }
-    #synthiCanvas {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      display: block;
+    .midiDot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(255,255,255,.15); flex-shrink: 0;
+      transition: background .15s, box-shadow .15s;
     }
-    .metaChip {
-      position: absolute;
-      bottom: 8px;
-      left: 8px;
-      font-size: 10px;
-      color: rgba(255,255,255,.35);
-      background: rgba(0,0,0,.6);
-      padding: 3px 8px;
-      border-radius: 3px;
-      pointer-events: none;
-      letter-spacing: .03em;
-      max-width: calc(100% - 16px);
-      overflow: hidden;
+    .midiDot.connected { background: var(--green); box-shadow: 0 0 6px rgba(45,232,121,.5); }
+    .midiDot.active    { background: var(--amber); box-shadow: 0 0 8px rgba(232,160,32,.65); }
+
+    .selectBox {
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      border: 1px solid var(--border2);
+      padding: 7px 10px;
+      font-size: 12px;
+      font-family: inherit;
+      border-radius: 5px;
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      max-width: 180px;
+      min-width: 0;
       text-overflow: ellipsis;
-      white-space: nowrap;
+    }
+    .selectBox option { background: #050a0a; color: var(--text); }
+
+    .masterWrap input[type="range"] { flex: 1; min-width: 100px; }
+    .masterVal {
+      font-family: ui-monospace, monospace; font-size: 11px;
+      color: var(--green); font-weight: 700; min-width: 36px; text-align: right;
     }
 
-    /* ── SECTION GROUPS ── */
+    /* ── MAIN ── */
+    .main {
+      padding: 14px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .main > .span2 { grid-column: 1 / -1; }
+    @media (max-width: 760px) {
+      .main { grid-template-columns: 1fr; padding: 10px; gap: 10px; }
+      .main > .span2 { grid-column: auto; }
+    }
+
+    /* ── SECTION ── */
     .sect {
-      margin-bottom: 8px;
       border: 1px solid var(--border);
-      border-radius: 4px;
+      border-radius: 8px;
       overflow: hidden;
+      background: var(--bg2);
     }
     .sectHead {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 6px 10px;
-      background: rgba(255,255,255,.025);
+      padding: 10px 14px;
+      background: rgba(255,255,255,.03);
       cursor: pointer; user-select: none;
+      -webkit-user-select: none;
       border-bottom: 1px solid var(--border);
+      touch-action: manipulation;
     }
     .sectHead b {
-      font-size: 9px; letter-spacing: .16em; text-transform: uppercase; font-weight: 900;
-      color: var(--muted);
+      font-size: 10px; letter-spacing: .18em; text-transform: uppercase; font-weight: 900;
+      color: var(--text);
+      display: flex; align-items: center; gap: 8px;
     }
-    .sectChev { font-size: 9px; opacity: .45; transition: transform .18s; }
+    .sectHead b::before {
+      content: ""; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent); box-shadow: 0 0 6px var(--accent-glow);
+    }
+    .sectChev { font-size: 11px; opacity: .55; transition: transform .18s; }
     .sect.collapsed .sectChev { transform: rotate(-90deg); }
-    .sectBody { padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+    .sectBody { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
     .sect.collapsed .sectBody { display: none; }
 
     /* ── CONTROLS ── */
-    .ctrl { display: flex; flex-direction: column; gap: 4px; }
-    .ctrlHead { display: flex; justify-content: space-between; align-items: center; }
-    .ctrlTitle { font-size: 9px; letter-spacing: .12em; text-transform: uppercase; font-weight: 800; color: var(--muted); }
-    .ctrlVal { font-size: 10px; color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
-    .ctrlDesc { font-size: 10px; color: var(--muted2); line-height: 1.4; }
+    .ctrl { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .ctrlHead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .ctrlTitle { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; font-weight: 800; color: var(--muted); }
+    .ctrlVal { font-size: 11px; color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; }
+    .ctrlDesc { font-size: 10px; color: var(--muted2); line-height: 1.45; }
+    .sect.green .ctrlVal { color: var(--green); }
+    .sect.green .sectHead b::before { background: var(--green); box-shadow: 0 0 6px rgba(45,232,121,.5); }
 
     /* ranges */
     input[type="range"] {
       -webkit-appearance: none;
-      width: 100%; height: 3px;
-      background: rgba(255,255,255,.10);
-      border-radius: 2px;
+      appearance: none;
+      width: 100%; height: 22px;
+      background: transparent;
       outline: none; cursor: pointer;
+      padding: 0;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 4px; border-radius: 2px;
+      background: rgba(255,255,255,.10);
+    }
+    input[type="range"]::-moz-range-track {
+      height: 4px; border-radius: 2px;
+      background: rgba(255,255,255,.10);
     }
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 13px; height: 13px; border-radius: 50%;
+      appearance: none;
+      width: 18px; height: 18px; border-radius: 50%;
       background: var(--accent); cursor: pointer;
-      box-shadow: 0 0 5px var(--accent-glow);
-      border: 1px solid rgba(255,255,255,.15);
+      box-shadow: 0 0 6px var(--accent-glow);
+      border: 1px solid rgba(255,255,255,.18);
+      margin-top: -7px;
     }
     input[type="range"]::-moz-range-thumb {
-      width: 13px; height: 13px; border-radius: 50%;
+      width: 18px; height: 18px; border-radius: 50%;
       background: var(--accent); cursor: pointer;
-      border: none; box-shadow: 0 0 5px var(--accent-glow);
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: 0 0 6px var(--accent-glow);
     }
-    /* green accent for right panel sliders */
-    .rightSlider input[type="range"]::-webkit-slider-thumb { background: var(--green); box-shadow: 0 0 5px rgba(45,232,121,.35); }
-    .rightSlider input[type="range"]::-moz-range-thumb { background: var(--green); }
-    .rightSlider .ctrlVal { color: var(--green); }
+    .sect.green input[type="range"]::-webkit-slider-thumb { background: var(--green); box-shadow: 0 0 6px rgba(45,232,121,.45); }
+    .sect.green input[type="range"]::-moz-range-thumb     { background: var(--green); box-shadow: 0 0 6px rgba(45,232,121,.45); }
 
-    /* 2-col grid for compact pairs */
-    .ctrlGrid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
-    .ctrlGrid2 .ctrl { min-width: 0; }
-
-    /* ── MASTER ROW ── */
-    .masterRow {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px 10px;
+    /* grids */
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    @media (max-width: 460px) {
+      .grid4 { grid-template-columns: repeat(2, 1fr); }
     }
 
-    /* ── DRUM PADS ── */
-    .padRow { display: flex; gap: 4px; }
-    .padRow .btn { flex: 1; min-width: 0; justify-content: center; font-size: 10px; padding: 5px 4px; }
-
-    /* ── SEQUENCER GRID ── */
-    #seqGrid { display: grid; gap: 3px; }
-
-    /* ── SELECT ── */
-    .aksSelect {
-      width: 100%;
-      background: rgba(255,255,255,.05);
-      color: var(--text);
-      border: 1px solid var(--border2);
-      padding: 5px 8px;
-      font-size: 11px;
-      font-family: inherit;
-      border-radius: 3px;
-      cursor: pointer;
-      outline: none;
-      appearance: none;
+    .subLabel {
+      font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+      color: var(--green); margin-bottom: 6px; display: block; font-weight: 800;
     }
-    .aksSelect option { background: #050a0a; color: var(--text); }
+    .sect.green .subLabel { color: var(--accent); }
 
-    /* ── AKS MATRIX ── */
+    .oscBlock {
+      padding: 12px;
+      background: rgba(255,255,255,.025);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+
+    /* ── MATRIX ── */
     #aks-matrix-grid {
       display: grid;
-      grid-template-columns: 38px repeat(6, 1fr);
-      gap: 2px;
+      grid-template-columns: 54px repeat(6, minmax(0, 1fr));
+      gap: 3px;
     }
-    .aks-mat-corner { width: 38px; }
+    .aks-mat-corner { }
     .aks-mat-header {
       text-align: center; color: var(--muted);
-      font-size: 8px; letter-spacing: .03em;
-      padding: 2px 0 4px; line-height: 1.2;
+      font-size: 9px; letter-spacing: .04em; font-weight: 700;
+      padding: 4px 0 6px; line-height: 1.2;
     }
     .aks-mat-src {
-      font-size: 8px; color: var(--muted);
-      letter-spacing: .03em;
+      font-size: 9px; color: var(--muted); font-weight: 700;
+      letter-spacing: .04em;
       display: flex; align-items: center;
-      padding-right: 2px; line-height: 1.2;
+      padding-right: 4px; line-height: 1.2;
     }
     .aks-mat-cell {
       aspect-ratio: 1;
-      border: 1px solid rgba(255,255,255,.08);
-      border-radius: 2px;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 4px;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer;
-      font-size: 8px; font-weight: 700;
+      font-size: 11px; font-weight: 800;
       font-family: ui-monospace, monospace;
-      transition: background .08s, border-color .08s;
-      user-select: none; min-height: 22px;
+      transition: background .08s, border-color .08s, transform .08s;
+      user-select: none;
+      -webkit-user-select: none;
+      min-height: 36px;
+      touch-action: manipulation;
     }
-    .aks-mat-cell:hover { border-color: rgba(255,255,255,.22); background: rgba(255,255,255,.06); }
-    .aks-mat-cell[data-s="0"]  { background: rgba(255,255,255,.02); color: rgba(255,255,255,.15); }
-    .aks-mat-cell[data-s="1"]  { background: rgba(45,232,121,.08);  border-color: rgba(45,232,121,.25); color: #2de879; }
-    .aks-mat-cell[data-s="2"]  { background: rgba(45,232,121,.16);  border-color: rgba(45,232,121,.50); color: #2de879; }
-    .aks-mat-cell[data-s="3"]  { background: rgba(45,232,121,.28);  border-color: rgba(45,232,121,.80); color: #2de879; text-shadow: 0 0 5px #2de879; }
-    .aks-mat-cell[data-s="-1"] { background: rgba(230,59,59,.08);   border-color: rgba(230,59,59,.25);  color: #e63b3b; }
-    .aks-mat-cell[data-s="-2"] { background: rgba(230,59,59,.16);   border-color: rgba(230,59,59,.50);  color: #e63b3b; }
-    .aks-mat-cell[data-s="-3"] { background: rgba(230,59,59,.28);   border-color: rgba(230,59,59,.80);  color: #e63b3b; text-shadow: 0 0 5px #e63b3b; }
+    .aks-mat-cell:hover  { border-color: rgba(255,255,255,.30); background: rgba(255,255,255,.06); }
+    .aks-mat-cell:active { transform: scale(.96); }
+    .aks-mat-cell[data-s="0"]  { background: rgba(255,255,255,.02); color: rgba(255,255,255,.18); }
+    .aks-mat-cell[data-s="1"]  { background: rgba(45,232,121,.10); border-color: rgba(45,232,121,.30); color: #2de879; }
+    .aks-mat-cell[data-s="2"]  { background: rgba(45,232,121,.20); border-color: rgba(45,232,121,.55); color: #2de879; }
+    .aks-mat-cell[data-s="3"]  { background: rgba(45,232,121,.34); border-color: rgba(45,232,121,.85); color: #2de879; text-shadow: 0 0 6px #2de879; }
+    .aks-mat-cell[data-s="-1"] { background: rgba(230,59,59,.10); border-color: rgba(230,59,59,.30); color: #e63b3b; }
+    .aks-mat-cell[data-s="-2"] { background: rgba(230,59,59,.20); border-color: rgba(230,59,59,.55); color: #e63b3b; }
+    .aks-mat-cell[data-s="-3"] { background: rgba(230,59,59,.34); border-color: rgba(230,59,59,.85); color: #e63b3b; text-shadow: 0 0 6px #e63b3b; }
 
-    /* ── AKS SEQUENCER STEPS ── */
+    /* ── SEQ STEPS ── */
+    #aks-seq-steps-grid {
+      display: grid;
+      grid-template-columns: repeat(16, minmax(0, 1fr));
+      gap: 4px;
+    }
+    @media (max-width: 600px) {
+      #aks-seq-steps-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+    }
     .aks-step-btn {
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 2px;
-      background: rgba(255,255,255,.02);
-      color: rgba(255,255,255,.25);
-      font-size: 8px; font-family: ui-monospace, monospace;
-      padding: 4px 1px; cursor: pointer;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 5px;
+      background: rgba(255,255,255,.025);
+      color: rgba(255,255,255,.30);
+      font-size: 10px; font-family: ui-monospace, monospace;
+      padding: 8px 2px; cursor: pointer;
       text-align: center; line-height: 1.25;
       transition: background .08s, border-color .08s;
       user-select: none;
+      -webkit-user-select: none;
+      min-height: 38px;
+      touch-action: manipulation;
     }
-    .aks-step-btn.active   { border-color: rgba(155,89,182,.50); background: var(--accent-dim); color: var(--accent); }
-    .aks-step-btn.accent   { border-color: rgba(232,160,32,.50); background: rgba(232,160,32,.08); color: var(--amber); }
-    .aks-step-btn.selected { outline: 1px solid rgba(255,255,255,.45); outline-offset: 1px; }
-    .aks-step-btn.playing  { background: rgba(255,255,255,.16) !important; border-color: rgba(255,255,255,.55) !important; color: #fff !important; }
+    .aks-step-btn.active   { border-color: rgba(155,89,182,.55); background: var(--accent-dim); color: var(--accent); }
+    .aks-step-btn.accent   { border-color: rgba(232,160,32,.55); background: rgba(232,160,32,.10); color: var(--amber); }
+    .aks-step-btn.selected { outline: 2px solid rgba(255,255,255,.55); outline-offset: 1px; }
+    .aks-step-btn.playing  { background: rgba(255,255,255,.22) !important; border-color: rgba(255,255,255,.65) !important; color: #fff !important; }
 
-    .aksSubLabel {
-      font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
-      color: var(--green); margin-bottom: 1px; display: block; font-weight: 800;
+    /* ── KEYBOARD ── */
+    .keyboard {
+      display: grid;
+      grid-template-columns: repeat(15, 1fr);
+      gap: 3px;
+      user-select: none;
+      -webkit-user-select: none;
+      position: relative;
+      height: 110px;
     }
+    .keyW, .keyB {
+      border-radius: 0 0 5px 5px;
+      cursor: pointer;
+      display: flex; align-items: flex-end; justify-content: center;
+      padding-bottom: 6px;
+      font-size: 9px; font-weight: 700; letter-spacing: .04em;
+      touch-action: manipulation;
+      transition: background .05s;
+    }
+    .keyW {
+      background: linear-gradient(180deg, #f0f0f0, #c8c8c8);
+      color: #333;
+      height: 100%;
+      border: 1px solid #888;
+    }
+    .keyW:active, .keyW.held { background: linear-gradient(180deg, var(--accent), #6b3c80); color: #fff; }
+    .keyB {
+      position: absolute;
+      top: 0; height: 65%;
+      width: calc((100% - 14*3px) / 15 * 0.7);
+      background: linear-gradient(180deg, #222, #050505);
+      color: #ddd; border: 1px solid #000;
+      z-index: 2;
+      font-size: 8px;
+    }
+    .keyB:active, .keyB.held { background: linear-gradient(180deg, var(--accent), #4a2660); color: #fff; }
+    .kbToolbar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .kbInfo { font-size: 10px; color: var(--muted); letter-spacing: .06em; }
 
-    /* ── DIVIDER ── */
-    .div { height: 1px; background: var(--border); margin: 2px 0; }
+    /* ── PILL ── */
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 999px;
+      font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+      background: rgba(255,255,255,.05); color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .pill.ok { color: var(--green); border-color: rgba(45,232,121,.4); background: var(--green-dim); }
 
-    /* right panel slider accent = green */
-    .rightPanel .ctrlVal { color: var(--green); }
-    .rightPanel input[type="range"]::-webkit-slider-thumb { background: var(--green); box-shadow: 0 0 5px rgba(45,232,121,.35); }
-    .rightPanel input[type="range"]::-moz-range-thumb { background: var(--green); box-shadow: none; }
-    .rightPanel .aksSubLabel { color: var(--accent); }
-    .rightPanel .aks-mat-cell[data-s="1"],
-    .rightPanel .aks-mat-cell[data-s="2"],
-    .rightPanel .aks-mat-cell[data-s="3"] { color: #2de879; }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+    /* Scrollbar (desktop) */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.22); }
+
+    /* iOS no-zoom on inputs */
+    input, select, textarea { font-size: 16px; }
+    .selectBox, .ctrlVal, .pill, .kbInfo, .midiWrap label, .masterWrap label, .vuLabel { font-size: 11px; }
+    .btn { font-size: 12px; }
+    .btnSm { font-size: 11px; }
   </style>
   <script defer src="https://cloud.umami.is/script.js" data-website-id="6ee0e9a9-7066-4115-b91d-5667d8042abe"></script>
 </head>
@@ -361,468 +416,620 @@
   <div class="topbar">
     <a class="brand" href="../index.html">
       <img src="../assets/img/logo.png" alt="PIXEL">
-      PIXEL ON KASPA — <span class="pur">SYNTHI</span>
+      <span>PIXEL ON KASPA — <span class="pur">AKS</span></span>
     </a>
     <nav class="nav">
-      <a class="btn btnSm" href="../index.html">Home</a>
-      <a class="btn btnSm" href="./index.html">Synthi</a>
-      <a class="btn btnSm btnPrimary" href="./generator.html">Generator</a>
-      <a class="btn btnSm" href="./aks.html">AKS</a>
-      <a class="btn btnSm" href="../viewer.html">NFTs</a>
+      <a class="btn btnSm btnGhost" href="../index.html">Home</a>
+      <a class="btn btnSm btnGhost" href="./index.html">Synthi</a>
+      <a class="btn btnSm btnPrimary" href="./generator.html">AKS</a>
+      <a class="btn btnSm btnGhost" href="../viewer.html">NFTs</a>
     </nav>
   </div>
 
-  <!-- ── TOOLBAR ── -->
-  <div class="toolbar">
-    <button class="btn btnSm btnPrimary" id="synthiStart" type="button">Start audio</button>
-    <button class="btn btnSm" id="synthiMute" type="button">Mute</button>
-    <div class="toolbarSep"></div>
-    <button class="btn btnSm" id="synthiReroll" type="button">Re-render</button>
-    <button class="btn btnSm" id="synthiDriftToggle" type="button">Drift: ON</button>
-    <button class="btn btnSm" id="synthiFbToggle" type="button">Feedback: ON</button>
-    <span class="toolbarHint">A · M · R · F feedback · D drift · W warp · K/L warp± · [/] dens · -/= exp · ,/. fb · P png</span>
+  <!-- ── CONTROL BAR ── -->
+  <div class="ctrlbar">
+    <button class="btn btnPrimary" id="audioStart" type="button">▶ Start audio</button>
+
+    <div class="midiWrap">
+      <span class="midiDot" id="midiDot"></span>
+      <label for="midiInput">MIDI</label>
+      <select id="midiInput" class="selectBox" title="MIDI input device">
+        <option value="">— off —</option>
+      </select>
+    </div>
+
+    <div class="vuWrap">
+      <div class="vuLabel"><span>Master VU</span><span class="vuDb" id="vuDb">-∞ dB</span></div>
+      <canvas id="vuCanvas" width="600" height="18"></canvas>
+    </div>
+
+    <div class="masterWrap">
+      <label for="masterVol">Master</label>
+      <input id="masterVol" type="range" min="0" max="1" step="0.01" value="0.8" />
+      <span class="masterVal" id="masterVolVal">0.80</span>
+    </div>
   </div>
 
-  <!-- ── MAIN 3-COL ── -->
+  <!-- ── MAIN ── -->
   <div class="main">
 
-    <!-- ── LEFT: VISUAL ── -->
-    <div class="sidePanel">
-      <div class="panelHead panelHeadLeft"><span class="dot"></span>Visual</div>
-      <div class="panelScroll">
-
-        <!-- MASTER -->
-        <div class="sect">
-          <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-            <b>Master</b><span class="sectChev">▼</span>
+    <!-- ── TRANSPORT ── -->
+    <div class="sect span2 green">
+      <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
+        <b>Transport</b><span class="sectChev">▼</span>
+      </div>
+      <div class="sectBody">
+        <div class="grid4">
+          <div class="ctrl">
+            <div class="ctrlHead"><span class="ctrlTitle">BPM</span><span class="ctrlVal" id="bpmVal">120</span></div>
+            <input id="bpmSlider" type="range" min="40" max="220" step="1" value="120" />
           </div>
-          <div class="sectBody">
-            <div class="ctrl">
-              <div class="ctrlHead"><span class="ctrlTitle">Volume</span><span class="ctrlVal" id="volVal">—</span></div>
-              <input id="volSlider" type="range" min="0.00" max="1.00" step="0.01" value="0.70" />
+          <div class="ctrl">
+            <div class="ctrlHead"><span class="ctrlTitle">Swing</span><span class="ctrlVal" id="aks-swing-val">0%</span></div>
+            <input id="aks-swing" type="range" min="0" max="0.5" step="0.01" value="0" />
+          </div>
+          <div class="ctrl">
+            <div class="ctrlHead"><span class="ctrlTitle">Current Note</span><span class="ctrlVal" id="aks-current-note">C4</span></div>
+            <div class="row">
+              <button class="btn btnSm" id="aks-note-on" type="button">▶ Hold note</button>
             </div>
-            <div class="ctrl">
-              <div class="ctrlHead"><span class="ctrlTitle">Feedback</span><span class="ctrlVal" id="fbVal">—</span></div>
-              <input id="fbSlider" type="range" min="0.00" max="1.50" step="0.01" value="1.00" />
-            </div>
+          </div>
+          <div class="ctrl">
+            <div class="ctrlHead"><span class="ctrlTitle">Sequencer</span><span class="ctrlVal" id="aks-seq-status">OFF</span></div>
+            <button class="btn btnPrimary" id="aks-seq-toggle" type="button">Start AKS Seq</button>
           </div>
         </div>
-
-        <!-- AUDIO REACT -->
-        <div class="sect">
-          <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-            <b>Audio React</b><span class="sectChev">▼</span>
-          </div>
-          <div class="sectBody">
-            <div class="ctrl">
-              <div class="ctrlHead"><span class="ctrlTitle">React</span><span class="ctrlVal" id="reactVal">—</span></div>
-              <input id="reactSlider" type="range" min="0.00" max="2.00" step="0.01" value="1.00" />
-            </div>
-            <div class="ctrl">
-              <div class="ctrlHead"><span class="ctrlTitle">Frequency</span><span class="ctrlVal" id="freqVal">—</span></div>
-              <input id="freqSlider" type="range" min="0.50" max="2.00" step="0.01" value="1.00" />
-            </div>
-          </div>
-        </div>
-
-        <!-- COLOR -->
-        <div class="sect">
-          <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-            <b>Color</b><span class="sectChev">▼</span>
-          </div>
-          <div class="sectBody">
-            <div class="ctrl">
-              <div class="ctrlHead"><span class="ctrlTitle">Color</span><span class="ctrlVal" id="colorVal">—</span></div>
-              <input id="colorSlider" type="range" min="0.00" max="1.00" step="0.01" value="0.65" />
-              <span class="ctrlDesc">0 = mono · 1 = full RGB</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- QUALITY -->
-        <div class="sect">
-          <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-            <b>Quality</b><span class="sectChev">▼</span>
-          </div>
-          <div class="sectBody">
-            <div class="ctrl">
-              <div class="ctrlHead"><span class="ctrlTitle">Quality</span><span class="ctrlVal" id="qualityVal">—</span></div>
-              <input id="qualitySlider" type="range" min="0.20" max="1.20" step="0.01" value="1.00" />
-              <span class="ctrlDesc">Point count + pixel size. Auto-adjusts on FPS drop.</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- HARMONICS -->
-        <div class="sect">
-          <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-            <b>Harmonics</b><span class="sectChev">▼</span>
-          </div>
-          <div class="sectBody">
-            <div class="ctrl">
-              <div class="ctrlHead"><span class="ctrlTitle">Harmonics</span><span class="ctrlVal" id="harmonicsVal">—</span></div>
-              <input id="harmonicsSlider" type="range" min="0.00" max="1.00" step="0.01" value="0.50" />
-              <span class="ctrlDesc">0 = base · 1 = 7 layers (×0.5 1 1.5 2 3 5 7)</span>
-            </div>
-            <div class="ctrl">
-              <div class="ctrlHead"><span class="ctrlTitle">Phase Drift</span><span class="ctrlVal" id="phaseDriftVal">—</span></div>
-              <input id="phaseDriftSlider" type="range" min="0.00" max="2.00" step="0.01" value="0.30" />
-            </div>
-          </div>
-        </div>
-
-        <!-- EFFECTS -->
-        <div class="sect collapsed">
-          <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-            <b>Effects</b><span class="sectChev">▼</span>
-          </div>
-          <div class="sectBody">
-            <div class="ctrlGrid2">
-              <div class="ctrl">
-                <div class="ctrlHead"><span class="ctrlTitle">Reverb</span><span class="ctrlVal" id="reverbWetVal">—</span></div>
-                <input id="reverbWetSlider" type="range" min="0.00" max="1.00" step="0.01" value="0.30" />
-              </div>
-              <div class="ctrl">
-                <div class="ctrlHead"><span class="ctrlTitle">Distortion</span><span class="ctrlVal" id="distDriveVal">—</span></div>
-                <input id="distDriveSlider" type="range" min="0.00" max="1.00" step="0.01" value="0.20" />
-              </div>
-              <div class="ctrl">
-                <div class="ctrlHead"><span class="ctrlTitle">LP Cutoff</span><span class="ctrlVal" id="filterCutoffVal">—</span></div>
-                <input id="filterCutoffSlider" type="range" min="200" max="20000" step="50" value="8000" />
-              </div>
-              <div class="ctrl">
-                <div class="ctrlHead"><span class="ctrlTitle">Resonance</span><span class="ctrlVal" id="filterResVal">—</span></div>
-                <input id="filterResSlider" type="range" min="0.00" max="20.00" step="0.10" value="2.00" />
-              </div>
-              <div class="ctrl">
-                <div class="ctrlHead"><span class="ctrlTitle">Chorus D</span><span class="ctrlVal" id="chorusDepthVal">—</span></div>
-                <input id="chorusDepthSlider" type="range" min="0.00" max="1.00" step="0.01" value="0.30" />
-              </div>
-              <div class="ctrl">
-                <div class="ctrlHead"><span class="ctrlTitle">Chorus R</span><span class="ctrlVal" id="chorusRateVal">—</span></div>
-                <input id="chorusRateSlider" type="range" min="0.10" max="5.00" step="0.05" value="0.50" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div><!-- /panelScroll -->
-    </div><!-- /left panel -->
-
-    <!-- ── CENTER: CANVAS ── -->
-    <div class="canvasSide">
-      <div class="canvasWrap">
-        <canvas id="synthiCanvas"></canvas>
-        <div class="metaChip" id="synthiMeta">—</div>
       </div>
     </div>
 
-    <!-- ── RIGHT: SOUND ── -->
-    <div class="sidePanel rightPanel">
-      <div class="panelHead panelHeadRight"><span class="dot"></span>Sound</div>
-      <div class="panelScroll">
+    <!-- ── VOICE ── -->
+    <div class="sect green">
+      <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
+        <b>Voice — Oscillators &amp; Noise</b><span class="sectChev">▼</span>
+      </div>
+      <div class="sectBody">
+        <div class="ctrl">
+          <div class="ctrlHead"><span class="ctrlTitle">AKS Master</span><span class="ctrlVal" id="aks-master-val">0.82</span></div>
+          <input id="aks-master" type="range" min="0" max="1" step="0.01" value="0.82" />
+        </div>
 
-        <!-- BEAT SEQUENCER -->
-        <div class="sect">
-          <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-            <b>Beat Sequencer</b><span class="sectChev">▼</span>
-          </div>
-          <div class="sectBody">
-            <div class="ctrlGrid2">
-              <div class="ctrl">
-                <div class="ctrlHead"><span class="ctrlTitle">BPM</span><span class="ctrlVal" id="bpmVal">—</span></div>
-                <input id="bpmSlider" type="range" min="60" max="180" step="1" value="120" />
-              </div>
-              <div class="ctrl">
-                <div class="ctrlHead"><span class="ctrlTitle">Beat Vol</span><span class="ctrlVal" id="beatVolVal">0.75</span></div>
-                <input id="beatVolSlider" type="range" min="0.00" max="1.00" step="0.01" value="0.75" />
-              </div>
-            </div>
-            <div class="padRow">
-              <button class="btn btnSm btnPrimary" id="seqToggle" type="button">Beat: OFF</button>
-              <button class="btn btnSm" id="padKick"  type="button">Kick</button>
-              <button class="btn btnSm" id="padSnare" type="button">Snare</button>
-              <button class="btn btnSm" id="padHat"   type="button">Hat</button>
-              <button class="btn btnSm" id="padPerc"  type="button">Perc</button>
-            </div>
-            <div id="seqGrid"></div>
+        <div class="oscBlock">
+          <span class="subLabel">OSC 1</span>
+          <select id="aks-osc1-wave" class="selectBox" style="max-width:none">
+            <option value="sawtooth" selected>Sawtooth</option>
+            <option value="square">Square</option>
+            <option value="triangle">Triangle</option>
+            <option value="sine">Sine</option>
+          </select>
+          <div class="ctrl">
+            <div class="ctrlHead"><span class="ctrlTitle">Level</span><span class="ctrlVal" id="aks-osc1-level-val">0.65</span></div>
+            <input id="aks-osc1-level" type="range" min="0" max="1" step="0.01" value="0.65" />
           </div>
         </div>
 
-        <!-- ── AKS VOICE ── -->
-        <div class="sect collapsed" id="aksVoiceGroup">
-          <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-            <b>AKS Voice</b><span class="sectChev">▼</span>
-          </div>
-          <div class="sectBody">
+        <div class="oscBlock">
+          <span class="subLabel">OSC 2</span>
+          <select id="aks-osc2-wave" class="selectBox" style="max-width:none">
+            <option value="sawtooth">Sawtooth</option>
+            <option value="square" selected>Square</option>
+            <option value="triangle">Triangle</option>
+            <option value="sine">Sine</option>
+          </select>
+          <div class="grid2">
             <div class="ctrl">
-              <div class="ctrlHead"><span class="ctrlTitle">AKS Master</span><span class="ctrlVal" id="aks-master-val">0.82</span></div>
-              <input id="aks-master" type="range" min="0" max="1" step="0.01" value="0.82" />
-            </div>
-
-            <div class="ctrlGrid2">
-              <div>
-                <span class="aksSubLabel">OSC 1</span>
-                <div class="ctrl" style="margin-bottom:6px">
-                  <select id="aks-osc1-wave" class="aksSelect">
-                    <option value="sawtooth" selected>Sawtooth</option>
-                    <option value="square">Square</option>
-                    <option value="triangle">Triangle</option>
-                    <option value="sine">Sine</option>
-                  </select>
-                </div>
-                <div class="ctrl">
-                  <div class="ctrlHead"><span class="ctrlTitle">Level</span><span class="ctrlVal" id="aks-osc1-level-val">0.65</span></div>
-                  <input id="aks-osc1-level" type="range" min="0" max="1" step="0.01" value="0.65" />
-                </div>
-              </div>
-              <div>
-                <span class="aksSubLabel">OSC 2</span>
-                <div class="ctrl" style="margin-bottom:6px">
-                  <select id="aks-osc2-wave" class="aksSelect">
-                    <option value="sawtooth">Sawtooth</option>
-                    <option value="square" selected>Square</option>
-                    <option value="triangle">Triangle</option>
-                    <option value="sine">Sine</option>
-                  </select>
-                </div>
-                <div class="ctrl">
-                  <div class="ctrlHead"><span class="ctrlTitle">Level</span><span class="ctrlVal" id="aks-osc2-level-val">0.45</span></div>
-                  <input id="aks-osc2-level" type="range" min="0" max="1" step="0.01" value="0.45" />
-                </div>
-                <div class="ctrl" style="margin-top:6px">
-                  <div class="ctrlHead"><span class="ctrlTitle">Tune</span><span class="ctrlVal" id="aks-osc2-tune-val">+0.06 st</span></div>
-                  <input id="aks-osc2-tune" type="range" min="-12" max="12" step="0.01" value="0.06" />
-                </div>
-              </div>
-            </div>
-
-            <div class="ctrlGrid2">
-              <div>
-                <span class="aksSubLabel">OSC 3</span>
-                <div class="ctrl" style="margin-bottom:6px">
-                  <select id="aks-osc3-wave" class="aksSelect">
-                    <option value="sawtooth">Sawtooth</option>
-                    <option value="square">Square</option>
-                    <option value="triangle" selected>Triangle</option>
-                    <option value="sine">Sine</option>
-                  </select>
-                </div>
-                <div class="ctrl">
-                  <div class="ctrlHead"><span class="ctrlTitle">Level</span><span class="ctrlVal" id="aks-osc3-level-val">0.30</span></div>
-                  <input id="aks-osc3-level" type="range" min="0" max="1" step="0.01" value="0.30" />
-                </div>
-                <div class="ctrl" style="margin-top:6px">
-                  <div class="ctrlHead"><span class="ctrlTitle">Tune</span><span class="ctrlVal" id="aks-osc3-tune-val">-12 st</span></div>
-                  <input id="aks-osc3-tune" type="range" min="-24" max="12" step="1" value="-12" />
-                </div>
-              </div>
-              <div>
-                <span class="aksSubLabel">Noise</span>
-                <div class="ctrl">
-                  <div class="ctrlHead"><span class="ctrlTitle">Level</span><span class="ctrlVal" id="aks-noise-level-val">0.06</span></div>
-                  <input id="aks-noise-level" type="range" min="0" max="1" step="0.01" value="0.06" />
-                </div>
-                <div class="ctrl" style="margin-top:6px">
-                  <div class="ctrlHead"><span class="ctrlTitle">Drift</span><span class="ctrlVal" id="aks-drift-val">0.30</span></div>
-                  <input id="aks-drift" type="range" min="0" max="1" step="0.01" value="0.30" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── AKS FILTER ── -->
-        <div class="sect collapsed" id="aksFilterGroup">
-          <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-            <b>AKS Filter / VCF</b><span class="sectChev">▼</span>
-          </div>
-          <div class="sectBody">
-            <div class="ctrlGrid2">
-              <div class="ctrl">
-                <div class="ctrlHead"><span class="ctrlTitle">Cutoff</span><span class="ctrlVal" id="aks-filter-cutoff-val">1800 Hz</span></div>
-                <input id="aks-filter-cutoff" type="range" min="20" max="12000" step="10" value="1800" />
-              </div>
-              <div class="ctrl">
-                <div class="ctrlHead"><span class="ctrlTitle">Res</span><span class="ctrlVal" id="aks-filter-res-val">7.0</span></div>
-                <input id="aks-filter-res" type="range" min="0.1" max="20" step="0.1" value="7.0" />
-              </div>
-              <div class="ctrl">
-                <div class="ctrlHead"><span class="ctrlTitle">Drive</span><span class="ctrlVal" id="aks-filter-drive-val">0.28</span></div>
-                <input id="aks-filter-drive" type="range" min="0" max="1" step="0.01" value="0.28" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── AKS ENVELOPES ── -->
-        <div class="sect collapsed" id="aksEnvGroup">
-          <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-            <b>AKS Envelopes</b><span class="sectChev">▼</span>
-          </div>
-          <div class="sectBody">
-            <span class="aksSubLabel">AMP ADSR</span>
-            <div class="ctrlGrid2">
-              <div class="ctrl">
-                <div class="ctrlHead"><span class="ctrlTitle">A</span><span class="ctrlVal" id="aks-amp-a-val">8ms</span></div>
-                <input id="aks-amp-a" type="range" min="0.001" max="4" step="0.001" value="0.008" />
-              </div>
-              <div class="ctrl">
-                <div class="ctrlHead"><span class="ctrlTitle">D</span><span class="ctrlVal" id="aks-amp-d-val">200ms</span></div>
-                <input id="aks-amp-d" type="range" min="0.01" max="4" step="0.01" value="0.20" />
-              </div>
-              <div class="ctrl">
-                <div class="ctrlHead"><span class="ctrlTitle">S</span><span class="ctrlVal" id="aks-amp-s-val">0.62</span></div>
-                <input id="aks-amp-s" type="range" min="0" max="1" step="0.01" value="0.62" />
-              </div>
-              <div class="ctrl">
-                <div class="ctrlHead"><span class="ctrlTitle">R</span><span class="ctrlVal" id="aks-amp-r-val">550ms</span></div>
-                <input id="aks-amp-r" type="range" min="0.01" max="6" step="0.01" value="0.55" />
-              </div>
-            </div>
-            <span class="aksSubLabel" style="margin-top:4px">MOD ENV</span>
-            <div class="ctrlGrid2">
-              <div class="ctrl">
-                <div class="ctrlHead"><span class="ctrlTitle">A</span><span class="ctrlVal" id="aks-mod-a-val">50ms</span></div>
-                <input id="aks-mod-a" type="range" min="0.001" max="4" step="0.001" value="0.05" />
-              </div>
-              <div class="ctrl">
-                <div class="ctrlHead"><span class="ctrlTitle">D</span><span class="ctrlVal" id="aks-mod-d-val">420ms</span></div>
-                <input id="aks-mod-d" type="range" min="0.01" max="8" step="0.01" value="0.42" />
-              </div>
-              <div class="ctrl">
-                <div class="ctrlHead"><span class="ctrlTitle">S</span><span class="ctrlVal" id="aks-mod-s-val">0.22</span></div>
-                <input id="aks-mod-s" type="range" min="0" max="1" step="0.01" value="0.22" />
-              </div>
-              <div class="ctrl">
-                <div class="ctrlHead"><span class="ctrlTitle">R</span><span class="ctrlVal" id="aks-mod-r-val">880ms</span></div>
-                <input id="aks-mod-r" type="range" min="0.01" max="8" step="0.01" value="0.88" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── AKS MODULATION ── -->
-        <div class="sect collapsed">
-          <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-            <b>AKS Modulation</b><span class="sectChev">▼</span>
-          </div>
-          <div class="sectBody">
-            <div class="ctrlGrid2">
-              <div>
-                <span class="aksSubLabel">LFO 1</span>
-                <div class="ctrl">
-                  <div class="ctrlHead"><span class="ctrlTitle">Rate</span><span class="ctrlVal" id="aks-lfo1-rate-val">0.55 Hz</span></div>
-                  <input id="aks-lfo1-rate" type="range" min="0.01" max="20" step="0.01" value="0.55" />
-                </div>
-                <div class="ctrl" style="margin-top:5px">
-                  <select id="aks-lfo1-wave" class="aksSelect">
-                    <option value="sine" selected>Sine</option>
-                    <option value="triangle">Triangle</option>
-                    <option value="square">Square</option>
-                    <option value="sawtooth">Sawtooth</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <span class="aksSubLabel">LFO 2</span>
-                <div class="ctrl">
-                  <div class="ctrlHead"><span class="ctrlTitle">Rate</span><span class="ctrlVal" id="aks-lfo2-rate-val">0.12 Hz</span></div>
-                  <input id="aks-lfo2-rate" type="range" min="0.01" max="20" step="0.01" value="0.12" />
-                </div>
-                <div class="ctrl" style="margin-top:5px">
-                  <select id="aks-lfo2-wave" class="aksSelect">
-                    <option value="sine">Sine</option>
-                    <option value="triangle" selected>Triangle</option>
-                    <option value="square">Square</option>
-                    <option value="sawtooth">Sawtooth</option>
-                  </select>
-                </div>
-              </div>
+              <div class="ctrlHead"><span class="ctrlTitle">Level</span><span class="ctrlVal" id="aks-osc2-level-val">0.45</span></div>
+              <input id="aks-osc2-level" type="range" min="0" max="1" step="0.01" value="0.45" />
             </div>
             <div class="ctrl">
-              <div class="ctrlHead"><span class="ctrlTitle">Glide</span><span class="ctrlVal" id="aks-glide-val">OFF</span></div>
-              <input id="aks-glide" type="range" min="0" max="2" step="0.01" value="0" />
+              <div class="ctrlHead"><span class="ctrlTitle">Tune</span><span class="ctrlVal" id="aks-osc2-tune-val">+0.06 st</span></div>
+              <input id="aks-osc2-tune" type="range" min="-12" max="12" step="0.01" value="0.06" />
             </div>
           </div>
         </div>
 
-        <!-- ── AKS MATRIX ── -->
-        <div class="sect" id="aksMatrixGroup">
-          <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-            <b>Routing Matrix</b><span class="sectChev">▼</span>
-          </div>
-          <div class="sectBody" style="padding:10px 8px 12px">
-            <div id="aks-matrix-grid"></div>
-          </div>
-        </div>
-
-        <!-- ── AKS SEQUENCER ── -->
-        <div class="sect collapsed" id="aksSeqGroup">
-          <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-            <b>AKS Sequencer</b><span class="sectChev">▼</span>
-          </div>
-          <div class="sectBody">
-            <div class="ctrlHead">
-              <span class="ctrlTitle">Note</span>
-              <span class="ctrlVal" id="aks-current-note">C4</span>
-            </div>
-            <span class="ctrlDesc" style="margin-top:2px">Keys 1–8 = C4–C5 · 9/0 = octave ±</span>
-            <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
-              <button class="btn btnSm btnPrimary" id="aks-seq-toggle" type="button">AKS Seq: OFF</button>
-              <button class="btn btnSm" id="aks-note-on" type="button">▶ NOTE</button>
+        <div class="oscBlock">
+          <span class="subLabel">OSC 3</span>
+          <select id="aks-osc3-wave" class="selectBox" style="max-width:none">
+            <option value="sawtooth">Sawtooth</option>
+            <option value="square">Square</option>
+            <option value="triangle" selected>Triangle</option>
+            <option value="sine">Sine</option>
+          </select>
+          <div class="grid2">
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Level</span><span class="ctrlVal" id="aks-osc3-level-val">0.30</span></div>
+              <input id="aks-osc3-level" type="range" min="0" max="1" step="0.01" value="0.30" />
             </div>
             <div class="ctrl">
-              <div class="ctrlHead"><span class="ctrlTitle">Swing</span><span class="ctrlVal" id="aks-swing-val">0%</span></div>
-              <input id="aks-swing" type="range" min="0" max="0.5" step="0.01" value="0" />
-            </div>
-            <div id="aks-seq-steps-grid" style="display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin-top:2px"></div>
-            <div id="aks-seq-step-editor" style="display:none;margin-top:8px;border-top:1px solid var(--border);padding-top:8px">
-              <span class="aksSubLabel" id="aks-step-editor-label">Step 1</span>
-              <div class="ctrlGrid2">
-                <div class="ctrl">
-                  <div class="ctrlHead"><span class="ctrlTitle">Note</span><span class="ctrlVal" id="aks-step-note-val">C4</span></div>
-                  <input id="aks-step-note" type="range" min="24" max="96" step="1" value="60" />
-                </div>
-                <div class="ctrl">
-                  <div class="ctrlHead"><span class="ctrlTitle">Velocity</span><span class="ctrlVal" id="aks-step-vel-val">0.78</span></div>
-                  <input id="aks-step-vel" type="range" min="0.05" max="1" step="0.01" value="0.78" />
-                </div>
-              </div>
-              <div style="display:flex;gap:5px;margin-top:5px">
-                <button class="btn btnSm" id="aks-step-active" type="button">Active: ON</button>
-                <button class="btn btnSm" id="aks-step-accent" type="button">Accent: OFF</button>
-              </div>
+              <div class="ctrlHead"><span class="ctrlTitle">Tune</span><span class="ctrlVal" id="aks-osc3-tune-val">-12 st</span></div>
+              <input id="aks-osc3-tune" type="range" min="-24" max="12" step="1" value="-12" />
             </div>
           </div>
         </div>
 
-        <!-- ── AKS PRESETS ── -->
-        <div class="sect collapsed" id="aksPresetsGroup">
-          <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-            <b>AKS Presets</b><span class="sectChev">▼</span>
-          </div>
-          <div class="sectBody">
-            <div style="display:flex;gap:5px">
-              <button class="btn btnSm btnPrimary" id="aks-preset-save" type="button">Save JSON</button>
-              <label class="btn btnSm" style="cursor:pointer">
-                Load JSON
-                <input id="aks-preset-load" type="file" accept=".json" style="display:none">
-              </label>
+        <div class="oscBlock">
+          <span class="subLabel">Noise / Drift</span>
+          <div class="grid2">
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Noise</span><span class="ctrlVal" id="aks-noise-level-val">0.06</span></div>
+              <input id="aks-noise-level" type="range" min="0" max="1" step="0.01" value="0.06" />
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Drift</span><span class="ctrlVal" id="aks-drift-val">0.30</span></div>
+              <input id="aks-drift" type="range" min="0" max="1" step="0.01" value="0.30" />
             </div>
           </div>
         </div>
+      </div>
+    </div>
 
-      </div><!-- /panelScroll -->
-    </div><!-- /right panel -->
+    <!-- ── FILTER ── -->
+    <div class="sect green">
+      <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
+        <b>Filter / VCF</b><span class="sectChev">▼</span>
+      </div>
+      <div class="sectBody">
+        <div class="ctrl">
+          <div class="ctrlHead"><span class="ctrlTitle">Cutoff</span><span class="ctrlVal" id="aks-filter-cutoff-val">1800 Hz</span></div>
+          <input id="aks-filter-cutoff" type="range" min="20" max="12000" step="10" value="1800" />
+        </div>
+        <div class="ctrl">
+          <div class="ctrlHead"><span class="ctrlTitle">Resonance</span><span class="ctrlVal" id="aks-filter-res-val">7.0</span></div>
+          <input id="aks-filter-res" type="range" min="0.1" max="20" step="0.1" value="7.0" />
+        </div>
+        <div class="ctrl">
+          <div class="ctrlHead"><span class="ctrlTitle">Drive</span><span class="ctrlVal" id="aks-filter-drive-val">0.28</span></div>
+          <input id="aks-filter-drive" type="range" min="0" max="1" step="0.01" value="0.28" />
+        </div>
+        <span class="ctrlDesc">Pre-VCF asymmetric soft-clip. Higher drive = richer harmonics, more Synthi grit.</span>
+      </div>
+    </div>
+
+    <!-- ── ENVELOPES ── -->
+    <div class="sect green">
+      <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
+        <b>Envelopes — AMP &amp; MOD</b><span class="sectChev">▼</span>
+      </div>
+      <div class="sectBody">
+        <span class="subLabel">AMP ADSR</span>
+        <div class="grid4">
+          <div class="ctrl">
+            <div class="ctrlHead"><span class="ctrlTitle">A</span><span class="ctrlVal" id="aks-amp-a-val">8ms</span></div>
+            <input id="aks-amp-a" type="range" min="0.001" max="4" step="0.001" value="0.008" />
+          </div>
+          <div class="ctrl">
+            <div class="ctrlHead"><span class="ctrlTitle">D</span><span class="ctrlVal" id="aks-amp-d-val">200ms</span></div>
+            <input id="aks-amp-d" type="range" min="0.01" max="4" step="0.01" value="0.20" />
+          </div>
+          <div class="ctrl">
+            <div class="ctrlHead"><span class="ctrlTitle">S</span><span class="ctrlVal" id="aks-amp-s-val">0.62</span></div>
+            <input id="aks-amp-s" type="range" min="0" max="1" step="0.01" value="0.62" />
+          </div>
+          <div class="ctrl">
+            <div class="ctrlHead"><span class="ctrlTitle">R</span><span class="ctrlVal" id="aks-amp-r-val">550ms</span></div>
+            <input id="aks-amp-r" type="range" min="0.01" max="6" step="0.01" value="0.55" />
+          </div>
+        </div>
+        <span class="subLabel" style="margin-top:6px">MOD ENV (via matrix)</span>
+        <div class="grid4">
+          <div class="ctrl">
+            <div class="ctrlHead"><span class="ctrlTitle">A</span><span class="ctrlVal" id="aks-mod-a-val">50ms</span></div>
+            <input id="aks-mod-a" type="range" min="0.001" max="4" step="0.001" value="0.05" />
+          </div>
+          <div class="ctrl">
+            <div class="ctrlHead"><span class="ctrlTitle">D</span><span class="ctrlVal" id="aks-mod-d-val">420ms</span></div>
+            <input id="aks-mod-d" type="range" min="0.01" max="8" step="0.01" value="0.42" />
+          </div>
+          <div class="ctrl">
+            <div class="ctrlHead"><span class="ctrlTitle">S</span><span class="ctrlVal" id="aks-mod-s-val">0.22</span></div>
+            <input id="aks-mod-s" type="range" min="0" max="1" step="0.01" value="0.22" />
+          </div>
+          <div class="ctrl">
+            <div class="ctrlHead"><span class="ctrlTitle">R</span><span class="ctrlVal" id="aks-mod-r-val">880ms</span></div>
+            <input id="aks-mod-r" type="range" min="0.01" max="8" step="0.01" value="0.88" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MODULATION ── -->
+    <div class="sect green">
+      <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
+        <b>Modulation — LFOs &amp; Glide</b><span class="sectChev">▼</span>
+      </div>
+      <div class="sectBody">
+        <div class="grid2">
+          <div class="oscBlock">
+            <span class="subLabel">LFO 1</span>
+            <select id="aks-lfo1-wave" class="selectBox" style="max-width:none">
+              <option value="sine" selected>Sine</option>
+              <option value="triangle">Triangle</option>
+              <option value="square">Square</option>
+              <option value="sawtooth">Sawtooth</option>
+            </select>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Rate</span><span class="ctrlVal" id="aks-lfo1-rate-val">0.55 Hz</span></div>
+              <input id="aks-lfo1-rate" type="range" min="0.01" max="20" step="0.01" value="0.55" />
+            </div>
+          </div>
+          <div class="oscBlock">
+            <span class="subLabel">LFO 2</span>
+            <select id="aks-lfo2-wave" class="selectBox" style="max-width:none">
+              <option value="sine">Sine</option>
+              <option value="triangle" selected>Triangle</option>
+              <option value="square">Square</option>
+              <option value="sawtooth">Sawtooth</option>
+            </select>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Rate</span><span class="ctrlVal" id="aks-lfo2-rate-val">0.12 Hz</span></div>
+              <input id="aks-lfo2-rate" type="range" min="0.01" max="20" step="0.01" value="0.12" />
+            </div>
+          </div>
+        </div>
+        <div class="ctrl">
+          <div class="ctrlHead"><span class="ctrlTitle">Glide</span><span class="ctrlVal" id="aks-glide-val">OFF</span></div>
+          <input id="aks-glide" type="range" min="0" max="2" step="0.01" value="0" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MATRIX ── -->
+    <div class="sect span2 green">
+      <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
+        <b>Routing Matrix</b><span class="sectChev">▼</span>
+      </div>
+      <div class="sectBody">
+        <span class="ctrlDesc">Tap cells to cycle strength: 0 → +1 → +2 → +3 → −1 → −2 → −3 → 0</span>
+        <div id="aks-matrix-grid"></div>
+      </div>
+    </div>
+
+    <!-- ── ON-SCREEN KEYBOARD ── -->
+    <div class="sect span2 green">
+      <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
+        <b>Keyboard</b><span class="sectChev">▼</span>
+      </div>
+      <div class="sectBody">
+        <div class="kbToolbar">
+          <button class="btn btnSm" id="kbOctDown" type="button">−Oct</button>
+          <span class="pill" id="kbOctLabel">C4 – C6</span>
+          <button class="btn btnSm" id="kbOctUp" type="button">+Oct</button>
+          <span class="kbInfo">PC keys: 1–8 octave / 9 ↑ / 0 ↓</span>
+        </div>
+        <div class="keyboard" id="kb"></div>
+      </div>
+    </div>
+
+    <!-- ── SEQUENCER ── -->
+    <div class="sect span2 green">
+      <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
+        <b>AKS Sequencer — 16 steps</b><span class="sectChev">▼</span>
+      </div>
+      <div class="sectBody">
+        <div id="aks-seq-steps-grid"></div>
+        <div id="aks-seq-step-editor" style="display:none; border-top: 1px solid var(--border); padding-top: 12px;">
+          <span class="subLabel" id="aks-step-editor-label">Step 1</span>
+          <div class="grid2">
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Note</span><span class="ctrlVal" id="aks-step-note-val">C4</span></div>
+              <input id="aks-step-note" type="range" min="24" max="96" step="1" value="60" />
+            </div>
+            <div class="ctrl">
+              <div class="ctrlHead"><span class="ctrlTitle">Velocity</span><span class="ctrlVal" id="aks-step-vel-val">0.78</span></div>
+              <input id="aks-step-vel" type="range" min="0.05" max="1" step="0.01" value="0.78" />
+            </div>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn btnSm" id="aks-step-active" type="button">Active: ON</button>
+            <button class="btn btnSm" id="aks-step-accent" type="button">Accent: OFF</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PRESETS ── -->
+    <div class="sect span2 green">
+      <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
+        <b>Presets</b><span class="sectChev">▼</span>
+      </div>
+      <div class="sectBody">
+        <div class="row">
+          <button class="btn btnPrimary" id="aks-preset-save" type="button">Save JSON</button>
+          <label class="btn" style="cursor:pointer">
+            Load JSON
+            <input id="aks-preset-load" type="file" accept=".json" style="display:none">
+          </label>
+        </div>
+      </div>
+    </div>
 
   </div><!-- /main -->
 
-  <script type="module" src="./index.js"></script>
   <script src="./synthi-aks.js"></script>
 
   <script>
-  /* ── AKS UI wiring ── */
+  /* ─────────────────────────────────────────────────────────────────────────
+     STANDALONE AUDIO BOOTSTRAP (no index.js)
+     - Builds AudioContext, master chain, VU analyser
+     - Dispatches `synthiAudioReady` so synthi-aks.js attaches at mixBus
+     ───────────────────────────────────────────────────────────────────────── */
+  (function () {
+    'use strict';
+
+    let actx = null;
+    let mixBus = null;
+    let masterGain = null;
+    let vuAnalyser = null;
+    let vuBuf = null;
+    let masterVol = 0.80;
+    let vuPeak = 0, vuPeakHoldDb = -Infinity, vuPeakHoldTs = 0;
+
+    const startBtn  = document.getElementById('audioStart');
+    const masterEl  = document.getElementById('masterVol');
+    const masterValEl = document.getElementById('masterVolVal');
+    const vuCanvas  = document.getElementById('vuCanvas');
+    const vuDbEl    = document.getElementById('vuDb');
+    const vuCtx     = vuCanvas.getContext('2d');
+
+    function fmtDb(db) {
+      if (!isFinite(db)) return '-∞ dB';
+      return (db >= 0 ? '+' : '') + db.toFixed(1) + ' dB';
+    }
+
+    function ensureAudio() {
+      if (actx) {
+        if (actx.state === 'suspended') actx.resume();
+        return actx;
+      }
+      const AC = window.AudioContext || window.webkitAudioContext;
+      actx = new AC();
+
+      mixBus = actx.createGain();
+      mixBus.gain.value = 1.0;
+
+      masterGain = actx.createGain();
+      masterGain.gain.value = masterVol;
+
+      const limiter = actx.createDynamicsCompressor();
+      limiter.threshold.value = -6;
+      limiter.knee.value      = 4;
+      limiter.ratio.value     = 12;
+      limiter.attack.value    = 0.003;
+      limiter.release.value   = 0.15;
+
+      vuAnalyser = actx.createAnalyser();
+      vuAnalyser.fftSize = 1024;
+      vuAnalyser.smoothingTimeConstant = 0.6;
+      vuBuf = new Float32Array(vuAnalyser.fftSize);
+
+      mixBus.connect(masterGain);
+      masterGain.connect(vuAnalyser);
+      masterGain.connect(limiter);
+      limiter.connect(actx.destination);
+
+      window.dispatchEvent(new CustomEvent('synthiAudioReady', { detail: { actx, mixBus } }));
+
+      startBtn.textContent = '● Audio running';
+      startBtn.classList.remove('btnPrimary');
+      startBtn.classList.add('btnActive');
+
+      requestAnimationFrame(drawVu);
+      return actx;
+    }
+
+    startBtn.addEventListener('click', ensureAudio);
+
+    /* master volume */
+    masterEl.addEventListener('input', () => {
+      masterVol = parseFloat(masterEl.value);
+      masterValEl.textContent = masterVol.toFixed(2);
+      if (masterGain) masterGain.gain.setTargetAtTime(masterVol, actx.currentTime, 0.02);
+    });
+    masterValEl.textContent = masterVol.toFixed(2);
+
+    /* ── VU meter draw ── */
+    function drawVu() {
+      requestAnimationFrame(drawVu);
+      if (!vuAnalyser) return;
+
+      vuAnalyser.getFloatTimeDomainData(vuBuf);
+      let sum = 0, peak = 0;
+      for (let i = 0; i < vuBuf.length; i++) {
+        const v = vuBuf[i];
+        sum += v * v;
+        const a = Math.abs(v);
+        if (a > peak) peak = a;
+      }
+      const rms = Math.sqrt(sum / vuBuf.length);
+      const rmsDb  = 20 * Math.log10(Math.max(rms,  1e-6));
+      const peakDb = 20 * Math.log10(Math.max(peak, 1e-6));
+
+      // peak hold ~1.2 s
+      const now = performance.now();
+      if (peakDb > vuPeakHoldDb || now - vuPeakHoldTs > 1200) {
+        vuPeakHoldDb = peakDb;
+        vuPeakHoldTs = now;
+      }
+
+      const W = vuCanvas.width;
+      const H = vuCanvas.height;
+      vuCtx.clearRect(0, 0, W, H);
+
+      // background
+      vuCtx.fillStyle = '#000';
+      vuCtx.fillRect(0, 0, W, H);
+
+      // dB range: -60 to +6
+      const dbMin = -60, dbMax = 6;
+      const dbToX = db => ((db - dbMin) / (dbMax - dbMin)) * W;
+
+      // gradient fill up to RMS
+      const rmsX = Math.max(0, Math.min(W, dbToX(rmsDb)));
+      const grad = vuCtx.createLinearGradient(0, 0, W, 0);
+      grad.addColorStop(0,   '#2de879');
+      grad.addColorStop(dbToX(-12) / W, '#2de879');
+      grad.addColorStop(dbToX(-6)  / W, '#e8a020');
+      grad.addColorStop(dbToX(0)   / W, '#e63b3b');
+      grad.addColorStop(1, '#e63b3b');
+      vuCtx.fillStyle = grad;
+      vuCtx.fillRect(0, 0, rmsX, H);
+
+      // peak instantaneous (thin)
+      const peakX = Math.max(0, Math.min(W - 1, dbToX(peakDb)));
+      vuCtx.fillStyle = 'rgba(255,255,255,.55)';
+      vuCtx.fillRect(peakX, 0, 1, H);
+
+      // peak hold (bright line)
+      if (isFinite(vuPeakHoldDb)) {
+        const hX = Math.max(0, Math.min(W - 1, dbToX(vuPeakHoldDb)));
+        vuCtx.fillStyle = vuPeakHoldDb >= 0 ? '#e63b3b' : vuPeakHoldDb >= -6 ? '#e8a020' : '#fff';
+        vuCtx.fillRect(hX, 0, 2, H);
+      }
+
+      // scale ticks
+      vuCtx.fillStyle = 'rgba(255,255,255,.18)';
+      [-48, -36, -24, -18, -12, -6, 0].forEach(db => {
+        const x = dbToX(db);
+        vuCtx.fillRect(x, H - 4, 1, 4);
+      });
+
+      // display value (peak hold dB)
+      const showDb = isFinite(vuPeakHoldDb) ? vuPeakHoldDb : -Infinity;
+      vuDbEl.textContent = fmtDb(showDb);
+      vuDbEl.style.color = showDb >= 0 ? '#e63b3b' : showDb >= -6 ? '#e8a020' : '#2de879';
+    }
+
+    /* Resize canvas to its CSS width on layout */
+    function fitVu() {
+      const r = vuCanvas.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      vuCanvas.width  = Math.max(120, Math.floor(r.width  * dpr));
+      vuCanvas.height = Math.max( 18, Math.floor(r.height * dpr));
+      vuCtx.setTransform(1,0,0,1,0,0);
+    }
+    fitVu();
+    window.addEventListener('resize', fitVu);
+  })();
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     WEB MIDI INPUT
+     ───────────────────────────────────────────────────────────────────────── */
+  (function () {
+    'use strict';
+    const midiSelect = document.getElementById('midiInput');
+    const midiDot    = document.getElementById('midiDot');
+    let midiAccess   = null;
+    let currentInput = null;
+    let activityTs   = 0;
+
+    function setStatus(connected) {
+      midiDot.classList.toggle('connected', !!connected);
+    }
+    function flashActivity() {
+      midiDot.classList.add('active');
+      activityTs = performance.now();
+      setTimeout(() => {
+        if (performance.now() - activityTs >= 90) midiDot.classList.remove('active');
+      }, 100);
+    }
+
+    function populateInputs() {
+      const prev = currentInput ? currentInput.id : midiSelect.value;
+      midiSelect.innerHTML = '<option value="">— off —</option>';
+      if (!midiAccess) return;
+      let first = null;
+      midiAccess.inputs.forEach(input => {
+        const opt = document.createElement('option');
+        opt.value = input.id;
+        opt.textContent = input.name || ('MIDI in ' + input.id.slice(0, 6));
+        midiSelect.appendChild(opt);
+        if (!first) first = input;
+      });
+      if (prev && midiAccess.inputs.get(prev)) {
+        midiSelect.value = prev;
+        attachInput(prev);
+      } else if (first) {
+        midiSelect.value = first.id;
+        attachInput(first.id);
+      } else {
+        attachInput('');
+      }
+    }
+
+    function attachInput(id) {
+      if (currentInput) {
+        currentInput.onmidimessage = null;
+        currentInput = null;
+      }
+      if (!id || !midiAccess) {
+        setStatus(false);
+        return;
+      }
+      const input = midiAccess.inputs.get(id);
+      if (!input) { setStatus(false); return; }
+      currentInput = input;
+      input.onmidimessage = handleMidi;
+      setStatus(true);
+    }
+
+    function handleMidi(ev) {
+      const data = ev.data;
+      if (!data || data.length < 1) return;
+      const status = data[0] & 0xf0;
+      const aks = window._aksEngine;
+      flashActivity();
+      if (!aks) return;
+
+      if (status === 0x90 && data[2] > 0) {
+        // note on
+        const note = data[1], vel = data[2] / 127;
+        aks.noteOn(note, vel);
+        const noteEl = document.getElementById('aks-current-note');
+        if (noteEl && window._AKSEngine) noteEl.textContent = window._AKSEngine.midiName(note);
+      } else if (status === 0x80 || (status === 0x90 && data[2] === 0)) {
+        // note off
+        aks.noteOff();
+      } else if (status === 0xb0) {
+        // CC
+        const cc = data[1], val = data[2] / 127;
+        if (cc === 1) {
+          // mod wheel → filter cutoff offset (light touch)
+          const cutoff = 200 + val * 8000;
+          aks.setParam('filterCutoff', cutoff);
+          const el = document.getElementById('aks-filter-cutoff');
+          const vEl = document.getElementById('aks-filter-cutoff-val');
+          if (el) el.value = cutoff;
+          if (vEl) vEl.textContent = Math.round(cutoff) + ' Hz';
+        } else if (cc === 7) {
+          // volume → master
+          const masterEl = document.getElementById('masterVol');
+          const masterValEl = document.getElementById('masterVolVal');
+          if (masterEl) { masterEl.value = val; masterEl.dispatchEvent(new Event('input')); }
+        }
+      }
+    }
+
+    midiSelect.addEventListener('change', () => attachInput(midiSelect.value));
+
+    if (!navigator.requestMIDIAccess) {
+      midiSelect.disabled = true;
+      midiSelect.innerHTML = '<option>MIDI not supported</option>';
+      return;
+    }
+    navigator.requestMIDIAccess({ sysex: false }).then(access => {
+      midiAccess = access;
+      midiAccess.onstatechange = populateInputs;
+      populateInputs();
+    }).catch(err => {
+      console.warn('[MIDI] access denied:', err);
+      midiSelect.disabled = true;
+      midiSelect.innerHTML = '<option>MIDI denied</option>';
+    });
+  })();
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     AKS UI WIRING
+     ───────────────────────────────────────────────────────────────────────── */
   (function () {
     'use strict';
 
@@ -845,7 +1052,7 @@
         if (aks) aks.setParam(key, v);
       }
       el.addEventListener('input', refresh);
-      (function() { const v = parseFloat(el.value); if (vEl) vEl.textContent = fmt ? fmt(v) : v.toFixed(2); })();
+      (function () { const v = parseFloat(el.value); if (vEl) vEl.textContent = fmt ? fmt(v) : v.toFixed(2); })();
     }
 
     function bindSelect(id, key) {
@@ -854,11 +1061,10 @@
       el.addEventListener('change', () => { if (aks) aks.setParam(key, el.value); });
     }
 
-    /* Matrix */
+    /* ── Matrix ── */
     const STRENGTH_CYCLE = [0, 1, 2, 3, -1, -2, -3];
     const SRC_LABELS  = ['LFO1', 'LFO2', 'MOD', 'OSC3', 'NOISE'];
-    const DEST_LABELS = ['O1 ƒ', 'O2 ƒ', 'O3 ƒ', 'VCF', 'AMP', 'L1 ƒ'];
-
+    const DEST_LABELS = ['OSC1 ƒ', 'OSC2 ƒ', 'OSC3 ƒ', 'VCF', 'AMP', 'LFO1 ƒ'];
     function cellText(s) { return s === 0 ? '·' : (s > 0 ? '+' + s : String(s)); }
 
     function buildMatrix() {
@@ -903,6 +1109,7 @@
       }
     }
 
+    /* ── Sequencer step grid ── */
     function buildSeqSteps() {
       const grid = document.getElementById('aks-seq-steps-grid');
       if (!grid || grid.dataset.built) return;
@@ -961,6 +1168,98 @@
       if (accentBtn) accentBtn.textContent = 'Accent: ' + (step.accent ? 'ON' : 'OFF');
     }
 
+    /* ── On-screen keyboard ── */
+    let kbStartMidi = 60; // C4
+    const KB_OCT = 2; // 2-octave span (24 semitones)
+    const WHITE_OFFSETS = [0,2,4,5,7,9,11];
+    const BLACK_OFFSETS = [1,3,6,8,10];
+
+    function buildKeyboard() {
+      const kb = document.getElementById('kb');
+      if (!kb) return;
+      kb.innerHTML = '';
+
+      const whiteNotes = [];
+      for (let oct = 0; oct < KB_OCT + 1; oct++) {
+        for (const off of WHITE_OFFSETS) {
+          const midi = kbStartMidi + oct * 12 + off;
+          if (whiteNotes.length < 15) whiteNotes.push(midi);
+        }
+      }
+      // 15 white keys grid
+      whiteNotes.forEach((midi, idx) => {
+        const k = document.createElement('div');
+        k.className = 'keyW';
+        k.dataset.midi = midi;
+        k.style.gridColumn = (idx + 1);
+        const name = fmtNote(midi);
+        if (name.startsWith('C')) k.textContent = name;
+        attachKeyEvents(k);
+        kb.appendChild(k);
+      });
+
+      // black keys: place over white keys at relative positions
+      const whiteWidthPct = 100 / 15;
+      const gapPx = 3;
+      for (let i = 0; i < whiteNotes.length - 1; i++) {
+        const m1 = whiteNotes[i], m2 = whiteNotes[i+1];
+        if (m2 - m1 !== 2) continue; // no black key between B-C or E-F
+        const blackMidi = m1 + 1;
+        if (fmtNote(blackMidi).indexOf('#') === -1) continue;
+        const k = document.createElement('div');
+        k.className = 'keyB';
+        k.dataset.midi = blackMidi;
+        // center between two white keys
+        k.style.left = `calc(${(i + 1) * whiteWidthPct}% - calc((100% - 14*${gapPx}px) / 15 * 0.35))`;
+        attachKeyEvents(k);
+        kb.appendChild(k);
+      }
+
+      updateKbLabel();
+    }
+
+    function updateKbLabel() {
+      const lbl = document.getElementById('kbOctLabel');
+      if (lbl) lbl.textContent = fmtNote(kbStartMidi) + ' – ' + fmtNote(kbStartMidi + 24);
+    }
+
+    function attachKeyEvents(el) {
+      const press = (ev) => {
+        ev.preventDefault();
+        const note = parseInt(el.dataset.midi, 10);
+        if (aks) aks.noteOn(note, 0.82);
+        el.classList.add('held');
+        const noteEl = document.getElementById('aks-current-note');
+        if (noteEl) noteEl.textContent = fmtNote(note);
+      };
+      const release = (ev) => {
+        ev && ev.preventDefault && ev.preventDefault();
+        if (aks) aks.noteOff();
+        el.classList.remove('held');
+      };
+      el.addEventListener('pointerdown', press);
+      el.addEventListener('pointerup', release);
+      el.addEventListener('pointercancel', release);
+      el.addEventListener('pointerleave', (ev) => {
+        if (el.classList.contains('held')) release(ev);
+      });
+    }
+
+    document.getElementById('kbOctDown').addEventListener('click', () => {
+      kbStartMidi = Math.max(12, kbStartMidi - 12);
+      buildKeyboard();
+    });
+    document.getElementById('kbOctUp').addEventListener('click', () => {
+      kbStartMidi = Math.min(96, kbStartMidi + 12);
+      buildKeyboard();
+    });
+
+    /* ── BPM display ── */
+    const bpmSlider = document.getElementById('bpmSlider');
+    const bpmVal    = document.getElementById('bpmVal');
+    bpmSlider.addEventListener('input', () => { bpmVal.textContent = bpmSlider.value; });
+
+    /* ── Sync controls from engine state (after preset load) ── */
     function syncSlidersFromState() {
       if (!aks) return;
       const st = aks.state;
@@ -1018,29 +1317,29 @@
       });
 
       refreshAllStepBtns();
-      if (document.getElementById('aks-seq-step-editor').style.display !== 'none') {
-        openStepEditor(selectedStep);
-      }
+      const editor = document.getElementById('aks-seq-step-editor');
+      if (editor && editor.style.display !== 'none') openStepEditor(selectedStep);
     }
 
+    /* ── AKS engine ready ── */
     window.addEventListener('aksReady', function (e) {
       aks = e.detail;
 
       bindSlider('aks-master','aks-master-val','aksLevel');
       bindSlider('aks-osc1-level','aks-osc1-level-val','osc1Level');
       bindSlider('aks-osc2-level','aks-osc2-level-val','osc2Level');
-      bindSlider('aks-osc2-tune', 'aks-osc2-tune-val', 'osc2Tune',  function(v){ return v.toFixed(2)+' st'; });
+      bindSlider('aks-osc2-tune', 'aks-osc2-tune-val', 'osc2Tune', v => v.toFixed(2)+' st');
       bindSlider('aks-osc3-level','aks-osc3-level-val','osc3Level');
-      bindSlider('aks-osc3-tune', 'aks-osc3-tune-val', 'osc3Tune',  function(v){ return v.toFixed(0)+' st'; });
+      bindSlider('aks-osc3-tune', 'aks-osc3-tune-val', 'osc3Tune', v => v.toFixed(0)+' st');
       bindSlider('aks-noise-level','aks-noise-level-val','noiseLevel');
-      bindSlider('aks-drift',     'aks-drift-val',     'driftAmt');
+      bindSlider('aks-drift', 'aks-drift-val', 'driftAmt');
       bindSelect('aks-osc1-wave','osc1Wave');
       bindSelect('aks-osc2-wave','osc2Wave');
       bindSelect('aks-osc3-wave','osc3Wave');
 
-      bindSlider('aks-filter-cutoff','aks-filter-cutoff-val','filterCutoff', function(v){ return Math.round(v)+' Hz'; });
-      bindSlider('aks-filter-res',   'aks-filter-res-val',   'filterRes');
-      bindSlider('aks-filter-drive', 'aks-filter-drive-val', 'filterDrive');
+      bindSlider('aks-filter-cutoff','aks-filter-cutoff-val','filterCutoff', v => Math.round(v)+' Hz');
+      bindSlider('aks-filter-res','aks-filter-res-val','filterRes');
+      bindSlider('aks-filter-drive','aks-filter-drive-val','filterDrive');
 
       bindSlider('aks-amp-a','aks-amp-a-val','ampA',fmtMs);
       bindSlider('aks-amp-d','aks-amp-d-val','ampD',fmtMs);
@@ -1051,117 +1350,128 @@
       bindSlider('aks-mod-s','aks-mod-s-val','modS');
       bindSlider('aks-mod-r','aks-mod-r-val','modR',fmtMs);
 
-      bindSlider('aks-lfo1-rate','aks-lfo1-rate-val','lfo1Rate', function(v){ return v.toFixed(2)+' Hz'; });
-      bindSlider('aks-lfo2-rate','aks-lfo2-rate-val','lfo2Rate', function(v){ return v.toFixed(2)+' Hz'; });
+      bindSlider('aks-lfo1-rate','aks-lfo1-rate-val','lfo1Rate', v => v.toFixed(2)+' Hz');
+      bindSlider('aks-lfo2-rate','aks-lfo2-rate-val','lfo2Rate', v => v.toFixed(2)+' Hz');
       bindSelect('aks-lfo1-wave','lfo1Wave');
       bindSelect('aks-lfo2-wave','lfo2Wave');
-      bindSlider('aks-glide','aks-glide-val','glide', function(v){ return v < 0.01 ? 'OFF' : fmtMs(v); });
+      bindSlider('aks-glide','aks-glide-val','glide', v => v < 0.01 ? 'OFF' : fmtMs(v));
 
       buildSeqSteps();
 
-      var seqToggle = document.getElementById('aks-seq-toggle');
+      const seqToggle = document.getElementById('aks-seq-toggle');
+      const seqStatus = document.getElementById('aks-seq-status');
       if (seqToggle) {
-        seqToggle.addEventListener('click', function() {
+        seqToggle.addEventListener('click', () => {
           if (aks.state.seqRunning) {
-            aks.seqStop(); seqToggle.textContent = 'AKS Seq: OFF';
+            aks.seqStop();
+            seqToggle.textContent = 'Start AKS Seq';
+            seqToggle.classList.remove('btnActive');
+            seqToggle.classList.add('btnPrimary');
+            if (seqStatus) seqStatus.textContent = 'OFF';
           } else {
-            var bpmEl = document.getElementById('bpmSlider');
-            aks.seqStart(function() { return bpmEl ? parseFloat(bpmEl.value) : 120; });
-            seqToggle.textContent = 'AKS Seq: ON';
+            const bpmEl = document.getElementById('bpmSlider');
+            aks.seqStart(() => bpmEl ? parseFloat(bpmEl.value) : 120);
+            seqToggle.textContent = 'Stop AKS Seq';
+            seqToggle.classList.remove('btnPrimary');
+            seqToggle.classList.add('btnActive');
+            if (seqStatus) seqStatus.textContent = 'ON';
           }
         });
       }
 
-      var noteOnBtn = document.getElementById('aks-note-on');
+      const noteOnBtn = document.getElementById('aks-note-on');
       if (noteOnBtn) {
-        noteOnBtn.addEventListener('mousedown',  function() { aks.noteOn(aks.state.currentNote, 0.82); });
-        noteOnBtn.addEventListener('mouseup',    function() { aks.noteOff(); });
-        noteOnBtn.addEventListener('mouseleave', function() { aks.noteOff(); });
-        noteOnBtn.addEventListener('touchstart', function(ev) { ev.preventDefault(); aks.noteOn(aks.state.currentNote, 0.82); });
-        noteOnBtn.addEventListener('touchend',   function() { aks.noteOff(); });
+        const start = (ev) => { ev.preventDefault(); aks.noteOn(aks.state.currentNote, 0.82); };
+        const stop  = ()   => aks.noteOff();
+        noteOnBtn.addEventListener('pointerdown', start);
+        noteOnBtn.addEventListener('pointerup',   stop);
+        noteOnBtn.addEventListener('pointerleave',stop);
+        noteOnBtn.addEventListener('pointercancel', stop);
       }
 
-      var swingSlider = document.getElementById('aks-swing');
-      var swingVal    = document.getElementById('aks-swing-val');
+      const swingSlider = document.getElementById('aks-swing');
+      const swingVal    = document.getElementById('aks-swing-val');
       if (swingSlider) {
-        swingSlider.addEventListener('input', function() {
-          var v = parseFloat(swingSlider.value);
+        swingSlider.addEventListener('input', () => {
+          const v = parseFloat(swingSlider.value);
           if (swingVal) swingVal.textContent = Math.round(v * 200) + '%';
-          if (aks) aks.state.seqSwing = v;
+          aks.state.seqSwing = v;
         });
       }
 
-      var stepNoteSlider = document.getElementById('aks-step-note');
-      var stepNoteVal    = document.getElementById('aks-step-note-val');
+      const stepNoteSlider = document.getElementById('aks-step-note');
+      const stepNoteVal    = document.getElementById('aks-step-note-val');
       if (stepNoteSlider) {
-        stepNoteSlider.addEventListener('input', function() {
-          var v = parseInt(stepNoteSlider.value, 10);
+        stepNoteSlider.addEventListener('input', () => {
+          const v = parseInt(stepNoteSlider.value, 10);
           if (stepNoteVal) stepNoteVal.textContent = fmtNote(v);
-          if (aks) { aks.state.seqSteps[selectedStep].note = v; refreshAllStepBtns(); }
+          aks.state.seqSteps[selectedStep].note = v;
+          refreshAllStepBtns();
         });
       }
 
-      var stepVelSlider = document.getElementById('aks-step-vel');
-      var stepVelVal    = document.getElementById('aks-step-vel-val');
+      const stepVelSlider = document.getElementById('aks-step-vel');
+      const stepVelVal    = document.getElementById('aks-step-vel-val');
       if (stepVelSlider) {
-        stepVelSlider.addEventListener('input', function() {
-          var v = parseFloat(stepVelSlider.value);
+        stepVelSlider.addEventListener('input', () => {
+          const v = parseFloat(stepVelSlider.value);
           if (stepVelVal) stepVelVal.textContent = v.toFixed(2);
-          if (aks) aks.state.seqSteps[selectedStep].velocity = v;
+          aks.state.seqSteps[selectedStep].velocity = v;
         });
       }
 
-      var activeBtn = document.getElementById('aks-step-active');
+      const activeBtn = document.getElementById('aks-step-active');
       if (activeBtn) {
-        activeBtn.addEventListener('click', function() {
-          if (!aks) return;
-          var s = aks.state.seqSteps[selectedStep];
+        activeBtn.addEventListener('click', () => {
+          const s = aks.state.seqSteps[selectedStep];
           s.active = !s.active;
           activeBtn.textContent = 'Active: ' + (s.active ? 'ON' : 'OFF');
           refreshAllStepBtns();
         });
       }
 
-      var accentBtn = document.getElementById('aks-step-accent');
+      const accentBtn = document.getElementById('aks-step-accent');
       if (accentBtn) {
-        accentBtn.addEventListener('click', function() {
-          if (!aks) return;
-          var s = aks.state.seqSteps[selectedStep];
+        accentBtn.addEventListener('click', () => {
+          const s = aks.state.seqSteps[selectedStep];
           s.accent = !s.accent;
           accentBtn.textContent = 'Accent: ' + (s.accent ? 'ON' : 'OFF');
           refreshAllStepBtns();
         });
       }
 
-      var saveBtn = document.getElementById('aks-preset-save');
+      const saveBtn = document.getElementById('aks-preset-save');
       if (saveBtn) {
-        saveBtn.addEventListener('click', function() {
-          if (!aks) return;
-          var json = aks.savePreset('SYNTHI AKS');
-          var a = document.createElement('a');
+        saveBtn.addEventListener('click', () => {
+          const json = aks.savePreset('SYNTHI AKS');
+          const a = document.createElement('a');
           a.download = 'synthi-aks-patch-' + Date.now() + '.json';
           a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
           a.click();
         });
       }
 
-      var loadInput = document.getElementById('aks-preset-load');
+      const loadInput = document.getElementById('aks-preset-load');
       if (loadInput) {
-        loadInput.addEventListener('change', function(ev) {
-          var file = ev.target.files[0];
-          if (!file || !aks) return;
-          var reader = new FileReader();
-          reader.onload = function(fe) {
-            var ok = aks.loadPreset(fe.target.result);
+        loadInput.addEventListener('change', (ev) => {
+          const file = ev.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (fe) => {
+            const ok = aks.loadPreset(fe.target.result);
             if (ok) syncSlidersFromState();
           };
           reader.readAsText(file);
         });
       }
+
+      syncSlidersFromState();
     });
 
     buildMatrix();
+    buildKeyboard();
   }());
   </script>
+
 </body>
 </html>
