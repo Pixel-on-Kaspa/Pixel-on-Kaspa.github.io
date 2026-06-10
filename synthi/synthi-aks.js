@@ -30,29 +30,28 @@ const _midiName = (n) => `${_NOTE_NAMES[n % 12]}${Math.floor(n / 12) - 1}`;
 
 // ── Matrix: sources & destinations ────────────────────────────────────────────
 
-const SRC_LABELS  = ['LFO1', 'LFO2', 'MOD ENV', 'OSC3', 'NOISE'];
-const DEST_LABELS = ['OSC1 ƒ', 'OSC2 ƒ', 'OSC3 ƒ', 'FILTER', 'AMP', 'LFO1 ƒ'];
-const N_SRC = SRC_LABELS.length;   // 5
+const SRC_LABELS  = ['OSC1', 'LFO1', 'LFO2', 'MOD', 'OSC3', 'NOISE'];
+const DEST_LABELS = ['OSC1ƒ', 'OSC2ƒ', 'OSC3ƒ', 'VCFƒ', 'VCA', 'VCFQ'];
+const N_SRC = SRC_LABELS.length;   // 6
 const N_DST = DEST_LABELS.length;  // 6
 
 /**
- * Scale: source signal is ±1.  Strength ±3 = full scale deviation.
- *   OSC pitch  : ±200 Hz total   (strong = ±200, med = ±133, weak = ±67)
- *   Filter freq: ±3000 Hz total
- *   Amp        : ±0.45 gain
- *   LFO1 rate  : ±2 Hz
+ * Scale: source signal is ±1.  Strength ±3 = full scale deviation
+ * for a SINGLE pin.  When multiple pins route to the same destination,
+ * the effective scale per pin is divided by sqrt(activePins) so a stack
+ * of pins doesn't blow up the destination (matches a passive matrix
+ * with realistic loading).
+ *
+ *   OSC pitch  : ±200 Hz   (single-pin full)
+ *   VCF freq   : ±2400 Hz
+ *   VCA gain   : ±0.18     (small — protects from pile-up clipping)
+ *   VCF Q      : ±8
  */
-const DEST_SCALE = [200, 200, 200, 3000, 0.45, 2.0];
-
-const _nextStrength = (s) => {
-  if (s === 0)  return 1;
-  if (s === 3)  return -1;
-  if (s === -3) return 0;
-  return s > 0 ? s + 1 : s - 1;
-};
+const DEST_SCALE = [200, 200, 200, 2400, 0.18, 8];
 
 const _strengthToGain = (strength, di) =>
-  (Math.abs(strength) / 3) * DEST_SCALE[di] * Math.sign(strength || 1) * (strength === 0 ? 0 : 1);
+  strength === 0 ? 0
+    : (Math.abs(strength) / 3) * DEST_SCALE[di] * Math.sign(strength);
 
 // ── Default state (also used as preset template) ──────────────────────────────
 
@@ -111,11 +110,13 @@ function _defaultState() {
     })),
 
     // Routing matrix [N_SRC][N_DST], values −3…+3
-    // Defaults: LFO1→FILTER +2, MODENV→FILTER +3
+    // Source order: OSC1, LFO1, LFO2, MOD, OSC3, NOISE
+    // Dest   order: OSC1ƒ, OSC2ƒ, OSC3ƒ, VCFƒ, VCA, VCFQ
+    // Defaults: LFO1→VCFƒ +2, MOD→VCFƒ +3
     matrix: (() => {
       const m = Array.from({ length: N_SRC }, () => new Array(N_DST).fill(0));
-      m[0][3] = 2;  // LFO1 → FILTER +2
-      m[2][3] = 3;  // MOD ENV → FILTER +3
+      m[1][3] = 2;  // LFO1 → VCF freq  +2
+      m[3][3] = 3;  // MOD  → VCF freq  +3
       return m;
     })(),
   };
@@ -215,12 +216,25 @@ class AKSEngine {
     n.osc3.start(t0);
     n.noiseSource.start(t0);
 
-    // OSC3 and noise taps for matrix (audio-rate CV sources)
+    // OSC1, OSC3 and noise taps for matrix (audio-rate CV sources)
+    n.osc1Tap = ac.createGain(); n.osc1Tap.gain.value = 0.5;
+    n.osc1.connect(n.osc1Tap);
+
     n.osc3Tap = ac.createGain(); n.osc3Tap.gain.value = 0.5;
     n.osc3.connect(n.osc3Tap);
 
     n.noiseTap = ac.createGain(); n.noiseTap.gain.value = 0.4;
     n.noiseSource.connect(n.noiseTap);
+
+    // DC blocker (asymmetric clip introduces DC offset → keeps level honest)
+    n.dcBlock = ac.createBiquadFilter();
+    n.dcBlock.type = 'highpass';
+    n.dcBlock.frequency.value = 18;
+    n.dcBlock.Q.value = 0.707;
+    // Re-route: vca → dcBlock → voiceOut (previously vca → voiceOut directly)
+    n.vca.disconnect();
+    n.vca.connect(n.dcBlock);
+    n.dcBlock.connect(n.voiceOut);
   }
 
   _buildEnvelopes() {
@@ -274,14 +288,16 @@ class AKSEngine {
     const ac = this.actx;
     const n  = this.nodes;
 
-    const srcs = [n.lfo1, n.lfo2, n.modEnv, n.osc3Tap, n.noiseTap];
+    // Source order MUST match SRC_LABELS: OSC1, LFO1, LFO2, MOD, OSC3, NOISE
+    const srcs = [n.osc1Tap, n.lfo1, n.lfo2, n.modEnv, n.osc3Tap, n.noiseTap];
+    // Dest order MUST match DEST_LABELS: OSC1ƒ, OSC2ƒ, OSC3ƒ, VCFƒ, VCA, VCFQ
     const dsts = [
       n.osc1.frequency,
       n.osc2.frequency,
       n.osc3.frequency,
       n.vcf.frequency,
       n.vca.gain,
-      n.lfo1.frequency,
+      n.vcf.Q,
     ];
 
     this.matrixGains = srcs.map((src, si) =>
@@ -292,20 +308,32 @@ class AKSEngine {
       })
     );
 
-    // Apply defaults from state
-    this.state.matrix.forEach((row, si) =>
-      row.forEach((strength, di) => this._applyCell(si, di, strength))
-    );
+    // Apply defaults from state — re-apply each destination so normalization is correct
+    for (let di = 0; di < N_DST; di++) this._reapplyDestination(di);
   }
 
-  _applyCell(si, di, strength) {
-    const gain = _strengthToGain(strength, di);
-    this.matrixGains[si][di].gain.setTargetAtTime(gain, this.actx.currentTime, 0.02);
+  /**
+   * Re-compute and apply gains for ALL sources routing to destination `di`.
+   * Per-destination normalization: with N active pins, divide each by √N.
+   * This makes a passive matrix behave musically: pile-ups don't blow up
+   * the level, but adding a pin still has audible effect.
+   */
+  _reapplyDestination(di) {
+    let active = 0;
+    for (let si = 0; si < N_SRC; si++) {
+      if (this.state.matrix[si][di] !== 0) active++;
+    }
+    const norm = active > 0 ? 1 / Math.sqrt(active) : 1;
+    const t   = this.actx.currentTime;
+    for (let si = 0; si < N_SRC; si++) {
+      const g = _strengthToGain(this.state.matrix[si][di], di) * norm;
+      this.matrixGains[si][di].gain.setTargetAtTime(g, t, 0.04);
+    }
   }
 
   setMatrix(si, di, strength) {
     this.state.matrix[si][di] = strength;
-    this._applyCell(si, di, strength);
+    this._reapplyDestination(di);
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -520,11 +548,15 @@ class AKSEngine {
       // Restore non-structural params via setParam
       const SKIP = new Set(['matrix', 'seqSteps', 'seqRunning', 'currentNote']);
       Object.entries(state).forEach(([k, v]) => { if (!SKIP.has(k)) this.setParam(k, v); });
-      // Matrix
-      if (Array.isArray(state.matrix)) {
+      // Matrix — only apply if dimensions match (skips legacy 5×6 presets)
+      if (Array.isArray(state.matrix) &&
+          state.matrix.length === N_SRC &&
+          Array.isArray(state.matrix[0]) &&
+          state.matrix[0].length === N_DST) {
         state.matrix.forEach((row, si) =>
-          row.forEach((strength, di) => this.setMatrix(si, di, strength))
+          row.forEach((strength, di) => { this.state.matrix[si][di] = strength; })
         );
+        for (let di = 0; di < N_DST; di++) this._reapplyDestination(di);
       }
       // Sequencer steps
       if (Array.isArray(state.seqSteps)) {

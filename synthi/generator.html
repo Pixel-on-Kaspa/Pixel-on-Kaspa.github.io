@@ -7,48 +7,56 @@
   <title>SYNTHI • AKS</title>
   <style>
     :root {
-      --bg:         #050a0a;
-      --bg2:        #080e0e;
-      --bg3:        #0c1212;
-      --bg4:        #101616;
-      --border:     rgba(255,255,255,.09);
-      --border2:    rgba(255,255,255,.16);
-      --accent:     #9B59B6;
-      --accent-dim: rgba(155,89,182,.14);
-      --accent-glow:rgba(155,89,182,.34);
-      --green:      #2de879;
-      --green-dim:  rgba(45,232,121,.12);
-      --amber:      #e8a020;
-      --red:        #e63b3b;
-      --cyan:       #00c4ff;
-      --text:       #e8eaf0;
-      --muted:      rgba(255,255,255,.48);
-      --muted2:     rgba(255,255,255,.26);
+      --bg:          #050a0a;
+      --bg2:         #080e0e;
+      --bg3:         #0c1212;
+      --border:      rgba(255,255,255,.08);
+      --border2:     rgba(255,255,255,.15);
+      --accent:      #9B59B6;
+      --accent-dim:  rgba(155,89,182,.14);
+      --accent-glow: rgba(155,89,182,.34);
+      --green:       #2de879;
+      --green-dim:   rgba(45,232,121,.12);
+      --amber:       #e8a020;
+      --red:         #e63b3b;
+      --text:        #e8eaf0;
+      --muted:       rgba(255,255,255,.50);
+      --muted2:      rgba(255,255,255,.28);
+      /* AKS pin-board palette */
+      --board-bg:    #1a1610;
+      --board-bg2:   #1f1a12;
+      --board-edge:  #0a0806;
+      --brass:       #c9a040;
+      --brass-hi:    #f4d76e;
+      --brass-lo:    #8b6a1f;
+      --copper:      #c8593c;
+      --copper-hi:   #ff7e62;
+      --copper-lo:   #6e2818;
+      --label-ink:   #d9b86b;
       --safe-top:    env(safe-area-inset-top, 0px);
       --safe-bot:    env(safe-area-inset-bottom, 0px);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body {
-      min-height: 100%;
-      background: var(--bg);
-    }
+    html, body { background: var(--bg); min-height: 100vh; }
     body {
       font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,"Segoe UI",sans-serif;
       color: var(--text);
-      font-size: 13px;
-      line-height: 1.35;
+      font-size: 12px;
+      line-height: 1.3;
       -webkit-tap-highlight-color: transparent;
       -webkit-text-size-adjust: 100%;
       padding-bottom: var(--safe-bot);
       overflow-x: hidden;
+      display: flex; flex-direction: column;
+      min-height: 100vh;
     }
 
     /* ── TOPBAR ── */
     .topbar {
-      position: sticky; top: 0; z-index: 60;
+      flex-shrink: 0;
       display: flex; align-items: center; justify-content: space-between;
-      gap: 10px; padding: 10px 14px;
-      padding-top: calc(10px + var(--safe-top));
+      gap: 10px; padding: 8px 14px;
+      padding-top: calc(8px + var(--safe-top));
       border-bottom: 1px solid var(--border);
       background: rgba(5,10,10,.94);
       backdrop-filter: blur(12px);
@@ -58,309 +66,441 @@
       display: flex; align-items: center; gap: 9px;
       font-weight: 900; letter-spacing: .14em; text-transform: uppercase;
       white-space: nowrap; text-decoration: none; color: var(--text);
-      font-size: 13px;
+      font-size: 12px;
     }
-    .brand img { width: 24px; height: 24px; border-radius: 5px; display: block; }
+    .brand img { width: 22px; height: 22px; border-radius: 4px; display: block; }
     .pur { color: var(--accent); }
     .nav { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 
     /* ── BUTTONS ── */
     .btn {
       text-decoration: none;
-      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      padding: 8px 12px; border-radius: 6px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+      padding: 6px 10px; border-radius: 5px;
       border: 1px solid var(--border2);
       background: rgba(255,255,255,.05);
       color: rgba(255,255,255,.88);
-      font-size: 12px; font-weight: 700; font-family: inherit;
+      font-size: 11px; font-weight: 700; font-family: inherit;
       transition: background .12s, border-color .12s, color .12s;
       white-space: nowrap; cursor: pointer; user-select: none;
       -webkit-user-select: none;
       line-height: 1; letter-spacing: .04em;
       touch-action: manipulation;
+      min-height: 30px;
     }
-    .btn:hover { background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.24); }
+    .btn:hover  { background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.24); }
     .btn:active { transform: translateY(1px); }
     .btnPrimary { border-color: var(--accent-glow); background: var(--accent-dim); color: var(--accent); }
     .btnPrimary:hover { background: rgba(155,89,182,.22); }
     .btnActive { border-color: var(--green); background: var(--green-dim); color: var(--green); }
-    .btnSm { padding: 6px 10px; font-size: 11px; }
+    .btnSm { padding: 4px 8px; font-size: 10px; min-height: 26px; }
     .btnGhost { background: transparent; }
 
-    /* ── CONTROL BAR (transport + VU + MIDI + master) ── */
+    /* ── CONTROL BAR ── */
     .ctrlbar {
-      position: sticky; top: 48px; z-index: 55;
+      flex-shrink: 0;
       display: grid;
-      grid-template-columns: auto auto 1fr auto;
+      grid-template-columns: auto auto 1fr auto auto auto auto;
       gap: 10px;
       align-items: center;
-      padding: 10px 14px;
+      padding: 8px 14px;
       border-bottom: 1px solid var(--border);
       background: linear-gradient(180deg, var(--bg2), var(--bg));
     }
-    @media (max-width: 760px) {
-      .ctrlbar {
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        position: static;
-      }
-      .ctrlbar > .vuWrap { grid-column: 1 / -1; order: 5; }
-      .ctrlbar > .masterWrap { grid-column: 1 / -1; order: 6; }
-      .ctrlbar > .midiWrap { grid-column: 1 / -1; order: 4; }
-    }
-
-    .vuWrap {
-      display: flex; flex-direction: column; gap: 4px;
-      padding: 6px 10px; border: 1px solid var(--border);
-      border-radius: 6px; background: rgba(0,0,0,.35);
-      min-width: 0;
-    }
-    .vuLabel {
-      display: flex; justify-content: space-between; align-items: center;
-      font-size: 9px; letter-spacing: .16em; text-transform: uppercase;
-      color: var(--muted); font-weight: 800;
-    }
-    .vuLabel .vuDb { color: var(--green); font-family: ui-monospace, monospace; letter-spacing: .04em; }
-    #vuCanvas { display: block; width: 100%; height: 18px; border-radius: 3px; background: #000; }
-
-    .midiWrap, .masterWrap {
+    .ctrlGroup {
       display: flex; align-items: center; gap: 8px;
-      padding: 6px 10px; border: 1px solid var(--border);
-      border-radius: 6px; background: rgba(255,255,255,.025);
-      min-width: 0;
+      padding: 4px 10px; border: 1px solid var(--border);
+      border-radius: 5px; background: rgba(255,255,255,.025);
+      min-width: 0; min-height: 34px;
     }
-    .midiWrap label, .masterWrap label {
-      font-size: 9px; letter-spacing: .16em; text-transform: uppercase;
+    .ctrlGroup label {
+      font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
       color: var(--muted); font-weight: 800;
     }
+    .ctrlGroup input[type="range"] { flex: 1; min-width: 60px; }
+    .ctrlGroup .val {
+      font-family: ui-monospace, monospace; font-size: 10px;
+      color: var(--green); font-weight: 700; min-width: 30px; text-align: right;
+    }
+
     .midiDot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: rgba(255,255,255,.15); flex-shrink: 0;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: rgba(255,255,255,.18); flex-shrink: 0;
       transition: background .15s, box-shadow .15s;
     }
     .midiDot.connected { background: var(--green); box-shadow: 0 0 6px rgba(45,232,121,.5); }
     .midiDot.active    { background: var(--amber); box-shadow: 0 0 8px rgba(232,160,32,.65); }
 
+    .vuGroup {
+      display: flex; align-items: center; gap: 8px;
+      padding: 4px 10px; border: 1px solid var(--border);
+      border-radius: 5px; background: rgba(0,0,0,.4);
+      min-width: 0; min-height: 34px;
+    }
+    .vuGroup label {
+      font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--muted); font-weight: 800;
+    }
+    #vuCanvas { display: block; height: 18px; width: 100%; min-width: 140px; border-radius: 2px; background: #000; flex: 1; }
+    #vuDb { font-family: ui-monospace, monospace; font-size: 10px; color: var(--green); font-weight: 700; min-width: 56px; text-align: right; }
+
     .selectBox {
       background: rgba(255,255,255,.06);
       color: var(--text);
       border: 1px solid var(--border2);
-      padding: 7px 10px;
-      font-size: 12px;
+      padding: 4px 6px;
+      font-size: 11px;
       font-family: inherit;
-      border-radius: 5px;
+      border-radius: 4px;
       cursor: pointer;
       outline: none;
       appearance: none;
       -webkit-appearance: none;
-      max-width: 180px;
       min-width: 0;
       text-overflow: ellipsis;
     }
     .selectBox option { background: #050a0a; color: var(--text); }
 
-    .masterWrap input[type="range"] { flex: 1; min-width: 100px; }
-    .masterVal {
-      font-family: ui-monospace, monospace; font-size: 11px;
-      color: var(--green); font-weight: 700; min-width: 36px; text-align: right;
-    }
-
     /* ── MAIN ── */
     .main {
-      padding: 14px;
+      flex: 1;
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-      max-width: 1400px;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+      grid-template-rows: auto 1fr;
+      grid-template-areas:
+        "matrix modules"
+        "seq    seq";
+      gap: 10px;
+      padding: 10px;
+      max-width: 1500px;
+      width: 100%;
       margin: 0 auto;
+      min-height: 0;
     }
-    .main > .span2 { grid-column: 1 / -1; }
-    @media (max-width: 760px) {
-      .main { grid-template-columns: 1fr; padding: 10px; gap: 10px; }
-      .main > .span2 { grid-column: auto; }
+    @media (max-width: 980px) {
+      .main {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "matrix"
+          "modules"
+          "seq";
+      }
     }
 
-    /* ── SECTION ── */
-    .sect {
+    /* ── PANEL ── */
+    .panel {
+      display: flex; flex-direction: column;
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 7px;
       overflow: hidden;
       background: var(--bg2);
+      min-width: 0; min-height: 0;
     }
-    .sectHead {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 14px;
+    .panelHead {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 7px 12px;
       background: rgba(255,255,255,.03);
-      cursor: pointer; user-select: none;
-      -webkit-user-select: none;
       border-bottom: 1px solid var(--border);
-      touch-action: manipulation;
-    }
-    .sectHead b {
-      font-size: 10px; letter-spacing: .18em; text-transform: uppercase; font-weight: 900;
+      font-size: 9px; letter-spacing: .18em; text-transform: uppercase; font-weight: 900;
       color: var(--text);
-      display: flex; align-items: center; gap: 8px;
+      flex-shrink: 0;
     }
-    .sectHead b::before {
-      content: ""; width: 6px; height: 6px; border-radius: 50%;
-      background: var(--accent); box-shadow: 0 0 6px var(--accent-glow);
+    .panelHead::before {
+      content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green); box-shadow: 0 0 6px rgba(45,232,121,.55);
+      margin-right: 8px;
     }
-    .sectChev { font-size: 11px; opacity: .55; transition: transform .18s; }
-    .sect.collapsed .sectChev { transform: rotate(-90deg); }
-    .sectBody { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
-    .sect.collapsed .sectBody { display: none; }
+    .panelHead .sub { color: var(--muted); font-weight: 700; letter-spacing: .04em; font-size: 9px; }
+    .panelBody {
+      padding: 10px 12px;
+      display: flex; flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+    }
+    .panelBody::-webkit-scrollbar { width: 6px; }
+    .panelBody::-webkit-scrollbar-track { background: transparent; }
+    .panelBody::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 3px; }
 
-    /* ── CONTROLS ── */
-    .ctrl { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-    .ctrlHead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-    .ctrlTitle { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; font-weight: 800; color: var(--muted); }
-    .ctrlVal { font-size: 11px; color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; }
-    .ctrlDesc { font-size: 10px; color: var(--muted2); line-height: 1.45; }
-    .sect.green .ctrlVal { color: var(--green); }
-    .sect.green .sectHead b::before { background: var(--green); box-shadow: 0 0 6px rgba(45,232,121,.5); }
+    /* ── PIN MATRIX (AKS-style) ── */
+    .matrixPanel { grid-area: matrix; }
+    .matrixPanel .panelHead::before { background: var(--brass-hi); box-shadow: 0 0 6px var(--brass); }
 
-    /* ranges */
+    .pinBoard {
+      background: radial-gradient(ellipse at center, var(--board-bg2), var(--board-bg));
+      border: 1px solid #2a2418;
+      border-radius: 8px;
+      box-shadow:
+        inset 0 1px 0 rgba(255,220,140,.04),
+        inset 0 -1px 0 rgba(0,0,0,.5),
+        0 2px 10px rgba(0,0,0,.4);
+      padding: 14px 16px;
+      flex: 1;
+      display: flex; flex-direction: column;
+      min-height: 0;
+    }
+    .pinGrid {
+      display: grid;
+      grid-template-columns: 56px repeat(6, minmax(0, 1fr));
+      gap: 4px;
+      flex: 1;
+      min-height: 0;
+      align-content: center;
+    }
+    .pinHeader {
+      text-align: center;
+      color: var(--label-ink);
+      font-family: ui-monospace, "Courier New", monospace;
+      font-size: 10px; letter-spacing: .06em; font-weight: 700;
+      padding: 4px 0 6px;
+      line-height: 1.1;
+      text-shadow: 0 1px 0 rgba(0,0,0,.5);
+    }
+    .pinSrc {
+      color: var(--label-ink);
+      font-family: ui-monospace, "Courier New", monospace;
+      font-size: 10px; letter-spacing: .06em; font-weight: 700;
+      display: flex; align-items: center; justify-content: flex-end;
+      padding-right: 8px;
+      text-shadow: 0 1px 0 rgba(0,0,0,.5);
+    }
+    .pinHole {
+      position: relative;
+      aspect-ratio: 1;
+      max-width: 56px;
+      max-height: 56px;
+      justify-self: center;
+      width: 100%;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #050402 0%, #18130c 70%, #211a10 100%);
+      box-shadow:
+        inset 0 2px 4px rgba(0,0,0,.85),
+        inset 0 -1px 0 rgba(255,220,140,.04),
+        0 1px 0 rgba(255,220,140,.06);
+      cursor: pointer;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      display: flex; align-items: center; justify-content: center;
+      transition: box-shadow .12s;
+    }
+    .pinHole:hover {
+      box-shadow:
+        inset 0 2px 4px rgba(0,0,0,.85),
+        inset 0 -1px 0 rgba(255,220,140,.06),
+        0 0 6px rgba(244,215,110,.18);
+    }
+    /* the pin itself */
+    .pinHole .pin {
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, var(--brass-hi), var(--brass) 55%, var(--brass-lo));
+      box-shadow:
+        0 0 6px var(--brass),
+        inset 0 1px 0 rgba(255,255,255,.4),
+        inset 0 -2px 3px rgba(0,0,0,.5);
+      transition: width .16s cubic-bezier(.34,1.56,.64,1), height .16s cubic-bezier(.34,1.56,.64,1),
+                  background .12s, box-shadow .12s;
+    }
+    .pinHole[data-s="1"]  .pin { width: 50%; height: 50%; }
+    .pinHole[data-s="2"]  .pin { width: 68%; height: 68%; }
+    .pinHole[data-s="3"]  .pin { width: 84%; height: 84%; box-shadow: 0 0 12px var(--brass-hi), inset 0 1px 0 rgba(255,255,255,.5), inset 0 -2px 3px rgba(0,0,0,.5); }
+    .pinHole[data-s="-1"] .pin {
+      width: 50%; height: 50%;
+      background: radial-gradient(circle at 35% 30%, var(--copper-hi), var(--copper) 55%, var(--copper-lo));
+      box-shadow: 0 0 6px var(--copper), inset 0 1px 0 rgba(255,255,255,.3), inset 0 -2px 3px rgba(0,0,0,.5);
+    }
+    .pinHole[data-s="-2"] .pin {
+      width: 68%; height: 68%;
+      background: radial-gradient(circle at 35% 30%, var(--copper-hi), var(--copper) 55%, var(--copper-lo));
+      box-shadow: 0 0 6px var(--copper), inset 0 1px 0 rgba(255,255,255,.3), inset 0 -2px 3px rgba(0,0,0,.5);
+    }
+    .pinHole[data-s="-3"] .pin {
+      width: 84%; height: 84%;
+      background: radial-gradient(circle at 35% 30%, var(--copper-hi), var(--copper) 55%, var(--copper-lo));
+      box-shadow: 0 0 12px var(--copper-hi), inset 0 1px 0 rgba(255,255,255,.4), inset 0 -2px 3px rgba(0,0,0,.5);
+    }
+    /* tactile pulse on action */
+    @keyframes pinPulse {
+      0%   { transform: scale(.55); }
+      55%  { transform: scale(1.12); }
+      100% { transform: scale(1); }
+    }
+    .pinHole.justChanged .pin { animation: pinPulse .22s ease-out; }
+
+    .pinLegend {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed rgba(217,184,107,.18);
+      font-size: 9px; color: var(--muted);
+      letter-spacing: .04em;
+    }
+    .pinLegend .leg {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .pinLegend .swatch {
+      width: 12px; height: 12px; border-radius: 50%;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.3);
+    }
+    .pinLegend .swatch.g { background: radial-gradient(circle at 35% 30%, var(--brass-hi), var(--brass), var(--brass-lo)); }
+    .pinLegend .swatch.r { background: radial-gradient(circle at 35% 30%, var(--copper-hi), var(--copper), var(--copper-lo)); }
+    .pinLegend kbd {
+      font-family: ui-monospace, monospace; font-size: 9px;
+      padding: 1px 5px; border-radius: 3px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      color: var(--label-ink);
+    }
+
+    /* ── MODULES (right column) ── */
+    .modulesPanel { grid-area: modules; }
+    .modulesPanel .panelBody { padding: 8px 10px; gap: 6px; }
+
+    .modGroup {
+      display: flex; flex-direction: column; gap: 4px;
+      padding: 6px 8px;
+      background: rgba(255,255,255,.02);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+    }
+    .modLabel {
+      font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
+      font-weight: 800; color: var(--accent);
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 1px;
+    }
+    .modLabel .tag { color: var(--muted); font-weight: 700; letter-spacing: .04em; font-size: 9px; }
+
+    /* compact inline row — wave + slider + value(s) */
+    .rowMini {
+      display: grid;
+      grid-template-columns: 38px 56px 1fr 32px;
+      gap: 6px;
+      align-items: center;
+      min-height: 22px;
+    }
+    .rowMini.noWave { grid-template-columns: 38px 1fr 32px; }
+    .rowMini.duo    { grid-template-columns: 38px 56px 1fr 32px 14px 1fr 32px; }
+    .rowMini .lbl {
+      font-size: 9px; letter-spacing: .10em; text-transform: uppercase; font-weight: 700;
+      color: var(--muted);
+    }
+    .rowMini .val {
+      font-size: 10px; font-family: ui-monospace, monospace; font-weight: 700;
+      color: var(--green); text-align: right;
+    }
+    .rowMini .sep { color: var(--muted2); font-size: 9px; text-align: center; }
+    .rowMini select.selectBox {
+      max-width: none; width: 100%;
+      padding: 2px 4px;
+      font-size: 10px;
+    }
+    /* 4-mini ADSR row */
+    .adsr {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .adsr .miniCell {
+      display: flex; flex-direction: column; gap: 1px;
+      min-width: 0;
+    }
+    .adsr .miniHead {
+      display: flex; justify-content: space-between; align-items: baseline;
+    }
+    .adsr .miniLbl {
+      font-size: 9px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700;
+      color: var(--muted);
+    }
+    .adsr .miniVal {
+      font-size: 9px; font-family: ui-monospace, monospace; font-weight: 700;
+      color: var(--green);
+    }
+
+    /* ranges — small uniform thumbs */
     input[type="range"] {
       -webkit-appearance: none;
       appearance: none;
-      width: 100%; height: 22px;
+      width: 100%; height: 16px;
       background: transparent;
       outline: none; cursor: pointer;
-      padding: 0;
+      padding: 0; margin: 0;
     }
     input[type="range"]::-webkit-slider-runnable-track {
-      height: 4px; border-radius: 2px;
+      height: 3px; border-radius: 2px;
       background: rgba(255,255,255,.10);
     }
     input[type="range"]::-moz-range-track {
-      height: 4px; border-radius: 2px;
+      height: 3px; border-radius: 2px;
       background: rgba(255,255,255,.10);
     }
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 18px; height: 18px; border-radius: 50%;
-      background: var(--accent); cursor: pointer;
-      box-shadow: 0 0 6px var(--accent-glow);
+      width: 11px; height: 11px; border-radius: 50%;
+      background: var(--green); cursor: pointer;
+      box-shadow: 0 0 4px rgba(45,232,121,.45);
       border: 1px solid rgba(255,255,255,.18);
-      margin-top: -7px;
+      margin-top: -4px;
     }
     input[type="range"]::-moz-range-thumb {
-      width: 18px; height: 18px; border-radius: 50%;
-      background: var(--accent); cursor: pointer;
+      width: 11px; height: 11px; border-radius: 50%;
+      background: var(--green); cursor: pointer;
       border: 1px solid rgba(255,255,255,.18);
-      box-shadow: 0 0 6px var(--accent-glow);
-    }
-    .sect.green input[type="range"]::-webkit-slider-thumb { background: var(--green); box-shadow: 0 0 6px rgba(45,232,121,.45); }
-    .sect.green input[type="range"]::-moz-range-thumb     { background: var(--green); box-shadow: 0 0 6px rgba(45,232,121,.45); }
-
-    /* grids */
-    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-    @media (max-width: 460px) {
-      .grid4 { grid-template-columns: repeat(2, 1fr); }
+      box-shadow: 0 0 4px rgba(45,232,121,.45);
     }
 
-    .subLabel {
-      font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
-      color: var(--green); margin-bottom: 6px; display: block; font-weight: 800;
-    }
-    .sect.green .subLabel { color: var(--accent); }
-
-    .oscBlock {
-      padding: 12px;
-      background: rgba(255,255,255,.025);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      display: flex; flex-direction: column; gap: 10px;
-    }
-
-    /* ── MATRIX ── */
-    #aks-matrix-grid {
+    /* ── SEQUENCER + KEYBOARD ── */
+    .seqWrap {
+      grid-area: seq;
       display: grid;
-      grid-template-columns: 54px repeat(6, minmax(0, 1fr));
-      gap: 3px;
+      grid-template-columns: 1fr 320px;
+      gap: 10px;
+      min-height: 0;
     }
-    .aks-mat-corner { }
-    .aks-mat-header {
-      text-align: center; color: var(--muted);
-      font-size: 9px; letter-spacing: .04em; font-weight: 700;
-      padding: 4px 0 6px; line-height: 1.2;
-    }
-    .aks-mat-src {
-      font-size: 9px; color: var(--muted); font-weight: 700;
-      letter-spacing: .04em;
-      display: flex; align-items: center;
-      padding-right: 4px; line-height: 1.2;
-    }
-    .aks-mat-cell {
-      aspect-ratio: 1;
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 4px;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer;
-      font-size: 11px; font-weight: 800;
-      font-family: ui-monospace, monospace;
-      transition: background .08s, border-color .08s, transform .08s;
-      user-select: none;
-      -webkit-user-select: none;
-      min-height: 36px;
-      touch-action: manipulation;
-    }
-    .aks-mat-cell:hover  { border-color: rgba(255,255,255,.30); background: rgba(255,255,255,.06); }
-    .aks-mat-cell:active { transform: scale(.96); }
-    .aks-mat-cell[data-s="0"]  { background: rgba(255,255,255,.02); color: rgba(255,255,255,.18); }
-    .aks-mat-cell[data-s="1"]  { background: rgba(45,232,121,.10); border-color: rgba(45,232,121,.30); color: #2de879; }
-    .aks-mat-cell[data-s="2"]  { background: rgba(45,232,121,.20); border-color: rgba(45,232,121,.55); color: #2de879; }
-    .aks-mat-cell[data-s="3"]  { background: rgba(45,232,121,.34); border-color: rgba(45,232,121,.85); color: #2de879; text-shadow: 0 0 6px #2de879; }
-    .aks-mat-cell[data-s="-1"] { background: rgba(230,59,59,.10); border-color: rgba(230,59,59,.30); color: #e63b3b; }
-    .aks-mat-cell[data-s="-2"] { background: rgba(230,59,59,.20); border-color: rgba(230,59,59,.55); color: #e63b3b; }
-    .aks-mat-cell[data-s="-3"] { background: rgba(230,59,59,.34); border-color: rgba(230,59,59,.85); color: #e63b3b; text-shadow: 0 0 6px #e63b3b; }
+    @media (max-width: 980px) { .seqWrap { grid-template-columns: 1fr; } }
 
-    /* ── SEQ STEPS ── */
     #aks-seq-steps-grid {
       display: grid;
       grid-template-columns: repeat(16, minmax(0, 1fr));
-      gap: 4px;
-    }
-    @media (max-width: 600px) {
-      #aks-seq-steps-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+      gap: 3px;
     }
     .aks-step-btn {
       border: 1px solid rgba(255,255,255,.12);
-      border-radius: 5px;
+      border-radius: 4px;
       background: rgba(255,255,255,.025);
-      color: rgba(255,255,255,.30);
-      font-size: 10px; font-family: ui-monospace, monospace;
-      padding: 8px 2px; cursor: pointer;
-      text-align: center; line-height: 1.25;
+      color: rgba(255,255,255,.32);
+      font-size: 9px; font-family: ui-monospace, monospace;
+      padding: 6px 1px; cursor: pointer;
+      text-align: center; line-height: 1.2;
       transition: background .08s, border-color .08s;
       user-select: none;
       -webkit-user-select: none;
-      min-height: 38px;
+      min-height: 30px;
       touch-action: manipulation;
     }
     .aks-step-btn.active   { border-color: rgba(155,89,182,.55); background: var(--accent-dim); color: var(--accent); }
     .aks-step-btn.accent   { border-color: rgba(232,160,32,.55); background: rgba(232,160,32,.10); color: var(--amber); }
     .aks-step-btn.selected { outline: 2px solid rgba(255,255,255,.55); outline-offset: 1px; }
-    .aks-step-btn.playing  { background: rgba(255,255,255,.22) !important; border-color: rgba(255,255,255,.65) !important; color: #fff !important; }
+    .stepEditor { padding-top: 6px; border-top: 1px dashed var(--border); }
 
-    /* ── KEYBOARD ── */
     .keyboard {
       display: grid;
       grid-template-columns: repeat(15, 1fr);
-      gap: 3px;
+      gap: 2px;
       user-select: none;
       -webkit-user-select: none;
       position: relative;
-      height: 110px;
+      height: 64px;
     }
     .keyW, .keyB {
-      border-radius: 0 0 5px 5px;
+      border-radius: 0 0 4px 4px;
       cursor: pointer;
       display: flex; align-items: flex-end; justify-content: center;
-      padding-bottom: 6px;
-      font-size: 9px; font-weight: 700; letter-spacing: .04em;
+      padding-bottom: 3px;
+      font-size: 8px; font-weight: 700; letter-spacing: .04em;
       touch-action: manipulation;
       transition: background .05s;
     }
@@ -373,50 +513,39 @@
     .keyW:active, .keyW.held { background: linear-gradient(180deg, var(--accent), #6b3c80); color: #fff; }
     .keyB {
       position: absolute;
-      top: 0; height: 65%;
-      width: calc((100% - 14*3px) / 15 * 0.7);
+      top: 0; height: 58%;
+      width: calc((100% - 14*2px) / 15 * 0.7);
       background: linear-gradient(180deg, #222, #050505);
       color: #ddd; border: 1px solid #000;
       z-index: 2;
-      font-size: 8px;
+      font-size: 7px;
     }
     .keyB:active, .keyB.held { background: linear-gradient(180deg, var(--accent), #4a2660); color: #fff; }
-    .kbToolbar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-    .kbInfo { font-size: 10px; color: var(--muted); letter-spacing: .06em; }
 
-    /* ── PILL ── */
-    .pill {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 4px 10px; border-radius: 999px;
-      font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
-      background: rgba(255,255,255,.05); color: var(--muted);
-      border: 1px solid var(--border);
+    /* MOBILE */
+    @media (max-width: 880px) {
+      .ctrlbar { grid-template-columns: 1fr 1fr; }
+      .ctrlbar .vuGroup { grid-column: 1 / -1; }
+      .panelBody { overflow-y: visible; }
+      #aks-seq-steps-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+      .rowMini.duo { grid-template-columns: 38px 56px 1fr 32px; }
+      .rowMini.duo .duoTune { grid-column: 1 / -1; }
     }
-    .pill.ok { color: var(--green); border-color: rgba(45,232,121,.4); background: var(--green-dim); }
+    @media (max-width: 480px) {
+      .ctrlbar { grid-template-columns: 1fr; }
+    }
 
-    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-
-    /* Scrollbar (desktop) */
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.22); }
-
-    /* iOS no-zoom on inputs */
     input, select, textarea { font-size: 16px; }
-    .selectBox, .ctrlVal, .pill, .kbInfo, .midiWrap label, .masterWrap label, .vuLabel { font-size: 11px; }
-    .btn { font-size: 12px; }
-    .btnSm { font-size: 11px; }
+    .selectBox { font-size: 11px; }
   </style>
   <script defer src="https://cloud.umami.is/script.js" data-website-id="6ee0e9a9-7066-4115-b91d-5667d8042abe"></script>
 </head>
 <body>
 
-  <!-- ── TOPBAR ── -->
   <div class="topbar">
     <a class="brand" href="../index.html">
       <img src="../assets/img/logo.png" alt="PIXEL">
-      <span>PIXEL ON KASPA — <span class="pur">AKS</span></span>
+      <span>PIXEL — <span class="pur">AKS</span></span>
     </a>
     <nav class="nav">
       <a class="btn btnSm btnGhost" href="../index.html">Home</a>
@@ -426,376 +555,316 @@
     </nav>
   </div>
 
-  <!-- ── CONTROL BAR ── -->
   <div class="ctrlbar">
-    <button class="btn btnPrimary" id="audioStart" type="button">▶ Start audio</button>
-
-    <div class="midiWrap">
+    <button class="btn btnPrimary" id="audioStart" type="button">▶ Start</button>
+    <div class="ctrlGroup">
       <span class="midiDot" id="midiDot"></span>
       <label for="midiInput">MIDI</label>
-      <select id="midiInput" class="selectBox" title="MIDI input device">
-        <option value="">— off —</option>
-      </select>
+      <select id="midiInput" class="selectBox" title="MIDI input" style="max-width:140px"><option value="">— off —</option></select>
     </div>
-
-    <div class="vuWrap">
-      <div class="vuLabel"><span>Master VU</span><span class="vuDb" id="vuDb">-∞ dB</span></div>
+    <div class="vuGroup">
+      <label>VU</label>
       <canvas id="vuCanvas" width="600" height="18"></canvas>
+      <span id="vuDb">-∞ dB</span>
     </div>
-
-    <div class="masterWrap">
+    <div class="ctrlGroup">
       <label for="masterVol">Master</label>
-      <input id="masterVol" type="range" min="0" max="1" step="0.01" value="0.8" />
-      <span class="masterVal" id="masterVolVal">0.80</span>
+      <input id="masterVol" type="range" min="0" max="1" step="0.01" value="0.8" style="min-width:70px"/>
+      <span class="val" id="masterVolVal">0.80</span>
     </div>
+    <div class="ctrlGroup">
+      <label for="bpmSlider">BPM</label>
+      <input id="bpmSlider" type="range" min="40" max="220" step="1" value="120" style="min-width:60px"/>
+      <span class="val" id="bpmVal">120</span>
+    </div>
+    <div class="ctrlGroup">
+      <label for="aks-swing">Swing</label>
+      <input id="aks-swing" type="range" min="0" max="0.5" step="0.01" value="0" style="min-width:50px"/>
+      <span class="val" id="aks-swing-val">0%</span>
+    </div>
+    <button class="btn btnPrimary" id="aks-seq-toggle" type="button">Seq ▶</button>
   </div>
 
-  <!-- ── MAIN ── -->
   <div class="main">
 
-    <!-- ── TRANSPORT ── -->
-    <div class="sect span2 green">
-      <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-        <b>Transport</b><span class="sectChev">▼</span>
+    <!-- ── PIN MATRIX ── -->
+    <div class="panel matrixPanel">
+      <div class="panelHead">
+        Pin Matrix <span class="sub">EMS-style — 6 sources × 6 destinations</span>
       </div>
-      <div class="sectBody">
-        <div class="grid4">
-          <div class="ctrl">
-            <div class="ctrlHead"><span class="ctrlTitle">BPM</span><span class="ctrlVal" id="bpmVal">120</span></div>
-            <input id="bpmSlider" type="range" min="40" max="220" step="1" value="120" />
-          </div>
-          <div class="ctrl">
-            <div class="ctrlHead"><span class="ctrlTitle">Swing</span><span class="ctrlVal" id="aks-swing-val">0%</span></div>
-            <input id="aks-swing" type="range" min="0" max="0.5" step="0.01" value="0" />
-          </div>
-          <div class="ctrl">
-            <div class="ctrlHead"><span class="ctrlTitle">Current Note</span><span class="ctrlVal" id="aks-current-note">C4</span></div>
-            <div class="row">
-              <button class="btn btnSm" id="aks-note-on" type="button">▶ Hold note</button>
-            </div>
-          </div>
-          <div class="ctrl">
-            <div class="ctrlHead"><span class="ctrlTitle">Sequencer</span><span class="ctrlVal" id="aks-seq-status">OFF</span></div>
-            <button class="btn btnPrimary" id="aks-seq-toggle" type="button">Start AKS Seq</button>
+      <div class="panelBody">
+        <div class="pinBoard">
+          <div class="pinGrid" id="aks-matrix-grid"></div>
+          <div class="pinLegend">
+            <div class="leg"><span class="swatch g"></span>positive · brass</div>
+            <div class="leg"><span class="swatch r"></span>negative · copper</div>
+            <div class="leg">tap to cycle <kbd>·</kbd> <kbd>+1</kbd> <kbd>+2</kbd> <kbd>+3</kbd> <kbd>−1</kbd> <kbd>−2</kbd> <kbd>−3</kbd></div>
+            <div class="leg">long press = remove</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ── VOICE ── -->
-    <div class="sect green">
-      <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-        <b>Voice — Oscillators &amp; Noise</b><span class="sectChev">▼</span>
-      </div>
-      <div class="sectBody">
-        <div class="ctrl">
-          <div class="ctrlHead"><span class="ctrlTitle">AKS Master</span><span class="ctrlVal" id="aks-master-val">0.82</span></div>
-          <input id="aks-master" type="range" min="0" max="1" step="0.01" value="0.82" />
-        </div>
+    <!-- ── MODULES ── -->
+    <div class="panel modulesPanel">
+      <div class="panelHead">Modules <span class="sub">VCO · VCF · ENV · LFO</span></div>
+      <div class="panelBody">
 
-        <div class="oscBlock">
-          <span class="subLabel">OSC 1</span>
-          <select id="aks-osc1-wave" class="selectBox" style="max-width:none">
-            <option value="sawtooth" selected>Sawtooth</option>
-            <option value="square">Square</option>
-            <option value="triangle">Triangle</option>
-            <option value="sine">Sine</option>
-          </select>
-          <div class="ctrl">
-            <div class="ctrlHead"><span class="ctrlTitle">Level</span><span class="ctrlVal" id="aks-osc1-level-val">0.65</span></div>
+        <div class="modGroup">
+          <div class="modLabel">VCO <span class="tag">3 oscillators · noise</span></div>
+
+          <div class="rowMini">
+            <span class="lbl">OSC1</span>
+            <select id="aks-osc1-wave" class="selectBox">
+              <option value="sawtooth" selected>saw</option>
+              <option value="square">sq</option>
+              <option value="triangle">tri</option>
+              <option value="sine">sin</option>
+            </select>
             <input id="aks-osc1-level" type="range" min="0" max="1" step="0.01" value="0.65" />
+            <span class="val" id="aks-osc1-level-val">.65</span>
           </div>
-        </div>
 
-        <div class="oscBlock">
-          <span class="subLabel">OSC 2</span>
-          <select id="aks-osc2-wave" class="selectBox" style="max-width:none">
-            <option value="sawtooth">Sawtooth</option>
-            <option value="square" selected>Square</option>
-            <option value="triangle">Triangle</option>
-            <option value="sine">Sine</option>
-          </select>
-          <div class="grid2">
-            <div class="ctrl">
-              <div class="ctrlHead"><span class="ctrlTitle">Level</span><span class="ctrlVal" id="aks-osc2-level-val">0.45</span></div>
-              <input id="aks-osc2-level" type="range" min="0" max="1" step="0.01" value="0.45" />
-            </div>
-            <div class="ctrl">
-              <div class="ctrlHead"><span class="ctrlTitle">Tune</span><span class="ctrlVal" id="aks-osc2-tune-val">+0.06 st</span></div>
-              <input id="aks-osc2-tune" type="range" min="-12" max="12" step="0.01" value="0.06" />
-            </div>
-          </div>
-        </div>
-
-        <div class="oscBlock">
-          <span class="subLabel">OSC 3</span>
-          <select id="aks-osc3-wave" class="selectBox" style="max-width:none">
-            <option value="sawtooth">Sawtooth</option>
-            <option value="square">Square</option>
-            <option value="triangle" selected>Triangle</option>
-            <option value="sine">Sine</option>
-          </select>
-          <div class="grid2">
-            <div class="ctrl">
-              <div class="ctrlHead"><span class="ctrlTitle">Level</span><span class="ctrlVal" id="aks-osc3-level-val">0.30</span></div>
-              <input id="aks-osc3-level" type="range" min="0" max="1" step="0.01" value="0.30" />
-            </div>
-            <div class="ctrl">
-              <div class="ctrlHead"><span class="ctrlTitle">Tune</span><span class="ctrlVal" id="aks-osc3-tune-val">-12 st</span></div>
-              <input id="aks-osc3-tune" type="range" min="-24" max="12" step="1" value="-12" />
-            </div>
-          </div>
-        </div>
-
-        <div class="oscBlock">
-          <span class="subLabel">Noise / Drift</span>
-          <div class="grid2">
-            <div class="ctrl">
-              <div class="ctrlHead"><span class="ctrlTitle">Noise</span><span class="ctrlVal" id="aks-noise-level-val">0.06</span></div>
-              <input id="aks-noise-level" type="range" min="0" max="1" step="0.01" value="0.06" />
-            </div>
-            <div class="ctrl">
-              <div class="ctrlHead"><span class="ctrlTitle">Drift</span><span class="ctrlVal" id="aks-drift-val">0.30</span></div>
-              <input id="aks-drift" type="range" min="0" max="1" step="0.01" value="0.30" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── FILTER ── -->
-    <div class="sect green">
-      <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-        <b>Filter / VCF</b><span class="sectChev">▼</span>
-      </div>
-      <div class="sectBody">
-        <div class="ctrl">
-          <div class="ctrlHead"><span class="ctrlTitle">Cutoff</span><span class="ctrlVal" id="aks-filter-cutoff-val">1800 Hz</span></div>
-          <input id="aks-filter-cutoff" type="range" min="20" max="12000" step="10" value="1800" />
-        </div>
-        <div class="ctrl">
-          <div class="ctrlHead"><span class="ctrlTitle">Resonance</span><span class="ctrlVal" id="aks-filter-res-val">7.0</span></div>
-          <input id="aks-filter-res" type="range" min="0.1" max="20" step="0.1" value="7.0" />
-        </div>
-        <div class="ctrl">
-          <div class="ctrlHead"><span class="ctrlTitle">Drive</span><span class="ctrlVal" id="aks-filter-drive-val">0.28</span></div>
-          <input id="aks-filter-drive" type="range" min="0" max="1" step="0.01" value="0.28" />
-        </div>
-        <span class="ctrlDesc">Pre-VCF asymmetric soft-clip. Higher drive = richer harmonics, more Synthi grit.</span>
-      </div>
-    </div>
-
-    <!-- ── ENVELOPES ── -->
-    <div class="sect green">
-      <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-        <b>Envelopes — AMP &amp; MOD</b><span class="sectChev">▼</span>
-      </div>
-      <div class="sectBody">
-        <span class="subLabel">AMP ADSR</span>
-        <div class="grid4">
-          <div class="ctrl">
-            <div class="ctrlHead"><span class="ctrlTitle">A</span><span class="ctrlVal" id="aks-amp-a-val">8ms</span></div>
-            <input id="aks-amp-a" type="range" min="0.001" max="4" step="0.001" value="0.008" />
-          </div>
-          <div class="ctrl">
-            <div class="ctrlHead"><span class="ctrlTitle">D</span><span class="ctrlVal" id="aks-amp-d-val">200ms</span></div>
-            <input id="aks-amp-d" type="range" min="0.01" max="4" step="0.01" value="0.20" />
-          </div>
-          <div class="ctrl">
-            <div class="ctrlHead"><span class="ctrlTitle">S</span><span class="ctrlVal" id="aks-amp-s-val">0.62</span></div>
-            <input id="aks-amp-s" type="range" min="0" max="1" step="0.01" value="0.62" />
-          </div>
-          <div class="ctrl">
-            <div class="ctrlHead"><span class="ctrlTitle">R</span><span class="ctrlVal" id="aks-amp-r-val">550ms</span></div>
-            <input id="aks-amp-r" type="range" min="0.01" max="6" step="0.01" value="0.55" />
-          </div>
-        </div>
-        <span class="subLabel" style="margin-top:6px">MOD ENV (via matrix)</span>
-        <div class="grid4">
-          <div class="ctrl">
-            <div class="ctrlHead"><span class="ctrlTitle">A</span><span class="ctrlVal" id="aks-mod-a-val">50ms</span></div>
-            <input id="aks-mod-a" type="range" min="0.001" max="4" step="0.001" value="0.05" />
-          </div>
-          <div class="ctrl">
-            <div class="ctrlHead"><span class="ctrlTitle">D</span><span class="ctrlVal" id="aks-mod-d-val">420ms</span></div>
-            <input id="aks-mod-d" type="range" min="0.01" max="8" step="0.01" value="0.42" />
-          </div>
-          <div class="ctrl">
-            <div class="ctrlHead"><span class="ctrlTitle">S</span><span class="ctrlVal" id="aks-mod-s-val">0.22</span></div>
-            <input id="aks-mod-s" type="range" min="0" max="1" step="0.01" value="0.22" />
-          </div>
-          <div class="ctrl">
-            <div class="ctrlHead"><span class="ctrlTitle">R</span><span class="ctrlVal" id="aks-mod-r-val">880ms</span></div>
-            <input id="aks-mod-r" type="range" min="0.01" max="8" step="0.01" value="0.88" />
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── MODULATION ── -->
-    <div class="sect green">
-      <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-        <b>Modulation — LFOs &amp; Glide</b><span class="sectChev">▼</span>
-      </div>
-      <div class="sectBody">
-        <div class="grid2">
-          <div class="oscBlock">
-            <span class="subLabel">LFO 1</span>
-            <select id="aks-lfo1-wave" class="selectBox" style="max-width:none">
-              <option value="sine" selected>Sine</option>
-              <option value="triangle">Triangle</option>
-              <option value="square">Square</option>
-              <option value="sawtooth">Sawtooth</option>
+          <div class="rowMini duo">
+            <span class="lbl">OSC2</span>
+            <select id="aks-osc2-wave" class="selectBox">
+              <option value="sawtooth">saw</option>
+              <option value="square" selected>sq</option>
+              <option value="triangle">tri</option>
+              <option value="sine">sin</option>
             </select>
-            <div class="ctrl">
-              <div class="ctrlHead"><span class="ctrlTitle">Rate</span><span class="ctrlVal" id="aks-lfo1-rate-val">0.55 Hz</span></div>
-              <input id="aks-lfo1-rate" type="range" min="0.01" max="20" step="0.01" value="0.55" />
-            </div>
+            <input id="aks-osc2-level" type="range" min="0" max="1" step="0.01" value="0.45" />
+            <span class="val" id="aks-osc2-level-val">.45</span>
+            <span class="sep">·</span>
+            <input id="aks-osc2-tune" type="range" min="-12" max="12" step="0.01" value="0.06" class="duoTune" />
+            <span class="val" id="aks-osc2-tune-val">+.06</span>
           </div>
-          <div class="oscBlock">
-            <span class="subLabel">LFO 2</span>
-            <select id="aks-lfo2-wave" class="selectBox" style="max-width:none">
-              <option value="sine">Sine</option>
-              <option value="triangle" selected>Triangle</option>
-              <option value="square">Square</option>
-              <option value="sawtooth">Sawtooth</option>
+
+          <div class="rowMini duo">
+            <span class="lbl">OSC3</span>
+            <select id="aks-osc3-wave" class="selectBox">
+              <option value="sawtooth">saw</option>
+              <option value="square">sq</option>
+              <option value="triangle" selected>tri</option>
+              <option value="sine">sin</option>
             </select>
-            <div class="ctrl">
-              <div class="ctrlHead"><span class="ctrlTitle">Rate</span><span class="ctrlVal" id="aks-lfo2-rate-val">0.12 Hz</span></div>
-              <input id="aks-lfo2-rate" type="range" min="0.01" max="20" step="0.01" value="0.12" />
+            <input id="aks-osc3-level" type="range" min="0" max="1" step="0.01" value="0.30" />
+            <span class="val" id="aks-osc3-level-val">.30</span>
+            <span class="sep">·</span>
+            <input id="aks-osc3-tune" type="range" min="-24" max="12" step="1" value="-12" class="duoTune" />
+            <span class="val" id="aks-osc3-tune-val">-12</span>
+          </div>
+
+          <div class="rowMini noWave">
+            <span class="lbl">Noise</span>
+            <input id="aks-noise-level" type="range" min="0" max="1" step="0.01" value="0.06" />
+            <span class="val" id="aks-noise-level-val">.06</span>
+          </div>
+
+          <div class="rowMini noWave">
+            <span class="lbl">Drift</span>
+            <input id="aks-drift" type="range" min="0" max="1" step="0.01" value="0.30" />
+            <span class="val" id="aks-drift-val">.30</span>
+          </div>
+
+          <div class="rowMini noWave">
+            <span class="lbl">Master</span>
+            <input id="aks-master" type="range" min="0" max="1" step="0.01" value="0.82" />
+            <span class="val" id="aks-master-val">.82</span>
+          </div>
+        </div>
+
+        <div class="modGroup">
+          <div class="modLabel">VCF <span class="tag">resonant lowpass · soft-clip drive</span></div>
+          <div class="rowMini noWave">
+            <span class="lbl">Cut</span>
+            <input id="aks-filter-cutoff" type="range" min="20" max="12000" step="10" value="1800" />
+            <span class="val" id="aks-filter-cutoff-val">1800</span>
+          </div>
+          <div class="rowMini noWave">
+            <span class="lbl">Res</span>
+            <input id="aks-filter-res" type="range" min="0.1" max="20" step="0.1" value="7.0" />
+            <span class="val" id="aks-filter-res-val">7.0</span>
+          </div>
+          <div class="rowMini noWave">
+            <span class="lbl">Drive</span>
+            <input id="aks-filter-drive" type="range" min="0" max="1" step="0.01" value="0.28" />
+            <span class="val" id="aks-filter-drive-val">.28</span>
+          </div>
+        </div>
+
+        <div class="modGroup">
+          <div class="modLabel">ENV <span class="tag">AMP · MOD (via matrix)</span></div>
+          <div style="font-size:9px; color:var(--muted); letter-spacing:.14em; text-transform:uppercase; font-weight:700; margin-top:2px;">AMP</div>
+          <div class="adsr">
+            <div class="miniCell">
+              <div class="miniHead"><span class="miniLbl">A</span><span class="miniVal" id="aks-amp-a-val">8ms</span></div>
+              <input id="aks-amp-a" type="range" min="0.001" max="4" step="0.001" value="0.008" />
+            </div>
+            <div class="miniCell">
+              <div class="miniHead"><span class="miniLbl">D</span><span class="miniVal" id="aks-amp-d-val">200ms</span></div>
+              <input id="aks-amp-d" type="range" min="0.01" max="4" step="0.01" value="0.20" />
+            </div>
+            <div class="miniCell">
+              <div class="miniHead"><span class="miniLbl">S</span><span class="miniVal" id="aks-amp-s-val">.62</span></div>
+              <input id="aks-amp-s" type="range" min="0" max="1" step="0.01" value="0.62" />
+            </div>
+            <div class="miniCell">
+              <div class="miniHead"><span class="miniLbl">R</span><span class="miniVal" id="aks-amp-r-val">550ms</span></div>
+              <input id="aks-amp-r" type="range" min="0.01" max="6" step="0.01" value="0.55" />
+            </div>
+          </div>
+          <div style="font-size:9px; color:var(--muted); letter-spacing:.14em; text-transform:uppercase; font-weight:700; margin-top:4px;">MOD</div>
+          <div class="adsr">
+            <div class="miniCell">
+              <div class="miniHead"><span class="miniLbl">A</span><span class="miniVal" id="aks-mod-a-val">50ms</span></div>
+              <input id="aks-mod-a" type="range" min="0.001" max="4" step="0.001" value="0.05" />
+            </div>
+            <div class="miniCell">
+              <div class="miniHead"><span class="miniLbl">D</span><span class="miniVal" id="aks-mod-d-val">420ms</span></div>
+              <input id="aks-mod-d" type="range" min="0.01" max="8" step="0.01" value="0.42" />
+            </div>
+            <div class="miniCell">
+              <div class="miniHead"><span class="miniLbl">S</span><span class="miniVal" id="aks-mod-s-val">.22</span></div>
+              <input id="aks-mod-s" type="range" min="0" max="1" step="0.01" value="0.22" />
+            </div>
+            <div class="miniCell">
+              <div class="miniHead"><span class="miniLbl">R</span><span class="miniVal" id="aks-mod-r-val">880ms</span></div>
+              <input id="aks-mod-r" type="range" min="0.01" max="8" step="0.01" value="0.88" />
             </div>
           </div>
         </div>
-        <div class="ctrl">
-          <div class="ctrlHead"><span class="ctrlTitle">Glide</span><span class="ctrlVal" id="aks-glide-val">OFF</span></div>
-          <input id="aks-glide" type="range" min="0" max="2" step="0.01" value="0" />
-        </div>
-      </div>
-    </div>
 
-    <!-- ── MATRIX ── -->
-    <div class="sect span2 green">
-      <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-        <b>Routing Matrix</b><span class="sectChev">▼</span>
-      </div>
-      <div class="sectBody">
-        <span class="ctrlDesc">Tap cells to cycle strength: 0 → +1 → +2 → +3 → −1 → −2 → −3 → 0</span>
-        <div id="aks-matrix-grid"></div>
-      </div>
-    </div>
-
-    <!-- ── ON-SCREEN KEYBOARD ── -->
-    <div class="sect span2 green">
-      <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-        <b>Keyboard</b><span class="sectChev">▼</span>
-      </div>
-      <div class="sectBody">
-        <div class="kbToolbar">
-          <button class="btn btnSm" id="kbOctDown" type="button">−Oct</button>
-          <span class="pill" id="kbOctLabel">C4 – C6</span>
-          <button class="btn btnSm" id="kbOctUp" type="button">+Oct</button>
-          <span class="kbInfo">PC keys: 1–8 octave / 9 ↑ / 0 ↓</span>
-        </div>
-        <div class="keyboard" id="kb"></div>
-      </div>
-    </div>
-
-    <!-- ── SEQUENCER ── -->
-    <div class="sect span2 green">
-      <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-        <b>AKS Sequencer — 16 steps</b><span class="sectChev">▼</span>
-      </div>
-      <div class="sectBody">
-        <div id="aks-seq-steps-grid"></div>
-        <div id="aks-seq-step-editor" style="display:none; border-top: 1px solid var(--border); padding-top: 12px;">
-          <span class="subLabel" id="aks-step-editor-label">Step 1</span>
-          <div class="grid2">
-            <div class="ctrl">
-              <div class="ctrlHead"><span class="ctrlTitle">Note</span><span class="ctrlVal" id="aks-step-note-val">C4</span></div>
-              <input id="aks-step-note" type="range" min="24" max="96" step="1" value="60" />
-            </div>
-            <div class="ctrl">
-              <div class="ctrlHead"><span class="ctrlTitle">Velocity</span><span class="ctrlVal" id="aks-step-vel-val">0.78</span></div>
-              <input id="aks-step-vel" type="range" min="0.05" max="1" step="0.01" value="0.78" />
-            </div>
+        <div class="modGroup">
+          <div class="modLabel">LFO <span class="tag">2× low-frequency mod sources</span></div>
+          <div class="rowMini">
+            <span class="lbl">LFO1</span>
+            <select id="aks-lfo1-wave" class="selectBox">
+              <option value="sine" selected>sin</option>
+              <option value="triangle">tri</option>
+              <option value="square">sq</option>
+              <option value="sawtooth">saw</option>
+            </select>
+            <input id="aks-lfo1-rate" type="range" min="0.01" max="20" step="0.01" value="0.55" />
+            <span class="val" id="aks-lfo1-rate-val">.55</span>
           </div>
-          <div class="row" style="margin-top:8px">
-            <button class="btn btnSm" id="aks-step-active" type="button">Active: ON</button>
-            <button class="btn btnSm" id="aks-step-accent" type="button">Accent: OFF</button>
+          <div class="rowMini">
+            <span class="lbl">LFO2</span>
+            <select id="aks-lfo2-wave" class="selectBox">
+              <option value="sine">sin</option>
+              <option value="triangle" selected>tri</option>
+              <option value="square">sq</option>
+              <option value="sawtooth">saw</option>
+            </select>
+            <input id="aks-lfo2-rate" type="range" min="0.01" max="20" step="0.01" value="0.12" />
+            <span class="val" id="aks-lfo2-rate-val">.12</span>
+          </div>
+          <div class="rowMini noWave">
+            <span class="lbl">Glide</span>
+            <input id="aks-glide" type="range" min="0" max="2" step="0.01" value="0" />
+            <span class="val" id="aks-glide-val">OFF</span>
           </div>
         </div>
+
+        <div class="modGroup">
+          <div class="modLabel">Presets</div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btnSm btnPrimary" id="aks-preset-save" type="button" style="flex:1">Save JSON</button>
+            <label class="btn btnSm" style="cursor:pointer; flex:1; justify-content:center">
+              Load JSON
+              <input id="aks-preset-load" type="file" accept=".json" style="display:none">
+            </label>
+            <button class="btn btnSm" id="aks-note-on" type="button" style="flex:1">▶ Hold</button>
+          </div>
+        </div>
+
       </div>
     </div>
 
-    <!-- ── PRESETS ── -->
-    <div class="sect span2 green">
-      <div class="sectHead" onclick="this.closest('.sect').classList.toggle('collapsed')">
-        <b>Presets</b><span class="sectChev">▼</span>
-      </div>
-      <div class="sectBody">
-        <div class="row">
-          <button class="btn btnPrimary" id="aks-preset-save" type="button">Save JSON</button>
-          <label class="btn" style="cursor:pointer">
-            Load JSON
-            <input id="aks-preset-load" type="file" accept=".json" style="display:none">
-          </label>
+    <!-- ── SEQUENCER + KEYBOARD ── -->
+    <div class="seqWrap">
+
+      <div class="panel">
+        <div class="panelHead">Sequencer <span class="sub" id="aks-current-note">C4</span></div>
+        <div class="panelBody" style="gap:8px">
+          <div id="aks-seq-steps-grid"></div>
+          <div class="stepEditor" id="aks-seq-step-editor" style="display:none">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+              <span style="font-size:9px; letter-spacing:.14em; text-transform:uppercase; font-weight:800; color:var(--accent)" id="aks-step-editor-label">Step 1</span>
+              <div style="display:flex; gap:5px;">
+                <button class="btn btnSm" id="aks-step-active" type="button">Active: ON</button>
+                <button class="btn btnSm" id="aks-step-accent" type="button">Accent: OFF</button>
+              </div>
+            </div>
+            <div class="adsr" style="grid-template-columns: 1fr 1fr;">
+              <div class="miniCell">
+                <div class="miniHead"><span class="miniLbl">Note</span><span class="miniVal" id="aks-step-note-val">C4</span></div>
+                <input id="aks-step-note" type="range" min="24" max="96" step="1" value="60" />
+              </div>
+              <div class="miniCell">
+                <div class="miniHead"><span class="miniLbl">Velocity</span><span class="miniVal" id="aks-step-vel-val">.78</span></div>
+                <input id="aks-step-vel" type="range" min="0.05" max="1" step="0.01" value="0.78" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+
+      <div class="panel">
+        <div class="panelHead">Keyboard
+          <span style="display:flex; gap:4px; align-items:center;">
+            <button class="btn btnSm btnGhost" id="kbOctDown" type="button" style="padding:2px 6px; min-height:22px">−</button>
+            <span class="sub" id="kbOctLabel">C4 – C6</span>
+            <button class="btn btnSm btnGhost" id="kbOctUp" type="button" style="padding:2px 6px; min-height:22px">+</button>
+          </span>
+        </div>
+        <div class="panelBody" style="gap:6px">
+          <div class="keyboard" id="kb"></div>
+          <div style="font-size:9px; color:var(--muted); letter-spacing:.04em; text-align:center;">
+            PC keys: 1–8 octave · 9↑ · 0↓
+          </div>
+        </div>
+      </div>
+
     </div>
 
-  </div><!-- /main -->
+  </div>
 
   <script src="./synthi-aks.js"></script>
 
   <script>
-  /* ─────────────────────────────────────────────────────────────────────────
-     STANDALONE AUDIO BOOTSTRAP (no index.js)
-     - Builds AudioContext, master chain, VU analyser
-     - Dispatches `synthiAudioReady` so synthi-aks.js attaches at mixBus
-     ───────────────────────────────────────────────────────────────────────── */
+  /* ─── AUDIO BOOTSTRAP ────────────────────────────────────────────── */
   (function () {
     'use strict';
-
-    let actx = null;
-    let mixBus = null;
-    let masterGain = null;
-    let vuAnalyser = null;
-    let vuBuf = null;
+    let actx = null, mixBus = null, masterGain = null;
+    let vuAnalyser = null, vuBuf = null;
     let masterVol = 0.80;
-    let vuPeak = 0, vuPeakHoldDb = -Infinity, vuPeakHoldTs = 0;
+    let vuPeakHoldDb = -Infinity, vuPeakHoldTs = 0;
 
-    const startBtn  = document.getElementById('audioStart');
-    const masterEl  = document.getElementById('masterVol');
-    const masterValEl = document.getElementById('masterVolVal');
-    const vuCanvas  = document.getElementById('vuCanvas');
-    const vuDbEl    = document.getElementById('vuDb');
-    const vuCtx     = vuCanvas.getContext('2d');
+    const startBtn   = document.getElementById('audioStart');
+    const masterEl   = document.getElementById('masterVol');
+    const masterValEl= document.getElementById('masterVolVal');
+    const vuCanvas   = document.getElementById('vuCanvas');
+    const vuDbEl     = document.getElementById('vuDb');
+    const vuCtx      = vuCanvas.getContext('2d');
 
     function fmtDb(db) {
       if (!isFinite(db)) return '-∞ dB';
       return (db >= 0 ? '+' : '') + db.toFixed(1) + ' dB';
     }
-
     function ensureAudio() {
-      if (actx) {
-        if (actx.state === 'suspended') actx.resume();
-        return actx;
-      }
+      if (actx) { if (actx.state === 'suspended') actx.resume(); return actx; }
       const AC = window.AudioContext || window.webkitAudioContext;
       actx = new AC();
-
       mixBus = actx.createGain();
       mixBus.gain.value = 1.0;
-
       masterGain = actx.createGain();
       masterGain.gain.value = masterVol;
 
       const limiter = actx.createDynamicsCompressor();
       limiter.threshold.value = -6;
-      limiter.knee.value      = 4;
-      limiter.ratio.value     = 12;
-      limiter.attack.value    = 0.003;
-      limiter.release.value   = 0.15;
+      limiter.knee.value = 4; limiter.ratio.value = 12;
+      limiter.attack.value = 0.003; limiter.release.value = 0.15;
 
       vuAnalyser = actx.createAnalyser();
       vuAnalyser.fftSize = 1024;
@@ -809,97 +878,68 @@
 
       window.dispatchEvent(new CustomEvent('synthiAudioReady', { detail: { actx, mixBus } }));
 
-      startBtn.textContent = '● Audio running';
+      startBtn.textContent = '● Running';
       startBtn.classList.remove('btnPrimary');
       startBtn.classList.add('btnActive');
-
       requestAnimationFrame(drawVu);
       return actx;
     }
-
     startBtn.addEventListener('click', ensureAudio);
 
-    /* master volume */
     masterEl.addEventListener('input', () => {
       masterVol = parseFloat(masterEl.value);
       masterValEl.textContent = masterVol.toFixed(2);
       if (masterGain) masterGain.gain.setTargetAtTime(masterVol, actx.currentTime, 0.02);
     });
-    masterValEl.textContent = masterVol.toFixed(2);
 
-    /* ── VU meter draw ── */
     function drawVu() {
       requestAnimationFrame(drawVu);
       if (!vuAnalyser) return;
-
       vuAnalyser.getFloatTimeDomainData(vuBuf);
       let sum = 0, peak = 0;
       for (let i = 0; i < vuBuf.length; i++) {
-        const v = vuBuf[i];
-        sum += v * v;
-        const a = Math.abs(v);
-        if (a > peak) peak = a;
+        const v = vuBuf[i]; sum += v*v;
+        const a = Math.abs(v); if (a > peak) peak = a;
       }
-      const rms = Math.sqrt(sum / vuBuf.length);
+      const rms  = Math.sqrt(sum / vuBuf.length);
       const rmsDb  = 20 * Math.log10(Math.max(rms,  1e-6));
       const peakDb = 20 * Math.log10(Math.max(peak, 1e-6));
-
-      // peak hold ~1.2 s
       const now = performance.now();
       if (peakDb > vuPeakHoldDb || now - vuPeakHoldTs > 1200) {
-        vuPeakHoldDb = peakDb;
-        vuPeakHoldTs = now;
+        vuPeakHoldDb = peakDb; vuPeakHoldTs = now;
       }
 
-      const W = vuCanvas.width;
-      const H = vuCanvas.height;
+      const W = vuCanvas.width, H = vuCanvas.height;
       vuCtx.clearRect(0, 0, W, H);
-
-      // background
-      vuCtx.fillStyle = '#000';
-      vuCtx.fillRect(0, 0, W, H);
-
-      // dB range: -60 to +6
+      vuCtx.fillStyle = '#000'; vuCtx.fillRect(0, 0, W, H);
       const dbMin = -60, dbMax = 6;
       const dbToX = db => ((db - dbMin) / (dbMax - dbMin)) * W;
 
-      // gradient fill up to RMS
       const rmsX = Math.max(0, Math.min(W, dbToX(rmsDb)));
       const grad = vuCtx.createLinearGradient(0, 0, W, 0);
-      grad.addColorStop(0,   '#2de879');
-      grad.addColorStop(dbToX(-12) / W, '#2de879');
-      grad.addColorStop(dbToX(-6)  / W, '#e8a020');
-      grad.addColorStop(dbToX(0)   / W, '#e63b3b');
+      grad.addColorStop(0, '#2de879');
+      grad.addColorStop(dbToX(-12)/W, '#2de879');
+      grad.addColorStop(dbToX(-6)/W,  '#e8a020');
+      grad.addColorStop(dbToX(0)/W,   '#e63b3b');
       grad.addColorStop(1, '#e63b3b');
-      vuCtx.fillStyle = grad;
-      vuCtx.fillRect(0, 0, rmsX, H);
+      vuCtx.fillStyle = grad; vuCtx.fillRect(0, 0, rmsX, H);
 
-      // peak instantaneous (thin)
-      const peakX = Math.max(0, Math.min(W - 1, dbToX(peakDb)));
+      const peakX = Math.max(0, Math.min(W-1, dbToX(peakDb)));
       vuCtx.fillStyle = 'rgba(255,255,255,.55)';
       vuCtx.fillRect(peakX, 0, 1, H);
 
-      // peak hold (bright line)
       if (isFinite(vuPeakHoldDb)) {
-        const hX = Math.max(0, Math.min(W - 1, dbToX(vuPeakHoldDb)));
+        const hX = Math.max(0, Math.min(W-1, dbToX(vuPeakHoldDb)));
         vuCtx.fillStyle = vuPeakHoldDb >= 0 ? '#e63b3b' : vuPeakHoldDb >= -6 ? '#e8a020' : '#fff';
         vuCtx.fillRect(hX, 0, 2, H);
       }
-
-      // scale ticks
       vuCtx.fillStyle = 'rgba(255,255,255,.18)';
-      [-48, -36, -24, -18, -12, -6, 0].forEach(db => {
-        const x = dbToX(db);
-        vuCtx.fillRect(x, H - 4, 1, 4);
-      });
+      [-48,-36,-24,-18,-12,-6,0].forEach(db => vuCtx.fillRect(dbToX(db), H-4, 1, 4));
 
-      // display value (peak hold dB)
       const showDb = isFinite(vuPeakHoldDb) ? vuPeakHoldDb : -Infinity;
       vuDbEl.textContent = fmtDb(showDb);
       vuDbEl.style.color = showDb >= 0 ? '#e63b3b' : showDb >= -6 ? '#e8a020' : '#2de879';
     }
-
-    /* Resize canvas to its CSS width on layout */
     function fitVu() {
       const r = vuCanvas.getBoundingClientRect();
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -911,20 +951,14 @@
     window.addEventListener('resize', fitVu);
   })();
 
-  /* ─────────────────────────────────────────────────────────────────────────
-     WEB MIDI INPUT
-     ───────────────────────────────────────────────────────────────────────── */
+  /* ─── WEB MIDI ──────────────────────────────────────────────────── */
   (function () {
     'use strict';
     const midiSelect = document.getElementById('midiInput');
     const midiDot    = document.getElementById('midiDot');
-    let midiAccess   = null;
-    let currentInput = null;
-    let activityTs   = 0;
+    let midiAccess = null, currentInput = null, activityTs = 0;
 
-    function setStatus(connected) {
-      midiDot.classList.toggle('connected', !!connected);
-    }
+    function setStatus(c) { midiDot.classList.toggle('connected', !!c); }
     function flashActivity() {
       midiDot.classList.add('active');
       activityTs = performance.now();
@@ -932,7 +966,6 @@
         if (performance.now() - activityTs >= 90) midiDot.classList.remove('active');
       }, 100);
     }
-
     function populateInputs() {
       const prev = currentInput ? currentInput.id : midiSelect.value;
       midiSelect.innerHTML = '<option value="">— off —</option>';
@@ -940,96 +973,65 @@
       let first = null;
       midiAccess.inputs.forEach(input => {
         const opt = document.createElement('option');
-        opt.value = input.id;
-        opt.textContent = input.name || ('MIDI in ' + input.id.slice(0, 6));
+        opt.value = input.id; opt.textContent = input.name || ('MIDI in ' + input.id.slice(0, 6));
         midiSelect.appendChild(opt);
         if (!first) first = input;
       });
-      if (prev && midiAccess.inputs.get(prev)) {
-        midiSelect.value = prev;
-        attachInput(prev);
-      } else if (first) {
-        midiSelect.value = first.id;
-        attachInput(first.id);
-      } else {
-        attachInput('');
-      }
+      if (prev && midiAccess.inputs.get(prev)) { midiSelect.value = prev; attachInput(prev); }
+      else if (first) { midiSelect.value = first.id; attachInput(first.id); }
+      else { attachInput(''); }
     }
-
     function attachInput(id) {
-      if (currentInput) {
-        currentInput.onmidimessage = null;
-        currentInput = null;
-      }
-      if (!id || !midiAccess) {
-        setStatus(false);
-        return;
-      }
+      if (currentInput) { currentInput.onmidimessage = null; currentInput = null; }
+      if (!id || !midiAccess) { setStatus(false); return; }
       const input = midiAccess.inputs.get(id);
       if (!input) { setStatus(false); return; }
-      currentInput = input;
-      input.onmidimessage = handleMidi;
-      setStatus(true);
+      currentInput = input; input.onmidimessage = handleMidi; setStatus(true);
     }
-
     function handleMidi(ev) {
-      const data = ev.data;
-      if (!data || data.length < 1) return;
+      const data = ev.data; if (!data || data.length < 1) return;
       const status = data[0] & 0xf0;
       const aks = window._aksEngine;
       flashActivity();
       if (!aks) return;
-
       if (status === 0x90 && data[2] > 0) {
-        // note on
         const note = data[1], vel = data[2] / 127;
         aks.noteOn(note, vel);
         const noteEl = document.getElementById('aks-current-note');
         if (noteEl && window._AKSEngine) noteEl.textContent = window._AKSEngine.midiName(note);
       } else if (status === 0x80 || (status === 0x90 && data[2] === 0)) {
-        // note off
         aks.noteOff();
       } else if (status === 0xb0) {
-        // CC
         const cc = data[1], val = data[2] / 127;
         if (cc === 1) {
-          // mod wheel → filter cutoff offset (light touch)
           const cutoff = 200 + val * 8000;
           aks.setParam('filterCutoff', cutoff);
           const el = document.getElementById('aks-filter-cutoff');
           const vEl = document.getElementById('aks-filter-cutoff-val');
           if (el) el.value = cutoff;
-          if (vEl) vEl.textContent = Math.round(cutoff) + ' Hz';
+          if (vEl) vEl.textContent = Math.round(cutoff);
         } else if (cc === 7) {
-          // volume → master
-          const masterEl = document.getElementById('masterVol');
-          const masterValEl = document.getElementById('masterVolVal');
-          if (masterEl) { masterEl.value = val; masterEl.dispatchEvent(new Event('input')); }
+          const m = document.getElementById('masterVol');
+          if (m) { m.value = val; m.dispatchEvent(new Event('input')); }
         }
       }
     }
-
     midiSelect.addEventListener('change', () => attachInput(midiSelect.value));
-
     if (!navigator.requestMIDIAccess) {
       midiSelect.disabled = true;
-      midiSelect.innerHTML = '<option>MIDI not supported</option>';
+      midiSelect.innerHTML = '<option>n/a</option>';
       return;
     }
     navigator.requestMIDIAccess({ sysex: false }).then(access => {
-      midiAccess = access;
-      midiAccess.onstatechange = populateInputs;
+      midiAccess = access; midiAccess.onstatechange = populateInputs;
       populateInputs();
-    }).catch(err => {
-      console.warn('[MIDI] access denied:', err);
+    }).catch(() => {
       midiSelect.disabled = true;
-      midiSelect.innerHTML = '<option>MIDI denied</option>';
+      midiSelect.innerHTML = '<option>denied</option>';
     });
   })();
 
-  /* ─────────────────────────────────────────────────────────────────────────
-     AKS UI WIRING
-     ───────────────────────────────────────────────────────────────────────── */
+  /* ─── AKS UI ────────────────────────────────────────────────────── */
   (function () {
     'use strict';
 
@@ -1054,18 +1056,18 @@
       el.addEventListener('input', refresh);
       (function () { const v = parseFloat(el.value); if (vEl) vEl.textContent = fmt ? fmt(v) : v.toFixed(2); })();
     }
-
     function bindSelect(id, key) {
       const el = document.getElementById(id);
       if (!el) return;
       el.addEventListener('change', () => { if (aks) aks.setParam(key, el.value); });
     }
 
-    /* ── Matrix ── */
-    const STRENGTH_CYCLE = [0, 1, 2, 3, -1, -2, -3];
-    const SRC_LABELS  = ['LFO1', 'LFO2', 'MOD', 'OSC3', 'NOISE'];
-    const DEST_LABELS = ['OSC1 ƒ', 'OSC2 ƒ', 'OSC3 ƒ', 'VCF', 'AMP', 'LFO1 ƒ'];
-    function cellText(s) { return s === 0 ? '·' : (s > 0 ? '+' + s : String(s)); }
+    /* ── Pin Matrix ──
+       Cycle: empty → +2 → +3 → +1 → −1 → −2 → −3 → empty
+       Long press = remove (set 0) */
+    const STRENGTH_CYCLE = [0, 2, 3, 1, -1, -2, -3];
+    const SRC_LABELS  = ['OSC1', 'LFO1', 'LFO2', 'MOD', 'OSC3', 'NOISE'];
+    const DEST_LABELS = ['OSC1ƒ', 'OSC2ƒ', 'OSC3ƒ', 'VCFƒ', 'VCA', 'VCFQ'];
 
     function buildMatrix() {
       const container = document.getElementById('aks-matrix-grid');
@@ -1073,12 +1075,12 @@
       container.dataset.built = '1';
       container.innerHTML = '';
 
+      // top-left corner spacer
       const corner = document.createElement('div');
-      corner.className = 'aks-mat-corner';
       container.appendChild(corner);
       DEST_LABELS.forEach(lbl => {
         const d = document.createElement('div');
-        d.className = 'aks-mat-header';
+        d.className = 'pinHeader';
         d.textContent = lbl;
         container.appendChild(d);
       });
@@ -1086,30 +1088,66 @@
       const N_SRC = SRC_LABELS.length, N_DST = DEST_LABELS.length;
       for (let si = 0; si < N_SRC; si++) {
         const srcEl = document.createElement('div');
-        srcEl.className = 'aks-mat-src';
+        srcEl.className = 'pinSrc';
         srcEl.textContent = SRC_LABELS[si];
         container.appendChild(srcEl);
 
         for (let di = 0; di < N_DST; di++) {
-          const cell = document.createElement('div');
-          cell.className = 'aks-mat-cell';
-          cell.dataset.s  = '0';
-          cell.dataset.si = si;
-          cell.dataset.di = di;
-          cell.textContent = '·';
-          cell.onclick = () => {
-            const idx = STRENGTH_CYCLE.indexOf(parseInt(cell.dataset.s, 10));
-            const next = STRENGTH_CYCLE[(idx + 1) % STRENGTH_CYCLE.length];
-            cell.dataset.s = String(next);
-            cell.textContent = cellText(next);
+          const hole = document.createElement('div');
+          hole.className = 'pinHole';
+          hole.dataset.s  = '0';
+          hole.dataset.si = si;
+          hole.dataset.di = di;
+          hole.title = SRC_LABELS[si] + ' → ' + DEST_LABELS[di];
+
+          const pin = document.createElement('div');
+          pin.className = 'pin';
+          hole.appendChild(pin);
+
+          let longPressTimer = null;
+          let suppressClick = false;
+
+          const setStrength = (next) => {
+            hole.dataset.s = String(next);
+            hole.classList.remove('justChanged');
+            void hole.offsetWidth; // restart animation
+            hole.classList.add('justChanged');
             if (aks) aks.setMatrix(si, di, next);
           };
-          container.appendChild(cell);
+
+          hole.addEventListener('pointerdown', (ev) => {
+            ev.preventDefault();
+            longPressTimer = setTimeout(() => {
+              suppressClick = true;
+              setStrength(0);
+              navigator.vibrate && navigator.vibrate(15);
+            }, 380);
+          });
+          const cancelLong = () => { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; } };
+          hole.addEventListener('pointerup',     cancelLong);
+          hole.addEventListener('pointerleave',  cancelLong);
+          hole.addEventListener('pointercancel', cancelLong);
+
+          hole.addEventListener('click', () => {
+            if (suppressClick) { suppressClick = false; return; }
+            const cur = parseInt(hole.dataset.s, 10);
+            const idx = STRENGTH_CYCLE.indexOf(cur);
+            const next = STRENGTH_CYCLE[(idx + 1) % STRENGTH_CYCLE.length];
+            setStrength(next);
+          });
+
+          // right-click = remove
+          hole.addEventListener('contextmenu', (ev) => {
+            ev.preventDefault();
+            setStrength(0);
+          });
+
+          container.appendChild(hole);
         }
       }
     }
 
-    /* ── Sequencer step grid ── */
+    /* ── Sequencer ── */
     function buildSeqSteps() {
       const grid = document.getElementById('aks-seq-steps-grid');
       if (!grid || grid.dataset.built) return;
@@ -1127,7 +1165,6 @@
         grid.appendChild(btn);
       }
     }
-
     function refreshStepBtn(btn, i) {
       if (!aks) return;
       const step = aks.state.seqSteps[i];
@@ -1137,7 +1174,6 @@
       if (i === selectedStep) btn.classList.add('selected');
       btn.textContent = step.active ? fmtNote(step.note) : '—';
     }
-
     function refreshAllStepBtns() {
       if (!aks) return;
       for (let i = 0; i < 16; i++) {
@@ -1145,7 +1181,6 @@
         if (btn) refreshStepBtn(btn, i);
       }
     }
-
     function openStepEditor(i) {
       if (!aks) return;
       const editor = document.getElementById('aks-seq-step-editor');
@@ -1168,17 +1203,15 @@
       if (accentBtn) accentBtn.textContent = 'Accent: ' + (step.accent ? 'ON' : 'OFF');
     }
 
-    /* ── On-screen keyboard ── */
-    let kbStartMidi = 60; // C4
-    const KB_OCT = 2; // 2-octave span (24 semitones)
+    /* ── Keyboard ── */
+    let kbStartMidi = 60;
+    const KB_OCT = 2;
     const WHITE_OFFSETS = [0,2,4,5,7,9,11];
-    const BLACK_OFFSETS = [1,3,6,8,10];
 
     function buildKeyboard() {
       const kb = document.getElementById('kb');
       if (!kb) return;
       kb.innerHTML = '';
-
       const whiteNotes = [];
       for (let oct = 0; oct < KB_OCT + 1; oct++) {
         for (const off of WHITE_OFFSETS) {
@@ -1186,7 +1219,6 @@
           if (whiteNotes.length < 15) whiteNotes.push(midi);
         }
       }
-      // 15 white keys grid
       whiteNotes.forEach((midi, idx) => {
         const k = document.createElement('div');
         k.className = 'keyW';
@@ -1197,32 +1229,26 @@
         attachKeyEvents(k);
         kb.appendChild(k);
       });
-
-      // black keys: place over white keys at relative positions
       const whiteWidthPct = 100 / 15;
-      const gapPx = 3;
+      const gapPx = 2;
       for (let i = 0; i < whiteNotes.length - 1; i++) {
         const m1 = whiteNotes[i], m2 = whiteNotes[i+1];
-        if (m2 - m1 !== 2) continue; // no black key between B-C or E-F
+        if (m2 - m1 !== 2) continue;
         const blackMidi = m1 + 1;
         if (fmtNote(blackMidi).indexOf('#') === -1) continue;
         const k = document.createElement('div');
         k.className = 'keyB';
         k.dataset.midi = blackMidi;
-        // center between two white keys
         k.style.left = `calc(${(i + 1) * whiteWidthPct}% - calc((100% - 14*${gapPx}px) / 15 * 0.35))`;
         attachKeyEvents(k);
         kb.appendChild(k);
       }
-
       updateKbLabel();
     }
-
     function updateKbLabel() {
       const lbl = document.getElementById('kbOctLabel');
       if (lbl) lbl.textContent = fmtNote(kbStartMidi) + ' – ' + fmtNote(kbStartMidi + 24);
     }
-
     function attachKeyEvents(el) {
       const press = (ev) => {
         ev.preventDefault();
@@ -1240,26 +1266,19 @@
       el.addEventListener('pointerdown', press);
       el.addEventListener('pointerup', release);
       el.addEventListener('pointercancel', release);
-      el.addEventListener('pointerleave', (ev) => {
-        if (el.classList.contains('held')) release(ev);
-      });
+      el.addEventListener('pointerleave', (ev) => { if (el.classList.contains('held')) release(ev); });
     }
-
     document.getElementById('kbOctDown').addEventListener('click', () => {
-      kbStartMidi = Math.max(12, kbStartMidi - 12);
-      buildKeyboard();
+      kbStartMidi = Math.max(12, kbStartMidi - 12); buildKeyboard();
     });
     document.getElementById('kbOctUp').addEventListener('click', () => {
-      kbStartMidi = Math.min(96, kbStartMidi + 12);
-      buildKeyboard();
+      kbStartMidi = Math.min(96, kbStartMidi + 12); buildKeyboard();
     });
 
-    /* ── BPM display ── */
     const bpmSlider = document.getElementById('bpmSlider');
     const bpmVal    = document.getElementById('bpmVal');
     bpmSlider.addEventListener('input', () => { bpmVal.textContent = bpmSlider.value; });
 
-    /* ── Sync controls from engine state (after preset load) ── */
     function syncSlidersFromState() {
       if (!aks) return;
       const st = aks.state;
@@ -1283,22 +1302,25 @@
       set('aks-lfo1-rate', st.lfo1Rate); set('aks-lfo2-rate', st.lfo2Rate);
       set('aks-glide', st.glide); set('aks-swing', st.seqSwing);
 
-      setAndShow('aks-osc1-level','aks-osc1-level-val');
-      setAndShow('aks-osc2-level','aks-osc2-level-val');
-      setAndShow('aks-osc2-tune','aks-osc2-tune-val', v => v.toFixed(2)+' st');
-      setAndShow('aks-osc3-level','aks-osc3-level-val');
-      setAndShow('aks-osc3-tune','aks-osc3-tune-val', v => v.toFixed(0)+' st');
-      setAndShow('aks-noise-level','aks-noise-level-val');
-      setAndShow('aks-drift','aks-drift-val');
-      setAndShow('aks-filter-cutoff','aks-filter-cutoff-val', v => Math.round(v)+' Hz');
-      setAndShow('aks-filter-res','aks-filter-res-val');
-      setAndShow('aks-filter-drive','aks-filter-drive-val');
+      setAndShow('aks-osc1-level','aks-osc1-level-val', v => v.toFixed(2).replace(/^0/, ''));
+      setAndShow('aks-osc2-level','aks-osc2-level-val', v => v.toFixed(2).replace(/^0/, ''));
+      setAndShow('aks-osc2-tune','aks-osc2-tune-val', v => (v >= 0 ? '+' : '') + v.toFixed(2).replace(/^-?0/, m => m.startsWith('-') ? '-' : ''));
+      setAndShow('aks-osc3-level','aks-osc3-level-val', v => v.toFixed(2).replace(/^0/, ''));
+      setAndShow('aks-osc3-tune','aks-osc3-tune-val', v => v.toFixed(0));
+      setAndShow('aks-noise-level','aks-noise-level-val', v => v.toFixed(2).replace(/^0/, ''));
+      setAndShow('aks-drift','aks-drift-val', v => v.toFixed(2).replace(/^0/, ''));
+      setAndShow('aks-master','aks-master-val', v => v.toFixed(2).replace(/^0/, ''));
+      setAndShow('aks-filter-cutoff','aks-filter-cutoff-val', v => Math.round(v));
+      setAndShow('aks-filter-res','aks-filter-res-val', v => v.toFixed(1));
+      setAndShow('aks-filter-drive','aks-filter-drive-val', v => v.toFixed(2).replace(/^0/, ''));
       setAndShow('aks-amp-a','aks-amp-a-val',fmtMs); setAndShow('aks-amp-d','aks-amp-d-val',fmtMs);
-      setAndShow('aks-amp-s','aks-amp-s-val'); setAndShow('aks-amp-r','aks-amp-r-val',fmtMs);
+      setAndShow('aks-amp-s','aks-amp-s-val', v => v.toFixed(2).replace(/^0/, ''));
+      setAndShow('aks-amp-r','aks-amp-r-val',fmtMs);
       setAndShow('aks-mod-a','aks-mod-a-val',fmtMs); setAndShow('aks-mod-d','aks-mod-d-val',fmtMs);
-      setAndShow('aks-mod-s','aks-mod-s-val'); setAndShow('aks-mod-r','aks-mod-r-val',fmtMs);
-      setAndShow('aks-lfo1-rate','aks-lfo1-rate-val', v => v.toFixed(2)+' Hz');
-      setAndShow('aks-lfo2-rate','aks-lfo2-rate-val', v => v.toFixed(2)+' Hz');
+      setAndShow('aks-mod-s','aks-mod-s-val', v => v.toFixed(2).replace(/^0/, ''));
+      setAndShow('aks-mod-r','aks-mod-r-val',fmtMs);
+      setAndShow('aks-lfo1-rate','aks-lfo1-rate-val', v => v.toFixed(2).replace(/^0/, ''));
+      setAndShow('aks-lfo2-rate','aks-lfo2-rate-val', v => v.toFixed(2).replace(/^0/, ''));
       setAndShow('aks-glide','aks-glide-val', v => v < 0.01 ? 'OFF' : fmtMs(v));
       setAndShow('aks-swing','aks-swing-val', v => Math.round(v*200)+'%');
 
@@ -1309,11 +1331,10 @@
       sel('aks-lfo1-wave', st.lfo1Wave);
       sel('aks-lfo2-wave', st.lfo2Wave);
 
-      document.querySelectorAll('.aks-mat-cell').forEach(cell => {
-        const si = parseInt(cell.dataset.si, 10), di = parseInt(cell.dataset.di, 10);
+      document.querySelectorAll('.pinHole').forEach(hole => {
+        const si = parseInt(hole.dataset.si, 10), di = parseInt(hole.dataset.di, 10);
         const s = st.matrix[si][di];
-        cell.dataset.s   = String(s);
-        cell.textContent = cellText(s);
+        hole.dataset.s = String(s);
       });
 
       refreshAllStepBtns();
@@ -1321,37 +1342,37 @@
       if (editor && editor.style.display !== 'none') openStepEditor(selectedStep);
     }
 
-    /* ── AKS engine ready ── */
     window.addEventListener('aksReady', function (e) {
       aks = e.detail;
 
-      bindSlider('aks-master','aks-master-val','aksLevel');
-      bindSlider('aks-osc1-level','aks-osc1-level-val','osc1Level');
-      bindSlider('aks-osc2-level','aks-osc2-level-val','osc2Level');
-      bindSlider('aks-osc2-tune', 'aks-osc2-tune-val', 'osc2Tune', v => v.toFixed(2)+' st');
-      bindSlider('aks-osc3-level','aks-osc3-level-val','osc3Level');
-      bindSlider('aks-osc3-tune', 'aks-osc3-tune-val', 'osc3Tune', v => v.toFixed(0)+' st');
-      bindSlider('aks-noise-level','aks-noise-level-val','noiseLevel');
-      bindSlider('aks-drift', 'aks-drift-val', 'driftAmt');
+      const trimZero = v => v.toFixed(2).replace(/^0/, '').replace(/^-0/, '-');
+      bindSlider('aks-master','aks-master-val','aksLevel', trimZero);
+      bindSlider('aks-osc1-level','aks-osc1-level-val','osc1Level', trimZero);
+      bindSlider('aks-osc2-level','aks-osc2-level-val','osc2Level', trimZero);
+      bindSlider('aks-osc2-tune','aks-osc2-tune-val','osc2Tune', v => (v >= 0 ? '+' : '') + trimZero(v));
+      bindSlider('aks-osc3-level','aks-osc3-level-val','osc3Level', trimZero);
+      bindSlider('aks-osc3-tune','aks-osc3-tune-val','osc3Tune', v => v.toFixed(0));
+      bindSlider('aks-noise-level','aks-noise-level-val','noiseLevel', trimZero);
+      bindSlider('aks-drift','aks-drift-val','driftAmt', trimZero);
       bindSelect('aks-osc1-wave','osc1Wave');
       bindSelect('aks-osc2-wave','osc2Wave');
       bindSelect('aks-osc3-wave','osc3Wave');
 
-      bindSlider('aks-filter-cutoff','aks-filter-cutoff-val','filterCutoff', v => Math.round(v)+' Hz');
-      bindSlider('aks-filter-res','aks-filter-res-val','filterRes');
-      bindSlider('aks-filter-drive','aks-filter-drive-val','filterDrive');
+      bindSlider('aks-filter-cutoff','aks-filter-cutoff-val','filterCutoff', v => Math.round(v));
+      bindSlider('aks-filter-res','aks-filter-res-val','filterRes', v => v.toFixed(1));
+      bindSlider('aks-filter-drive','aks-filter-drive-val','filterDrive', trimZero);
 
       bindSlider('aks-amp-a','aks-amp-a-val','ampA',fmtMs);
       bindSlider('aks-amp-d','aks-amp-d-val','ampD',fmtMs);
-      bindSlider('aks-amp-s','aks-amp-s-val','ampS');
+      bindSlider('aks-amp-s','aks-amp-s-val','ampS', trimZero);
       bindSlider('aks-amp-r','aks-amp-r-val','ampR',fmtMs);
       bindSlider('aks-mod-a','aks-mod-a-val','modA',fmtMs);
       bindSlider('aks-mod-d','aks-mod-d-val','modD',fmtMs);
-      bindSlider('aks-mod-s','aks-mod-s-val','modS');
+      bindSlider('aks-mod-s','aks-mod-s-val','modS', trimZero);
       bindSlider('aks-mod-r','aks-mod-r-val','modR',fmtMs);
 
-      bindSlider('aks-lfo1-rate','aks-lfo1-rate-val','lfo1Rate', v => v.toFixed(2)+' Hz');
-      bindSlider('aks-lfo2-rate','aks-lfo2-rate-val','lfo2Rate', v => v.toFixed(2)+' Hz');
+      bindSlider('aks-lfo1-rate','aks-lfo1-rate-val','lfo1Rate', trimZero);
+      bindSlider('aks-lfo2-rate','aks-lfo2-rate-val','lfo2Rate', trimZero);
       bindSelect('aks-lfo1-wave','lfo1Wave');
       bindSelect('aks-lfo2-wave','lfo2Wave');
       bindSlider('aks-glide','aks-glide-val','glide', v => v < 0.01 ? 'OFF' : fmtMs(v));
@@ -1359,22 +1380,19 @@
       buildSeqSteps();
 
       const seqToggle = document.getElementById('aks-seq-toggle');
-      const seqStatus = document.getElementById('aks-seq-status');
       if (seqToggle) {
         seqToggle.addEventListener('click', () => {
           if (aks.state.seqRunning) {
             aks.seqStop();
-            seqToggle.textContent = 'Start AKS Seq';
+            seqToggle.textContent = 'Seq ▶';
             seqToggle.classList.remove('btnActive');
             seqToggle.classList.add('btnPrimary');
-            if (seqStatus) seqStatus.textContent = 'OFF';
           } else {
             const bpmEl = document.getElementById('bpmSlider');
             aks.seqStart(() => bpmEl ? parseFloat(bpmEl.value) : 120);
-            seqToggle.textContent = 'Stop AKS Seq';
+            seqToggle.textContent = 'Seq ■';
             seqToggle.classList.remove('btnPrimary');
             seqToggle.classList.add('btnActive');
-            if (seqStatus) seqStatus.textContent = 'ON';
           }
         });
       }
@@ -1409,17 +1427,15 @@
           refreshAllStepBtns();
         });
       }
-
       const stepVelSlider = document.getElementById('aks-step-vel');
       const stepVelVal    = document.getElementById('aks-step-vel-val');
       if (stepVelSlider) {
         stepVelSlider.addEventListener('input', () => {
           const v = parseFloat(stepVelSlider.value);
-          if (stepVelVal) stepVelVal.textContent = v.toFixed(2);
+          if (stepVelVal) stepVelVal.textContent = v.toFixed(2).replace(/^0/, '');
           aks.state.seqSteps[selectedStep].velocity = v;
         });
       }
-
       const activeBtn = document.getElementById('aks-step-active');
       if (activeBtn) {
         activeBtn.addEventListener('click', () => {
@@ -1429,7 +1445,6 @@
           refreshAllStepBtns();
         });
       }
-
       const accentBtn = document.getElementById('aks-step-accent');
       if (accentBtn) {
         accentBtn.addEventListener('click', () => {
@@ -1439,7 +1454,6 @@
           refreshAllStepBtns();
         });
       }
-
       const saveBtn = document.getElementById('aks-preset-save');
       if (saveBtn) {
         saveBtn.addEventListener('click', () => {
@@ -1450,17 +1464,12 @@
           a.click();
         });
       }
-
       const loadInput = document.getElementById('aks-preset-load');
       if (loadInput) {
         loadInput.addEventListener('change', (ev) => {
-          const file = ev.target.files[0];
-          if (!file) return;
+          const file = ev.target.files[0]; if (!file) return;
           const reader = new FileReader();
-          reader.onload = (fe) => {
-            const ok = aks.loadPreset(fe.target.result);
-            if (ok) syncSlidersFromState();
-          };
+          reader.onload = (fe) => { const ok = aks.loadPreset(fe.target.result); if (ok) syncSlidersFromState(); };
           reader.readAsText(file);
         });
       }
