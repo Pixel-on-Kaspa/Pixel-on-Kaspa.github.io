@@ -29,25 +29,59 @@ const _NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const _midiName = (n) => `${_NOTE_NAMES[n % 12]}${Math.floor(n / 12) - 1}`;
 
 // ── Matrix: sources & destinations ────────────────────────────────────────────
+// 16×16 patch matrix matching the AKS Patch Sheet (service manual p.19).
+// Rows  = signal sources (outputs of modules), cols = destinations (module inputs).
+// Cols A–H = signal inputs, cols I–P = control inputs.
+// Rows 1–9 = sources, rows 10–16 = treatments.
 
-const SRC_LABELS  = ['OSC1', 'LFO1', 'LFO2', 'MOD', 'OSC3', 'NOISE'];
-const DEST_LABELS = ['OSC1ƒ', 'OSC2ƒ', 'OSC3ƒ', 'VCFƒ', 'VCA', 'VCFQ'];
-const N_SRC = SRC_LABELS.length;   // 6
-const N_DST = DEST_LABELS.length;  // 6
+const SRC_LABELS = [
+  'Out Ch 1', 'Out Ch 2',                     // 1,2  amp outputs (feedback)
+  'Osc 1',                                    // 3    sine+shape output
+  'Osc 2',                                    // 4    tri+shape output
+  'Osc 3 ⊓', 'Osc 3 ⩘',                       // 5,6  square + sawtooth outs of OSC3
+  'Noise',                                    // 7
+  'In Ch 1',  'In Ch 2',                      // 8,9  preamp outs
+  'Filter',                                   // 10
+  'Trapezoid','Env signal',                   // 11,12
+  'Ring mod', 'Reverb',                       // 13,14
+  'Stick X',  'Stick Y',                      // 15,16
+];
+const DEST_LABELS = [
+  'Output ch 1',  'Output ch 2',  'Mute',     'Top input',     // A-D signal
+  'Ring mod A',   'Ring mod B',   'Filter',   'Reverb',        // E-H signal
+  'Osc freq 1',   'Osc freq 2',   'Osc freq 3','Decay',         // I-L control
+  'Reverb mix',   'Filter freq',  'Out ch1 lvl','Out ch2 lvl',  // M-P control
+];
+const N_SRC = SRC_LABELS.length;   // 16
+const N_DST = DEST_LABELS.length;  // 16
 
 /**
- * Scale: source signal is ±1.  Strength ±3 = full scale deviation
- * for a SINGLE pin.  When multiple pins route to the same destination,
- * the effective scale per pin is divided by sqrt(activePins) so a stack
- * of pins doesn't blow up the destination (matches a passive matrix
- * with realistic loading).
+ * Per-destination full-scale deviation when a single +3 pin is patched.
+ * Multiple pins to the same destination are normalized by 1/√N to keep
+ * pile-ups musical (passive-matrix-like loading).
  *
- *   OSC pitch  : ±200 Hz   (single-pin full)
- *   VCF freq   : ±2400 Hz
- *   VCA gain   : ±0.18     (small — protects from pile-up clipping)
- *   VCF Q      : ±8
+ * Index legend mirrors DEST_LABELS:
+ *   0  Out ch1 sig  – placeholder until output stage exists
+ *   1  Out ch2 sig  – placeholder
+ *   2  Mute         – placeholder
+ *   3  Top input    – placeholder
+ *   4  Ring mod A   – placeholder
+ *   5  Ring mod B   – placeholder
+ *   6  Filter sig   – placeholder
+ *   7  Reverb sig   – placeholder
+ *   8  Osc1 freq    – ±200 Hz on osc1.frequency
+ *   9  Osc2 freq    – ±200 Hz on osc2.frequency
+ *  10  Osc3 freq    – ±200 Hz on osc3.frequency
+ *  11  Decay        – placeholder (envelope decay time CV)
+ *  12  Reverb mix   – placeholder
+ *  13  Filter freq  – ±2400 Hz on vcf.frequency
+ *  14  Out ch1 lvl  – placeholder
+ *  15  Out ch2 lvl  – placeholder
  */
-const DEST_SCALE = [200, 200, 200, 2400, 0.18, 8];
+const DEST_SCALE = [
+  1,    1,    1,    1,    1,    1,    1,    1,     // A–H placeholders
+  200,  200,  200,  1,    1,    2400, 1,    1,     // I–P
+];
 
 const _strengthToGain = (strength, di) =>
   strength === 0 ? 0
@@ -57,30 +91,35 @@ const _strengthToGain = (strength, di) =>
 
 function _defaultState() {
   return {
-    // Oscillators
-    osc1Wave:  'sawtooth', osc1Level: 0.65, osc1Tune:   0,     // tune = semitones
-    osc2Wave:  'square',   osc2Level: 0.45, osc2Tune:   0.06,  // slight detune (+6 cents)
-    osc3Wave:  'triangle', osc3Level: 0.30, osc3Tune: -12,     // sub -1 oct
+    // Oscillators — each has a fixed waveform per manual + a Shape control
+    // (WaveShaper drive that morphs the wave toward harder shapes).
+    // OSC1: sine (with shape → quasi-square). Sawtooth output is internal.
+    // OSC2: triangle (with shape → asymmetric/saw-ish). Square output is internal.
+    // OSC3: square + sawtooth as two simultaneous outputs (matrix rows 5, 6).
+    osc1Level: 0.65, osc1Shape: 0.0,
+    osc2Level: 0.45, osc2Shape: 0.0, osc2Tune:  0.06,
+    osc3Level: 0.30, osc3Shape: 0.0, osc3Tune: -12,
 
     // Noise source
     noiseLevel: 0.06,
 
-    // Filter (VCF)
+    // Filter / Oscillator (manual p.38)
+    //   Range: 5 Hz – 10 kHz · Q: variable up to ~20 (self-oscillates)
+    //   Note: BiquadFilterNode is 12 dB/oct; manual spec is 18 dB/oct.
+    //   True 3-pole resonant LP needs AudioWorklet — deferred.
     filterCutoff: 1800, // Hz
     filterRes:    7.0,  // Q
-    filterDrive:  0.28, // 0-1 pre-VCF soft-clip drive
 
-    // Amp envelope ADSR (seconds)
-    ampA: 0.008,
-    ampD: 0.20,
-    ampS: 0.62,
-    ampR: 0.55,
-
-    // Modulation envelope ADSR (modulates destinations via matrix)
-    modA: 0.05,
-    modD: 0.42,
-    modS: 0.22,
-    modR: 0.88,
+    // Trapezoid Envelope Shaper (manual p.39)
+    //   Attack 2ms-1s · On 0-2.5s · Decay 3ms-15s · Off 10ms-5s (+OFF)
+    // The trapezoid CV gates the VCA AND is exposed in the matrix (row 11).
+    // When envRepeat is true and envOff < envOffMax, the cycle auto-retriggers.
+    envAttack:      0.008, // s, 0.002 – 1.0
+    envOn:          0.20,  // s, 0    – 2.5
+    envDecay:       0.40,  // s, 0.003 – 15.0
+    envOff:         0.50,  // s, 0.010 – 5.0  (>= envOffMax → infinite Off)
+    envSignalLevel: 0.82,  // 0-1, scales the trapezoid peak
+    envRepeat:      false, // auto-retrigger after Off completes
 
     // LFO 1
     lfo1Rate: 0.55,
@@ -99,26 +138,29 @@ function _defaultState() {
     // Current playing note
     currentNote: 60,
 
-    // Sequencer
-    seqRunning: false,
-    seqSwing:   0.0,   // 0-0.5 (fraction of step duration added to odd steps)
+    // Dual sequencer (AKS-style: two independent 16-step patterns sharing
+    // memory). Both can be active at once; on note collision the later step
+    // wins (engine is monophonic).
+    seqRunning:  false,
+    seqSwing:    0.0,   // 0-0.5 (fraction of step duration added to odd steps)
+    seqBActive:  false, // Seq B starts disabled
     seqSteps: Array.from({ length: 16 }, (_, i) => ({
       note:     60 + [0, 0, 3, 5, 7, 7, 10, 12, 12, 10, 7, 5, 3, 0, -2, 0][i],
       velocity: 0.78,
       active:   i % 2 === 0,
       accent:   i % 8 === 0,
     })),
+    seqStepsB: Array.from({ length: 16 }, (_, i) => ({
+      note:     48 + [0, 7, 0, 7, 0, 7, 0, 5, 0, 7, 0, 7, 0, 7, 0, 5][i],
+      velocity: 0.65,
+      active:   i % 4 === 0,
+      accent:   false,
+    })),
 
-    // Routing matrix [N_SRC][N_DST], values −3…+3
-    // Source order: OSC1, LFO1, LFO2, MOD, OSC3, NOISE
-    // Dest   order: OSC1ƒ, OSC2ƒ, OSC3ƒ, VCFƒ, VCA, VCFQ
-    // Defaults: LFO1→VCFƒ +2, MOD→VCFƒ +3
-    matrix: (() => {
-      const m = Array.from({ length: N_SRC }, () => new Array(N_DST).fill(0));
-      m[1][3] = 2;  // LFO1 → VCF freq  +2
-      m[3][3] = 3;  // MOD  → VCF freq  +3
-      return m;
-    })(),
+    // 16×16 patch matrix — empty by default (AKS philosophy: user patches).
+    // The implicit voice path (osc mix → filter → VCA → output) stays wired
+    // outside the matrix so the synth is audible without any pins inserted.
+    matrix: Array.from({ length: N_SRC }, () => new Array(N_DST).fill(0)),
   };
 }
 
@@ -136,8 +178,7 @@ class AKSEngine {
     this.nodes       = {};
     this.matrixGains = []; // [N_SRC][N_DST] of GainNodes
 
-    this._noteHeld        = false;
-    this._scheduledSustain = 0;
+    this._noteHeld         = false;
     this._lastFreq         = _midiToHz(60);
     this._seqStep          = 0;
     this._seqNextTime      = 0;
@@ -146,6 +187,7 @@ class AKSEngine {
 
     this._buildVoice();
     this._buildEnvelopes();
+    this._buildEffects();
     this._buildModulation();
     this._buildDrift();
     this._buildMatrix();
@@ -162,17 +204,40 @@ class AKSEngine {
     const n  = this.nodes;
     const baseFreq = _midiToHz(st.currentNote);
 
-    // 3 oscillators
-    n.osc1 = ac.createOscillator(); n.osc1.type = st.osc1Wave;
-    n.osc2 = ac.createOscillator(); n.osc2.type = st.osc2Wave;
-    n.osc3 = ac.createOscillator(); n.osc3.type = st.osc3Wave;
+    // OSC1: sine oscillator with shape (wavefolder) — single output
+    n.osc1 = ac.createOscillator(); n.osc1.type = 'sine';
     n.osc1.frequency.value = baseFreq;
-    n.osc2.frequency.value = baseFreq * _semisToRatio(st.osc2Tune);
-    n.osc3.frequency.value = baseFreq * _semisToRatio(st.osc3Tune);
-
+    n.osc1Shape = ac.createWaveShaper();
+    n.osc1Shape.curve = this._makeShapeCurve(st.osc1Shape);
+    n.osc1Shape.oversample = '2x';
+    n.osc1.connect(n.osc1Shape);
     n.osc1Gain = ac.createGain(); n.osc1Gain.gain.value = st.osc1Level;
+    n.osc1Shape.connect(n.osc1Gain);
+
+    // OSC2: triangle oscillator with shape — single output
+    n.osc2 = ac.createOscillator(); n.osc2.type = 'triangle';
+    n.osc2.frequency.value = baseFreq * _semisToRatio(st.osc2Tune);
+    n.osc2Shape = ac.createWaveShaper();
+    n.osc2Shape.curve = this._makeShapeCurve(st.osc2Shape);
+    n.osc2Shape.oversample = '2x';
+    n.osc2.connect(n.osc2Shape);
     n.osc2Gain = ac.createGain(); n.osc2Gain.gain.value = st.osc2Level;
+    n.osc2Shape.connect(n.osc2Gain);
+
+    // OSC3: TWO oscillators (square + sawtooth) — both exposed to matrix
+    // separately on rows 5 and 6. Both share frequency/drift, mixed for voice.
+    const f3 = baseFreq * _semisToRatio(st.osc3Tune);
+    n.osc3sq  = ac.createOscillator(); n.osc3sq.type  = 'square';   n.osc3sq.frequency.value  = f3;
+    n.osc3saw = ac.createOscillator(); n.osc3saw.type = 'sawtooth'; n.osc3saw.frequency.value = f3;
     n.osc3Gain = ac.createGain(); n.osc3Gain.gain.value = st.osc3Level;
+    n.osc3sq.connect(n.osc3Gain);
+    n.osc3saw.connect(n.osc3Gain);
+    // OSC3 shape: lazy approximation — crossfade sq↔saw via WaveShaper isn't right.
+    // For now Shape adds wave-folding to the sq+saw sum (cosmetic; PWM not done).
+    n.osc3Shape = ac.createWaveShaper();
+    n.osc3Shape.curve = this._makeShapeCurve(st.osc3Shape);
+    n.osc3Shape.oversample = '2x';
+    // Apply shape between osc3Gain and mixer (insert below)
 
     // Noise source (looped white-noise buffer, 3 s)
     n.noiseSource = ac.createBufferSource();
@@ -180,25 +245,21 @@ class AKSEngine {
     n.noiseSource.loop   = true;
     n.noiseGain = ac.createGain(); n.noiseGain.gain.value = st.noiseLevel;
 
-    // Voice mixer
+    // Voice mixer — sum of shaped OSC outputs + noise
     n.mixer = ac.createGain(); n.mixer.gain.value = 0.55;
-    n.osc1.connect(n.osc1Gain); n.osc1Gain.connect(n.mixer);
-    n.osc2.connect(n.osc2Gain); n.osc2Gain.connect(n.mixer);
-    n.osc3.connect(n.osc3Gain); n.osc3Gain.connect(n.mixer);
+    n.osc1Gain.connect(n.mixer);
+    n.osc2Gain.connect(n.mixer);
+    n.osc3Gain.connect(n.osc3Shape); n.osc3Shape.connect(n.mixer);
     n.noiseSource.connect(n.noiseGain); n.noiseGain.connect(n.mixer);
 
-    // Pre-VCF drive: mild asymmetric soft-clip → harmonic richness ("dirty" Synthi character)
-    n.preDrive = ac.createWaveShaper();
-    n.preDrive.curve = this._makeDriveCurve(st.filterDrive);
-    n.preDrive.oversample = '2x';
-    n.mixer.connect(n.preDrive);
-
     // VCF — resonant low-pass (Synthi's filter is the centrepiece)
+    // 12 dB/oct biquad LP. Manual spec is 18 dB/oct; high Q (up to 30)
+    // gives strong resonance that self-oscillates on transient input.
     n.vcf = ac.createBiquadFilter();
     n.vcf.type = 'lowpass';
     n.vcf.frequency.value = st.filterCutoff;
     n.vcf.Q.value = st.filterRes;
-    n.preDrive.connect(n.vcf);
+    n.mixer.connect(n.vcf);
 
     // VCA — amplitude envelope controlled
     n.vca = ac.createGain(); n.vca.gain.value = 0;
@@ -213,38 +274,127 @@ class AKSEngine {
     const t0 = ac.currentTime + 0.02;
     n.osc1.start(t0);
     n.osc2.start(t0);
-    n.osc3.start(t0);
+    n.osc3sq.start(t0);
+    n.osc3saw.start(t0);
     n.noiseSource.start(t0);
 
-    // OSC1, OSC3 and noise taps for matrix (audio-rate CV sources)
+    // Audio-rate taps for matrix sources (0.5 ≈ unity ±1 signal level)
+    // OSC1 tap = post-shape sine output (matrix row 3)
     n.osc1Tap = ac.createGain(); n.osc1Tap.gain.value = 0.5;
-    n.osc1.connect(n.osc1Tap);
-
-    n.osc3Tap = ac.createGain(); n.osc3Tap.gain.value = 0.5;
-    n.osc3.connect(n.osc3Tap);
+    n.osc1Shape.connect(n.osc1Tap);
+    // OSC2 tap = post-shape triangle output (matrix row 4)
+    n.osc2Tap = ac.createGain(); n.osc2Tap.gain.value = 0.5;
+    n.osc2Shape.connect(n.osc2Tap);
+    // OSC3 has TWO taps — square (row 5) and sawtooth (row 6)
+    n.osc3sqTap  = ac.createGain(); n.osc3sqTap.gain.value  = 0.5;
+    n.osc3sq.connect(n.osc3sqTap);
+    n.osc3sawTap = ac.createGain(); n.osc3sawTap.gain.value = 0.5;
+    n.osc3saw.connect(n.osc3sawTap);
 
     n.noiseTap = ac.createGain(); n.noiseTap.gain.value = 0.4;
     n.noiseSource.connect(n.noiseTap);
 
-    // DC blocker (asymmetric clip introduces DC offset → keeps level honest)
+    n.filterTap = ac.createGain(); n.filterTap.gain.value = 0.5;
+    n.vcf.connect(n.filterTap);
+
+    // Silent dummy source for matrix rows not yet wired to real audio
+    // (Out Ch 1/2 feedback, In Ch 1/2, env signal, ring mod, reverb, stick X/Y).
+    n.dummySrc = ac.createConstantSource(); n.dummySrc.offset.value = 0;
+    n.dummySrc.start(ac.currentTime + 0.02);
+
+    // DC blocker
     n.dcBlock = ac.createBiquadFilter();
     n.dcBlock.type = 'highpass';
     n.dcBlock.frequency.value = 18;
     n.dcBlock.Q.value = 0.707;
-    // Re-route: vca → dcBlock → voiceOut (previously vca → voiceOut directly)
     n.vca.disconnect();
     n.vca.connect(n.dcBlock);
-    n.dcBlock.connect(n.voiceOut);
+
+    // Output channels (matrix cols A,B = signal in; O,P = level CV; rows 1,2 = feedback taps)
+    // dcBlock fans out to both channels which feed the master voice bus.
+    n.outCh1 = ac.createGain(); n.outCh1.gain.value = 1.0;
+    n.outCh2 = ac.createGain(); n.outCh2.gain.value = 1.0;
+    n.dcBlock.connect(n.outCh1);
+    n.dcBlock.connect(n.outCh2);
+    n.outCh1.connect(n.voiceOut);
+    n.outCh2.connect(n.voiceOut);
+
+    n.outCh1Tap = ac.createGain(); n.outCh1Tap.gain.value = 0.5;
+    n.outCh2Tap = ac.createGain(); n.outCh2Tap.gain.value = 0.5;
+    n.outCh1.connect(n.outCh1Tap);
+    n.outCh2.connect(n.outCh2Tap);
+
+    // Post-VCA "env signal" tap (matrix row 12) — the envelope-gated voice audio
+    n.envSigTap = ac.createGain(); n.envSigTap.gain.value = 0.5;
+    n.vca.connect(n.envSigTap);
+  }
+
+  _buildEffects() {
+    const ac = this.actx;
+    const n  = this.nodes;
+    const t0 = ac.currentTime + 0.02;
+
+    // Ring modulator: gain.value=0; col E feeds the multiplier (gain AudioParam),
+    // col F feeds the audio input. Output ≈ A × B at audio rate.
+    n.ringMod = ac.createGain(); n.ringMod.gain.value = 0;
+    n.ringModTap = ac.createGain(); n.ringModTap.gain.value = 0.7;
+    n.ringMod.connect(n.ringModTap);
+
+    // Reverb — synthetic IR through ConvolverNode (approximates AKS spring).
+    // col H feeds reverbIn; col M modulates reverbMix.gain (wet level).
+    n.reverbIn  = ac.createGain(); n.reverbIn.gain.value  = 0.7;
+    n.reverb    = ac.createConvolver(); n.reverb.buffer = this._makeReverbIR(2.4);
+    n.reverbMix = ac.createGain(); n.reverbMix.gain.value = 0.6;
+    n.reverbIn.connect(n.reverb);
+    n.reverb.connect(n.reverbMix);
+    n.reverbTap = ac.createGain(); n.reverbTap.gain.value = 0.6;
+    n.reverbMix.connect(n.reverbTap);
+
+    // Joystick X/Y CV sources (rows 15, 16). UI updates offset on pointer move.
+    n.stickX = ac.createConstantSource(); n.stickX.offset.value = 0;
+    n.stickY = ac.createConstantSource(); n.stickY.offset.value = 0;
+    n.stickX.start(t0);
+    n.stickY.start(t0);
+  }
+
+  /**
+   * Synthetic spring-reverb IR — band-limited exponential-decay noise.
+   * Decay length controls "size"; bandpass shapes the spring character.
+   */
+  _makeReverbIR(seconds) {
+    const sr = this.actx.sampleRate;
+    const len = Math.floor(sr * seconds);
+    const buf = this.actx.createBuffer(2, len, sr);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      let lp = 0, hp = 0;
+      for (let i = 0; i < len; i++) {
+        // Exponential decay envelope with subtle modulation (spring-ish)
+        const t = i / sr;
+        const env = Math.exp(-t * 3.2) * (1 + 0.18 * Math.sin(2 * Math.PI * 4.5 * t));
+        const noise = (Math.random() * 2 - 1);
+        // 1-pole LP + HP bandpass around 1.4 kHz
+        lp += 0.08 * (noise - lp);
+        hp += 0.001 * (lp - hp);
+        d[i] = (lp - hp) * env;
+      }
+    }
+    return buf;
   }
 
   _buildEnvelopes() {
     const ac = this.actx;
     const n  = this.nodes;
-    // Modulation envelope: ConstantSourceNode automated on note events
-    // Output (0-1) scales via matrix gains to destination AudioParams
-    n.modEnv = ac.createConstantSource();
-    n.modEnv.offset.value = 0;
-    n.modEnv.start(ac.currentTime + 0.02);
+    // Trapezoid envelope generator (CV source):
+    //   offset 0 → peak over Attack → hold for On → 0 over Decay → 0 for Off
+    // The CV drives the VCA directly (implicit gating) AND is exposed in the
+    // matrix as the "Trapezoid" source (row 11).
+    n.trap = ac.createConstantSource();
+    n.trap.offset.value = 0;
+    n.trap.start(ac.currentTime + 0.02);
+    n.trap.connect(n.vca.gain);
+
+    this._trapRepeatTimer = null;
   }
 
   _buildModulation() {
@@ -275,40 +425,73 @@ class AKSEngine {
 
     n.drift1 = makeDriftOsc(0.022); n.drift1.gain.connect(n.osc1.frequency);
     n.drift2 = makeDriftOsc(0.031); n.drift2.gain.connect(n.osc2.frequency);
-    n.drift3 = makeDriftOsc(0.018); n.drift3.gain.connect(n.osc3.frequency);
+    n.drift3 = makeDriftOsc(0.018);
+    n.drift3.gain.connect(n.osc3sq.frequency);
+    n.drift3.gain.connect(n.osc3saw.frequency);
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  //  Phase 2 — Routing Matrix
-  //  Sources  : [lfo1, lfo2, modEnv, osc3Tap, noiseTap]
-  //  Dests    : [osc1.freq, osc2.freq, osc3.freq, vcf.freq, vca.gain, lfo1.freq]
+  //  Patch matrix — 16×16 (rows = sources, cols = destinations).
+  //  Slots without a real-audio target are wired to dummy nodes so the matrix
+  //  can be populated by the UI; they'll become audible in later phases.
   // ──────────────────────────────────────────────────────────────────────────
 
   _buildMatrix() {
     const ac = this.actx;
     const n  = this.nodes;
+    const D  = n.dummySrc;
 
-    // Source order MUST match SRC_LABELS: OSC1, LFO1, LFO2, MOD, OSC3, NOISE
-    const srcs = [n.osc1Tap, n.lfo1, n.lfo2, n.modEnv, n.osc3Tap, n.noiseTap];
-    // Dest order MUST match DEST_LABELS: OSC1ƒ, OSC2ƒ, OSC3ƒ, VCFƒ, VCA, VCFQ
+    // Sources (rows 1–16) — order MUST match SRC_LABELS
+    const srcs = [
+      n.outCh1Tap, n.outCh2Tap,      // 1,2  Output ch1/2 feedback
+      n.osc1Tap,                     // 3    Osc 1 (sine+shape)
+      n.osc2Tap,                     // 4    Osc 2 (tri+shape)
+      n.osc3sqTap, n.osc3sawTap,     // 5,6  Osc 3 square + sawtooth
+      n.noiseTap,                    // 7
+      D, D,                          // 8,9  Input Ch 1/2 (no mic source yet)
+      n.filterTap,                   // 10
+      n.trap,                        // 11  Trapezoid CV
+      n.envSigTap,                   // 12  Env signal (post-VCA audio)
+      n.ringModTap,                  // 13  Ring mod output
+      n.reverbTap,                   // 14  Reverb output
+      n.stickX, n.stickY,            // 15,16  Joystick X/Y
+    ];
+    // Dummy dest sinks for unwired columns: a GainNode whose audio output
+    // goes nowhere; its .gain serves as the AudioParam target.
+    const mkSink = () => {
+      const g = ac.createGain();
+      g.gain.value = 0;
+      return g.gain;
+    };
+    // Destinations (cols A–P) — order MUST match DEST_LABELS.
+    // Each slot is an ARRAY of AudioParams OR AudioNodes (signal inputs).
+    //   `g.connect(target)` works for both — AudioParams get modulated,
+    //   AudioNodes receive audio signal.
     const dsts = [
-      n.osc1.frequency,
-      n.osc2.frequency,
-      n.osc3.frequency,
-      n.vcf.frequency,
-      n.vca.gain,
-      n.vcf.Q,
+      [n.outCh1], [n.outCh2],              // A,B  Output ch1/2 signal IN
+      [mkSink()], [mkSink()],              // C,D  Mute / Top input — unused
+      [n.ringMod.gain],                    // E    Ring mod A → multiplier param
+      [n.ringMod],                         // F    Ring mod B → audio in
+      [n.vcf],                             // G    Filter signal IN (sums with implicit voice)
+      [n.reverbIn],                        // H    Reverb signal IN
+      [n.osc1.frequency],                  // I    Osc freq 1
+      [n.osc2.frequency],                  // J    Osc freq 2
+      [n.osc3sq.frequency, n.osc3saw.frequency], // K  Osc 3 freq (both sub-oscs)
+      [mkSink()],                          // L    Decay (env decay CV — not live)
+      [n.reverbMix.gain],                  // M    Reverb mix CV
+      [n.vcf.frequency],                   // N    Filter freq
+      [n.outCh1.gain], [n.outCh2.gain],    // O,P  Out Ch1/2 level CV
     ];
 
     this.matrixGains = srcs.map((src, si) =>
-      dsts.map((dst, di) => {
+      dsts.map((dstParams, di) => {
         const g = ac.createGain(); g.gain.value = 0;
-        src.connect(g); g.connect(dst);
+        src.connect(g);
+        dstParams.forEach(p => g.connect(p));
         return g;
       })
     );
 
-    // Apply defaults from state — re-apply each destination so normalization is correct
     for (let di = 0; di < N_DST; di++) this._reapplyDestination(di);
   }
 
@@ -336,6 +519,16 @@ class AKSEngine {
     this._reapplyDestination(di);
   }
 
+  /**
+   * Set joystick X/Y CV outputs (matrix rows 15, 16). Values in [-1, 1].
+   * Smoothed via setTargetAtTime to avoid clicks on rapid pointer moves.
+   */
+  setStick(x, y) {
+    const t = this.actx.currentTime;
+    this.nodes.stickX.offset.setTargetAtTime(_clamp(x, -1, 1), t, 0.008);
+    this.nodes.stickY.offset.setTargetAtTime(_clamp(y, -1, 1), t, 0.008);
+  }
+
   // ──────────────────────────────────────────────────────────────────────────
   //  Note events (immediate + scheduled for sequencer)
   // ──────────────────────────────────────────────────────────────────────────
@@ -345,38 +538,60 @@ class AKSEngine {
   }
 
   noteOnAt(midiNote, velocity, when) {
-    const ac = this.actx;
     const n  = this.nodes;
     const st = this.state;
     const freq = _midiToHz(midiNote);
 
     // Pitch (portamento via time-constant glide)
     const tc = st.glide > 0.001 ? st.glide / 3.5 : 0.0015;
-    n.osc1.frequency.setTargetAtTime(freq,                                  when, tc);
-    n.osc2.frequency.setTargetAtTime(freq * _semisToRatio(st.osc2Tune),     when, tc);
-    n.osc3.frequency.setTargetAtTime(freq * _semisToRatio(st.osc3Tune),     when, tc);
+    const f3 = freq * _semisToRatio(st.osc3Tune);
+    n.osc1.frequency.setTargetAtTime(freq,                              when, tc);
+    n.osc2.frequency.setTargetAtTime(freq * _semisToRatio(st.osc2Tune), when, tc);
+    n.osc3sq.frequency.setTargetAtTime(f3,                              when, tc);
+    n.osc3saw.frequency.setTargetAtTime(f3,                             when, tc);
 
     this._lastFreq = freq;
     st.currentNote = midiNote;
     this._noteHeld = true;
 
-    // Amp ADSR
-    const peak = _clamp(0.92 * velocity, 0, 1);
-    const sus  = peak * st.ampS;
-    this._scheduledSustain = sus;
+    // Trapezoid: peak = velocity × envSignalLevel
+    const peak = _clamp(velocity * st.envSignalLevel, 0, 1);
+    this._scheduleTrap(when, peak);
+  }
 
-    const vg = n.vca.gain;
-    vg.cancelScheduledValues(when);
-    vg.setValueAtTime(0.0, when);
-    vg.linearRampToValueAtTime(peak, when + st.ampA);
-    vg.linearRampToValueAtTime(sus,  when + st.ampA + st.ampD);
+  /**
+   * Schedule one trapezoid cycle on n.trap.offset starting at `when`.
+   * If envRepeat is true and envOff is finite, re-arm a timer to fire the next
+   * cycle near the end of Off (while a note is still held).
+   */
+  _scheduleTrap(when, peak) {
+    const n  = this.nodes;
+    const st = this.state;
+    const A  = Math.max(0.001, st.envAttack);
+    const On = Math.max(0,     st.envOn);
+    const D  = Math.max(0.001, st.envDecay);
+    const Off= Math.max(0.001, st.envOff);
 
-    // Mod envelope (fires in sync)
-    const me = n.modEnv.offset;
-    me.cancelScheduledValues(when);
-    me.setValueAtTime(0.0, when);
-    me.linearRampToValueAtTime(1.0,      when + st.modA);
-    me.linearRampToValueAtTime(st.modS,  when + st.modA + st.modD);
+    const trap = n.trap.offset;
+    trap.cancelScheduledValues(when);
+    let t = when;
+    trap.setValueAtTime(0,    t);
+    trap.linearRampToValueAtTime(peak, t += A);
+    if (On > 0) trap.setValueAtTime(peak, t += On);
+    trap.linearRampToValueAtTime(0, t += D);
+    trap.setValueAtTime(0, t);
+
+    if (this._trapRepeatTimer) { clearTimeout(this._trapRepeatTimer); this._trapRepeatTimer = null; }
+    // envOff >= 5.0 means OFF position (no auto-retrigger)
+    if (st.envRepeat && Off < 4.999) {
+      const cycleSec = A + On + D + Off;
+      const fireAt   = when + cycleSec;
+      const delayMs  = Math.max(0, (fireAt - this.actx.currentTime) * 1000 - 6);
+      this._trapRepeatTimer = setTimeout(() => {
+        if (!this._noteHeld || !this.state.envRepeat) return;
+        this._scheduleTrap(this.actx.currentTime + 0.005, peak);
+      }, delayMs);
+    }
   }
 
   noteOff() {
@@ -388,16 +603,13 @@ class AKSEngine {
     const n  = this.nodes;
     const st = this.state;
 
-    // Release from tracked sustain level (avoids click on sequencer lookahead)
-    const vg = n.vca.gain;
-    vg.cancelScheduledValues(when);
-    vg.setValueAtTime(this._scheduledSustain, when);
-    vg.linearRampToValueAtTime(0, when + st.ampR);
+    if (this._trapRepeatTimer) { clearTimeout(this._trapRepeatTimer); this._trapRepeatTimer = null; }
 
-    const me = n.modEnv.offset;
-    me.cancelScheduledValues(when);
-    me.setValueAtTime(st.modS, when);
-    me.linearRampToValueAtTime(0, when + st.modR);
+    // Ramp the trapezoid CV down over Decay time from whatever value it
+    // currently holds (AKS lets the cycle finish; we compromise for playability).
+    const trap = n.trap.offset;
+    trap.cancelScheduledValues(when);
+    trap.linearRampToValueAtTime(0, when + Math.max(0.005, st.envDecay));
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -411,9 +623,9 @@ class AKSEngine {
     const ramp = (param, v, tc = 0.02) => param.setTargetAtTime(v, t, tc);
 
     switch (key) {
-      case 'osc1Wave': n.osc1.type = value; break;
-      case 'osc2Wave': n.osc2.type = value; break;
-      case 'osc3Wave': n.osc3.type = value; break;
+      case 'osc1Shape': n.osc1Shape.curve = this._makeShapeCurve(value); break;
+      case 'osc2Shape': n.osc2Shape.curve = this._makeShapeCurve(value); break;
+      case 'osc3Shape': n.osc3Shape.curve = this._makeShapeCurve(value); break;
 
       case 'aksLevel':  ramp(n.voiceOut.gain, value); break;
       case 'osc1Level': ramp(n.osc1Gain.gain, value); break;
@@ -422,14 +634,17 @@ class AKSEngine {
 
       case 'osc2Tune':
         ramp(n.osc2.frequency, this._lastFreq * _semisToRatio(value)); break;
-      case 'osc3Tune':
-        ramp(n.osc3.frequency, this._lastFreq * _semisToRatio(value)); break;
+      case 'osc3Tune': {
+        const f3 = this._lastFreq * _semisToRatio(value);
+        ramp(n.osc3sq.frequency, f3);
+        ramp(n.osc3saw.frequency, f3);
+        break;
+      }
 
       case 'noiseLevel': ramp(n.noiseGain.gain, value); break;
 
       case 'filterCutoff': ramp(n.vcf.frequency, value); break;
       case 'filterRes':    ramp(n.vcf.Q, value); break;
-      case 'filterDrive':  n.preDrive.curve = this._makeDriveCurve(value); break;
 
       case 'lfo1Rate': ramp(n.lfo1.frequency, value); break;
       case 'lfo2Rate': ramp(n.lfo2.frequency, value); break;
@@ -443,8 +658,20 @@ class AKSEngine {
         ramp(n.drift3.gain.gain, dHz * 0.40, 0.1);
         break;
       }
-      // envelope params (ampA/D/S/R, modA/D/S/R, glide) are stored in state
-      // and read on the next noteOnAt() — no live node changes needed
+      case 'reverbMix':
+        ramp(n.reverbMix.gain, value); break;
+      case 'envRepeat': {
+        // Toggling repeat mid-note: if turning ON and a note is held, arm a
+        // timer for the next cycle; OFF cancels any pending timer.
+        if (this._trapRepeatTimer) { clearTimeout(this._trapRepeatTimer); this._trapRepeatTimer = null; }
+        if (value && this._noteHeld && this.state.envOff < 4.999) {
+          const peak = _clamp(0.82 * this.state.envSignalLevel, 0, 1);
+          this._scheduleTrap(this.actx.currentTime + 0.01, peak);
+        }
+        break;
+      }
+      // envAttack / envOn / envDecay / envOff / envSignalLevel / glide are
+      // stored in state and consumed on the next noteOnAt() — no live retune.
     }
   }
 
@@ -475,13 +702,22 @@ class AKSEngine {
 
     while (this._seqNextTime < ac.currentTime + ahead) {
       const idx  = this._seqStep % 16;
-      const step = this.state.seqSteps[idx];
-      const when = this._seqNextTime;
+      const stepA = this.state.seqSteps[idx];
+      const stepB = this.state.seqBActive ? this.state.seqStepsB[idx] : null;
+      const when  = this._seqNextTime;
 
-      if (step.active) {
-        const vel = step.accent ? _clamp(step.velocity * 1.38, 0, 1) : step.velocity;
-        this.noteOnAt(step.note, vel, when);
+      // Seq A fires first; Seq B (if active) overrides on the same tick.
+      // Both sequencers run in lockstep (one BPM, both 16 steps).
+      if (stepA.active) {
+        const vel = stepA.accent ? _clamp(stepA.velocity * 1.38, 0, 1) : stepA.velocity;
+        this.noteOnAt(stepA.note, vel, when);
         this.noteOffAt(when + baseDur * 0.82);
+      }
+      if (stepB && stepB.active) {
+        const vel = stepB.accent ? _clamp(stepB.velocity * 1.38, 0, 1) : stepB.velocity;
+        // Tiny offset so it lands after A in the schedule queue
+        this.noteOnAt(stepB.note, vel, when + 0.0005);
+        this.noteOffAt(when + baseDur * 0.82 + 0.0005);
       }
 
       // Swing: push odd steps slightly later
@@ -595,14 +831,23 @@ class AKSEngine {
     return buf;
   }
 
-  _makeDriveCurve(drive) {
+  /**
+   * Shape curve for OSC wavefolders. 0 = identity (pass-through), 1 = hard
+   * tanh saturation that pushes sine toward square / triangle toward harsher
+   * symmetric clipping. Approximates the "shape" knob on Synthi oscillators.
+   */
+  _makeShapeCurve(shape) {
     const n = 1024;
     const c = new Float32Array(n);
-    const k = drive * 90 + 1;
+    if (shape <= 0.001) {
+      for (let i = 0; i < n; i++) c[i] = (i / (n - 1)) * 2 - 1;
+      return c;
+    }
+    const drive = 1 + shape * 18;
+    const norm = Math.tanh(drive);
     for (let i = 0; i < n; i++) {
       const x = (i / (n - 1)) * 2 - 1;
-      // Asymmetric soft-clip (even harmonics) — more Synthi-like than tanh
-      c[i] = (Math.PI + k) * x / (Math.PI + k * Math.abs(x));
+      c[i] = Math.tanh(x * drive) / norm;
     }
     return c;
   }
