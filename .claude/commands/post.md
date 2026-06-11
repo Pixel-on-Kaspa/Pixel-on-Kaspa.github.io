@@ -301,7 +301,7 @@ Include randomly — not every post. Vary placement. ~60% inclusion rate.
 
 **@synthicoin** — experimental electronic, raw, unexpected
 - Character: Synthi AKS, Max4Live, Ableton, oscilloscope, images from sound
-- Tone: raw, technical or poetic, unexpected angle. CZ or EN. Length is free — can be one word or a paragraph, whatever fits the piece.
+- Tone: raw, technical or poetic, unexpected angle. **EN only.** Length is free — can be one word or a paragraph, whatever fits the piece.
 - May touch on promo or educational themes but only through its own experimental lens — never a straight announcement or tutorial
 - Never a direct call to action, never a standard promo post
 
@@ -446,7 +446,7 @@ Confirm on success:
 
 - [ ] Instagram caption obsahuje hashtag blok (10–15 tagů, prázdný řádek před ním)
 - [ ] @marekozor X post — OpenSea link jen pro deep-memory, jen pokud ≤ 280 znaků
-- [ ] @synthicoin — experimental lens vždy, 2–3 hashtags, nikdy #NFT, nikdy přímé promo/CTA
+- [ ] @synthicoin — experimental lens vždy, **EN only**, 2–3 hashtags, nikdy #NFT, nikdy přímé promo/CTA
 - [ ] PIXELONKAS a SYKORA mint linky → `kaspa.com` (ne OpenSea)
 - [ ] Každý profil dostane jiný soubor média
 - [ ] Post schválen před odesláním
