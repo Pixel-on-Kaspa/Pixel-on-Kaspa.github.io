@@ -85,19 +85,19 @@ pixel-on-kaspa.fyi/synthi/generator.html
 
 ---
 
-### 4. ORIGINAL — Example B — SYNTHI App
+### 4. ORIGINAL — Example B — SYNTHI Visual Engine
 
 **Violation:** aphoristic punchline on line 2 ("The ratio draws the figure") instead of added information
 **Old body:** `Set two frequencies. The ratio draws the figure.`
 
 **New version:**
 ```
-SYNTHI App — 4 oscillators, mathematical Lissajous
+SYNTHI Visual Engine — 4 oscillators, mathematical Lissajous
 
 Set frequencies on the X and Y axes; their ratio defines the closed curve.
 Phase offset rotates the figure, amplitude scales it.
 
-pixel-on-kaspa.fyi/synthi/app.html
+pixel-on-kaspa.fyi/synthi/visual-engine.html
 ```
 **Concrete facts:** X/Y axes, ratio → closed curve, phase = rotation, amplitude = scale.
 **Line 2 role:** adds two more parameters (phase, amplitude) and what they control.

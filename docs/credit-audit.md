@@ -90,11 +90,11 @@ fix(synthi-generator): credit EMS Synthi AKS audio heritage
 
 ---
 
-### SYNTHI App — `synthi/app.html`
+### SYNTHI Visual Engine — `synthi/visual-engine.html`
 
 | Kde | Co je | Co chybí |
 |-----|-------|----------|
-| `<title>` | `SYNTHI APP` | Žádná zmínka o EMS |
+| `<title>` | `SYNTHI Visual Engine` | Žádná zmínka o EMS |
 | UI topbar | `SYNTHI` (jen brand text) | Žádný credit |
 | Kód | Žádné komentáře o předloze | Nic |
 
@@ -107,10 +107,10 @@ fix(synthi-generator): credit EMS Synthi AKS audio heritage
 <span style="font-size:9px;color:var(--muted);letter-spacing:.1em">after EMS Synthi AKS</span>
 ```
 
-Kam: `synthi/app.html` — topbar (ř. 99).
+Kam: `synthi/visual-engine.html` — topbar (ř. 99).
 
 ```
-fix(synthi-app): add EMS Synthi AKS credit to topbar
+fix(synthi-visual-engine): add EMS Synthi AKS credit to topbar
 ```
 
 ---
@@ -179,13 +179,13 @@ fix(post-command): add mandatory credit rule for visual posts
 | Yohei GLSL | ✅ plný | ✅ plný | ✅ šablona | ✅ @YoheiNishitsuji | — |
 | SYNTHI AKS | ⚠️ částečný | ⚠️ komentář | — | ❌ chybí | přidat Zinovieff/Cockerell do UI |
 | SYNTHI Generator | ❌ žádný | ❌ žádný | — | ❌ chybí | přidat EMS credit do UI |
-| SYNTHI App | ❌ žádný | ❌ žádný | — | ❌ chybí | přidat EMS credit do UI |
+| SYNTHI Visual Engine | ❌ žádný | ❌ žádný | — | ❌ chybí | přidat EMS credit do UI |
 | SYNTHI Web | ⚠️ částečný | ✅ bohatý | — | ❌ chybí | doplnit jména designérů |
 | Post command | — | — | ❌ žádné pravidlo | — | přidat credit rule |
 
 **Priorita oprav:**
 1. Post command credit rule (ovlivňuje každý budoucí post)
 2. SYNTHI AKS — hlavní nástroj, nejvíc na očích
-3. SYNTHI App — aktivně vyvíjený
+3. SYNTHI Visual Engine — aktivně vyvíjený
 4. SYNTHI Generator — produkční generátor
 5. SYNTHI Web — starší UI, nižší priorita

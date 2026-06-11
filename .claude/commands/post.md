@@ -12,7 +12,7 @@ Post a visual (PNG or MP4) from a local artist export folder to X profiles.
 /post --nft <collection>                   # NFT visual post — fetch random NFT from chain
 ```
 
-`--artist` (required for visual posts): folder name inside `~/Desktop/pixel-exports/` — e.g. `yohei`, `koma`, `synthi`, `deep-memory`
+`--artist` (required for visual posts): folder name inside `~/Desktop/pixel-exports/` — e.g. `yohei`, `koma`, `synthi`, `deep-memory`, `sykora-lab`, `visual-engine`
 `--profile` (optional): `pixelonkas`, `marekozor`, `synthicoin` — if omitted, show all three and let user pick
 `--wip` (optional): work in progress mode — different tone, shows process not result — see Step 1e
 `--promo` (optional): weekly collection promotion mode — see Step 1b
@@ -43,11 +43,15 @@ Pick a separate random file per profile from `~/Desktop/pixel-exports/$ARTIST/`.
 
 ### Export složky
 ```
-~/Desktop/pixel-exports/yohei/        — GLSL shader exporty (PNG/MP4)
-~/Desktop/pixel-exports/koma/         — p5.js Koma exporty (PNG/MP4)
-~/Desktop/pixel-exports/synthi/       — SYNTHI AKS exporty (PNG/MP4)
-~/Desktop/pixel-exports/deep-memory/  — marekozor OpenSea kolekce (fetch live)
+~/Desktop/pixel-exports/yohei/         — GLSL shader exporty (PNG/MP4)
+~/Desktop/pixel-exports/koma/          — p5.js Koma exporty (PNG/MP4)
+~/Desktop/pixel-exports/synthi/        — SYNTHI AKS exporty (PNG/MP4)
+~/Desktop/pixel-exports/deep-memory/   — marekozor OpenSea kolekce (fetch live)
+~/Desktop/pixel-exports/sykora-lab/    — Sýkora Lab exporty (PNG/WebM) — after Zdeněk Sýkora
+~/Desktop/pixel-exports/visual-engine/ — SYNTHI Visual Engine exporty (PNG/MP4) — 4-osc Lissajous
 ```
+
+**Credit pravidlo:** `sykora-lab` posty vždy uvádějí "after Zdeněk Sýkora". `visual-engine` posty mohou (volitelně) uvádět "EMS Synthi AKS inspired".
 
 > PIXELONKAS a SYKORA nemají lokální složku — média se načítají přes krc721.stream API a IPFS. Použij `--nft PIXELONKAS` nebo `--nft SYKORA`.
 
@@ -58,7 +62,7 @@ Rotation state is persisted in `.claude/post-state.json`:
 {
   "last_artist": "yohei",
   "last_post_at": "2026-04-16T14:32:00Z",
-  "rotation_order": ["synthi", "deep-memory", "yohei", "koma"]
+  "rotation_order": ["synthi", "deep-memory", "yohei", "koma", "sykora-lab", "visual-engine"]
 }
 ```
 
@@ -68,7 +72,7 @@ Rotation state is persisted in `.claude/post-state.json`:
    - If file does not exist → create it with `last_artist: null`, select `synthi` (first in rotation_order)
    - If JSON is malformed → warn `[WARNING] post-state.json corrupted, falling back to synthi` and use `synthi`
    - If `last_artist` is not in `rotation_order` (stale/renamed value) → start from index 0 (`synthi`)
-2. Find index of `last_artist` in `rotation_order`, select `rotation_order[(index + 1) % 4]`
+2. Find index of `last_artist` in `rotation_order`, select `rotation_order[(index + 1) % rotation_order.length]`
 3. Proceed with selected artist
 4. After successful post → write updated `last_artist` (selected artist) and `last_post_at` (current UTC ISO timestamp) back to `.claude/post-state.json`
 

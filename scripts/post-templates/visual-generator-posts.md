@@ -63,6 +63,24 @@ Compiles client-side via WebGL.
 pixel-on-kaspa.fyi/yohei-glsl.html
 ```
 
+### Example C — Sýkora Lab
+
+Generative grid based on Zdeněk Sýkora's macrostructures (1960s–70s). Credit the original artist.
+
+```
+Generator output — after Zdeněk Sýkora
+
+Rule-based grid of 14 black-fill primitives × 4 rotations. Triangle sliders modulate chamfers and accents per cell.
+PNG + 8-second WebM capture, click-to-override on any cell.
+
+pixel-on-kaspa.fyi/sykora-lab.html
+```
+
+**Notes:**
+- Always credit Zdeněk Sýkora (1920–2011) — Czech pioneer of algorithmic art
+- Link to SYKORA NFT collection only on `--promo` runs; default visual posts stay generator-focused
+- Tags: `#generativeart` `#Kaspa` `#algorithmicart` (+ rotation per Step 2 hashtag rules)
+
 ---
 
 ## 2. ORIGINAL pattern
@@ -93,28 +111,28 @@ Three Lissajous layers stacked with adjustable phase offset.
 pixel-on-kaspa.fyi/synthi/generator.html
 ```
 
-### Example B — SYNTHI App
+### Example B — SYNTHI Visual Engine
 
 ❌ **DEPRECATED 2026-05-30 — AI-tell.**
 Why: "Set two frequencies. **The ratio draws the figure.**" — the second line is an aphoristic punchline, not added information; violates the "line 2 must add info, not pointu" rule.
 
 ```
-SYNTHI App — 4 oscillators, mathematical Lissajous
+SYNTHI Visual Engine — 4 oscillators, mathematical Lissajous
 
 Set two frequencies. The ratio draws the figure.
 
-pixel-on-kaspa.fyi/synthi/app.html
+pixel-on-kaspa.fyi/synthi/visual-engine.html
 ```
 
 ✅ **Replacement:**
 
 ```
-SYNTHI App — 4 oscillators, mathematical Lissajous
+SYNTHI Visual Engine — 4 oscillators, mathematical Lissajous
 
 Set frequencies on the X and Y axes; their ratio defines the closed curve.
 Phase offset rotates the figure, amplitude scales it.
 
-pixel-on-kaspa.fyi/synthi/app.html
+pixel-on-kaspa.fyi/synthi/visual-engine.html
 ```
 
 ---
@@ -143,7 +161,7 @@ Each ratio draws a different knot.
 All from the same 4-oscillator engine.
 ```
 
-*(attach 4 screenshots from SYNTHI App at different freq ratios, link in reply)*
+*(attach 4 screenshots from SYNTHI Visual Engine at different freq ratios, link in reply)*
 
 ---
 

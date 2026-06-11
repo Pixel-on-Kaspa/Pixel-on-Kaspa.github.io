@@ -77,7 +77,7 @@ Audio-vizuální projekt živý na `pixel-on-kaspa.fyi/synthi/`. Obsahuje někol
 | Stránka | Soubor | Popis |
 |---------|--------|-------|
 | Landing | `index.html` | Hlavní stránka — nový design (2026-04), navigace na všechny nástroje |
-| Visual Engine | `app.html` | Lissajous canvas vizualizér — oscilátory, HUE/CONT/DECAY/BRIGHT/THICK knoby, offscreen canvas recording (1440px, 25 Mbps, 5s) |
+| Visual Engine | `visual-engine.html` | Lissajous canvas vizualizér — oscilátory, HUE/CONT/DECAY/BRIGHT/THICK knoby, offscreen canvas recording (1440px, 25 Mbps, 5s) |
 | SYNTHI AKS | `aks.html` | EMS Synthi AKS emulátor — patch bay, oscilátory |
 | SYNTHI Web | `web.html` | Web Audio API syntetizér inspirovaný EMS AKS |
 | Generator | `generator.html` | Audio-parametry → generátor vizuálů |

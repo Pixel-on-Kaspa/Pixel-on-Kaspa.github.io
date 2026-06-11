@@ -77,7 +77,7 @@ Pixel-on-Kaspa.github.io/
 │  ├─ aks.html                   # AKS instrument UI (~1591 lines)
 │  ├─ generator.html             # SYNTHI parameter generator UI
 │  ├─ web.html                   # Web Audio matrix synth interface
-│  ├─ app.html                   # Alternative app layout
+│  ├─ visual-engine.html         # Visual Engine — 4-osc mathematical Lissajous
 │  ├─ rec.html                   # Recording archive UI
 │  └─ js/synthi-audio.js         # Audio processing utilities
 │
