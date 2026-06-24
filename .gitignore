@@ -5,6 +5,9 @@ logs/
 # local state (not for version control)
 .claude/post-state.json
 
+# instagrapi venv (local Python env for IG posting)
+scripts/.ig-venv/
+
 # project
 _site
 .sass-cache
