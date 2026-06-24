@@ -1,0 +1,21 @@
+/* ── About page dark mode — overrides Beautiful Jekyll theme variables ──
+   Loaded only on /about/ via `css:` front matter in about.md.
+   Palette matches the homepage (index.html). */
+:root{
+  --page-col:#050a0a;
+  --text-col:#f0f0f0;
+  --link-col:#49EACB;
+  --hover-col:#ffffff;
+  --navbar-col:#0a0f0f;
+  --navbar-text-col:rgba(255,255,255,.85);
+  --navbar-border-col:rgba(255,255,255,.10);
+  --footer-col:#050a0a;
+  --footer-text-col:rgba(255,255,255,.55);
+  --footer-link-col:#49EACB;
+  --footer-hover-col:#ffffff;
+}
+/* content accents not driven by theme vars */
+main strong, main b{ color:#fff; }
+main hr, hr.small{ border-color:rgba(255,255,255,.10); }
+main code{ background:#0d1117; color:#49EACB; }
+main blockquote{ border-left-color:#49EACB; }
