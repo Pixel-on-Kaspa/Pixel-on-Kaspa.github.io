@@ -530,6 +530,7 @@
     .aks-step-btn.active   { border-color: rgba(155,89,182,.55); background: var(--accent-dim); color: var(--accent); }
     .aks-step-btn.accent   { border-color: rgba(232,160,32,.55); background: rgba(232,160,32,.10); color: var(--amber); }
     .aks-step-btn.selected { outline: 2px solid rgba(255,255,255,.55); outline-offset: 1px; }
+    .aks-step-btn.playing  { border-color: var(--brass-hi, #d9b86b); box-shadow: 0 0 10px 1px rgba(217,184,107,.7); transform: translateY(-1px); }
     .stepEditor { padding-top: 6px; border-top: 1px dashed var(--border); }
 
     .keyboard {
@@ -772,19 +773,19 @@
           <div class="adsr">
             <div class="miniCell">
               <div class="miniHead"><span class="miniLbl">Attack</span><span class="miniVal" id="aks-env-attack-val">8ms</span></div>
-              <input id="aks-env-attack" type="range" min="0.002" max="1" step="0.001" value="0.008" />
+              <input id="aks-env-attack" type="range" min="0" max="1000" step="1" value="223" />
             </div>
             <div class="miniCell">
-              <div class="miniHead"><span class="miniLbl">On</span><span class="miniVal" id="aks-env-on-val">200ms</span></div>
-              <input id="aks-env-on" type="range" min="0" max="2.5" step="0.01" value="0.20" />
+              <div class="miniHead"><span class="miniLbl">On</span><span class="miniVal" id="aks-env-on-val">80ms</span></div>
+              <input id="aks-env-on" type="range" min="0" max="1000" step="1" value="560" />
             </div>
             <div class="miniCell">
-              <div class="miniHead"><span class="miniLbl">Decay</span><span class="miniVal" id="aks-env-decay-val">400ms</span></div>
-              <input id="aks-env-decay" type="range" min="0.003" max="15" step="0.01" value="0.40" />
+              <div class="miniHead"><span class="miniLbl">Decay</span><span class="miniVal" id="aks-env-decay-val">160ms</span></div>
+              <input id="aks-env-decay" type="range" min="0" max="1000" step="1" value="467" />
             </div>
             <div class="miniCell">
-              <div class="miniHead"><span class="miniLbl">Off</span><span class="miniVal" id="aks-env-off-val">500ms</span></div>
-              <input id="aks-env-off" type="range" min="0.010" max="5" step="0.01" value="0.50" />
+              <div class="miniHead"><span class="miniLbl">Off</span><span class="miniVal" id="aks-env-off-val">300ms</span></div>
+              <input id="aks-env-off" type="range" min="0" max="1000" step="1" value="547" />
             </div>
           </div>
           <div class="rowMini noWave" style="margin-top:4px">
@@ -1142,6 +1143,25 @@
       return N[((midi % 12) + 12) % 12] + (Math.floor(midi / 12) - 1);
     }
 
+    /* ── Exponential (geometric) time mapping ──
+       Trapezoid time sliders run on a normalised 0–1000 position so resolution
+       is even across the whole range — fine control at the short end (a few ms)
+       instead of cramming it into the first few % of a linear slider. */
+    function expMap(min, max) {
+      const lnR = Math.log(max / min);
+      return {
+        min, max,
+        toValue: (p) => min * Math.exp(lnR * (p / 1000)),
+        toPos:   (v) => Math.round(1000 * Math.log(Math.max(min, Math.min(max, v)) / min) / lnR),
+      };
+    }
+    const ENV_MAPS = {
+      envAttack: expMap(0.002, 1),     // 2 ms – 1 s
+      envOn:     expMap(0.001, 2.5),   // ~1 ms – 2.5 s (0-pos ≈ no hold)
+      envDecay:  expMap(0.003, 15),    // 3 ms – 15 s
+      envOff:    expMap(0.010, 5),     // 10 ms – 5 s (top = OFF / no repeat)
+    };
+
     function bindSlider(id, valId, key, fmt) {
       const el  = document.getElementById(id);
       const vEl = document.getElementById(valId);
@@ -1159,11 +1179,26 @@
       if (!el) return;
       el.addEventListener('change', () => { if (aks) aks.setParam(key, el.value); });
     }
+    /* Time slider on a 0–1000 position, mapped exponentially to seconds. */
+    function bindTimeSlider(id, valId, key, map, fmt) {
+      const el  = document.getElementById(id);
+      const vEl = document.getElementById(valId);
+      if (!el) return;
+      el.min = 0; el.max = 1000; el.step = 1;
+      if (aks) el.value = map.toPos(aks.state[key]); // start from engine's value, not stale HTML attr
+      function refresh() {
+        const v = map.toValue(parseFloat(el.value));
+        if (vEl) vEl.textContent = fmt(v);
+        if (aks) aks.setParam(key, v);
+      }
+      el.addEventListener('input', refresh);
+      refresh();
+    }
 
     /* ── Pin Matrix — 16×16 AKS patch sheet (manual p.19) ──
-       Cycle: empty → +2 → +3 → +1 → −1 → −2 → −3 → empty
-       Long press = remove (set 0) */
-    const STRENGTH_CYCLE = [0, 2, 3, 1, -1, -2, -3];
+       Cycle: empty → +1 → +2 → +3 → −1 → −2 → −3 → empty
+       Long press / right-click = remove (set 0) */
+    const STRENGTH_CYCLE = [0, 1, 2, 3, -1, -2, -3];
     const SRC_LABELS = [
       'Out Ch 1', 'Out Ch 2',
       'Osc 1',    'Osc 2',
@@ -1292,8 +1327,11 @@
         btn.className = 'aks-step-btn';
         btn.id = 'aks-step-' + i;
         if (aks) refreshStepBtn(btn, i);
+        // Click = toggle the step on/off (drum-machine style) AND select it so
+        // the editor below shows it for note/velocity/accent tweaks.
         btn.addEventListener('click', () => {
           selectedStep = i;
+          if (aks) { const s = seqStepsOf()[i]; s.active = !s.active; }
           refreshAllStepBtns();
           openStepEditor(i);
         });
@@ -1432,8 +1470,10 @@
       set('aks-osc3-level', st.osc3Level); set('aks-osc3-shape', st.osc3Shape); set('aks-osc3-tune', st.osc3Tune);
       set('aks-noise-level', st.noiseLevel); set('aks-drift', st.driftAmt);
       set('aks-filter-cutoff', st.filterCutoff); set('aks-filter-res', st.filterRes);
-      set('aks-env-attack', st.envAttack); set('aks-env-on',     st.envOn);
-      set('aks-env-decay',  st.envDecay);  set('aks-env-off',    st.envOff);
+      set('aks-env-attack', ENV_MAPS.envAttack.toPos(st.envAttack));
+      set('aks-env-on',     ENV_MAPS.envOn.toPos(st.envOn));
+      set('aks-env-decay',  ENV_MAPS.envDecay.toPos(st.envDecay));
+      set('aks-env-off',    ENV_MAPS.envOff.toPos(st.envOff));
       set('aks-env-signal', st.envSignalLevel);
       set('aks-lfo1-rate',  st.lfo1Rate);  set('aks-lfo2-rate',  st.lfo2Rate);
       set('aks-glide',      st.glide);     set('aks-swing',      st.seqSwing);
@@ -1449,10 +1489,11 @@
       setAndShow('aks-master','aks-master-val', v => v.toFixed(2).replace(/^0/, ''));
       setAndShow('aks-filter-cutoff','aks-filter-cutoff-val', v => Math.round(v));
       setAndShow('aks-filter-res','aks-filter-res-val', v => v.toFixed(1));
-      setAndShow('aks-env-attack','aks-env-attack-val', fmtMs);
-      setAndShow('aks-env-on',    'aks-env-on-val',     fmtMs);
-      setAndShow('aks-env-decay', 'aks-env-decay-val',  fmtMs);
-      setAndShow('aks-env-off',   'aks-env-off-val',    fmtOff);
+      // These four sliders hold a 0–1000 position; map back to seconds to display.
+      setAndShow('aks-env-attack','aks-env-attack-val', p => fmtMs(ENV_MAPS.envAttack.toValue(p)));
+      setAndShow('aks-env-on',    'aks-env-on-val',     p => fmtMs(ENV_MAPS.envOn.toValue(p)));
+      setAndShow('aks-env-decay', 'aks-env-decay-val',  p => fmtMs(ENV_MAPS.envDecay.toValue(p)));
+      setAndShow('aks-env-off',   'aks-env-off-val',    p => fmtOff(ENV_MAPS.envOff.toValue(p)));
       setAndShow('aks-env-signal','aks-env-signal-val', v => v.toFixed(2).replace(/^0/, ''));
       const repeatBtn = document.getElementById('aks-env-repeat');
       if (repeatBtn) repeatBtn.textContent = 'Repeat: ' + (st.envRepeat ? 'ON' : 'OFF');
@@ -1495,10 +1536,10 @@
       bindSlider('aks-filter-cutoff','aks-filter-cutoff-val','filterCutoff', v => Math.round(v));
       bindSlider('aks-filter-res','aks-filter-res-val','filterRes', v => v.toFixed(1));
 
-      bindSlider('aks-env-attack','aks-env-attack-val','envAttack',     fmtMs);
-      bindSlider('aks-env-on',    'aks-env-on-val',    'envOn',         fmtMs);
-      bindSlider('aks-env-decay', 'aks-env-decay-val', 'envDecay',      fmtMs);
-      bindSlider('aks-env-off',   'aks-env-off-val',   'envOff',        fmtOff);
+      bindTimeSlider('aks-env-attack','aks-env-attack-val','envAttack', ENV_MAPS.envAttack, fmtMs);
+      bindTimeSlider('aks-env-on',    'aks-env-on-val',    'envOn',     ENV_MAPS.envOn,     fmtMs);
+      bindTimeSlider('aks-env-decay', 'aks-env-decay-val', 'envDecay',  ENV_MAPS.envDecay,  fmtMs);
+      bindTimeSlider('aks-env-off',   'aks-env-off-val',   'envOff',    ENV_MAPS.envOff,    fmtOff);
       bindSlider('aks-env-signal','aks-env-signal-val','envSignalLevel', trimZero);
 
       const repeatBtn = document.getElementById('aks-env-repeat');
@@ -1528,6 +1569,14 @@
       bindSlider('aks-glide','aks-glide-val','glide', v => v < 0.01 ? 'OFF' : fmtMs(v));
 
       buildSeqSteps();
+
+      // Playhead: engine calls this with the step index now sounding (-1 = stopped).
+      aks.onStep = (idx) => {
+        for (let i = 0; i < 16; i++) {
+          const b = document.getElementById('aks-step-' + i);
+          if (b) b.classList.toggle('playing', i === idx);
+        }
+      };
 
       const seqToggle = document.getElementById('aks-seq-toggle');
       if (seqToggle) {

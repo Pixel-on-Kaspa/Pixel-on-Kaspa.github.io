@@ -115,9 +115,9 @@ function _defaultState() {
     // The trapezoid CV gates the VCA AND is exposed in the matrix (row 11).
     // When envRepeat is true and envOff < envOffMax, the cycle auto-retriggers.
     envAttack:      0.008, // s, 0.002 – 1.0
-    envOn:          0.20,  // s, 0    – 2.5
-    envDecay:       0.40,  // s, 0.003 – 15.0
-    envOff:         0.50,  // s, 0.010 – 5.0  (>= envOffMax → infinite Off)
+    envOn:          0.08,  // s, 0    – 2.5  (short so seq steps stay distinct)
+    envDecay:       0.16,  // s, 0.003 – 15.0
+    envOff:         0.30,  // s, 0.010 – 5.0  (>= envOffMax → infinite Off)
     envSignalLevel: 0.82,  // 0-1, scales the trapezoid peak
     envRepeat:      false, // auto-retrigger after Off completes
 
@@ -184,6 +184,8 @@ class AKSEngine {
     this._seqNextTime      = 0;
     this._seqRafId         = null;
     this._selectedSeqStep  = 0; // for UI editing
+    this.onStep            = null; // UI playhead callback: (stepIndex 0-15) => void
+    this._lastNotifiedStep = -1;
 
     this._buildVoice();
     this._buildEnvelopes();
@@ -278,23 +280,25 @@ class AKSEngine {
     n.osc3saw.start(t0);
     n.noiseSource.start(t0);
 
-    // Audio-rate taps for matrix sources (0.5 ≈ unity ±1 signal level)
+    // Audio-rate taps for matrix sources. These feed ONLY the matrix (not the
+    // voice), so they're set near unity so a single patched pin is clearly
+    // audible against the always-on implicit voice path.
     // OSC1 tap = post-shape sine output (matrix row 3)
-    n.osc1Tap = ac.createGain(); n.osc1Tap.gain.value = 0.5;
+    n.osc1Tap = ac.createGain(); n.osc1Tap.gain.value = 1.0;
     n.osc1Shape.connect(n.osc1Tap);
     // OSC2 tap = post-shape triangle output (matrix row 4)
-    n.osc2Tap = ac.createGain(); n.osc2Tap.gain.value = 0.5;
+    n.osc2Tap = ac.createGain(); n.osc2Tap.gain.value = 1.0;
     n.osc2Shape.connect(n.osc2Tap);
     // OSC3 has TWO taps — square (row 5) and sawtooth (row 6)
-    n.osc3sqTap  = ac.createGain(); n.osc3sqTap.gain.value  = 0.5;
+    n.osc3sqTap  = ac.createGain(); n.osc3sqTap.gain.value  = 1.0;
     n.osc3sq.connect(n.osc3sqTap);
-    n.osc3sawTap = ac.createGain(); n.osc3sawTap.gain.value = 0.5;
+    n.osc3sawTap = ac.createGain(); n.osc3sawTap.gain.value = 1.0;
     n.osc3saw.connect(n.osc3sawTap);
 
-    n.noiseTap = ac.createGain(); n.noiseTap.gain.value = 0.4;
+    n.noiseTap = ac.createGain(); n.noiseTap.gain.value = 0.8;
     n.noiseSource.connect(n.noiseTap);
 
-    n.filterTap = ac.createGain(); n.filterTap.gain.value = 0.5;
+    n.filterTap = ac.createGain(); n.filterTap.gain.value = 0.9;
     n.vcf.connect(n.filterTap);
 
     // Silent dummy source kept for any matrix row without a live audio tap.
@@ -612,8 +616,13 @@ class AKSEngine {
 
     // Ramp the trapezoid CV down over Decay time from whatever value it
     // currently holds (AKS lets the cycle finish; we compromise for playability).
+    // Anchor at the current level first — without this, releasing DURING the
+    // decay ramp makes the param jump back up to `peak` (the prior anchor event)
+    // before falling, which clicks.
     const trap = n.trap.offset;
+    const cur  = trap.value;
     trap.cancelScheduledValues(when);
+    trap.setValueAtTime(cur, when);
     trap.linearRampToValueAtTime(0, when + Math.max(0.005, st.envDecay));
   }
 
@@ -688,6 +697,8 @@ class AKSEngine {
     if (this._seqRafId) cancelAnimationFrame(this._seqRafId);
     this._seqStep     = 0;
     this._seqNextTime = this.actx.currentTime + 0.05;
+    this._scheduledSteps = []; // [{ step, when }] pending UI playhead notifications
+    this._lastNotifiedStep = -1;
     this.state.seqRunning = true;
     this._seqSchedule(getBpm);
   }
@@ -695,6 +706,9 @@ class AKSEngine {
   seqStop() {
     this.state.seqRunning = false;
     if (this._seqRafId) { cancelAnimationFrame(this._seqRafId); this._seqRafId = null; }
+    this._scheduledSteps = [];
+    this._lastNotifiedStep = -1;
+    if (this.onStep) this.onStep(-1); // clear playhead
     this.noteOff();
   }
 
@@ -710,6 +724,9 @@ class AKSEngine {
       const stepA = this.state.seqSteps[idx];
       const stepB = this.state.seqBActive ? this.state.seqStepsB[idx] : null;
       const when  = this._seqNextTime;
+
+      // Queue a playhead notification for this step (fired when audio time reaches it)
+      if (this.onStep) this._scheduledSteps.push({ step: idx, when });
 
       // Seq A fires first; Seq B (if active) overrides on the same tick.
       // Both sequencers run in lockstep (one BPM, both 16 steps).
@@ -729,6 +746,19 @@ class AKSEngine {
       const swingOff = (idx % 2 === 1) ? this.state.seqSwing * baseDur * 0.55 : 0;
       this._seqNextTime += baseDur + swingOff;
       this._seqStep++;
+    }
+
+    // Fire the UI playhead for any queued step whose start time has arrived.
+    if (this.onStep && this._scheduledSteps.length) {
+      const now = ac.currentTime;
+      let due = -1;
+      while (this._scheduledSteps.length && this._scheduledSteps[0].when <= now) {
+        due = this._scheduledSteps.shift().step;
+      }
+      if (due >= 0 && due !== this._lastNotifiedStep) {
+        this._lastNotifiedStep = due;
+        this.onStep(due);
+      }
     }
 
     this._seqRafId = requestAnimationFrame(() => this._seqSchedule(getBpm));
