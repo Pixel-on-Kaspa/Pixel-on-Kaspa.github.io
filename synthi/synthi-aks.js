@@ -616,8 +616,13 @@ class AKSEngine {
 
     // Ramp the trapezoid CV down over Decay time from whatever value it
     // currently holds (AKS lets the cycle finish; we compromise for playability).
+    // Anchor at the current level first — without this, releasing DURING the
+    // decay ramp makes the param jump back up to `peak` (the prior anchor event)
+    // before falling, which clicks.
     const trap = n.trap.offset;
+    const cur  = trap.value;
     trap.cancelScheduledValues(when);
+    trap.setValueAtTime(cur, when);
     trap.linearRampToValueAtTime(0, when + Math.max(0.005, st.envDecay));
   }
 
