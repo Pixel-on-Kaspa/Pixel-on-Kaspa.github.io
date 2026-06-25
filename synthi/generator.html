@@ -799,7 +799,7 @@
         </div>
 
         <div class="modGroup">
-          <div class="modLabel">LFO <span class="tag">2× low-frequency mod sources</span></div>
+          <div class="modLabel">LFO <span class="tag">2× low-freq modulators · patch via matrix rows 8, 9</span></div>
           <div class="rowMini">
             <span class="lbl">LFO1</span>
             <select id="aks-lfo1-wave" class="selectBox">
@@ -844,11 +844,16 @@
         </div>
 
         <div class="modGroup">
-          <div class="modLabel">Presets <span class="tag">factory patches — click then play a note</span></div>
+          <div class="modLabel">Presets <span class="tag">factory patches — click, then hold a note / drag the stick</span></div>
           <div style="display:flex; gap:6px; margin-bottom:6px;">
-            <button class="btn btnSm" id="aks-fp-trapwah"  type="button" style="flex:1" title="Trapezoid envelope sweeps the filter on every note (row 11 → col N)">Trap Wah</button>
-            <button class="btn btnSm" id="aks-fp-crossfm"  type="button" style="flex:1" title="Osc 3 frequency-modulates Osc 1 & 2 at audio rate (rows 5,6 → cols I,J)">Cross FM</button>
-            <button class="btn btnSm" id="aks-fp-joywah"   type="button" style="flex:1" title="Joystick Y opens the filter, X detunes Osc 2 (rows 15,16 → cols N,J) — hold a note and drag the stick">Joy Wah</button>
+            <button class="btn btnSm" id="aks-fp-autowah"   type="button" style="flex:1" title="LFO 1 sweeps the filter cutoff and resonance (row 8 → cols N, C). Auto-wah — just hold a note.">Auto Wah</button>
+            <button class="btn btnSm" id="aks-fp-siren"     type="button" style="flex:1" title="LFO 2 modulates Osc 1 & 2 pitch + Trapezoid sweeps the filter (rows 9,11 → cols I,J,N). Siren lead.">Siren</button>
+            <button class="btn btnSm" id="aks-fp-tremolo"   type="button" style="flex:1" title="Two LFOs at different rates pulse the two output levels (rows 8,9 → cols O,P). Shimmering tremolo pad.">Tremolo</button>
+          </div>
+          <div style="display:flex; gap:6px; margin-bottom:6px;">
+            <button class="btn btnSm" id="aks-fp-fmbell"    type="button" style="flex:1" title="Osc 3 audio-rate FM into Osc 1 & 2 + Trapezoid filter decay (rows 5,6,11 → cols I,J,N). Metallic bell.">FM Bell</button>
+            <button class="btn btnSm" id="aks-fp-reverbwash" type="button" style="flex:1" title="Voice → Reverb in, Reverb → Output (rows 12,14 → cols H,A) + Trapezoid filter. Working reverb send/return.">Rev Wash</button>
+            <button class="btn btnSm" id="aks-fp-joymorph"  type="button" style="flex:1" title="Joystick X → filter cutoff + Osc 2 level, Y → resonance (rows 15,16 → cols N,L,C). Hold a note and morph.">Joy Morph</button>
           </div>
           <div style="display:flex; gap:6px;">
             <button class="btn btnSm btnPrimary" id="aks-preset-save" type="button" style="flex:1">Save JSON</button>
@@ -1164,16 +1169,16 @@
       'Osc 1',    'Osc 2',
       'Osc 3 ⊓', 'Osc 3 ⩘',
       'Noise',
-      'In Ch 1',  'In Ch 2',
+      'LFO 1',    'LFO 2',
       'Filter',
       'Trapezoid','Env signal',
       'Ring mod', 'Reverb',
       'Stick X',  'Stick Y',
     ];
     const DEST_LABELS = [
-      'Output ch 1',  'Output ch 2',  'Mute',     'Top input',
+      'Output ch 1',  'Output ch 2',  'Filter Q', 'Osc 1 lvl',
       'Ring mod A',   'Ring mod B',   'Filter',   'Reverb',
-      'Osc freq 1',   'Osc freq 2',   'Osc freq 3','Decay',
+      'Osc freq 1',   'Osc freq 2',   'Osc freq 3','Osc 2 lvl',
       'Reverb mix',   'Filter freq',  'Out ch1 lvl','Out ch2 lvl',
     ];
     const COL_LETTERS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P'];
@@ -1692,41 +1697,83 @@
            col N(13)            = Filter freq    (±2400 Hz)
          Sources used: Osc3 □(4)/⩘(5), Trapezoid(10), Stick X(14)/Y(15).      */
       const FACTORY_PRESETS = {
-        // Trapezoid envelope sweeps the filter on every note → classic AKS "wah".
-        trapwah: {
+        // LFO 1 cycles the filter cutoff + resonance → hands-free auto-wah.
+        autowah: {
           params: {
-            osc1Level: 0.72, osc1Shape: 0.12, osc2Level: 0.22, osc2Tune: 0.01,
-            osc3Level: 0.0, osc3Tune: -12, noiseLevel: 0.03,
-            filterCutoff: 320, filterRes: 9.5,
-            envAttack: 0.015, envOn: 0.05, envDecay: 1.4, envOff: 0.5,
-            envSignalLevel: 0.92, envRepeat: false,
-            aksLevel: 0.70, driftAmt: 0.18, glide: 0.0,
+            osc1Level: 0.55, osc1Shape: 0.20, osc2Level: 0.45, osc2Tune: 0.01,
+            osc3Level: 0.15, osc3Tune: -12, noiseLevel: 0.02,
+            filterCutoff: 600, filterRes: 8.0,
+            envAttack: 0.02, envOn: 2.5, envDecay: 2.5, envOff: 0.4,
+            envSignalLevel: 0.90, envRepeat: false,
+            lfo1Rate: 3.0, lfo1Wave: 'sine', lfo2Rate: 0.12, lfo2Wave: 'triangle',
+            aksLevel: 0.62, driftAmt: 0.15, glide: 0.0,
           },
-          pins: [[10, 13, 3]], // Trapezoid → Filter freq
+          pins: [[7, 13, 2], [7, 2, 1]], // LFO1 → Filter freq · LFO1 → Filter Q
         },
-        // Osc 3 frequency-modulates Osc 1 & 2 at audio rate → metallic FM tone.
-        crossfm: {
+        // LFO 2 bends both oscillators' pitch + Trapezoid sweeps the filter.
+        siren: {
           params: {
-            osc1Level: 0.60, osc1Shape: 0.0, osc2Level: 0.50, osc2Tune: 0.0,
-            osc3Level: 0.0, osc3Tune: 7, noiseLevel: 0.0,
-            filterCutoff: 5200, filterRes: 2.5,
-            envAttack: 0.006, envOn: 0.25, envDecay: 0.5, envOff: 0.5,
+            osc1Level: 0.60, osc1Shape: 0.30, osc2Level: 0.50, osc2Tune: 0.0,
+            osc3Level: 0.0, osc3Tune: -12, noiseLevel: 0.0,
+            filterCutoff: 2600, filterRes: 4.0,
+            envAttack: 0.01, envOn: 2.5, envDecay: 1.5, envOff: 0.4,
+            envSignalLevel: 0.90, envRepeat: false,
+            lfo1Rate: 0.55, lfo1Wave: 'sine', lfo2Rate: 0.5, lfo2Wave: 'triangle',
+            aksLevel: 0.58, driftAmt: 0.10, glide: 0.04,
+          },
+          pins: [[8, 8, 1], [8, 9, 1], [10, 13, 2]], // LFO2 → Osc1/Osc2 freq · Trap → Filter freq
+        },
+        // Two LFOs at different rates pulse the two output channels → beating tremolo.
+        tremolo: {
+          params: {
+            osc1Level: 0.50, osc1Shape: 0.10, osc2Level: 0.45, osc2Tune: 0.02,
+            osc3Level: 0.25, osc3Tune: -12, noiseLevel: 0.03,
+            filterCutoff: 1400, filterRes: 5.0,
+            envAttack: 0.30, envOn: 2.5, envDecay: 3.0, envOff: 0.8,
             envSignalLevel: 0.85, envRepeat: false,
-            aksLevel: 0.62, driftAmt: 0.12, glide: 0.0,
+            lfo1Rate: 4.5, lfo1Wave: 'sine', lfo2Rate: 3.1, lfo2Wave: 'sine',
+            aksLevel: 0.60, driftAmt: 0.25, glide: 0.02,
           },
-          pins: [[4, 8, 3], [5, 9, 3]], // Osc3□ → Osc1 freq · Osc3⩘ → Osc2 freq
+          pins: [[7, 14, 2], [8, 15, 2]], // LFO1 → Out ch1 lvl · LFO2 → Out ch2 lvl
         },
-        // Joystick: Y opens the filter, X detunes Osc 2. Hold a note, drag the stick.
-        joywah: {
+        // Osc 3 audio-rate FM into Osc 1 & 2 + Trapezoid filter decay → metallic bell.
+        fmbell: {
           params: {
-            osc1Level: 0.68, osc1Shape: 0.10, osc2Level: 0.40, osc2Tune: 0.03,
-            osc3Level: 0.12, osc3Tune: -12, noiseLevel: 0.02,
-            filterCutoff: 700, filterRes: 7.5,
-            envAttack: 0.01, envOn: 2.5, envDecay: 2.0, envOff: 0.4,
-            envSignalLevel: 0.88, envRepeat: false,
-            aksLevel: 0.66, driftAmt: 0.20, glide: 0.0,
+            osc1Level: 0.60, osc1Shape: 0.0, osc2Level: 0.45, osc2Tune: 0.0,
+            osc3Level: 0.0, osc3Tune: 19, noiseLevel: 0.0,
+            filterCutoff: 3800, filterRes: 3.0,
+            envAttack: 0.004, envOn: 0.05, envDecay: 2.2, envOff: 0.5,
+            envSignalLevel: 0.85, envRepeat: false,
+            lfo1Rate: 0.55, lfo1Wave: 'sine', lfo2Rate: 0.12, lfo2Wave: 'triangle',
+            aksLevel: 0.58, driftAmt: 0.08, glide: 0.0,
           },
-          pins: [[15, 13, 3], [14, 9, 2]], // Stick Y → Filter freq · Stick X → Osc2 freq
+          pins: [[4, 8, 3], [5, 9, 2], [10, 13, 1]], // Osc3□ → Osc1 freq · Osc3⩘ → Osc2 freq · Trap → Filter
+        },
+        // Working reverb send/return: voice → Reverb in, Reverb → Output ch1.
+        reverbwash: {
+          params: {
+            osc1Level: 0.50, osc1Shape: 0.10, osc2Level: 0.40, osc2Tune: 0.02,
+            osc3Level: 0.20, osc3Tune: -12, noiseLevel: 0.02,
+            filterCutoff: 1600, filterRes: 4.0,
+            envAttack: 0.25, envOn: 2.5, envDecay: 3.5, envOff: 1.0,
+            envSignalLevel: 0.85, envRepeat: false, reverbMix: 0.85,
+            lfo1Rate: 0.55, lfo1Wave: 'sine', lfo2Rate: 0.12, lfo2Wave: 'triangle',
+            aksLevel: 0.60, driftAmt: 0.20, glide: 0.03,
+          },
+          pins: [[11, 7, 3], [13, 0, 3], [10, 13, 1]], // Env sig → Reverb in · Reverb → Output ch1 · Trap → Filter
+        },
+        // Joystick morph: X → cutoff + Osc 2 level, Y → resonance. Hold a note and move.
+        joymorph: {
+          params: {
+            osc1Level: 0.60, osc1Shape: 0.15, osc2Level: 0.40, osc2Tune: 0.03,
+            osc3Level: 0.20, osc3Tune: -12, noiseLevel: 0.02,
+            filterCutoff: 700, filterRes: 6.0,
+            envAttack: 0.01, envOn: 2.5, envDecay: 2.5, envOff: 0.4,
+            envSignalLevel: 0.88, envRepeat: false,
+            lfo1Rate: 0.55, lfo1Wave: 'sine', lfo2Rate: 0.12, lfo2Wave: 'triangle',
+            aksLevel: 0.64, driftAmt: 0.20, glide: 0.02,
+          },
+          pins: [[14, 13, 3], [14, 11, 2], [15, 2, 2]], // Stick X → Filter freq · Stick X → Osc2 lvl · Stick Y → Filter Q
         },
       };
 
@@ -1742,7 +1789,8 @@
         }
       }
 
-      [['aks-fp-trapwah', 'trapwah'], ['aks-fp-crossfm', 'crossfm'], ['aks-fp-joywah', 'joywah']]
+      [['aks-fp-autowah', 'autowah'], ['aks-fp-siren', 'siren'], ['aks-fp-tremolo', 'tremolo'],
+       ['aks-fp-fmbell', 'fmbell'], ['aks-fp-reverbwash', 'reverbwash'], ['aks-fp-joymorph', 'joymorph']]
         .forEach(([id, key]) => {
           const b = document.getElementById(id);
           if (b) b.addEventListener('click', () => applyFactoryPreset(key));

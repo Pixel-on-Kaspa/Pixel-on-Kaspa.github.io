@@ -40,16 +40,16 @@ const SRC_LABELS = [
   'Osc 2',                                    // 4    tri+shape output
   'Osc 3 ⊓', 'Osc 3 ⩘',                       // 5,6  square + sawtooth outs of OSC3
   'Noise',                                    // 7
-  'In Ch 1',  'In Ch 2',                      // 8,9  preamp outs
+  'LFO 1',    'LFO 2',                         // 8,9  low-frequency modulators
   'Filter',                                   // 10
   'Trapezoid','Env signal',                   // 11,12
   'Ring mod', 'Reverb',                       // 13,14
   'Stick X',  'Stick Y',                      // 15,16
 ];
 const DEST_LABELS = [
-  'Output ch 1',  'Output ch 2',  'Mute',     'Top input',     // A-D signal
+  'Output ch 1',  'Output ch 2',  'Filter Q', 'Osc 1 lvl',     // A-D
   'Ring mod A',   'Ring mod B',   'Filter',   'Reverb',        // E-H signal
-  'Osc freq 1',   'Osc freq 2',   'Osc freq 3','Decay',         // I-L control
+  'Osc freq 1',   'Osc freq 2',   'Osc freq 3','Osc 2 lvl',     // I-L control
   'Reverb mix',   'Filter freq',  'Out ch1 lvl','Out ch2 lvl',  // M-P control
 ];
 const N_SRC = SRC_LABELS.length;   // 16
@@ -61,26 +61,26 @@ const N_DST = DEST_LABELS.length;  // 16
  * pile-ups musical (passive-matrix-like loading).
  *
  * Index legend mirrors DEST_LABELS:
- *   0  Out ch1 sig  – placeholder until output stage exists
- *   1  Out ch2 sig  – placeholder
- *   2  Mute         – placeholder
- *   3  Top input    – placeholder
- *   4  Ring mod A   – placeholder
- *   5  Ring mod B   – placeholder
- *   6  Filter sig   – placeholder
- *   7  Reverb sig   – placeholder
+ *   0  Out ch1 sig  – audio into output channel 1
+ *   1  Out ch2 sig  – audio into output channel 2
+ *   2  Filter Q     – ±14 on vcf.Q (resonance)
+ *   3  Osc1 lvl     – ±0.6 on osc1Gain.gain (AM / tremolo)
+ *   4  Ring mod A   – ring-mod depth (multiplier)
+ *   5  Ring mod B   – ring-mod audio input
+ *   6  Filter sig   – audio into the filter
+ *   7  Reverb sig   – audio into the reverb
  *   8  Osc1 freq    – ±200 Hz on osc1.frequency
  *   9  Osc2 freq    – ±200 Hz on osc2.frequency
  *  10  Osc3 freq    – ±200 Hz on osc3.frequency
- *  11  Decay        – placeholder (envelope decay time CV)
- *  12  Reverb mix   – placeholder
+ *  11  Osc2 lvl     – ±0.6 on osc2Gain.gain (AM / tremolo)
+ *  12  Reverb mix   – wet-level CV
  *  13  Filter freq  – ±2400 Hz on vcf.frequency
- *  14  Out ch1 lvl  – placeholder
- *  15  Out ch2 lvl  – placeholder
+ *  14  Out ch1 lvl  – ±1 on outCh1.gain
+ *  15  Out ch2 lvl  – ±1 on outCh2.gain
  */
 const DEST_SCALE = [
-  1,    1,    1,    1,    1,    1,    1,    1,     // A–H placeholders
-  200,  200,  200,  1,    1,    2400, 1,    1,     // I–P
+  1,    1,    14,   0.6,  1,    1,    1,    1,     // A–H
+  200,  200,  200,  0.6,  1,    2400, 1,    1,     // I–P
 ];
 
 const _strengthToGain = (strength, di) =>
@@ -297,8 +297,7 @@ class AKSEngine {
     n.filterTap = ac.createGain(); n.filterTap.gain.value = 0.5;
     n.vcf.connect(n.filterTap);
 
-    // Silent dummy source for matrix rows not yet wired to real audio
-    // (Out Ch 1/2 feedback, In Ch 1/2, env signal, ring mod, reverb, stick X/Y).
+    // Silent dummy source kept for any matrix row without a live audio tap.
     n.dummySrc = ac.createConstantSource(); n.dummySrc.offset.value = 0;
     n.dummySrc.start(ac.currentTime + 0.02);
 
@@ -406,6 +405,11 @@ class AKSEngine {
     const t0 = ac.currentTime + 0.02;
     n.lfo1.start(t0);
     n.lfo2.start(t0);
+
+    // Matrix-source taps — the LFOs are only heard through the patch matrix
+    // (rows 8, 9). Output is ±1; per-destination DEST_SCALE sets the depth.
+    n.lfo1Tap = ac.createGain(); n.lfo1Tap.gain.value = 1.0; n.lfo1.connect(n.lfo1Tap);
+    n.lfo2Tap = ac.createGain(); n.lfo2Tap.gain.value = 1.0; n.lfo2.connect(n.lfo2Tap);
   }
 
   _buildDrift() {
@@ -448,7 +452,7 @@ class AKSEngine {
       n.osc2Tap,                     // 4    Osc 2 (tri+shape)
       n.osc3sqTap, n.osc3sawTap,     // 5,6  Osc 3 square + sawtooth
       n.noiseTap,                    // 7
-      D, D,                          // 8,9  Input Ch 1/2 (no mic source yet)
+      n.lfo1Tap, n.lfo2Tap,          // 8,9  LFO 1 / LFO 2
       n.filterTap,                   // 10
       n.trap,                        // 11  Trapezoid CV
       n.envSigTap,                   // 12  Env signal (post-VCA audio)
@@ -469,7 +473,8 @@ class AKSEngine {
     //   AudioNodes receive audio signal.
     const dsts = [
       [n.outCh1], [n.outCh2],              // A,B  Output ch1/2 signal IN
-      [mkSink()], [mkSink()],              // C,D  Mute / Top input — unused
+      [n.vcf.Q],                           // C    Filter Q (resonance CV)
+      [n.osc1Gain.gain],                   // D    Osc 1 level CV (AM)
       [n.ringMod.gain],                    // E    Ring mod A → multiplier param
       [n.ringMod],                         // F    Ring mod B → audio in
       [n.vcf],                             // G    Filter signal IN (sums with implicit voice)
@@ -477,7 +482,7 @@ class AKSEngine {
       [n.osc1.frequency],                  // I    Osc freq 1
       [n.osc2.frequency],                  // J    Osc freq 2
       [n.osc3sq.frequency, n.osc3saw.frequency], // K  Osc 3 freq (both sub-oscs)
-      [mkSink()],                          // L    Decay (env decay CV — not live)
+      [n.osc2Gain.gain],                   // L    Osc 2 level CV (AM)
       [n.reverbMix.gain],                  // M    Reverb mix CV
       [n.vcf.frequency],                   // N    Filter freq
       [n.outCh1.gain], [n.outCh2.gain],    // O,P  Out Ch1/2 level CV
