@@ -661,8 +661,8 @@
     </div>
     <div class="ctrlGroup">
       <label for="masterVol">Master</label>
-      <input id="masterVol" type="range" min="0" max="1" step="0.01" value="0.8" style="min-width:70px"/>
-      <span class="val" id="masterVolVal">0.80</span>
+      <input id="masterVol" type="range" min="0" max="1" step="0.01" value="0.15" style="min-width:70px"/>
+      <span class="val" id="masterVolVal">0.15</span>
     </div>
     <div class="ctrlGroup">
       <label for="bpmSlider">BPM</label>
@@ -844,7 +844,12 @@
         </div>
 
         <div class="modGroup">
-          <div class="modLabel">Presets</div>
+          <div class="modLabel">Presets <span class="tag">factory patches — click then play a note</span></div>
+          <div style="display:flex; gap:6px; margin-bottom:6px;">
+            <button class="btn btnSm" id="aks-fp-trapwah"  type="button" style="flex:1" title="Trapezoid envelope sweeps the filter on every note (row 11 → col N)">Trap Wah</button>
+            <button class="btn btnSm" id="aks-fp-crossfm"  type="button" style="flex:1" title="Osc 3 frequency-modulates Osc 1 & 2 at audio rate (rows 5,6 → cols I,J)">Cross FM</button>
+            <button class="btn btnSm" id="aks-fp-joywah"   type="button" style="flex:1" title="Joystick Y opens the filter, X detunes Osc 2 (rows 15,16 → cols N,J) — hold a note and drag the stick">Joy Wah</button>
+          </div>
           <div style="display:flex; gap:6px;">
             <button class="btn btnSm btnPrimary" id="aks-preset-save" type="button" style="flex:1">Save JSON</button>
             <label class="btn btnSm" style="cursor:pointer; flex:1; justify-content:center">
@@ -923,7 +928,7 @@
     'use strict';
     let actx = null, mixBus = null, masterGain = null;
     let vuAnalyser = null, vuBuf = null;
-    let masterVol = 0.80;
+    let masterVol = 0.15;
     let vuPeakHoldDb = -Infinity, vuPeakHoldTs = 0;
 
     const startBtn   = document.getElementById('audioStart');
@@ -1677,6 +1682,71 @@
           reader.readAsText(file);
         });
       }
+
+      /* ── Factory presets ──────────────────────────────────────────────
+         Each preset = sound params + a fully-specified 16×16 matrix.
+         `pins` lists only the live connections as [sourceRow, destCol, strength];
+         every other cell is cleared. Only destinations that are actually
+         wired in the engine are used:
+           col I(8)/J(9)/K(10) = Osc freq 1/2/3 (±200 Hz)
+           col N(13)            = Filter freq    (±2400 Hz)
+         Sources used: Osc3 □(4)/⩘(5), Trapezoid(10), Stick X(14)/Y(15).      */
+      const FACTORY_PRESETS = {
+        // Trapezoid envelope sweeps the filter on every note → classic AKS "wah".
+        trapwah: {
+          params: {
+            osc1Level: 0.72, osc1Shape: 0.12, osc2Level: 0.22, osc2Tune: 0.01,
+            osc3Level: 0.0, osc3Tune: -12, noiseLevel: 0.03,
+            filterCutoff: 320, filterRes: 9.5,
+            envAttack: 0.015, envOn: 0.05, envDecay: 1.4, envOff: 0.5,
+            envSignalLevel: 0.92, envRepeat: false,
+            aksLevel: 0.70, driftAmt: 0.18, glide: 0.0,
+          },
+          pins: [[10, 13, 3]], // Trapezoid → Filter freq
+        },
+        // Osc 3 frequency-modulates Osc 1 & 2 at audio rate → metallic FM tone.
+        crossfm: {
+          params: {
+            osc1Level: 0.60, osc1Shape: 0.0, osc2Level: 0.50, osc2Tune: 0.0,
+            osc3Level: 0.0, osc3Tune: 7, noiseLevel: 0.0,
+            filterCutoff: 5200, filterRes: 2.5,
+            envAttack: 0.006, envOn: 0.25, envDecay: 0.5, envOff: 0.5,
+            envSignalLevel: 0.85, envRepeat: false,
+            aksLevel: 0.62, driftAmt: 0.12, glide: 0.0,
+          },
+          pins: [[4, 8, 3], [5, 9, 3]], // Osc3□ → Osc1 freq · Osc3⩘ → Osc2 freq
+        },
+        // Joystick: Y opens the filter, X detunes Osc 2. Hold a note, drag the stick.
+        joywah: {
+          params: {
+            osc1Level: 0.68, osc1Shape: 0.10, osc2Level: 0.40, osc2Tune: 0.03,
+            osc3Level: 0.12, osc3Tune: -12, noiseLevel: 0.02,
+            filterCutoff: 700, filterRes: 7.5,
+            envAttack: 0.01, envOn: 2.5, envDecay: 2.0, envOff: 0.4,
+            envSignalLevel: 0.88, envRepeat: false,
+            aksLevel: 0.66, driftAmt: 0.20, glide: 0.0,
+          },
+          pins: [[15, 13, 3], [14, 9, 2]], // Stick Y → Filter freq · Stick X → Osc2 freq
+        },
+      };
+
+      function applyFactoryPreset(key) {
+        const def = FACTORY_PRESETS[key];
+        if (!def || !aks) return;
+        const N = SRC_LABELS.length, M = DEST_LABELS.length;
+        const matrix = Array.from({ length: N }, () => new Array(M).fill(0));
+        def.pins.forEach(([si, di, s]) => { matrix[si][di] = s; });
+        const state = Object.assign({}, def.params, { matrix });
+        if (aks.loadPreset(JSON.stringify({ label: key, version: 2, state }))) {
+          syncSlidersFromState();
+        }
+      }
+
+      [['aks-fp-trapwah', 'trapwah'], ['aks-fp-crossfm', 'crossfm'], ['aks-fp-joywah', 'joywah']]
+        .forEach(([id, key]) => {
+          const b = document.getElementById(id);
+          if (b) b.addEventListener('click', () => applyFactoryPreset(key));
+        });
 
       syncSlidersFromState();
     });
