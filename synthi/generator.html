@@ -530,6 +530,7 @@
     .aks-step-btn.active   { border-color: rgba(155,89,182,.55); background: var(--accent-dim); color: var(--accent); }
     .aks-step-btn.accent   { border-color: rgba(232,160,32,.55); background: rgba(232,160,32,.10); color: var(--amber); }
     .aks-step-btn.selected { outline: 2px solid rgba(255,255,255,.55); outline-offset: 1px; }
+    .aks-step-btn.playing  { border-color: var(--brass-hi, #d9b86b); box-shadow: 0 0 10px 1px rgba(217,184,107,.7); transform: translateY(-1px); }
     .stepEditor { padding-top: 6px; border-top: 1px dashed var(--border); }
 
     .keyboard {
@@ -1161,9 +1162,9 @@
     }
 
     /* ── Pin Matrix — 16×16 AKS patch sheet (manual p.19) ──
-       Cycle: empty → +2 → +3 → +1 → −1 → −2 → −3 → empty
-       Long press = remove (set 0) */
-    const STRENGTH_CYCLE = [0, 2, 3, 1, -1, -2, -3];
+       Cycle: empty → +1 → +2 → +3 → −1 → −2 → −3 → empty
+       Long press / right-click = remove (set 0) */
+    const STRENGTH_CYCLE = [0, 1, 2, 3, -1, -2, -3];
     const SRC_LABELS = [
       'Out Ch 1', 'Out Ch 2',
       'Osc 1',    'Osc 2',
@@ -1292,8 +1293,11 @@
         btn.className = 'aks-step-btn';
         btn.id = 'aks-step-' + i;
         if (aks) refreshStepBtn(btn, i);
+        // Click = toggle the step on/off (drum-machine style) AND select it so
+        // the editor below shows it for note/velocity/accent tweaks.
         btn.addEventListener('click', () => {
           selectedStep = i;
+          if (aks) { const s = seqStepsOf()[i]; s.active = !s.active; }
           refreshAllStepBtns();
           openStepEditor(i);
         });
@@ -1528,6 +1532,14 @@
       bindSlider('aks-glide','aks-glide-val','glide', v => v < 0.01 ? 'OFF' : fmtMs(v));
 
       buildSeqSteps();
+
+      // Playhead: engine calls this with the step index now sounding (-1 = stopped).
+      aks.onStep = (idx) => {
+        for (let i = 0; i < 16; i++) {
+          const b = document.getElementById('aks-step-' + i);
+          if (b) b.classList.toggle('playing', i === idx);
+        }
+      };
 
       const seqToggle = document.getElementById('aks-seq-toggle');
       if (seqToggle) {
