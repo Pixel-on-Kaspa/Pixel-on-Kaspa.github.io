@@ -531,6 +531,7 @@
     .aks-step-btn.accent   { border-color: rgba(232,160,32,.55); background: rgba(232,160,32,.10); color: var(--amber); }
     .aks-step-btn.selected { outline: 2px solid rgba(255,255,255,.55); outline-offset: 1px; }
     .aks-step-btn.playing  { border-color: var(--brass-hi, #d9b86b); box-shadow: 0 0 10px 1px rgba(217,184,107,.7); transform: translateY(-1px); }
+    .aks-step-btn.outrange { opacity: .3; }
     .stepEditor { padding-top: 6px; border-top: 1px dashed var(--border); }
 
     .keyboard {
@@ -845,6 +846,40 @@
         </div>
 
         <div class="modGroup">
+          <div class="modLabel">Delay <span class="tag">tape echo · master send (outboard, not in matrix)</span></div>
+          <div class="rowMini noWave">
+            <span class="lbl">Mix</span>
+            <input id="aks-delay-mix" type="range" min="0" max="1" step="0.01" value="0" />
+            <span class="val" id="aks-delay-mix-val">.00</span>
+          </div>
+          <div class="rowMini noWave">
+            <span class="lbl">Time</span>
+            <input id="aks-delay-time" type="range" min="0.02" max="1.5" step="0.005" value="0.30" />
+            <span class="val" id="aks-delay-time-val">300ms</span>
+          </div>
+          <div class="rowMini noWave">
+            <span class="lbl">F.back</span>
+            <input id="aks-delay-fb" type="range" min="0" max="0.95" step="0.01" value="0.35" />
+            <span class="val" id="aks-delay-fb-val">.35</span>
+          </div>
+          <div class="rowMini noWave">
+            <span class="lbl">Tone</span>
+            <input id="aks-delay-tone" type="range" min="400" max="12000" step="50" value="4200" />
+            <span class="val" id="aks-delay-tone-val">4.2k</span>
+          </div>
+          <div style="display:flex; gap:6px; margin-top:2px;">
+            <button class="btn btnSm" id="aks-delay-sync" type="button" style="flex:1" title="Snap delay time to the current BPM">Sync ⅛</button>
+            <select id="aks-delay-div" class="selectBox" style="flex:1" title="sync division">
+              <option value="0.25">1/16</option>
+              <option value="0.5" selected>1/8</option>
+              <option value="0.75">1/8.</option>
+              <option value="1">1/4</option>
+              <option value="1.5">1/4.</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modGroup">
           <div class="modLabel">Presets <span class="tag">factory patches — click, then hold a note / drag the stick</span></div>
           <div style="display:flex; gap:6px; margin-bottom:6px;">
             <button class="btn btnSm" id="aks-fp-autowah"   type="button" style="flex:1" title="LFO 1 sweeps the filter cutoff and resonance (row 8 → cols N, C). Auto-wah — just hold a note.">Auto Wah</button>
@@ -883,6 +918,42 @@
           </span>
         </div>
         <div class="panelBody" style="gap:8px">
+          <div class="arpBar" style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:6px 7px; border:1px solid var(--line); border-radius:7px; background:rgba(0,0,0,.18);">
+            <button class="btn btnSm" id="aks-arp-on" type="button" style="min-height:22px; padding:3px 9px;">Arp: OFF</button>
+            <select id="aks-arp-chord" class="selectBox" title="chord shape">
+              <option value="oct">oct</option>
+              <option value="maj">maj</option>
+              <option value="min">min</option>
+              <option value="sus">sus</option>
+              <option value="maj7">maj7</option>
+              <option value="min7" selected>min7</option>
+              <option value="dim">dim</option>
+              <option value="m6">m6</option>
+            </select>
+            <select id="aks-arp-dir" class="selectBox" title="direction">
+              <option value="up" selected>up</option>
+              <option value="down">down</option>
+              <option value="updown">up/dn</option>
+              <option value="random">rand</option>
+            </select>
+            <select id="aks-arp-rate" class="selectBox" title="arp rate">
+              <option value="1/4">1/4</option>
+              <option value="1/8" selected>1/8</option>
+              <option value="1/16">1/16</option>
+            </select>
+            <span class="lbl" style="font-size:9px">Oct</span>
+            <input id="aks-arp-oct" type="range" min="1" max="4" step="1" value="2" style="max-width:54px; min-width:40px"/>
+            <span class="val" id="aks-arp-oct-val">2</span>
+            <span class="lbl" style="font-size:9px">Gate</span>
+            <input id="aks-arp-gate" type="range" min="0.1" max="1" step="0.05" value="0.55" style="max-width:54px; min-width:40px"/>
+            <span class="val" id="aks-arp-gate-val">.55</span>
+            <span class="sub" id="aks-arp-root" style="margin-left:auto; font-size:9px;">root C4</span>
+          </div>
+          <div class="seqBar" style="display:flex; gap:8px; align-items:center; padding:4px 7px; font-size:10px; color:var(--muted);">
+            <span class="lbl" style="font-size:9px; letter-spacing:.1em; text-transform:uppercase;">Pattern length</span>
+            <input id="aks-seq-length" type="range" min="1" max="16" step="1" value="16" style="flex:1; min-width:80px"/>
+            <span class="val" id="aks-seq-length-val" style="min-width:18px; text-align:right;">16</span>
+          </div>
           <div id="aks-seq-steps-grid"></div>
           <div class="stepEditor" id="aks-seq-step-editor" style="display:none">
             <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
@@ -1345,6 +1416,7 @@
       if (step.active) btn.classList.add('active');
       if (step.accent) btn.classList.add('accent');
       if (i === selectedStep) btn.classList.add('selected');
+      if (i >= (aks.state.seqLength || 16)) btn.classList.add('outrange');
       btn.textContent = step.active ? fmtNote(step.note) : '—';
     }
     function refreshAllStepBtns() {
@@ -1477,6 +1549,7 @@
       set('aks-env-signal', st.envSignalLevel);
       set('aks-lfo1-rate',  st.lfo1Rate);  set('aks-lfo2-rate',  st.lfo2Rate);
       set('aks-glide',      st.glide);     set('aks-swing',      st.seqSwing);
+      set('aks-seq-length', st.seqLength || 16);
 
       setAndShow('aks-osc1-level','aks-osc1-level-val', v => v.toFixed(2).replace(/^0/, ''));
       setAndShow('aks-osc1-shape','aks-osc1-shape-val', v => 'shape ' + v.toFixed(2).replace(/^0/, ''));
@@ -1501,10 +1574,33 @@
       setAndShow('aks-lfo2-rate','aks-lfo2-rate-val', v => v.toFixed(2).replace(/^0/, ''));
       setAndShow('aks-glide','aks-glide-val', v => v < 0.01 ? 'OFF' : fmtMs(v));
       setAndShow('aks-swing','aks-swing-val', v => Math.round(v*200)+'%');
+      setAndShow('aks-seq-length','aks-seq-length-val', v => String(Math.round(v)));
 
       function sel(id, v) { const el = document.getElementById(id); if (el) el.value = v; }
       sel('aks-lfo1-wave', st.lfo1Wave);
       sel('aks-lfo2-wave', st.lfo2Wave);
+
+      // Arpeggiator
+      if (st.arp) {
+        sel('aks-arp-chord', st.arp.chord); sel('aks-arp-dir', st.arp.dir);
+        sel('aks-arp-rate', st.arp.rate || '1/8');
+        set('aks-arp-oct', st.arp.octaves); set('aks-arp-gate', st.arp.gate);
+        const ao = document.getElementById('aks-arp-oct-val');  if (ao) ao.textContent = st.arp.octaves;
+        const ag = document.getElementById('aks-arp-gate-val'); if (ag) ag.textContent = st.arp.gate.toFixed(2).replace(/^0/, '');
+        const ar = document.getElementById('aks-arp-root');     if (ar) ar.textContent = 'root ' + fmtNote(st.arp.root);
+        const ab = document.getElementById('aks-arp-on');
+        if (ab) { ab.textContent = 'Arp: ' + (st.arp.on ? 'ON' : 'OFF'); ab.classList.toggle('btnActive', !!st.arp.on); }
+      }
+      // Delay
+      if (st.delay) {
+        set('aks-delay-mix', st.delay.mix); set('aks-delay-time', st.delay.time);
+        set('aks-delay-fb', st.delay.feedback); set('aks-delay-tone', st.delay.tone);
+        const fmtHz = v => v >= 1000 ? (v / 1000).toFixed(1) + 'k' : String(Math.round(v));
+        setAndShow('aks-delay-mix', 'aks-delay-mix-val', v => v.toFixed(2).replace(/^0/, ''));
+        setAndShow('aks-delay-time','aks-delay-time-val', fmtMs);
+        setAndShow('aks-delay-fb',  'aks-delay-fb-val',  v => v.toFixed(2).replace(/^0/, ''));
+        setAndShow('aks-delay-tone','aks-delay-tone-val', fmtHz);
+      }
 
       document.querySelectorAll('.pinHole').forEach(hole => {
         const si = parseInt(hole.dataset.si, 10), di = parseInt(hole.dataset.di, 10);
@@ -1577,6 +1673,76 @@
           if (b) b.classList.toggle('playing', i === idx);
         }
       };
+
+      /* ── Arpeggiator controls ── */
+      (function () {
+        const onBtn  = document.getElementById('aks-arp-on');
+        const chord  = document.getElementById('aks-arp-chord');
+        const dir    = document.getElementById('aks-arp-dir');
+        const oct     = document.getElementById('aks-arp-oct');
+        const octVal  = document.getElementById('aks-arp-oct-val');
+        const gate    = document.getElementById('aks-arp-gate');
+        const gateVal = document.getElementById('aks-arp-gate-val');
+        const rootLbl = document.getElementById('aks-arp-root');
+        if (onBtn) onBtn.addEventListener('click', () => {
+          const next = !aks.state.arp.on;
+          aks.setArp('on', next);
+          onBtn.textContent = 'Arp: ' + (next ? 'ON' : 'OFF');
+          onBtn.classList.toggle('btnActive', next);
+        });
+        const rate = document.getElementById('aks-arp-rate');
+        if (chord) chord.addEventListener('change', () => aks.setArp('chord', chord.value));
+        if (dir)   dir.addEventListener('change',   () => aks.setArp('dir', dir.value));
+        if (rate)  rate.addEventListener('change',  () => aks.setArp('rate', rate.value));
+        if (oct)   oct.addEventListener('input', () => {
+          aks.setArp('octaves', parseInt(oct.value, 10));
+          if (octVal) octVal.textContent = oct.value;
+        });
+        if (gate)  gate.addEventListener('input', () => {
+          const v = parseFloat(gate.value);
+          aks.setArp('gate', v);
+          if (gateVal) gateVal.textContent = v.toFixed(2).replace(/^0/, '');
+        });
+        // Reflect the live arp root (set by any manually-played note).
+        aks.onNote = (midi) => { if (rootLbl) rootLbl.textContent = 'root ' + fmtNote(midi); };
+        if (rootLbl) rootLbl.textContent = 'root ' + fmtNote(aks.state.arp.root);
+      })();
+
+      /* ── Delay controls ── */
+      (function () {
+        const mix  = document.getElementById('aks-delay-mix');
+        const mixV = document.getElementById('aks-delay-mix-val');
+        const time = document.getElementById('aks-delay-time');
+        const timeV= document.getElementById('aks-delay-time-val');
+        const fb   = document.getElementById('aks-delay-fb');
+        const fbV  = document.getElementById('aks-delay-fb-val');
+        const tone = document.getElementById('aks-delay-tone');
+        const toneV= document.getElementById('aks-delay-tone-val');
+        const syncBtn = document.getElementById('aks-delay-sync');
+        const divSel  = document.getElementById('aks-delay-div');
+        const fmtHz = v => v >= 1000 ? (v / 1000).toFixed(1) + 'k' : String(Math.round(v));
+        const trim2 = v => v.toFixed(2).replace(/^0/, '');
+        if (mix)  mix.addEventListener('input', () => {
+          const v = parseFloat(mix.value); aks.setDelay('mix', v); if (mixV) mixV.textContent = trim2(v);
+        });
+        if (time) time.addEventListener('input', () => {
+          const v = parseFloat(time.value); aks.setDelay('time', v); if (timeV) timeV.textContent = fmtMs(v);
+        });
+        if (fb)   fb.addEventListener('input', () => {
+          const v = parseFloat(fb.value); aks.setDelay('feedback', v); if (fbV) fbV.textContent = trim2(v);
+        });
+        if (tone) tone.addEventListener('input', () => {
+          const v = parseFloat(tone.value); aks.setDelay('tone', v); if (toneV) toneV.textContent = fmtHz(v);
+        });
+        if (syncBtn && divSel) syncBtn.addEventListener('click', () => {
+          const bpmEl = document.getElementById('bpmSlider');
+          const bpm   = bpmEl ? parseFloat(bpmEl.value) : 120;
+          const t     = Math.min(1.5, Math.max(0.02, (60 / bpm) * parseFloat(divSel.value)));
+          aks.setDelay('time', t);
+          if (time)  time.value = t;
+          if (timeV) timeV.textContent = fmtMs(t);
+        });
+      })();
 
       const seqToggle = document.getElementById('aks-seq-toggle');
       if (seqToggle) {
@@ -1654,6 +1820,17 @@
           const v = parseFloat(swingSlider.value);
           if (swingVal) swingVal.textContent = Math.round(v * 200) + '%';
           aks.state.seqSwing = v;
+        });
+      }
+
+      const lenSlider = document.getElementById('aks-seq-length');
+      const lenVal    = document.getElementById('aks-seq-length-val');
+      if (lenSlider) {
+        lenSlider.addEventListener('input', () => {
+          const v = parseInt(lenSlider.value, 10);
+          if (lenVal) lenVal.textContent = v;
+          aks.state.seqLength = v;
+          refreshAllStepBtns(); // re-dim steps outside the new length
         });
       }
 
@@ -1831,6 +2008,10 @@
         if (!def || !aks) return;
         const N = SRC_LABELS.length, M = DEST_LABELS.length;
         const matrix = Array.from({ length: N }, () => new Array(M).fill(0));
+        // Seed the default voice → output patch so the preset is audible; the
+        // voice now reaches the output only through the matrix.
+        matrix[11][0] = 3; // Env signal → Output ch1
+        matrix[11][1] = 3; // Env signal → Output ch2
         def.pins.forEach(([si, di, s]) => { matrix[si][di] = s; });
         const state = Object.assign({}, def.params, { matrix });
         if (aks.loadPreset(JSON.stringify({ label: key, version: 2, state }))) {

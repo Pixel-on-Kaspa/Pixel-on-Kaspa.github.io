@@ -87,6 +87,20 @@ const _strengthToGain = (strength, di) =>
   strength === 0 ? 0
     : (Math.abs(strength) / 3) * DEST_SCALE[di] * Math.sign(strength);
 
+// ── Arpeggiator chord shapes (semitone offsets from the root) ────────────────
+const ARP_CHORDS = {
+  oct:  [0, 12],
+  maj:  [0, 4, 7],
+  min:  [0, 3, 7],
+  sus:  [0, 5, 7],
+  maj7: [0, 4, 7, 11],
+  min7: [0, 3, 7, 10],
+  dim:  [0, 3, 6],
+  m6:   [0, 3, 7, 9],
+};
+// Arp note spacing as a count of sequencer 16th-steps (the seq runs at 1/16).
+const ARP_RATE_STEPS = { '1/16': 1, '1/8': 2, '1/4': 4 };
+
 // ── Default state (also used as preset template) ──────────────────────────────
 
 function _defaultState() {
@@ -143,6 +157,7 @@ function _defaultState() {
     // wins (engine is monophonic).
     seqRunning:  false,
     seqSwing:    0.0,   // 0-0.5 (fraction of step duration added to odd steps)
+    seqLength:   16,    // pattern length 1-16 (shared by Seq A & B)
     seqBActive:  false, // Seq B starts disabled
     seqSteps: Array.from({ length: 16 }, (_, i) => ({
       note:     60 + [0, 0, 3, 5, 7, 7, 10, 12, 12, 10, 7, 5, 3, 0, -2, 0][i],
@@ -157,10 +172,26 @@ function _defaultState() {
       accent:   false,
     })),
 
-    // 16×16 patch matrix — empty by default (AKS philosophy: user patches).
-    // The implicit voice path (osc mix → filter → VCA → output) stays wired
-    // outside the matrix so the synth is audible without any pins inserted.
-    matrix: Array.from({ length: N_SRC }, () => new Array(N_DST).fill(0)),
+    // Arpeggiator — runs on the sequencer clock. When `on`, Seq A's active
+    // steps keep their rhythm/velocity/accent but their PITCH is replaced by an
+    // arpeggio of `chord` tones over `octaves`, walked in `dir` order. `root`
+    // follows the last manually-played note.
+    arp: { on: false, chord: 'min7', dir: 'up', octaves: 2, rate: '1/8', gate: 0.55, root: 60 },
+
+    // Delay — master tape-style echo send (outboard, NOT in the AKS matrix).
+    // mix 0 = silent by default so the patch sounds unchanged until dialed in.
+    delay: { time: 0.30, feedback: 0.35, mix: 0.0, tone: 4200 },
+
+    // 16×16 patch matrix. AKS-authentic: the voice reaches the output ONLY via
+    // the matrix. The default patch pins the post-VCA voice (row 12 "Env signal")
+    // into Output ch1 (col A) and ch2 (col B) so it's audible on load — pull
+    // those pins and the instrument goes silent, exactly like the real AKS.
+    matrix: (() => {
+      const m = Array.from({ length: N_SRC }, () => new Array(N_DST).fill(0));
+      m[11][0] = 3; // Env signal → Output ch1
+      m[11][1] = 3; // Env signal → Output ch2
+      return m;
+    })(),
   };
 }
 
@@ -185,11 +216,14 @@ class AKSEngine {
     this._seqRafId         = null;
     this._selectedSeqStep  = 0; // for UI editing
     this.onStep            = null; // UI playhead callback: (stepIndex 0-15) => void
+    this.onNote            = null; // UI callback for manually-played notes: (midi) => void
     this._lastNotifiedStep = -1;
+    this._arpIdx           = 0;    // position within the current arpeggio
 
     this._buildVoice();
     this._buildEnvelopes();
     this._buildEffects();
+    this._buildDelay();
     this._buildModulation();
     this._buildDrift();
     this._buildMatrix();
@@ -313,12 +347,13 @@ class AKSEngine {
     n.vca.disconnect();
     n.vca.connect(n.dcBlock);
 
-    // Output channels (matrix cols A,B = signal in; O,P = level CV; rows 1,2 = feedback taps)
-    // dcBlock fans out to both channels which feed the master voice bus.
+    // Output channels (matrix cols A,B = signal in; O,P = level CV; rows 1,2 = feedback taps).
+    // AKS-authentic: the voice reaches the output ONLY through the matrix — the
+    // post-VCA voice is the "Env signal" source (row 12), and the default patch
+    // (set in _defaultState) pins it into Output ch1/ch2. Clear those pins → silence.
+    // dcBlock is NOT hardwired to the channels.
     n.outCh1 = ac.createGain(); n.outCh1.gain.value = 1.0;
     n.outCh2 = ac.createGain(); n.outCh2.gain.value = 1.0;
-    n.dcBlock.connect(n.outCh1);
-    n.dcBlock.connect(n.outCh2);
     n.outCh1.connect(n.voiceOut);
     n.outCh2.connect(n.voiceOut);
 
@@ -327,9 +362,11 @@ class AKSEngine {
     n.outCh1.connect(n.outCh1Tap);
     n.outCh2.connect(n.outCh2Tap);
 
-    // Post-VCA "env signal" tap (matrix row 12) — the envelope-gated voice audio
-    n.envSigTap = ac.createGain(); n.envSigTap.gain.value = 0.5;
-    n.vca.connect(n.envSigTap);
+    // Post-VCA "env signal" tap (matrix row 12) — the envelope-gated voice audio,
+    // taken post DC-block at full level. This is the voice's path to the output
+    // (default-patched to Output ch1/ch2) as well as a send for filter/reverb/etc.
+    n.envSigTap = ac.createGain(); n.envSigTap.gain.value = 1.0;
+    n.dcBlock.connect(n.envSigTap);
   }
 
   _buildEffects() {
@@ -358,6 +395,96 @@ class AKSEngine {
     n.stickY = ac.createConstantSource(); n.stickY.offset.value = 0;
     n.stickX.start(t0);
     n.stickY.start(t0);
+  }
+
+  /**
+   * Master delay — a stereo ping-pong tape echo placed AFTER the voice bus, in
+   * parallel with the dry path (not part of the AKS patch matrix). The mono send
+   * enters the LEFT delay; feedback cross-couples L↔R so each repeat bounces
+   * across the stereo field, evenly spaced by `time`. A lowpass on each side
+   * darkens repeats like tape.
+   *
+   *   voiceOut ─┬──────────────────────────────────► outputNode (dry)
+   *             └► send ► delayL ► toneL ─┬─► panL(-1) ─┐
+   *                          ▲            └─ fb ─► delayR │
+   *                          │                  toneR ─┬─► panR(+1) ─► mix ► out
+   *                          └────── fb ◄──────────────┘
+   */
+  _buildDelay() {
+    const ac = this.actx, n = this.nodes, st = this.state.delay;
+    n.delaySend = ac.createGain(); n.delaySend.gain.value = 1.0;
+    n.delayL    = ac.createDelay(2.0); n.delayL.delayTime.value = st.time;
+    n.delayR    = ac.createDelay(2.0); n.delayR.delayTime.value = st.time;
+    n.delayToneL = ac.createBiquadFilter(); n.delayToneL.type = 'lowpass'; n.delayToneL.frequency.value = st.tone;
+    n.delayToneR = ac.createBiquadFilter(); n.delayToneR.type = 'lowpass'; n.delayToneR.frequency.value = st.tone;
+    n.delayFbL  = ac.createGain(); n.delayFbL.gain.value = st.feedback; // toneL → delayR
+    n.delayFbR  = ac.createGain(); n.delayFbR.gain.value = st.feedback; // toneR → delayL
+    n.delayPanL = ac.createStereoPanner(); n.delayPanL.pan.value = -1;
+    n.delayPanR = ac.createStereoPanner(); n.delayPanR.pan.value =  1;
+    n.delayMix  = ac.createGain(); n.delayMix.gain.value = st.mix;
+
+    n.voiceOut.connect(n.delaySend);
+    n.delaySend.connect(n.delayL);          // input enters the left tap
+    n.delayL.connect(n.delayToneL);
+    n.delayR.connect(n.delayToneR);
+    n.delayToneL.connect(n.delayPanL); n.delayPanL.connect(n.delayMix);
+    n.delayToneR.connect(n.delayPanR); n.delayPanR.connect(n.delayMix);
+    // Cross-coupled feedback → the bounce
+    n.delayToneL.connect(n.delayFbL); n.delayFbL.connect(n.delayR);
+    n.delayToneR.connect(n.delayFbR); n.delayFbR.connect(n.delayL);
+    n.delayMix.connect(this.outputNode);
+  }
+
+  /** Update a delay parameter (key: time | feedback | mix | tone). */
+  setDelay(key, value) {
+    this.state.delay[key] = value;
+    const n = this.nodes, t = this.actx.currentTime;
+    switch (key) {
+      case 'time':
+        n.delayL.delayTime.setTargetAtTime(_clamp(value, 0, 2), t, 0.05);
+        n.delayR.delayTime.setTargetAtTime(_clamp(value, 0, 2), t, 0.05);
+        break;
+      case 'feedback':
+        n.delayFbL.gain.setTargetAtTime(_clamp(value, 0, 0.95), t, 0.03);
+        n.delayFbR.gain.setTargetAtTime(_clamp(value, 0, 0.95), t, 0.03);
+        break;
+      case 'mix':  n.delayMix.gain.setTargetAtTime(_clamp(value, 0, 1), t, 0.03); break;
+      case 'tone':
+        n.delayToneL.frequency.setTargetAtTime(_clamp(value, 200, 16000), t, 0.03);
+        n.delayToneR.frequency.setTargetAtTime(_clamp(value, 200, 16000), t, 0.03);
+        break;
+    }
+  }
+
+  /** Update an arpeggiator parameter; resets the walk position when toggled on. */
+  setArp(key, value) {
+    this.state.arp[key] = value;
+    if (key === 'on' && value) this._arpIdx = 0;
+  }
+
+  /** Build the current arpeggio note list (root + chord tones over octaves, ordered). */
+  _arpNotes() {
+    const arp = this.state.arp;
+    const intervals = ARP_CHORDS[arp.chord] || ARP_CHORDS.min;
+    const oct = _clamp(arp.octaves | 0, 1, 4);
+    let list = [];
+    for (let o = 0; o < oct; o++)
+      for (const iv of intervals) list.push(_clamp(arp.root + iv + 12 * o, 0, 127));
+    if (arp.dir === 'down') list = list.slice().reverse();
+    else if (arp.dir === 'updown' && list.length > 2)
+      list = list.concat(list.slice(1, -1).reverse());
+    return list;
+  }
+
+  /** Next note in the arpeggio walk (advances index, or random pick). */
+  _nextArpNote() {
+    const notes = this._arpNotes();
+    if (!notes.length) return this.state.arp.root;
+    if (this.state.arp.dir === 'random')
+      return notes[Math.floor(Math.random() * notes.length)];
+    const note = notes[this._arpIdx % notes.length];
+    this._arpIdx = (this._arpIdx + 1) % notes.length;
+    return note;
   }
 
   /**
@@ -543,6 +670,9 @@ class AKSEngine {
   // ──────────────────────────────────────────────────────────────────────────
 
   noteOn(midiNote, velocity = 0.8) {
+    // Manually-played notes set the arpeggiator root (sequencer notes don't).
+    this.state.arp.root = midiNote;
+    if (this.onNote) this.onNote(midiNote);
     this.noteOnAt(midiNote, velocity, this.actx.currentTime);
   }
 
@@ -719,8 +849,9 @@ class AKSEngine {
     const baseDur = 60 / bpm / 4; // 16th-note duration
     const ahead   = 0.14;
 
+    const len = _clamp(this.state.seqLength | 0, 1, 16);
     while (this._seqNextTime < ac.currentTime + ahead) {
-      const idx  = this._seqStep % 16;
+      const idx  = this._seqStep % len;
       const stepA = this.state.seqSteps[idx];
       const stepB = this.state.seqBActive ? this.state.seqStepsB[idx] : null;
       const when  = this._seqNextTime;
@@ -728,9 +859,24 @@ class AKSEngine {
       // Queue a playhead notification for this step (fired when audio time reaches it)
       if (this.onStep) this._scheduledSteps.push({ step: idx, when });
 
-      // Seq A fires first; Seq B (if active) overrides on the same tick.
-      // Both sequencers run in lockstep (one BPM, both 16 steps).
-      if (stepA.active) {
+      // Arpeggiator: when on, it DRIVES the sequence — a note fires on every
+      // step in range (a proper continuous arp), independent of the Seq A grid.
+      // Accent falls on each downbeat (every 4th step). When off, Seq A plays
+      // its programmed active steps as before. Seq B stays independent below.
+      const arp = this.state.arp;
+      if (arp.on) {
+        // Fire one arp note every `every` sequencer steps (rate), so notes ring
+        // distinctly instead of blurring into a 16th-note stream.
+        const every = ARP_RATE_STEPS[arp.rate] || 2;
+        if (this._seqStep % every === 0) {
+          const note   = this._nextArpNote();
+          const accent = ((this._seqStep / every) % 4 === 0); // accent every 4th arp note
+          const vel    = accent ? 0.95 : 0.72;
+          const gate   = _clamp(arp.gate, 0.05, 1);
+          this.noteOnAt(note, vel, when);
+          this.noteOffAt(when + baseDur * every * gate);
+        }
+      } else if (stepA.active) {
         const vel = stepA.accent ? _clamp(stepA.velocity * 1.38, 0, 1) : stepA.velocity;
         this.noteOnAt(stepA.note, vel, when);
         this.noteOffAt(when + baseDur * 0.82);
@@ -816,9 +962,15 @@ class AKSEngine {
     try {
       const { state } = JSON.parse(jsonStr);
       if (!state) throw new Error('no state');
-      // Restore non-structural params via setParam
-      const SKIP = new Set(['matrix', 'seqSteps', 'seqRunning', 'currentNote']);
+      // Restore non-structural params via setParam (objects handled below)
+      const SKIP = new Set(['matrix', 'seqSteps', 'seqStepsB', 'seqRunning', 'currentNote', 'arp', 'delay']);
       Object.entries(state).forEach(([k, v]) => { if (!SKIP.has(k)) this.setParam(k, v); });
+      // Arpeggiator (state only, no audio nodes)
+      if (state.arp) Object.assign(this.state.arp, state.arp);
+      // Delay — restore state and re-apply to the audio graph
+      if (state.delay) {
+        Object.entries(state.delay).forEach(([k, v]) => this.setDelay(k, v));
+      }
       // Matrix — only apply if dimensions match (skips legacy 5×6 presets)
       if (Array.isArray(state.matrix) &&
           state.matrix.length === N_SRC &&
@@ -832,6 +984,9 @@ class AKSEngine {
       // Sequencer steps
       if (Array.isArray(state.seqSteps)) {
         this.state.seqSteps = state.seqSteps.map(s => ({ ...s }));
+      }
+      if (Array.isArray(state.seqStepsB)) {
+        this.state.seqStepsB = state.seqStepsB.map(s => ({ ...s }));
       }
       return true;
     } catch (err) {
