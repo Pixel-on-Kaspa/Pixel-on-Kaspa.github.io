@@ -98,6 +98,8 @@ const ARP_CHORDS = {
   dim:  [0, 3, 6],
   m6:   [0, 3, 7, 9],
 };
+// Arp note spacing as a count of sequencer 16th-steps (the seq runs at 1/16).
+const ARP_RATE_STEPS = { '1/16': 1, '1/8': 2, '1/4': 4 };
 
 // ── Default state (also used as preset template) ──────────────────────────────
 
@@ -174,16 +176,22 @@ function _defaultState() {
     // steps keep their rhythm/velocity/accent but their PITCH is replaced by an
     // arpeggio of `chord` tones over `octaves`, walked in `dir` order. `root`
     // follows the last manually-played note.
-    arp: { on: false, chord: 'min7', dir: 'up', octaves: 2, gate: 0.55, root: 60 },
+    arp: { on: false, chord: 'min7', dir: 'up', octaves: 2, rate: '1/8', gate: 0.55, root: 60 },
 
     // Delay — master tape-style echo send (outboard, NOT in the AKS matrix).
     // mix 0 = silent by default so the patch sounds unchanged until dialed in.
     delay: { time: 0.30, feedback: 0.35, mix: 0.0, tone: 4200 },
 
-    // 16×16 patch matrix — empty by default (AKS philosophy: user patches).
-    // The implicit voice path (osc mix → filter → VCA → output) stays wired
-    // outside the matrix so the synth is audible without any pins inserted.
-    matrix: Array.from({ length: N_SRC }, () => new Array(N_DST).fill(0)),
+    // 16×16 patch matrix. AKS-authentic: the voice reaches the output ONLY via
+    // the matrix. The default patch pins the post-VCA voice (row 12 "Env signal")
+    // into Output ch1 (col A) and ch2 (col B) so it's audible on load — pull
+    // those pins and the instrument goes silent, exactly like the real AKS.
+    matrix: (() => {
+      const m = Array.from({ length: N_SRC }, () => new Array(N_DST).fill(0));
+      m[11][0] = 3; // Env signal → Output ch1
+      m[11][1] = 3; // Env signal → Output ch2
+      return m;
+    })(),
   };
 }
 
@@ -339,12 +347,13 @@ class AKSEngine {
     n.vca.disconnect();
     n.vca.connect(n.dcBlock);
 
-    // Output channels (matrix cols A,B = signal in; O,P = level CV; rows 1,2 = feedback taps)
-    // dcBlock fans out to both channels which feed the master voice bus.
+    // Output channels (matrix cols A,B = signal in; O,P = level CV; rows 1,2 = feedback taps).
+    // AKS-authentic: the voice reaches the output ONLY through the matrix — the
+    // post-VCA voice is the "Env signal" source (row 12), and the default patch
+    // (set in _defaultState) pins it into Output ch1/ch2. Clear those pins → silence.
+    // dcBlock is NOT hardwired to the channels.
     n.outCh1 = ac.createGain(); n.outCh1.gain.value = 1.0;
     n.outCh2 = ac.createGain(); n.outCh2.gain.value = 1.0;
-    n.dcBlock.connect(n.outCh1);
-    n.dcBlock.connect(n.outCh2);
     n.outCh1.connect(n.voiceOut);
     n.outCh2.connect(n.voiceOut);
 
@@ -353,9 +362,11 @@ class AKSEngine {
     n.outCh1.connect(n.outCh1Tap);
     n.outCh2.connect(n.outCh2Tap);
 
-    // Post-VCA "env signal" tap (matrix row 12) — the envelope-gated voice audio
-    n.envSigTap = ac.createGain(); n.envSigTap.gain.value = 0.5;
-    n.vca.connect(n.envSigTap);
+    // Post-VCA "env signal" tap (matrix row 12) — the envelope-gated voice audio,
+    // taken post DC-block at full level. This is the voice's path to the output
+    // (default-patched to Output ch1/ch2) as well as a send for filter/reverb/etc.
+    n.envSigTap = ac.createGain(); n.envSigTap.gain.value = 1.0;
+    n.dcBlock.connect(n.envSigTap);
   }
 
   _buildEffects() {
@@ -848,17 +859,27 @@ class AKSEngine {
       // Queue a playhead notification for this step (fired when audio time reaches it)
       if (this.onStep) this._scheduledSteps.push({ step: idx, when });
 
-      // Seq A fires first; Seq B (if active) overrides on the same tick.
-      // Both sequencers run in lockstep (one BPM, both 16 steps).
-      // Arpeggiator: when on, Seq A keeps its rhythm/velocity/accent but its
-      // pitch is replaced by the next note of the arpeggio.
+      // Arpeggiator: when on, it DRIVES the sequence — a note fires on every
+      // step in range (a proper continuous arp), independent of the Seq A grid.
+      // Accent falls on each downbeat (every 4th step). When off, Seq A plays
+      // its programmed active steps as before. Seq B stays independent below.
       const arp = this.state.arp;
-      if (stepA.active) {
-        const vel  = stepA.accent ? _clamp(stepA.velocity * 1.38, 0, 1) : stepA.velocity;
-        const note = arp.on ? this._nextArpNote() : stepA.note;
-        const gate = arp.on ? _clamp(arp.gate, 0.05, 1) : 0.82;
-        this.noteOnAt(note, vel, when);
-        this.noteOffAt(when + baseDur * gate);
+      if (arp.on) {
+        // Fire one arp note every `every` sequencer steps (rate), so notes ring
+        // distinctly instead of blurring into a 16th-note stream.
+        const every = ARP_RATE_STEPS[arp.rate] || 2;
+        if (this._seqStep % every === 0) {
+          const note   = this._nextArpNote();
+          const accent = ((this._seqStep / every) % 4 === 0); // accent every 4th arp note
+          const vel    = accent ? 0.95 : 0.72;
+          const gate   = _clamp(arp.gate, 0.05, 1);
+          this.noteOnAt(note, vel, when);
+          this.noteOffAt(when + baseDur * every * gate);
+        }
+      } else if (stepA.active) {
+        const vel = stepA.accent ? _clamp(stepA.velocity * 1.38, 0, 1) : stepA.velocity;
+        this.noteOnAt(stepA.note, vel, when);
+        this.noteOffAt(when + baseDur * 0.82);
       }
       if (stepB && stepB.active) {
         const vel = stepB.accent ? _clamp(stepB.velocity * 1.38, 0, 1) : stepB.velocity;

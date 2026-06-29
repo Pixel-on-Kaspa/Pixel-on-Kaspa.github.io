@@ -676,11 +676,6 @@
       <input id="aks-swing" type="range" min="0" max="0.5" step="0.01" value="0" style="min-width:50px"/>
       <span class="val" id="aks-swing-val">0%</span>
     </div>
-    <div class="ctrlGroup">
-      <label for="aks-seq-length">Len</label>
-      <input id="aks-seq-length" type="range" min="1" max="16" step="1" value="16" style="min-width:50px"/>
-      <span class="val" id="aks-seq-length-val">16</span>
-    </div>
     <button class="btn btnPrimary" id="aks-seq-toggle" type="button">Seq ▶</button>
   </div>
 
@@ -941,6 +936,11 @@
               <option value="updown">up/dn</option>
               <option value="random">rand</option>
             </select>
+            <select id="aks-arp-rate" class="selectBox" title="arp rate">
+              <option value="1/4">1/4</option>
+              <option value="1/8" selected>1/8</option>
+              <option value="1/16">1/16</option>
+            </select>
             <span class="lbl" style="font-size:9px">Oct</span>
             <input id="aks-arp-oct" type="range" min="1" max="4" step="1" value="2" style="max-width:54px; min-width:40px"/>
             <span class="val" id="aks-arp-oct-val">2</span>
@@ -948,6 +948,11 @@
             <input id="aks-arp-gate" type="range" min="0.1" max="1" step="0.05" value="0.55" style="max-width:54px; min-width:40px"/>
             <span class="val" id="aks-arp-gate-val">.55</span>
             <span class="sub" id="aks-arp-root" style="margin-left:auto; font-size:9px;">root C4</span>
+          </div>
+          <div class="seqBar" style="display:flex; gap:8px; align-items:center; padding:4px 7px; font-size:10px; color:var(--muted);">
+            <span class="lbl" style="font-size:9px; letter-spacing:.1em; text-transform:uppercase;">Pattern length</span>
+            <input id="aks-seq-length" type="range" min="1" max="16" step="1" value="16" style="flex:1; min-width:80px"/>
+            <span class="val" id="aks-seq-length-val" style="min-width:18px; text-align:right;">16</span>
           </div>
           <div id="aks-seq-steps-grid"></div>
           <div class="stepEditor" id="aks-seq-step-editor" style="display:none">
@@ -1578,6 +1583,7 @@
       // Arpeggiator
       if (st.arp) {
         sel('aks-arp-chord', st.arp.chord); sel('aks-arp-dir', st.arp.dir);
+        sel('aks-arp-rate', st.arp.rate || '1/8');
         set('aks-arp-oct', st.arp.octaves); set('aks-arp-gate', st.arp.gate);
         const ao = document.getElementById('aks-arp-oct-val');  if (ao) ao.textContent = st.arp.octaves;
         const ag = document.getElementById('aks-arp-gate-val'); if (ag) ag.textContent = st.arp.gate.toFixed(2).replace(/^0/, '');
@@ -1684,8 +1690,10 @@
           onBtn.textContent = 'Arp: ' + (next ? 'ON' : 'OFF');
           onBtn.classList.toggle('btnActive', next);
         });
+        const rate = document.getElementById('aks-arp-rate');
         if (chord) chord.addEventListener('change', () => aks.setArp('chord', chord.value));
         if (dir)   dir.addEventListener('change',   () => aks.setArp('dir', dir.value));
+        if (rate)  rate.addEventListener('change',  () => aks.setArp('rate', rate.value));
         if (oct)   oct.addEventListener('input', () => {
           aks.setArp('octaves', parseInt(oct.value, 10));
           if (octVal) octVal.textContent = oct.value;
@@ -2000,6 +2008,10 @@
         if (!def || !aks) return;
         const N = SRC_LABELS.length, M = DEST_LABELS.length;
         const matrix = Array.from({ length: N }, () => new Array(M).fill(0));
+        // Seed the default voice → output patch so the preset is audible; the
+        // voice now reaches the output only through the matrix.
+        matrix[11][0] = 3; // Env signal → Output ch1
+        matrix[11][1] = 3; // Env signal → Output ch2
         def.pins.forEach(([si, di, s]) => { matrix[si][di] = s; });
         const state = Object.assign({}, def.params, { matrix });
         if (aks.loadPreset(JSON.stringify({ label: key, version: 2, state }))) {
