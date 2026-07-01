@@ -1,0 +1,48 @@
+/* ── Site-wide custom styles — dark theme ──────────────────────────────────
+   Loaded on every page via `site-css` in _config.yml (after beautifuljekyll.css,
+   so these override the theme). Palette matches the homepage (index.html) and
+   the about page, giving all pages/posts a consistent dark look. */
+
+/* Override Beautiful Jekyll theme variables → dark palette */
+:root{
+  --page-col:#050a0a;
+  --text-col:#f0f0f0;
+  --link-col:#49EACB;
+  --hover-col:#ffffff;
+  --navbar-col:#0a0f0f;
+  --navbar-text-col:rgba(255,255,255,.85);
+  --navbar-border-col:rgba(255,255,255,.10);
+  --footer-col:#050a0a;
+  --footer-text-col:rgba(255,255,255,.55);
+  --footer-link-col:#49EACB;
+  --footer-hover-col:#ffffff;
+}
+
+/* Content accents not driven by theme vars */
+main strong, main b{ color:#fff; }
+main hr, hr.small{ border-color:rgba(255,255,255,.10); }
+main code{ background:#0d1117; color:#49EACB; }
+main blockquote{ border-left-color:#49EACB; color:rgba(255,255,255,.75); }
+
+/* Smaller, more refined page title */
+.page-title{ font-size:3rem; letter-spacing:0.08em; }
+
+/* Tagline under the title */
+.pixel-tagline{
+  text-align:center;
+  margin-top:-10px;
+  margin-bottom:40px;
+  font-size:1.1rem;
+  font-style:italic;
+  color:rgba(255,255,255,.55);
+}
+
+/* Make post list feel more like a curated feed */
+.post-preview{ max-width:900px; margin:0 auto 3rem auto; }
+.post-preview .post-title{ font-size:2rem; }
+.post-preview .post-title,
+.post-preview .post-subtitle{ color:#f0f0f0; }
+.post-preview .post-meta{ color:rgba(255,255,255,.5); }
+
+/* Make preview images a bit cleaner */
+.post-preview img{ border-radius:4px; }
