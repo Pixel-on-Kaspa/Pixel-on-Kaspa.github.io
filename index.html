@@ -785,13 +785,15 @@
       buri: "ipfs://bafybeih2phpjzxfrszsscpmxdr44kliaddto3sicsdh44kgx7b3f43fdvm",
       max: 342,
       idMin: 1,
-      category: "System states"
+      category: "System states",
+      cover: "assets/img/PIXELONKAS_259.png"   // static fallback if the indexer is down
     },
     SYKORA: {
       buri: "ipfs://bafybeifema4upmzu7c4iipvxdagctirxf46g3htmsin6l66zm77dibfhaq",
       max: 2518,
       idMin: 1,
-      category: "Entities"
+      category: "Entities",
+      cover: "assets/img/SYKORA-nftcollection-thumb.png"   // static fallback if the indexer is down
     }
   };
 
@@ -924,34 +926,52 @@
     return id;
   }
 
+  // Show a bundled static cover image on a card (used when the indexer/IPFS is
+  // unreachable) so the card still looks intentional instead of empty/broken.
+  function coverFallback(tick){
+    const cfg = COLLECTIONS[tick], thumb = qs(`#thumb${tick}`), hint = qs(`#hint${tick}`);
+    if(!cfg || !thumb || !cfg.cover) return;
+    if(thumb.querySelector("img")) return; // a live cover already loaded — don't overwrite
+    const badge    = thumb.querySelector(".nft-card-badge");
+    const category = thumb.querySelector(".nft-card-category");
+    thumb.innerHTML = "";
+    const img = document.createElement("img");
+    img.alt = `${tick} preview`;
+    img.loading = "lazy";
+    img.src = cfg.cover;
+    thumb.appendChild(img);
+    if(badge){ badge.textContent = ""; thumb.appendChild(badge); } // no live token id available
+    if(category) thumb.appendChild(category);
+  }
+
   async function loadCover(tick){
     const cfg   = COLLECTIONS[tick];
     const thumb = qs(`#thumb${tick}`);
     const hint  = qs(`#hint${tick}`);
     if(!cfg || !thumb || !hint) return;
 
-    // Fallback: highest minted ID from ranges (used if timestamp-based lookup fails)
-    let rangesId = null;
     try{
-      const raw = await fetchJson(`${STREAM_API}/ranges/${encodeURIComponent(tick)}`);
-      const res = unwrapResult(raw);
-      if(typeof res === "string" && res.trim()){
-        rangesId = lastMintedIdFromAvailableRanges({ idMin: cfg.idMin, max: cfg.max, rangesString: res });
+      // Fallback: highest minted ID from ranges (used if timestamp-based lookup fails)
+      let rangesId = null;
+      try{
+        const raw = await fetchJson(`${STREAM_API}/ranges/${encodeURIComponent(tick)}`);
+        const res = unwrapResult(raw);
+        if(typeof res === "string" && res.trim()){
+          rangesId = lastMintedIdFromAvailableRanges({ idMin: cfg.idMin, max: cfg.max, rangesString: res });
+        }
+      }catch(_e){}
+
+      // Most recently minted token (by timestamp)
+      const recentId = await fetchMostRecentMintId(tick, rangesId);
+
+      if(!Number.isFinite(recentId)){
+        coverFallback(tick);   // indexer unreachable — show static cover
+        return;
       }
-    }catch(_e){}
 
-    // Most recently minted token (by timestamp)
-    const recentId = await fetchMostRecentMintId(tick, rangesId);
+      // Badge shows just the token number, no "Last mint:" prefix
+      hint.textContent = `#${recentId}`;
 
-    if(!Number.isFinite(recentId)){
-      hint.textContent = "—";
-      return;
-    }
-
-    // Badge shows just the token number, no "Last mint:" prefix
-    hint.textContent = `#${recentId}`;
-
-    try{
       const meta = await fetchMetaFromGateways(metaCandidatePaths(cfg.buri, tick, recentId));
       const { url, ipfs } = extractImage(meta);
       if(!url) throw new Error("No image in metadata");
@@ -969,13 +989,14 @@
         img.onerror = () => {
           gw++;
           if(gw < IPFS_GATEWAYS.length) img.src = IPFS_GATEWAYS[gw] + ipfs;
+          else coverFallback(tick); // all gateways failed — fall back to static cover
         };
       }
       thumb.appendChild(img);
       if(badge)    thumb.appendChild(badge);
       if(category) thumb.appendChild(category);
     }catch(_e){
-      hint.textContent = `#${recentId}`;
+      coverFallback(tick);   // any failure (indexer/IPFS/parse) — show static cover
     }
   }
 

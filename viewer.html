@@ -350,6 +350,20 @@
   function showLoadMore(show){ qs("#loadMoreBtn").style.display = show ? "inline-flex" : "none"; }
   function renderError(msg){ gridEl().innerHTML = `<div class="errBox">${msg}</div>`; }
 
+  // Friendly message shown when the KRC-721 indexer (krc721.stream) is down,
+  // with a link to browse the collection on kaspa.com in the meantime.
+  function indexerUnavailable(tick, e){
+    const kaspaUrl = `https://kaspa.com/nft/collections/${encodeURIComponent(tick)}`;
+    return `
+      <div style="text-align:center; max-width:520px; margin:0 auto; line-height:1.6;">
+        <div style="font-size:1.1rem; font-weight:800; margin-bottom:6px;">On-chain data temporarily unavailable</div>
+        <p>The KRC-721 indexer isn’t responding right now, so <b>${escapeHtml(tick)}</b> can’t be loaded. This is an upstream outage — please try again later.</p>
+        <p>In the meantime you can browse the collection on
+          <a href="${kaspaUrl}" target="_blank" rel="noreferrer">kaspa.com&nbsp;→</a></p>
+        ${e ? `<p style="opacity:.45; font-size:.78rem; margin-top:10px;"><code>${escapeHtml(String(e.message || e))}</code></p>` : ""}
+      </div>`;
+  }
+
   function ipfsPath(ipfsUrl){
     if(!ipfsUrl) return "";
     if(ipfsUrl.startsWith("ipfs://")) return ipfsUrl.slice("ipfs://".length);
@@ -670,8 +684,8 @@
       const idMin = cfg.idMin;
 
       if(!currentRangesString){
-        renderError(`Missing ranges for <b>${tick}</b> from krc721.stream.`);
-        setStatus(`Missing ranges.`);
+        renderError(indexerUnavailable(tick));
+        setStatus(`Indexer unavailable.`);
         return;
       }
       if(!currentBuri){
@@ -699,8 +713,8 @@
 
     }catch(e){
       if(e.name === "AbortError") return;
-      renderError(`Failed to load <b>${tick}</b>.<br><code>${escapeHtml(String(e.message || e))}</code>`);
-      setStatus(`Error.`);
+      renderError(indexerUnavailable(tick, e));
+      setStatus(`Indexer unavailable.`);
       console.error(e);
     }
   }
