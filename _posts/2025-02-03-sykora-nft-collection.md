@@ -3,6 +3,7 @@ title: Sykora NFT Collection
 layout: post
 cover-img: /assets/img/sykora-nft-collection-background.jpg
 thumbnail-img: /assets/img/sykora-nft-collection-thumb.jpg
+hide-post-nav: true
 ---
 ### Pixel on Kaspa introduces
 ## Vektroskop
