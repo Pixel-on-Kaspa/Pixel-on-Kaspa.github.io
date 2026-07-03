@@ -311,13 +311,66 @@
 
 <script>
 (() => {
-  const API_BASE = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
+  // Data sources (all live + CORS-enabled for pixel-on-kaspa.fyi):
+  //   CACHE_BASE — kaspa.com KRC-721 cache: per-token metadata + optimized (CDN) images. CORS: *
+  //   KASPA_API  — kaspa.com collection endpoint: supply, minted count, holders. CORS: our domain
+  //   API_BASES  — kaspa.com's own KRC-721 indexer mirrors (KSPR-compatible): ranges + owners + nfts.
+  //                These are the hosts kaspa.com itself uses — up even when mainnet.krc721.stream is down.
+  const CACHE_BASE = "https://krc721-cache.kaspa.com/krc721/mainnet";
+  const KASPA_API  = "https://api.kaspa.com/krc721";
+  const API_BASES  = [
+    "https://krc721-indexer.kaspa.com/api/v1/krc721/mainnet",
+    "https://krc721-indexer-2.kaspa.com/api/v1/krc721/mainnet"
+  ];
 
   const IPFS_GATEWAYS = [
     "https://dweb.link/ipfs/",
     "https://ipfs.io/ipfs/",
     "https://cloudflare-ipfs.com/ipfs/",
   ];
+
+  // Per-token metadata: kaspa.com cache first (fast, always up), IPFS gateways as fallback.
+  async function fetchTokenMeta(tick, tokenId, buri, signal){
+    try{
+      const j = await fetchJson(`${CACHE_BASE}/metadata/${encodeURIComponent(tick)}/${tokenId}`, signal);
+      if(j && (j.image || j.name)) return j;
+    }catch(e){ /* fall through to IPFS */ }
+    const { json } = await fetchJsonFromGateways(metaCandidatePaths(buri, tick, tokenId), signal);
+    return json;
+  }
+
+  // Optimized (CDN-cached) image straight from kaspa.com — no IPFS round-trip.
+  function optimizedImg(tick, tokenId){
+    return `${CACHE_BASE}/optimized/${encodeURIComponent(tick)}/${tokenId}`;
+  }
+
+  // Collection stats from kaspa.com (works regardless of KSPR).
+  async function fetchCollectionStats(tick, signal){
+    try{
+      const j = await fetchJson(`${KASPA_API}/${encodeURIComponent(tick)}`, signal);
+      return {
+        minted:  Number(j.totalMinted),
+        supply:  Number(j.totalSupply),
+        holders: Number(j.totalHolders)
+      };
+    }catch(e){ return null; }
+  }
+
+  // Which token IDs to display. Prefer KSPR ranges (exact minted set); if down, show the whole collection.
+  async function fetchDisplayIds(tick, cfg, signal){
+    try{
+      const meta = await fetchRangesMeta(tick, signal);
+      if(meta.rangesString){
+        return {
+          ids: mintedIdsFromAvailableRanges({ idMin: cfg.idMin, max: cfg.max, rangesString: meta.rangesString }),
+          exact: true
+        };
+      }
+    }catch(e){ /* KSPR down → fall back to full collection */ }
+    const all = [];
+    for(let id = cfg.idMin; id <= cfg.max; id++) all.push(id);
+    return { ids: all, exact: false };
+  }
 
   const PAGE_SIZE = 60;
   const META_CONCURRENCY = 8;
@@ -375,6 +428,16 @@
     const r = await fetch(url, { cache:"no-store", signal });
     if(!r.ok) throw new Error(`${url} HTTP ${r.status}`);
     return r.json();
+  }
+
+  // KSPR-compatible indexer with automatic failover to the second mirror.
+  async function fetchIndexer(suffix, signal){
+    let lastErr = null;
+    for(const base of API_BASES){
+      try{ return await fetchJson(`${base}${suffix}`, signal); }
+      catch(e){ lastErr = e; }
+    }
+    throw lastErr || new Error("indexer unavailable");
   }
 
   function unwrapResult(x){
@@ -458,8 +521,7 @@
 
   async function fetchOwner(tick, tokenId, signal){
     try{
-      const url = `${API_BASE}/nfts/${encodeURIComponent(tick)}/${tokenId}`;
-      const raw = await fetchJson(url, signal);
+      const raw = await fetchIndexer(`/nfts/${encodeURIComponent(tick)}/${tokenId}`, signal);
       const res = unwrapResult(raw);
       return res?.owner || null;
     }catch(e){
@@ -488,7 +550,7 @@
   }
 
   async function fetchRangesMeta(tick, signal){
-    const raw = await fetchJson(`${API_BASE}/ranges/${encodeURIComponent(tick)}`, signal);
+    const raw = await fetchIndexer(`/ranges/${encodeURIComponent(tick)}`, signal);
     const res = unwrapResult(raw);
     if(typeof res === "string"){
       return { tick, rangesString: res };
@@ -537,11 +599,11 @@
       : `<div style="opacity:.7;padding:18px;font-size:13px;">No image</div>`;
 
     const imgEl = lb.imgWrap.querySelector("img");
-    if(imgEl && imgIpfs){
-      let gwIndex = 0;
+    if(imgEl){
+      let gwIndex = -1; // -1 = optimized CDN; on error advance into IPFS gateways
       imgEl.onerror = () => {
         gwIndex++;
-        if(gwIndex < IPFS_GATEWAYS.length){
+        if(imgIpfs && gwIndex < IPFS_GATEWAYS.length){
           imgEl.src = IPFS_GATEWAYS[gwIndex] + imgIpfs;
         }else{
           lb.imgWrap.textContent = "Image error";
@@ -622,7 +684,7 @@
         <div class="thumb">Loading…</div>
         <div class="row">
           <div class="nftId">#${tokenId}</div>
-          <div class="badge">Minted</div>
+          ${mintedExact ? '<div class="badge">Minted</div>' : ''}
         </div>
         <div class="titleLine" data-title>${tick} #${tokenId}</div>
         <div class="metaLine" data-desc>—</div>
@@ -636,6 +698,7 @@
   let currentBuri = null;
   let currentRangesString = null;
   let mintedIds = [];
+  let mintedExact = false;
   let pageIndex = 0;
   let maxSupply = null;
   let abortCtrl = null;
@@ -651,6 +714,7 @@
     currentBuri = null;
     currentRangesString = null;
     mintedIds = [];
+    mintedExact = false;
     pageIndex = 0;
     maxSupply = null;
 
@@ -677,17 +741,10 @@
     }
 
     try{
-      const meta = await fetchRangesMeta(tick, abortCtrl.signal);
-      currentRangesString = meta.rangesString || null;
       currentBuri = cfg.buri || null;
       maxSupply   = cfg.max;
       const idMin = cfg.idMin;
 
-      if(!currentRangesString){
-        renderError(indexerUnavailable(tick));
-        setStatus(`Indexer unavailable.`);
-        return;
-      }
       if(!currentBuri){
         renderError(`Missing buri for <b>${tick}</b>.`);
         setStatus(`Missing buri.`);
@@ -699,15 +756,30 @@
         return;
       }
 
-      // rangesString = AVAILABLE (unminted) IDs — minted = total - available
-      const availableCount = availableCountFromRangesString(currentRangesString);
-      const totalSupply    = (maxSupply - idMin + 1);
-      const mintedCount    = Math.max(0, totalSupply - availableCount);
+      // Collection stats from kaspa.com (accurate minted count) + which IDs to show.
+      const [stats, disp] = await Promise.all([
+        fetchCollectionStats(tick, abortCtrl.signal),
+        fetchDisplayIds(tick, cfg, abortCtrl.signal)
+      ]);
 
-      mintedIds = mintedIdsFromAvailableRanges({ idMin, max: maxSupply, rangesString: currentRangesString });
+      mintedIds   = disp.ids;
+      mintedExact = disp.exact;
 
-      setText("metaMinted", `Minted: ${mintedCount}`);
-      setText("metaMax",    `Max: ${maxSupply}`);
+      if(!mintedIds.length){
+        renderError(indexerUnavailable(tick));
+        setStatus(`No items to show.`);
+        return;
+      }
+
+      const mintedCount = stats && Number.isFinite(stats.minted)
+        ? stats.minted
+        : (mintedExact ? mintedIds.length : null);
+
+      setText("metaMinted", mintedCount != null ? `Minted: ${mintedCount}` : `Minted: —`);
+      setText("metaMax",    `Max: ${(stats && Number.isFinite(stats.supply)) ? stats.supply : maxSupply}`);
+      setStatus(mintedExact
+        ? `Loading <b>${tick}</b>…`
+        : `Showing full <b>${tick}</b> collection (per-item mint status unavailable — indexer down).`);
 
       await renderNextPage();
 
@@ -749,9 +821,7 @@
         try{
           let meta = metaCache.get(cacheKey);
           if(!meta){
-            const paths = metaCandidatePaths(buri, tick, tokenId);
-            const { json } = await fetchJsonFromGateways(paths, abortCtrl.signal);
-            meta = json;
+            meta = await fetchTokenMeta(tick, tokenId, buri, abortCtrl.signal);
             metaCache.set(cacheKey, meta);
           }
 
@@ -760,15 +830,17 @@
           if(titleEl) titleEl.textContent = name;
           if(descEl)  descEl.textContent  = desc || "—";
 
-          const { primary, ipfs } = extractImageFromMeta(meta);
-          if(primary && thumb){
-            thumb.innerHTML = `<img src="${primary}" alt="" loading="lazy">`;
+          // Image: optimized CDN first, then IPFS gateways from the metadata image.
+          const { ipfs } = extractImageFromMeta(meta);
+          const optimized = optimizedImg(tick, tokenId);
+          if(thumb){
+            thumb.innerHTML = `<img src="${optimized}" alt="" loading="lazy">`;
             const imgEl = thumb.querySelector("img");
-            if(imgEl && ipfs){
-              let gwIndex = 0;
+            if(imgEl){
+              let gwIndex = -1; // -1 = optimized CDN; on error advance into IPFS gateways
               imgEl.onerror = () => {
                 gwIndex++;
-                if(gwIndex < IPFS_GATEWAYS.length){
+                if(ipfs && gwIndex < IPFS_GATEWAYS.length){
                   imgEl.src = IPFS_GATEWAYS[gwIndex] + ipfs;
                 }else{
                   thumb.textContent = "Image error";
@@ -776,10 +848,8 @@
               };
             }
             thumb.onclick = () => {
-              openLightbox({ tick, tokenId, meta, imgUrl: primary, imgIpfs: ipfs, mintUrl: kaspaCollectionUrl(tick) });
+              openLightbox({ tick, tokenId, meta, imgUrl: optimized, imgIpfs: ipfs, mintUrl: kaspaCollectionUrl(tick) });
             };
-          }else{
-            if(thumb) thumb.textContent = "No image in JSON";
           }
         }catch(e){
           if(e.name === "AbortError") return;

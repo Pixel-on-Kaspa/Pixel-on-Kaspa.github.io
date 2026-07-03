@@ -772,8 +772,14 @@
 
 // ── NFT COVER LOADING + REWARDS MODAL ──
 (() => {
-  const STREAM_API = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
+  // kaspa.com's own KRC-721 indexer mirrors (KSPR-compatible) — up even when mainnet.krc721.stream is down. CORS: *
+  const API_BASES = [
+    "https://krc721-indexer.kaspa.com/api/v1/krc721/mainnet",
+    "https://krc721-indexer-2.kaspa.com/api/v1/krc721/mainnet"
+  ];
   const KASPA_API  = "https://api.kaspa.com/api";
+  // kaspa.com KRC-721 cache — optimized (CDN) cover images. CORS: *
+  const CACHE_BASE = "https://krc721-cache.kaspa.com/krc721/mainnet";
   const IPFS_GATEWAYS = [
     "https://dweb.link/ipfs/",
     "https://ipfs.io/ipfs/",
@@ -785,15 +791,17 @@
       buri: "ipfs://bafybeih2phpjzxfrszsscpmxdr44kliaddto3sicsdh44kgx7b3f43fdvm",
       max: 342,
       idMin: 1,
+      featured: 259,   // shown via CDN when KSPR "most-recent mint" lookup is unavailable
       category: "System states",
-      cover: "assets/img/PIXELONKAS_259.png"   // static fallback if the indexer is down
+      cover: "assets/img/PIXELONKAS_259.png"   // static fallback if the CDN is down too
     },
     SYKORA: {
       buri: "ipfs://bafybeifema4upmzu7c4iipvxdagctirxf46g3htmsin6l66zm77dibfhaq",
       max: 2518,
       idMin: 1,
+      featured: 7,   // shown via CDN when KSPR "most-recent mint" lookup is unavailable
       category: "Entities",
-      cover: "assets/img/SYKORA-nftcollection-thumb.png"   // static fallback if the indexer is down
+      cover: "assets/img/SYKORA-nftcollection-thumb.png"   // static fallback if the CDN is down too
     }
   };
 
@@ -811,6 +819,16 @@
     const r = await fetch(url, { cache:"no-store", ...opts });
     if(!r.ok) throw new Error(`HTTP ${r.status}`);
     return r.json();
+  }
+
+  // KSPR-compatible indexer with automatic failover to the second mirror.
+  async function fetchIndexer(suffix){
+    let lastErr = null;
+    for(const base of API_BASES){
+      try{ return await fetchJson(`${base}${suffix}`); }
+      catch(e){ lastErr = e; }
+    }
+    throw lastErr || new Error("indexer unavailable");
   }
 
   function unwrapResult(x){
@@ -907,12 +925,12 @@
 
     try{
       // Step 1: collection info contains opScoreMod of the most recent mint event
-      const colRaw = await fetchJson(`${STREAM_API}/nfts/${encodeURIComponent(tick)}`);
+      const colRaw = await fetchIndexer(`/nfts/${encodeURIComponent(tick)}`);
       const col = unwrapResult(colRaw);
       const opScoreMod = col?.opScoreMod;
       if(opScoreMod){
         // Step 2: resolve that opScore to get the tokenId
-        const opRaw = await fetchJson(`${STREAM_API}/ops/score/${opScoreMod}`);
+        const opRaw = await fetchIndexer(`/ops/score/${opScoreMod}`);
         const op = unwrapResult(opRaw);
         const tokenId = op?.opData?.tokenId ?? null;
         if(tokenId != null) id = Number(tokenId);
@@ -951,52 +969,44 @@
     if(!cfg || !thumb || !hint) return;
 
     try{
-      // Fallback: highest minted ID from ranges (used if timestamp-based lookup fails)
-      let rangesId = null;
+      // Pick a token to feature. Prefer the most-recent mint (KSPR, if reachable);
+      // otherwise use the configured featured id. Either way the image comes from the CDN.
+      let recentId = null;
       try{
-        const raw = await fetchJson(`${STREAM_API}/ranges/${encodeURIComponent(tick)}`);
-        const res = unwrapResult(raw);
-        if(typeof res === "string" && res.trim()){
-          rangesId = lastMintedIdFromAvailableRanges({ idMin: cfg.idMin, max: cfg.max, rangesString: res });
-        }
+        let rangesId = null;
+        try{
+          const raw = await fetchIndexer(`/ranges/${encodeURIComponent(tick)}`);
+          const res = unwrapResult(raw);
+          if(typeof res === "string" && res.trim()){
+            rangesId = lastMintedIdFromAvailableRanges({ idMin: cfg.idMin, max: cfg.max, rangesString: res });
+          }
+        }catch(_e){}
+        recentId = await fetchMostRecentMintId(tick, rangesId);
       }catch(_e){}
 
-      // Most recently minted token (by timestamp)
-      const recentId = await fetchMostRecentMintId(tick, rangesId);
-
+      if(!Number.isFinite(recentId)) recentId = cfg.featured;
       if(!Number.isFinite(recentId)){
-        coverFallback(tick);   // indexer unreachable — show static cover
+        coverFallback(tick);   // nothing to show — static cover
         return;
       }
 
       // Badge shows just the token number, no "Last mint:" prefix
       hint.textContent = `#${recentId}`;
 
-      const meta = await fetchMetaFromGateways(metaCandidatePaths(cfg.buri, tick, recentId));
-      const { url, ipfs } = extractImage(meta);
-      if(!url) throw new Error("No image in metadata");
-
-      // Inject image into .nft-card-visual, preserve badge and category overlays
+      // Optimized CDN image (fast, cached, no IPFS round-trip). Static cover if the CDN fails.
       const badge    = thumb.querySelector(".nft-card-badge");
       const category = thumb.querySelector(".nft-card-category");
       thumb.innerHTML = "";
       const img = document.createElement("img");
       img.alt = `${tick} #${recentId}`;
       img.loading = "lazy";
-      img.src = url;
-      if(ipfs){
-        let gw = 0;
-        img.onerror = () => {
-          gw++;
-          if(gw < IPFS_GATEWAYS.length) img.src = IPFS_GATEWAYS[gw] + ipfs;
-          else coverFallback(tick); // all gateways failed — fall back to static cover
-        };
-      }
+      img.src = `${CACHE_BASE}/optimized/${encodeURIComponent(tick)}/${recentId}`;
+      img.onerror = () => coverFallback(tick);
       thumb.appendChild(img);
       if(badge)    thumb.appendChild(badge);
       if(category) thumb.appendChild(category);
     }catch(_e){
-      coverFallback(tick);   // any failure (indexer/IPFS/parse) — show static cover
+      coverFallback(tick);   // any failure — show static cover
     }
   }
 
