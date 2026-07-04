@@ -337,7 +337,11 @@
   document.getElementById("app").style.display = "";
 
   // ── CONSTANTS ────────────────────────────────────────────────────────────────
-  const API_BASE = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
+  // kaspa.com's own KRC-721 indexer mirrors (KSPR-compatible) — up even when mainnet.krc721.stream is down.
+  const API_BASES = [
+    "https://krc721-indexer.kaspa.com/api/v1/krc721/mainnet",
+    "https://krc721-indexer-2.kaspa.com/api/v1/krc721/mainnet"
+  ];
   const IPFS_GATEWAYS = [
     "https://dweb.link/ipfs/",
     "https://ipfs.io/ipfs/",
@@ -448,6 +452,15 @@
     if (!r.ok) throw new Error(`HTTP ${r.status}: ${url}`);
     return r.json();
   }
+  // KSPR-compatible indexer with automatic failover to the second mirror.
+  async function fetchIndexer(suffix, signal) {
+    let lastErr = null;
+    for (const base of API_BASES) {
+      try { return await fetchJson(`${base}${suffix}`, signal); }
+      catch(e) { lastErr = e; }
+    }
+    throw lastErr || new Error("indexer unavailable");
+  }
   function unwrapResult(x) {
     if (x && typeof x === "object" && "result" in x) return x.result;
     return x;
@@ -506,7 +519,7 @@
     ];
   }
   async function fetchRanges(tick, signal) {
-    const raw = await fetchJson(`${API_BASE}/ranges/${encodeURIComponent(tick)}`, signal);
+    const raw = await fetchIndexer(`/ranges/${encodeURIComponent(tick)}`, signal);
     const res = unwrapResult(raw);
     if (typeof res === "string") return res;
     if (res && typeof res.ranges === "string") return res.ranges;
@@ -518,8 +531,8 @@
   }
   // Returns { minter, mintDate } — single history call, both fields from first entry
   async function fetchHistoryData(tick, tokenId, signal) {
-    const hist = await fetchJson(
-      `${API_BASE}/history/${encodeURIComponent(tick)}/${tokenId}?direction=forward&limit=1`,
+    const hist = await fetchIndexer(
+      `/history/${encodeURIComponent(tick)}/${tokenId}?direction=forward&limit=1`,
       signal
     );
     const entries = unwrapResult(hist);
@@ -529,7 +542,7 @@
     const opScore = entries[0]?.opScoreMod;
     if (!opScore) return { minter, mintDate: null };
 
-    const op = await fetchJson(`${API_BASE}/ops/score/${opScore}`, signal);
+    const op = await fetchIndexer(`/ops/score/${opScore}`, signal);
     const opRes = unwrapResult(op);
     const mts = opRes?.mtsAdd;
     if (!mts) return { minter, mintDate: null };
@@ -1008,7 +1021,7 @@
             const [meta, nftInfo, histData] = await Promise.all([
               fetchJsonFromGateways(metaCandidatePaths(cfg.buri, tick, tokenId), signal)
                 .catch(() => null),
-              fetchJson(`${API_BASE}/nfts/${encodeURIComponent(tick)}/${tokenId}`, signal)
+              fetchIndexer(`/nfts/${encodeURIComponent(tick)}/${tokenId}`, signal)
                 .then(r => unwrapResult(r)).catch(() => null),
               fetchHistoryData(tick, tokenId, signal).catch(e => { if (e.name === "AbortError") throw e; return { minter: null, mintDate: null }; }),
             ]);
