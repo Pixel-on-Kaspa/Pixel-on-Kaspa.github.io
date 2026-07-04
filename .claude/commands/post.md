@@ -256,6 +256,30 @@ Pick a file from `~/Desktop/pixel-exports/$ARTIST/` as usual. The difference is 
 
 Generate one post per profile using file metadata, media type, and voices below.
 
+### Quality gate — MANDATORY, read before drafting
+
+**Before writing any text, read `scripts/post-templates/visual-generator-posts.md`** for the current AI-tell anti-pattern list. Weak/AI-sounding posts come from breaking these rules:
+
+- **Credit the real artist** when the media comes from an artist-derived generator:
+  - `yohei` → "after Yohei Nishitsuji" (@YoheiNishitsuji)
+  - `koma` → "after @KomaTebe"
+  - `sykora-lab` → "after Zdeněk Sýkora" (1920–2011)
+- **Forbidden AI-tells** (auto-reject the draft if present):
+  - "X becomes Y" / "turned into" / "transforms into" transformation framing
+  - "alive" / "breathing" / "comes to life"
+  - Line 2 as an aphoristic punchline — line 2 must ADD concrete info (specs, tech, numbers), not restate the point poetically
+  - Vague poetics with no substance ("just code and light")
+- **No inline hashtags in the main post** — hashtags go in a reply thread only (except where a profile's voice rules explicitly place them). 2–3 concrete lines with real detail (e.g. "log-polar mapping, 99 raymarching iterations per frame").
+- Link format `pixel-on-kaspa.fyi/...` — never `http://`. No emojis unless the user asks.
+
+### Mint bridge — funding goal is NFT mint sales
+
+The project's primary funding source is NFT mint sales (PIXELONKAS / SYKORA on kaspa.com). Free generators are top-of-funnel bait, not the destination — don't let posts dead-end on a free toy.
+
+- **@PixelonKas** is the conversion motor: on visual posts, add a mint bridge in the reply thread (link to the relevant collection + the $PIXEL-rewards-by-rarity hook — the strongest reason to mint now). On `--promo` runs the mint link goes in the main post per Step 1b.
+- **@marekozor**: build trust/story (why he makes the work, the process) — no hard sell; a soft "these live on-chain" reference is fine.
+- **@synthicoin**: never a CTA, never a mint push — pure reach. Do not add a mint bridge here.
+
 ### Hashtags
 
 #### @PixelonKas — X
