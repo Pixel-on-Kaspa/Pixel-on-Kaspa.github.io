@@ -566,7 +566,7 @@ const ST = {
   env:    { attack: 0.08, on: 0.20, decay: 0.30, off: 0.40, loop: false },
   vcf:    { cutoff: 1200, res: 6.0, drive: 0.25, type: 'lowpass' },
   reverb: { wet: 0.20, decay: 2.0 },
-  master: { volume: 0.50, tune: 0, limiter: true, drift: 1.5 },
+  master: { volume: 0.50, tune: 0, drift: 1.5 },
   glide:  0,
   matrix: Array.from({ length: SOURCES.length }, () => new Array(DESTS.length).fill(0)),
   vcaBias: 0.0,
@@ -853,15 +853,14 @@ function buildAudio() {
   n.lim        = actx.createDynamicsCompressor();
   n.lim.threshold.value = -6;  n.lim.knee.value = 2;
   n.lim.ratio.value = 20; n.lim.attack.value = 0.003; n.lim.release.value = 0.10;
-  n.limBypass  = actx.createGain(); n.limBypass.gain.value = ST.master.limiter ? 0 : 1;
-  n.limOutBus  = actx.createGain();
   n.vuAnalyser = actx.createAnalyser();
   n.vuAnalyser.fftSize = 256; n.vuAnalyser.smoothingTimeConstant = 0.8;
 
+  // Master chain is fixed: limiter is always in-circuit (no bypass) so the
+  // output can never exceed the safe ceiling.
   rvMix.connect(n.masterGain);
-  n.masterGain.connect(n.lim);         n.lim.connect(n.limOutBus);
-  n.masterGain.connect(n.limBypass);   n.limBypass.connect(n.limOutBus);
-  n.limOutBus.connect(n.vuAnalyser);
+  n.masterGain.connect(n.lim);
+  n.lim.connect(n.vuAnalyser);
   n.vuAnalyser.connect(actx.destination);
 
   /* === MATRIX SOURCES AND DESTINATIONS ===
@@ -1004,15 +1003,8 @@ function setNoiseType(type) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   LIMITER / PANIC
+   PANIC
 ═══════════════════════════════════════════════════════════════════════ */
-function setLimiter(on) {
-  ST.master.limiter = on;
-  if (!ENG) return;
-  const t = actx.currentTime;
-  ENG.nodes.limBypass.gain.setTargetAtTime(on ? 0 : 1, t, 0.01);
-}
-
 function panicAllNotes() {
   if (!ENG || !actx) return;
   envStop();
@@ -1357,21 +1349,13 @@ function buildMasterSection() {
   btnPanic.className = 'btn-sm danger'; btnPanic.textContent = 'PANIC';
   btnPanic.addEventListener('click', panicAllNotes);
 
-  const btnLim = document.createElement('button');
-  btnLim.className = 'btn-sm' + (ST.master.limiter ? ' active' : '');
-  btnLim.textContent = 'LIM';
-  btnLim.addEventListener('click', () => {
-    const on = !ST.master.limiter; setLimiter(on);
-    btnLim.classList.toggle('active', on);
-  });
-
   const kGlide = new Knob({
     min: 0, max: 2, value: ST.glide, label: 'GLIDE',
     fmt: v => v < 0.01 ? 'OFF' : fmtTime(v),
     onChange: v => { ST.glide = v; }
   });
 
-  br.append(btnPanic, btnLim);
+  br.append(btnPanic);
   body.appendChild(br);
   const gr = document.createElement('div'); gr.className = 'knob-row'; gr.style.marginTop='6px';
   gr.appendChild(kGlide.el);
