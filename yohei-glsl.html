@@ -231,6 +231,7 @@
     }
   </style>
   <script defer src="https://cloud.umami.is/script.js" data-website-id="6ee0e9a9-7066-4115-b91d-5667d8042abe"></script>
+  <script src="/js/share.js"></script>
 </head>
 <body>
 
@@ -250,6 +251,7 @@
   <div class="toolbar">
     <button class="btn btnPrimary" id="btnPause" type="button">Pause</button>
     <button class="btn" id="btnShot" type="button">PNG</button>
+    <button class="btn btnPrimary" id="btnShareX" type="button">Share on X ↗</button>
     <button class="btn" id="btnReset" type="button">Reset</button>
     <button class="btn" id="btnCopy" type="button">Copy URL</button>
     <button class="btn btnGhost btnRec" id="btnRec" type="button">REC 8s</button>
@@ -1092,6 +1094,33 @@ void main(){
     a.click();
     requestAnimationFrame(resize);
   });
+
+  // ── Share your creation on X ──
+  // Render one frame at 2x into the WebGL buffer, grab it synchronously, restore.
+  function shareDataURL(){
+    const w2 = canvas.clientWidth  * 2;
+    const h2 = canvas.clientHeight * 2;
+    canvas.width = w2; canvas.height = h2;
+    gl.viewport(0, 0, w2, h2);
+    const time = (performance.now() - t0) / 1000;
+    if(currentShader === 2 && prog2){ setUniformsTweet(w2, h2, time); }
+    else { setUniformsShader1(w2, h2, time); }
+    if(isWebGL2){ gl.bindVertexArray(vao); gl.drawArrays(gl.TRIANGLES,0,3); }
+    else{ gl.drawArrays(gl.TRIANGLES,0,6); }
+    const url = canvas.toDataURL("image/png");
+    requestAnimationFrame(resize);
+    return url;
+  }
+  if(window.PixelShare){
+    PixelShare.mount({
+      buttonId: "btnShareX",
+      getDataURL: shareDataURL,
+      text: "Made this in the Pixel on Kaspa art lab — GLSL raymarcher after Yohei Nishitsuji (@YoheiNishitsuji). Make your own:",
+      url: "https://pixel-on-kaspa.fyi/yohei-glsl.html",
+      hashtags: ["creativecoding", "glsl"],
+      filenamePrefix: "yohei-pixel-on-kaspa"
+    });
+  }
 
   // ── REC 8s ──
   const btnRec    = document.getElementById("btnRec");

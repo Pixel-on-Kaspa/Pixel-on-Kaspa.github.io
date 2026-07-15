@@ -92,6 +92,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
 #recOverlay.show{display:block}
 </style>
 <script defer src="https://cloud.umami.is/script.js" data-website-id="6ee0e9a9-7066-4115-b91d-5667d8042abe"></script>
+<script src="/js/share.js"></script>
 </head>
 <body>
 
@@ -101,6 +102,8 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
     <button id="btnPlay">▶ PLAY</button>
     <button class="btn" id="btnPng">📷 PNG</button>
     <button class="btn" id="btnRec">⏺ MP4</button>
+    <button class="btn" id="btnShareX">Share ↗</button>
+    <button class="btn" id="btnRecShare">Share clip ↗</button>
     <button class="btn" id="btnZoomIn">＋</button>
     <button class="btn" id="btnZoomOut">－</button>
     <div style="display:flex;gap:16px;align-items:center">
@@ -729,6 +732,18 @@ document.getElementById("btnPng").addEventListener("click", () => {
   }, 'image/png');
 });
 
+/* ── Share still on X ── */
+if (window.PixelShare) {
+  PixelShare.mount({
+    buttonId: 'btnShareX',
+    getDataURL: () => canvas.toDataURL('image/png'),
+    text: 'SYNTHI Visual Engine — 4-oscillator Lissajous, made in the Pixel on Kaspa art lab. Make your own:',
+    url: 'https://pixel-on-kaspa.fyi/synthi/visual-engine.html',
+    hashtags: ['creativecoding', 'synthesizer'],
+    filenamePrefix: 'synthi-lissajous'
+  });
+}
+
 /* ── OFFSCREEN RECORD (6s) ── */
 const REC_DURATION = 5000;
 let isRecording = false;
@@ -736,13 +751,19 @@ let activeOffCtx = null;
 let activeOffscreen = null;
 const recOverlay = document.getElementById('recOverlay');
 const btnRec = document.getElementById('btnRec');
+const btnRecShare = document.getElementById('btnRecShare');
+let recMode = 'download';
 
-btnRec.addEventListener('click', () => {
+btnRec.addEventListener('click', () => { recMode = 'download'; beginRec(); });
+btnRecShare.addEventListener('click', () => { recMode = 'share'; beginRec(); });
+
+function beginRec() {
   if (isRecording) return;
   isRecording = true;
   btnRec.classList.add('recording');
   btnRec.textContent = '● REC';
   btnRec.disabled = true;
+  btnRecShare.disabled = true;
 
   const chunks = [];
   const off = document.createElement('canvas');
@@ -772,11 +793,22 @@ btnRec.addEventListener('click', () => {
   rec.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
   rec.onstop = () => {
     const blob = new Blob(chunks, { type: actualMime });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'synthi-lissajous-' + Date.now() + '.' + actualExt;
-    document.body.appendChild(a); a.click();
-    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 3000);
+    const filename = 'synthi-lissajous-' + Date.now() + '.' + actualExt;
+    if (recMode === 'share' && window.PixelShare) {
+      PixelShare.share({
+        file: new File([blob], filename, { type: actualMime }),
+        filenamePrefix: 'synthi-lissajous',
+        text: 'SYNTHI Visual Engine — 4-oscillator Lissajous clip, made in the Pixel on Kaspa art lab. Make your own:',
+        url: 'https://pixel-on-kaspa.fyi/synthi/visual-engine.html',
+        hashtags: ['creativecoding', 'synthesizer']
+      });
+    } else {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 3000);
+    }
     endRec();
   };
 
@@ -797,7 +829,7 @@ btnRec.addEventListener('click', () => {
     requestAnimationFrame(updateOverlay);
   }
   requestAnimationFrame(updateOverlay);
-});
+}
 
 function endRec() {
   isRecording = false;
@@ -806,6 +838,7 @@ function endRec() {
   btnRec.classList.remove('recording');
   btnRec.textContent = '⏺ MP4';
   btnRec.disabled = false;
+  btnRecShare.disabled = false;
 }
 
 })();

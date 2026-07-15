@@ -189,6 +189,7 @@
           <div class="row">
             <button class="btn btnPrimary btnSm" id="btnPause" type="button">Pause</button>
             <button class="btn btnSm" id="btnShot" type="button">PNG</button>
+            <button class="btn btnPrimary btnSm" id="btnShareX" type="button">Share on X ↗</button>
             <button class="btn btnSm btnRec" id="btnRec" type="button">REC 8s</button>
             <button class="btn btnSm" id="btnReset" type="button">Reset</button>
             <button class="btn btnPrimary btnSm" id="btnRand" type="button">Randomize</button>
@@ -276,6 +277,7 @@
 
   <!-- p5 (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
+  <script src="/js/share.js"></script>
 
 <script>
 (() => {
@@ -544,6 +546,18 @@ circle(y,x,4*cos(g));f+=B/8}`;
     if(!p5instance) return;
     p5instance.saveCanvas(`koma_${Date.now()}`, "png");
   });
+
+  // ── Share your creation on X ──
+  if(window.PixelShare){
+    PixelShare.mount({
+      buttonId: "btnShareX",
+      getDataURL: () => p5instance.canvas.toDataURL("image/png"),
+      text: "Made this in the Pixel on Kaspa art lab — p5 generator after @KomaTebe. Make your own:",
+      url: "https://pixel-on-kaspa.fyi/pixel-p5.html",
+      hashtags: ["creativecoding", "p5js"],
+      filenamePrefix: "koma-pixel-on-kaspa"
+    });
+  }
 
   // ── REC 8s ──
   const btnRec     = document.getElementById("btnRec");
