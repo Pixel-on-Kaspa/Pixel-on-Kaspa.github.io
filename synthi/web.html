@@ -876,7 +876,25 @@ function startAudio() {
   nodes.shaper.connect(nodes.filter);
   nodes.filter.connect(nodes.vca);
   nodes.vca.connect(nodes.master);
-  nodes.master.connect(ctx.destination);
+
+  // === OUTPUT SAFETY =========================================================
+  // The VCF Q reaches ~50 (near self-oscillation) — a resonant sweep can spike
+  // far above 0 dBFS with no ceiling before the speakers. Guarantee a safe
+  // output: a sample-accurate tanh soft-clip (hard-clamps at ±1) into a
+  // brick-wall limiter. Transparent at normal levels, hard ceiling on peaks.
+  const safeCurve = (() => {
+    const N = 2048, c = new Float32Array(N), k = 1.6;
+    for (let i = 0; i < N; i++){ const x = (i * 2 / (N - 1)) - 1; c[i] = Math.tanh(x * k) / Math.tanh(k); }
+    return c;
+  })();
+  nodes.safeClip = ctx.createWaveShaper();
+  nodes.safeClip.curve = safeCurve; nodes.safeClip.oversample = '2x';
+  nodes.limiter = ctx.createDynamicsCompressor();
+  nodes.limiter.threshold.value = -3; nodes.limiter.knee.value = 0;
+  nodes.limiter.ratio.value = 20; nodes.limiter.attack.value = 0.002; nodes.limiter.release.value = 0.10;
+  nodes.master.connect(nodes.safeClip);
+  nodes.safeClip.connect(nodes.limiter);
+  nodes.limiter.connect(ctx.destination);
 
   // === START ALL AUDIO NODES ================================================
   [nodes.osc1, nodes.osc2, nodes.osc3,

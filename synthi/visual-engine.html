@@ -283,7 +283,25 @@ function buildAudio() {
   oscs.forEach(n => n.pan.connect(masterG));
 
   masterG.connect(analyserF);
-  analyserF.connect(actx.destination);
+
+  // ── OUTPUT SAFETY ─────────────────────────────────────────────────────
+  // Four summed oscillators at user-set levels can exceed 0 dBFS and hit the
+  // speakers as a hard-clipped burst. Guarantee a safe ceiling: a sample-
+  // accurate tanh soft-clip (hard-clamps at ±1, transparent below) followed
+  // by a brick-wall limiter that catches sustained peaks before the clip.
+  const safeCurve = (() => {
+    const N = 2048, c = new Float32Array(N), k = 1.6;
+    for (let i = 0; i < N; i++){ const x = (i * 2 / (N - 1)) - 1; c[i] = Math.tanh(x * k) / Math.tanh(k); }
+    return c;
+  })();
+  const safeClip = actx.createWaveShaper();
+  safeClip.curve = safeCurve; safeClip.oversample = '2x';
+  const limiter = actx.createDynamicsCompressor();
+  limiter.threshold.value = -3; limiter.knee.value = 0;
+  limiter.ratio.value = 20; limiter.attack.value = 0.002; limiter.release.value = 0.10;
+  analyserF.connect(safeClip);
+  safeClip.connect(limiter);
+  limiter.connect(actx.destination);
 
   const analyserL = actx.createAnalyser(); analyserL.fftSize = 2048;
   const analyserR = actx.createAnalyser(); analyserR.fftSize = 2048;
