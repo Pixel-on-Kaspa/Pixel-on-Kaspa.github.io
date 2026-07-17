@@ -91,7 +91,7 @@
       display:grid;
       grid-template-columns:262px 1fr 262px 262px;
       gap:6px;padding:6px;
-      min-width:1200px;overflow-x:auto;
+      min-width:1300px;overflow-x:auto;
       flex:1;min-height:0;
     }
     #col-left,#col-right{display:flex;flex-direction:column;gap:5px;min-height:0;overflow-y:auto}
@@ -191,8 +191,11 @@
     /* ── PATCH MATRIX ── */
     #matrix-grid{display:grid}
     .mat-hdr{
-      font-size:6.5px;color:var(--muted);letter-spacing:.03em;
-      text-align:center;padding:2px 0 5px;line-height:1.2
+      /* vertical column labels, like the printed AKS patch sheet */
+      writing-mode:vertical-rl;transform:rotate(180deg);
+      font-size:6.5px;color:var(--muted);letter-spacing:.05em;
+      height:48px;white-space:nowrap;
+      display:flex;align-items:center;padding:0 0 0 1px
     }
     .mat-row-lbl{
       font-size:6.5px;color:var(--muted);letter-spacing:.03em;
@@ -407,7 +410,7 @@
       </div>
     </div>
     <div class="panel">
-      <div class="panel-title">Output Filter / VCF</div>
+      <div class="panel-title">Filter / Oscillator <span>18 dB/oct · 5 Hz–10 kHz · Q→20</span></div>
       <div class="panel-body" id="vcf-body"></div>
     </div>
   </div>
@@ -444,8 +447,9 @@
       <div class="panel-body" id="delay-body"></div>
     </div>
     <div class="panel">
-      <div class="panel-title">Presets</div>
+      <div class="panel-title">Presets <span>factory patches</span></div>
       <div class="panel-body" style="display:flex;flex-direction:column;gap:6px">
+        <div id="factory-list" style="display:grid;grid-template-columns:1fr 1fr;gap:4px"></div>
         <input id="preset-name" type="text" placeholder="PATCH NAME" maxlength="32" value="INIT"
           class="preset-input">
         <div style="display:flex;gap:4px">
@@ -455,23 +459,22 @@
           </label>
         </div>
         <div style="font-size:7px;color:var(--dim);letter-spacing:.06em;line-height:1.7">
-          Power on → play keys → patch matrix
+          Pick a patch → Power on → play / press Play
         </div>
       </div>
     </div>
     <div class="panel">
       <div class="panel-title">Patching Guide</div>
       <div class="panel-body" style="font-size:8px;color:var(--text2);letter-spacing:.04em;line-height:1.55">
-        <div style="color:var(--amber2);margin-bottom:4px">Nothing sounds until patched.</div>
+        <div style="color:var(--amber2);margin-bottom:4px">Nothing sounds until patched — or pick a factory preset.</div>
         Try these starters:<br>
-        • OSC1 → Out L + OSC2 → Out R <span style="color:var(--amber)">(stereo)</span><br>
-        • OSC1 → VCF In, VCF Out → Out L<br>
-        • TRAP ENV → VCA<br>
-        • OSC3 → O1 ƒ <span style="color:var(--amber)">(slow vibrato)</span><br>
-        • OSC3 → VCF ƒ <span style="color:var(--amber)">(filter sweep)</span><br>
-        • VCF Out → DLY <span style="color:var(--amber)">(echo send)</span><br>
+        • OSC1 → VCF In, VCF OUT → Out L/R<br>
+        • TRAP → VCA <span style="color:var(--amber)">(envelope gates)</span><br>
+        • OSC3 ⩘ → VCF ƒ <span style="color:var(--amber)">(sweep · to 500 Hz = FM)</span><br>
         • OSC1 → RING A, OSC2 → RING B <span style="color:var(--amber)">(metallic)</span><br>
-        • RES to max + VCF Out → Out L <span style="color:var(--amber)">(filter sings)</span><br>
+        • VCF OUT → DLY / RVB In <span style="color:var(--amber)">(sends)</span><br>
+        • OUT L → VCF In <span style="color:var(--amber)">(feedback!)</span><br>
+        • RES to max <span style="color:var(--amber)">(filter sings)</span><br>
         <div style="margin-top:6px;color:var(--dim);font-size:7px">Power on, then Play/Arp drive the sequencer. Shift+drag knobs for fine tune. Press D for debug.</div>
       </div>
     </div>
@@ -570,11 +573,12 @@ const fmtHz      = v => v >= 1000 ? (v / 1000).toFixed(1) + 'kHz'
 // Q≈14, ramps in quadratically to a firm singing tone at the top of the range.
 const resToSing  = r => { const t = clamp((r - 14) / (20 - 14), 0, 1); return t * t * 0.22; };
 
-/* PeriodicWave with phase rotation — N=32 harmonics is enough resolution
-   while staying cheap to rebuild on every phase tweak.  Each shape supplies
-   its harmonic amplitudes; the phase rotates real/imag pairs together. */
+/* PeriodicWave with phase rotation — 128 harmonics so low-register saws and
+   squares keep their analog bite (32 was audibly dull below ~200 Hz: a 110 Hz
+   saw capped at 3.5 kHz). The browser band-limits per playback octave, so high
+   notes stay alias-free. Rebuild cost on a phase tweak is still trivial. */
 function mkPhasedWave(actx, type, phaseDeg) {
-  const N = 33; // index 0 = DC, 1..32 = harmonics
+  const N = 129; // index 0 = DC, 1..128 = harmonics
   const real = new Float32Array(N);
   const imag = new Float32Array(N);
   // Base coefficients (sine-series amplitudes for canonical shapes)
@@ -599,16 +603,27 @@ function mkPhasedWave(actx, type, phaseDeg) {
   return actx.createPeriodicWave(real, imag, { disableNormalization: false });
 }
 
+/* Matrix layout modelled on the AKS Patch Sheet (service manual p.19).
+   Rows = sources (top group: signal sources · bottom group: treatments),
+   cols = destinations (left group: signal inputs · right group: control inputs).
+   Real AKS is 16×16; we drop only In Ch 1/2 (needs mic permission) and gain a
+   DLY send. OSC3 gets TWO rows (square ⊓ + sawtooth ⩘) exactly like the
+   original — its dual outputs are the classic AKS trigger/sweep modulators. */
 const SOURCES = [
-  { id:'osc1',   label:'OSC 1'   },
-  { id:'osc2',   label:'OSC 2'   },
-  { id:'osc3',   label:'OSC 3'   },
-  { id:'noise',  label:'NOISE'   },
-  { id:'env',    label:'TRAP ENV'},
-  { id:'joyX',   label:'JOY X'   },
-  { id:'joyY',   label:'JOY Y'   },
-  { id:'vcfout', label:'VCF Out' },
-  { id:'ring',   label:'RING'    },
+  { id:'outl',   label:'OUT L'   },  //  0 output ch1 feedback
+  { id:'outr',   label:'OUT R'   },  //  1 output ch2 feedback
+  { id:'osc1',   label:'OSC 1'   },  //  2
+  { id:'osc2',   label:'OSC 2'   },  //  3
+  { id:'osc3sq', label:'OSC 3 ⊓' },  //  4 square out
+  { id:'osc3sw', label:'OSC 3 ⩘' },  //  5 sawtooth out
+  { id:'noise',  label:'NOISE'   },  //  6
+  { id:'vcfout', label:'VCF OUT' },  //  7 (patch sheet row 10 "Filter")
+  { id:'env',    label:'TRAP'    },  //  8 trapezoid CV
+  { id:'envsig', label:'ENV SIG' },  //  9 post-VCA voice audio
+  { id:'ring',   label:'RING'    },  // 10
+  { id:'rvb',    label:'REVERB'  },  // 11
+  { id:'joyX',   label:'JOY X'   },  // 12
+  { id:'joyY',   label:'JOY Y'   },  // 13
 ];
 // type:'node'  → matrix GainNode connects to an AudioNode input (audio routing)
 // type:'param' → matrix GainNode connects to an AudioParam (CV/modulation routing)
@@ -617,18 +632,24 @@ const SOURCES = [
 // at ~0.5–0.6 so stacking multiple pins doesn't blow up the bus — a post-bus soft
 // saturator plus the master ceiling catch anything beyond that.
 const DESTS = [
-  { id:'osc1f', label:'O1 ƒ',  scale: 800,  type:'param' },
-  { id:'osc2f', label:'O2 ƒ',  scale: 800,  type:'param' },
-  { id:'osc3f', label:'O3 ƒ',  scale: 50,   type:'param' },
-  { id:'filtf', label:'VCF ƒ', scale: 4000, type:'param' },
-  { id:'filtq', label:'VCF Q', scale: 12,   type:'param' },
-  { id:'vcfin', label:'VCF In',scale: 0.5,  type:'node'  },
-  { id:'ringA', label:'RING A',scale: 0.6,  type:'node'  },
-  { id:'ringB', label:'RING B',scale: 1.0,  type:'param' },
-  { id:'vca',   label:'VCA',   scale: 1.5,  type:'param' },
+  // — signal inputs (patch sheet cols A–H) —
   { id:'outl',  label:'Out L', scale: 0.5,  type:'node'  },
   { id:'outr',  label:'Out R', scale: 0.5,  type:'node'  },
+  { id:'ringA', label:'RING A',scale: 0.6,  type:'node'  },
+  { id:'ringB', label:'RING B',scale: 1.0,  type:'param' },
+  { id:'vcfin', label:'VCF In',scale: 0.5,  type:'node'  },
+  { id:'rvbin', label:'RVB In',scale: 0.6,  type:'node'  },
   { id:'dly',   label:'DLY',   scale: 0.5,  type:'node'  },
+  // — control inputs (patch sheet cols I–P) —
+  { id:'osc1f', label:'O1 ƒ',  scale: 800,  type:'param' },
+  { id:'osc2f', label:'O2 ƒ',  scale: 800,  type:'param' },
+  { id:'osc3f', label:'O3 ƒ',  scale: 200,  type:'param' },
+  { id:'osc1l', label:'O1 LVL',scale: 0.6,  type:'param' },
+  { id:'osc2l', label:'O2 LVL',scale: 0.6,  type:'param' },
+  { id:'filtf', label:'VCF ƒ', scale: 4000, type:'param' },
+  { id:'filtq', label:'VCF Q', scale: 12,   type:'param' },
+  { id:'rvbmx', label:'RVB MX',scale: 1.0,  type:'param' },
+  { id:'vca',   label:'VCA',   scale: 1.5,  type:'param' },
 ];
 
 const WHITE_MIDI = [48,50,52,53,55,57,59, 60,62,64,65,67,69,71];
@@ -649,7 +670,7 @@ const PC_MAP = {
 const ST = {
   // Each OSC: hz = absolute base frequency, level, phase (0–360°), wave shape.
   // OSC1/OSC2 are audio-rate (1 Hz – 10 kHz) and track keyboard ratiometrically
-  // (frequency = hz × 2^((midi-69)/12)).  OSC3 is sub-audio (0.01 Hz – 50 Hz),
+  // (frequency = hz × 2^((midi-69)/12)).  OSC3 spans 0.02–500 Hz (manual p.38),
   // does NOT track keyboard — it's the modulator (replaces what LFO used to do).
   oscs: [
     { hz: 220, level: 0.30, phase:   0, wave: 'sawtooth' },
@@ -695,6 +716,12 @@ const ARP_CHORDS = {
   dim:  [0, 3, 6],
   m6:   [0, 3, 7, 9],
 };
+
+/* UI sync registry — builders register callbacks that re-read ST and refresh
+   their widgets (knob positions, wave buttons…). Run after a preset loads so
+   the panel always reflects the loaded state, not the last hand-set values. */
+const UI_SYNC = [];
+function syncUIFromState() { UI_SYNC.forEach(f => { try { f(); } catch(e) {} }); }
 
 /* ═══════════════════════════════════════════════════════════════════════
    KNOB CLASS
@@ -874,21 +901,34 @@ function buildAudio() {
   n.mkWave = (type, phaseDeg) => mkPhasedWave(actx, type, phaseDeg);
 
   n.oscs = ST.oscs.map((st, i) => {
+    const isOsc3 = (i === 2);
+    // OSC3 has fixed dual outputs like the real AKS (square ⊓ + sawtooth ⩘,
+    // matrix rows 5 and 6); OSC1/2 use the selectable phased wave.
     const osc  = actx.createOscillator();
-    osc.setPeriodicWave(mkPhasedWave(actx, st.wave, st.phase));
+    osc.setPeriodicWave(mkPhasedWave(actx, isOsc3 ? 'square' : st.wave, st.phase));
     osc.frequency.value = st.hz;
     const gain = actx.createGain(); gain.gain.value = st.level;
     // Slow per-oscillator drift — voltage instability of analog VCOs.
-    // Disabled for OSC3 (it's already slow, drift would dominate).
+    // Disabled for OSC3 (usually sub-audio; drift would dominate).
     const driftOsc  = actx.createOscillator(); driftOsc.type = 'sine';
     driftOsc.frequency.value = 0.07 + Math.random() * 0.13;
     const driftGain = actx.createGain();
-    driftGain.gain.value = i === 2 ? 0 : ST.master.drift;
+    driftGain.gain.value = isOsc3 ? 0 : ST.master.drift;
     driftOsc.connect(driftGain); driftGain.connect(osc.frequency);
     osc.connect(gain);
     // Tap for matrix (post-level so muting the OSC also mutes its modulation).
     const tap = actx.createGain(); tap.gain.value = 1.0; gain.connect(tap);
-    return { osc, gain, driftOsc, driftGain, tap };
+    const o = { osc, gain, driftOsc, driftGain, tap };
+    if (isOsc3) {
+      // Second oscillator: sawtooth, sharing frequency/level with the square.
+      o.oscB = actx.createOscillator();
+      o.oscB.setPeriodicWave(mkPhasedWave(actx, 'sawtooth', st.phase));
+      o.oscB.frequency.value = st.hz;
+      o.gainB = actx.createGain(); o.gainB.gain.value = st.level;
+      o.oscB.connect(o.gainB);
+      o.tapB = actx.createGain(); o.tapB.gain.value = 1.0; o.gainB.connect(o.tapB);
+    }
+    return o;
   });
 
   /* === NOISE === */
@@ -935,14 +975,24 @@ function buildAudio() {
   n.preDrive.curve = mkDriveCurve(ST.vcf.drive);
   n.vcfSat.connect(n.preDrive);
 
+  /* Two-stage filter — the AKS spec is 18 dB/oct (3-pole diode ladder), which
+     a single biquad (12 dB/oct) audibly misses. The resonant stage carries Q;
+     the second stage (fixed low Q) steepens the slope. For bandpass/notch the
+     second stage switches to allpass so only LP/HP get the extra pole pair. */
   n.filter = actx.createBiquadFilter();
   n.filter.type = ST.vcf.type;
   n.filter.frequency.value = ST.vcf.cutoff;
   n.filter.Q.value = ST.vcf.res;
   n.preDrive.connect(n.filter);
 
+  n.filter2 = actx.createBiquadFilter();
+  n.filter2.type = (ST.vcf.type === 'lowpass' || ST.vcf.type === 'highpass') ? ST.vcf.type : 'allpass';
+  n.filter2.frequency.value = ST.vcf.cutoff;
+  n.filter2.Q.value = 0.54;
+  n.filter.connect(n.filter2);
+
   n.vcfOut = actx.createGain(); n.vcfOut.gain.value = 1.0; // matrix audio source
-  n.filter.connect(n.vcfOut);
+  n.filter2.connect(n.vcfOut);
 
   /* === FILTER SELF-OSCILLATION ===
      The real EMS Synthi diode-ladder filter *sings* a near-sine tone at the
@@ -995,15 +1045,40 @@ function buildAudio() {
   n.dcBlock.Q.value = 0.7;
   n.vca.connect(n.dcBlock);
 
-  /* Reverb */
+  /* Reverb — hardwired dry/wet on the voice (WET knob) plus a matrix send:
+     the 'RVB In' column feeds the spring directly (any source can be
+     reverberated without passing the VCA), and 'RVB MX' modulates the wet
+     level as CV, like the original's Reverb Mix control input. */
   n.convolver = actx.createConvolver();
   n.convolver.buffer = mkSpringIR(ST.reverb.decay);
   n.reverbWet = actx.createGain(); n.reverbWet.gain.value = ST.reverb.wet;
   n.reverbDry = actx.createGain(); n.reverbDry.gain.value = 1 - ST.reverb.wet;
   n.dcBlock.connect(n.convolver); n.convolver.connect(n.reverbWet);
   n.dcBlock.connect(n.reverbDry);
+  n.rvbIn = actx.createGain(); n.rvbIn.gain.value = 1.0;   // matrix audio dest
+  n.rvbIn.connect(n.convolver);
   const rvMix = actx.createGain();
   n.reverbWet.connect(rvMix); n.reverbDry.connect(rvMix);
+
+  /* === FEEDBACK-SAFE SOURCE TAPS ===
+     Web Audio MUTES any cycle that contains no DelayNode, so patching e.g.
+     VCF OUT → VCF In or OUT L → OUT L would silence the whole loop. Every
+     matrix source that can participate in a loop therefore goes through a
+     one-block micro-delay (~3 ms) — inaudible, but it makes the analog-style
+     feedback patches (howl, drones, runaway spring) legal. This is the AKS's
+     signature trick: the patch sheet's first two ROWS are the output channels. */
+  const mkFbTap = (node, level) => {
+    const d = actx.createDelay(0.05); d.delayTime.value = 0.003;
+    const g = actx.createGain(); g.gain.value = level;
+    node.connect(d); d.connect(g);
+    return g;
+  };
+  n.outLTap   = mkFbTap(n.outSatL, 0.7);   // OUT L feedback source
+  n.outRTap   = mkFbTap(n.outSatR, 0.7);   // OUT R feedback source
+  n.vcfSrcTap = mkFbTap(n.vcfOut,  1.0);   // VCF OUT source
+  n.envSigTap = mkFbTap(n.dcBlock, 1.0);   // ENV SIG (post-VCA voice audio)
+  n.ringTap   = mkFbTap(n.ringOut, 1.0);   // RING source
+  n.rvbTap    = mkFbTap(n.convolver, 0.8); // REVERB source (raw spring, pre-WET)
 
   /* === STEREO PING-PONG TAPE DELAY ===
      Outboard echo fed from the matrix 'DLY' pin (a send — not gated by the VCA).
@@ -1056,34 +1131,48 @@ function buildAudio() {
   /* === MATRIX SOURCES AND DESTINATIONS ===
      Indices must match SOURCES[] / DESTS[] above exactly. */
   n.matSources = [
-    n.oscs[0].tap, // 0: OSC1
-    n.oscs[1].tap, // 1: OSC2
-    n.oscs[2].tap, // 2: OSC3
-    n.noiseTap,    // 3: NOISE
-    n.envCS,       // 4: TRAP ENV
-    n.joyX,        // 5: JOY X
-    n.joyY,        // 6: JOY Y
-    n.vcfOut,      // 7: VCF Out
-    n.ringOut,     // 8: RING
+    n.outLTap,       //  0: OUT L (feedback)
+    n.outRTap,       //  1: OUT R (feedback)
+    n.oscs[0].tap,   //  2: OSC 1
+    n.oscs[1].tap,   //  3: OSC 2
+    n.oscs[2].tap,   //  4: OSC 3 ⊓ (square)
+    n.oscs[2].tapB,  //  5: OSC 3 ⩘ (sawtooth)
+    n.noiseTap,      //  6: NOISE
+    n.vcfSrcTap,     //  7: VCF OUT
+    n.envCS,         //  8: TRAP (envelope CV)
+    n.envSigTap,     //  9: ENV SIG (post-VCA audio)
+    n.ringTap,       // 10: RING
+    n.rvbTap,        // 11: REVERB
+    n.joyX,          // 12: JOY X
+    n.joyY,          // 13: JOY Y
   ];
   n.matDests = [
-    { type:'param', param: n.oscs[0].osc.frequency, scale: DESTS[0].scale },  // 0  O1 ƒ
-    { type:'param', param: n.oscs[1].osc.frequency, scale: DESTS[1].scale },  // 1  O2 ƒ
-    { type:'param', param: n.oscs[2].osc.frequency, scale: DESTS[2].scale },  // 2  O3 ƒ
-    { type:'param', params:[n.filter.frequency, n.selfOsc.frequency], scale: DESTS[3].scale }, // 3 VCF ƒ (+ self-osc)
-    { type:'param', param: n.filter.Q,              scale: DESTS[4].scale },  // 4  VCF Q
-    { type:'node',  node:  n.vcfIn,                 scale: DESTS[5].scale },  // 5  VCF In
-    { type:'node',  node:  n.ring,                  scale: DESTS[6].scale },  // 6  RING A (audio in)
-    { type:'param', param: n.ring.gain,             scale: DESTS[7].scale },  // 7  RING B (multiplier)
-    { type:'param', param: n.vca.gain,              scale: DESTS[8].scale },  // 8  VCA
-    { type:'node',  node:  n.outInL,                scale: DESTS[9].scale },  // 9  Out L
-    { type:'node',  node:  n.outInR,                scale: DESTS[10].scale }, // 10 Out R
-    { type:'node',  node:  n.delaySend,             scale: DESTS[11].scale }, // 11 DLY
+    // — signal inputs —
+    { type:'node',  node:  n.outInL,                scale: DESTS[0].scale },  //  0 Out L
+    { type:'node',  node:  n.outInR,                scale: DESTS[1].scale },  //  1 Out R
+    { type:'node',  node:  n.ring,                  scale: DESTS[2].scale },  //  2 RING A (audio in)
+    { type:'param', param: n.ring.gain,             scale: DESTS[3].scale },  //  3 RING B (multiplier)
+    { type:'node',  node:  n.vcfIn,                 scale: DESTS[4].scale },  //  4 VCF In
+    { type:'node',  node:  n.rvbIn,                 scale: DESTS[5].scale },  //  5 RVB In
+    { type:'node',  node:  n.delaySend,             scale: DESTS[6].scale },  //  6 DLY
+    // — control inputs —
+    { type:'param', param: n.oscs[0].osc.frequency, scale: DESTS[7].scale },  //  7 O1 ƒ
+    { type:'param', param: n.oscs[1].osc.frequency, scale: DESTS[8].scale },  //  8 O2 ƒ
+    { type:'param', params:[n.oscs[2].osc.frequency, n.oscs[2].oscB.frequency], scale: DESTS[9].scale }, // 9 O3 ƒ (both outs)
+    { type:'param', param: n.oscs[0].gain.gain,     scale: DESTS[10].scale }, // 10 O1 LVL (AM)
+    { type:'param', param: n.oscs[1].gain.gain,     scale: DESTS[11].scale }, // 11 O2 LVL (AM)
+    { type:'param', params:[n.filter.frequency, n.filter2.frequency, n.selfOsc.frequency], scale: DESTS[12].scale }, // 12 VCF ƒ
+    { type:'param', param: n.filter.Q,              scale: DESTS[13].scale }, // 13 VCF Q
+    { type:'param', param: n.reverbWet.gain,        scale: DESTS[14].scale }, // 14 RVB MX
+    { type:'param', param: n.vca.gain,              scale: DESTS[15].scale }, // 15 VCA
   ];
 
   /* Start all nodes */
   const t0 = actx.currentTime + 0.04;
-  n.oscs.forEach(o => { o.osc.start(t0); o.driftOsc.start(t0); });
+  n.oscs.forEach(o => {
+    o.osc.start(t0); o.driftOsc.start(t0);
+    if (o.oscB) o.oscB.start(t0);
+  });
   n.noiseSrc.start(t0);
   n.envCS.start(t0);
   n.joyX.start(t0); n.joyY.start(t0);
@@ -1152,7 +1241,7 @@ function envStop() {
 
    OSC1 / OSC2 track the keyboard ratiometrically: frequency = Hz × 2^((midi-69)/12).
    The Hz knob therefore acts as the per-oscillator base pitch at A4.
-   OSC3 does NOT track — it stays at its dialled Hz (0.01 – 50 Hz LFO range).
+   OSC3 does NOT track — it stays at its dialled Hz (0.02 – 500 Hz, manual p.38).
 
    noteOn fires the trapezoid envelope; noteOff is purely a UI/state event
    because the trapezoid runs its full course regardless of gate.
@@ -1354,21 +1443,22 @@ function seqSetPlayhead(idx) {
 ═══════════════════════════════════════════════════════════════════════ */
 
 /* ── OSC SECTION ──
-   Three knobs per oscillator: Hz (log taper, range depends on OSC role),
-   LEVEL (cube taper for perceptual loudness), PHASE (0–360°).
-   OSC1 / OSC2 are audio-rate.  OSC3 is sub-audio (0.01 – 50 Hz) — the slow
-   modulator that replaces the old LFOs. */
+   Ranges per the AKS service manual (p.38): OSC1/2 span 1 Hz – 10 kHz, OSC3
+   spans 0.02 Hz (40 s period!) – 500 Hz, so it works both as the slow modulator
+   AND as an audio-rate FM source — the classic Radiophonic trick. OSC3 has
+   fixed dual outputs (square ⊓ + sawtooth ⩘) on separate matrix rows, exactly
+   like the original; OSC1/2 keep a selectable wave. */
 function buildOscSection() {
   const body = document.getElementById('osc-body');
   ST.oscs.forEach((st, i) => {
     const block = document.createElement('div'); block.className = 'osc-block';
     const lbl   = document.createElement('div'); lbl.className   = 'block-label';
-    lbl.textContent = 'OSC ' + (i+1) + (i === 2 ? '  ·  SUB / LFO' : '');
+    lbl.textContent = 'OSC ' + (i+1) + (i === 2 ? '  ·  ⊓ + ⩘ DUAL OUT' : '');
     block.appendChild(lbl);
 
-    const isSub = (i === 2);
-    const hzMin = isSub ? 0.01 : 1;
-    const hzMax = isSub ? 50   : 10000;
+    const isOsc3 = (i === 2);
+    const hzMin = isOsc3 ? 0.02 : 1;
+    const hzMax = isOsc3 ? 500  : 10000;
 
     const row = document.createElement('div'); row.className = 'knob-row';
 
@@ -1378,15 +1468,17 @@ function buildOscSection() {
       onChange: v => {
         st.hz = v;
         if (!ENG) return;
-        const osc = ENG.nodes.oscs[i].osc;
-        osc.frequency.cancelScheduledValues(actx.currentTime);
-        if (isSub || ST.currentNote === null) {
-          osc.frequency.setTargetAtTime(v, actx.currentTime, 0.02);
-        } else {
+        const o = ENG.nodes.oscs[i];
+        const targets = o.oscB ? [o.osc, o.oscB] : [o.osc];
+        let hz = v;
+        if (!isOsc3 && ST.currentNote !== null) {
           const m = clamp(ST.currentNote + ST.master.tune, 0, 127);
-          const ratio = Math.pow(2, (m - 69) / 12);
-          osc.frequency.setTargetAtTime(v * ratio, actx.currentTime, 0.02);
+          hz = v * Math.pow(2, (m - 69) / 12);
         }
+        targets.forEach(osc => {
+          osc.frequency.cancelScheduledValues(actx.currentTime);
+          osc.frequency.setTargetAtTime(hz, actx.currentTime, 0.02);
+        });
       }
     });
 
@@ -1394,7 +1486,10 @@ function buildOscSection() {
       min: 0, max: 1, value: st.level, label: 'LEVEL', taper: 'cube',
       onChange: v => {
         st.level = v;
-        if (ENG) ENG.nodes.oscs[i].gain.gain.setTargetAtTime(v, actx.currentTime, 0.02);
+        if (!ENG) return;
+        const o = ENG.nodes.oscs[i];
+        o.gain.gain.setTargetAtTime(v, actx.currentTime, 0.02);
+        if (o.gainB) o.gainB.gain.setTargetAtTime(v, actx.currentTime, 0.02);
       }
     });
 
@@ -1403,25 +1498,39 @@ function buildOscSection() {
       fmt: v => v.toFixed(0) + '°',
       onChange: v => {
         st.phase = v;
-        if (ENG) ENG.nodes.oscs[i].osc.setPeriodicWave(ENG.nodes.mkWave(st.wave, v));
+        if (!ENG) return;
+        const o = ENG.nodes.oscs[i];
+        if (isOsc3) {
+          o.osc.setPeriodicWave(ENG.nodes.mkWave('square', v));
+          o.oscB.setPeriodicWave(ENG.nodes.mkWave('sawtooth', v));
+        } else {
+          o.osc.setPeriodicWave(ENG.nodes.mkWave(st.wave, v));
+        }
       }
     });
 
     row.append(kHz.el, kLvl.el, kPhase.el);
     block.appendChild(row);
+    UI_SYNC.push(() => { kHz.set(st.hz); kLvl.set(st.level); kPhase.set(st.phase); });
 
-    const wb = document.createElement('div'); wb.className = 'wave-btns';
-    [['SIN','sine'],['TRI','triangle'],['SAW','sawtooth'],['SQR','square']].forEach(([lbl,wv]) => {
-      const b = document.createElement('button'); b.className = 'wave-btn'; b.textContent = lbl;
-      if (st.wave === wv) b.classList.add('active');
-      b.addEventListener('click', () => {
-        st.wave = wv;
-        wb.querySelectorAll('.wave-btn').forEach(x => x.classList.toggle('active', x === b));
-        if (ENG) ENG.nodes.oscs[i].osc.setPeriodicWave(ENG.nodes.mkWave(wv, st.phase));
+    if (!isOsc3) {
+      const wb = document.createElement('div'); wb.className = 'wave-btns';
+      [['SIN','sine'],['TRI','triangle'],['SAW','sawtooth'],['SQR','square']].forEach(([lbl,wv]) => {
+        const b = document.createElement('button'); b.className = 'wave-btn'; b.textContent = lbl;
+        b.dataset.wave = wv;
+        if (st.wave === wv) b.classList.add('active');
+        b.addEventListener('click', () => {
+          st.wave = wv;
+          wb.querySelectorAll('.wave-btn').forEach(x => x.classList.toggle('active', x === b));
+          if (ENG) ENG.nodes.oscs[i].osc.setPeriodicWave(ENG.nodes.mkWave(wv, st.phase));
+        });
+        wb.appendChild(b);
       });
-      wb.appendChild(b);
-    });
-    block.appendChild(wb);
+      block.appendChild(wb);
+      UI_SYNC.push(() => {
+        wb.querySelectorAll('.wave-btn').forEach(x => x.classList.toggle('active', x.dataset.wave === st.wave));
+      });
+    }
 
     body.appendChild(block);
   });
@@ -1444,6 +1553,7 @@ function buildNoiseSection() {
   const wb = document.createElement('div'); wb.className = 'wave-btns'; wb.style.marginTop = '6px';
   [['WHITE','white'],['PINK','pink']].forEach(([lbl,tp]) => {
     const b = document.createElement('button'); b.className = 'wave-btn'; b.textContent = lbl;
+    b.dataset.noise = tp;
     if (ST.noise.type === tp) b.classList.add('active');
     b.addEventListener('click', () => {
       wb.querySelectorAll('.wave-btn').forEach(x => x.classList.toggle('active', x === b));
@@ -1452,6 +1562,10 @@ function buildNoiseSection() {
     wb.appendChild(b);
   });
   body.appendChild(wb);
+  UI_SYNC.push(() => {
+    kLvl.set(ST.noise.level);
+    wb.querySelectorAll('.wave-btn').forEach(x => x.classList.toggle('active', x.dataset.noise === ST.noise.type));
+  });
 }
 
 /* ── ENV SECTION ──
@@ -1461,17 +1575,21 @@ function buildNoiseSection() {
 function buildEnvSection() {
   const body = document.getElementById('env-body');
   const row  = document.createElement('div'); row.className = 'knob-row';
+  // Ranges from the service manual p.39: Attack 2ms–1s · On 0–2.5s ·
+  // Decay 3ms–15s · Off 10ms–5s.
   [
-    { key:'attack', lbl:'ATK', min:0.001, max:4 },
-    { key:'on',     lbl:'ON',  min:0.005, max:8 },
-    { key:'decay',  lbl:'DEC', min:0.005, max:8 },
-    { key:'off',    lbl:'OFF', min:0.005, max:4 },
+    { key:'attack', lbl:'ATK', min:0.002, max:1   },
+    { key:'on',     lbl:'ON',  min:0.001, max:2.5 },
+    { key:'decay',  lbl:'DEC', min:0.003, max:15  },
+    { key:'off',    lbl:'OFF', min:0.010, max:5   },
   ].forEach(({ key, lbl, min, max }) => {
+    ST.env[key] = clamp(ST.env[key], min, max);
     const k = new Knob({
       min, max, value: ST.env[key], label: lbl, fmt: fmtTime, taper: 'log',
       onChange: v => { ST.env[key] = v; }
     });
     row.appendChild(k.el);
+    UI_SYNC.push(() => k.set(clamp(ST.env[key], min, max)));
   });
   body.appendChild(row);
 
@@ -1496,6 +1614,7 @@ function buildEnvSection() {
 
   br.append(btnTrig, btnLoop);
   body.appendChild(br);
+  UI_SYNC.push(() => btnLoop.classList.toggle('active', !!ST.env.loop));
 }
 
 /* ── JOYSTICK ── */
@@ -1698,6 +1817,10 @@ function buildMasterSection() {
   const gr = document.createElement('div'); gr.className = 'knob-row'; gr.style.marginTop='6px';
   gr.appendChild(kGlide.el);
   body.appendChild(gr);
+  UI_SYNC.push(() => {
+    kVol.set(ST.master.volume); kTune.set(ST.master.tune);
+    kBias.set(ST.vcaBias); kDrift.set(ST.master.drift); kGlide.set(ST.glide);
+  });
 }
 
 /* ── FILTER SECTION ── */
@@ -1705,13 +1828,15 @@ function buildFilterSection() {
   const body = document.getElementById('vcf-body');
   const row  = document.createElement('div'); row.className = 'knob-row';
 
+  // 5 Hz – 10 kHz per the service manual (p.38).
   const kCut = new Knob({
-    min: 20, max: 12000, value: ST.vcf.cutoff, label: 'CUTOFF',
+    min: 5, max: 10000, value: clamp(ST.vcf.cutoff, 5, 10000), label: 'CUTOFF',
     fmt: fmtHz, taper: 'log',
     onChange: v => {
       ST.vcf.cutoff = v;
       if (!ENG) return;
       ENG.nodes.filter.frequency.setTargetAtTime(v, actx.currentTime, 0.02);
+      ENG.nodes.filter2.frequency.setTargetAtTime(v, actx.currentTime, 0.02); // 2nd pole pair tracks
       ENG.nodes.selfOsc.frequency.setTargetAtTime(v, actx.currentTime, 0.02); // self-osc tracks cutoff
     }
   });
@@ -1735,17 +1860,29 @@ function buildFilterSection() {
   body.appendChild(row);
 
   const wb = document.createElement('div'); wb.className = 'wave-btns'; wb.style.marginTop = '6px';
+  const applyVcfType = tp => {
+    if (!ENG) return;
+    ENG.nodes.filter.type = tp;
+    // 2nd stage steepens LP/HP toward the manual's 18 dB/oct; BP/notch keep
+    // their character (allpass = flat magnitude, no extra poles).
+    ENG.nodes.filter2.type = (tp === 'lowpass' || tp === 'highpass') ? tp : 'allpass';
+  };
   [['LP','lowpass'],['HP','highpass'],['BP','bandpass'],['NO','notch']].forEach(([lbl,tp]) => {
     const b = document.createElement('button'); b.className = 'wave-btn'; b.textContent = lbl;
+    b.dataset.vtype = tp;
     if (ST.vcf.type === tp) b.classList.add('active');
     b.addEventListener('click', () => {
       ST.vcf.type = tp;
       wb.querySelectorAll('.wave-btn').forEach(x => x.classList.toggle('active', x === b));
-      if (ENG) ENG.nodes.filter.type = tp;
+      applyVcfType(tp);
     });
     wb.appendChild(b);
   });
   body.appendChild(wb);
+  UI_SYNC.push(() => {
+    kCut.set(ST.vcf.cutoff); kRes.set(ST.vcf.res); kDrv.set(ST.vcf.drive);
+    wb.querySelectorAll('.wave-btn').forEach(x => x.classList.toggle('active', x.dataset.vtype === ST.vcf.type));
+  });
 }
 
 /* ── REVERB SECTION ── */
@@ -1776,6 +1913,7 @@ function buildReverbSection() {
   });
   row.append(kWet.el, kDec.el);
   body.appendChild(row);
+  UI_SYNC.push(() => { kWet.set(ST.reverb.wet); kDec.set(ST.reverb.decay); });
 }
 let _reverbTO = null;
 
@@ -1801,6 +1939,10 @@ function buildDelaySection() {
   });
   row.append(kTime.el, kFb.el, kMix.el, kTone.el);
   body.appendChild(row);
+  UI_SYNC.push(() => {
+    kTime.set(ST.delay.time); kFb.set(ST.delay.feedback);
+    kMix.set(ST.delay.mix);   kTone.set(ST.delay.tone);
+  });
 }
 
 /* ── SEQUENCER / ARP SECTION ── */
@@ -1820,6 +1962,7 @@ function buildSeqSection() {
     fmt: v => Math.round(v * 100) + '%', onChange: v => { ST.arp.gate = v; }
   });
   document.getElementById('arp-gate-wrap').appendChild(kGate.el);
+  UI_SYNC.push(() => { kBpm.set(ST.seq.bpm); kSwing.set(ST.seq.swing); kGate.set(ST.arp.gate); });
 
   const cont = document.getElementById('seq-steps');
   _seqStepEls = [];
@@ -1921,7 +2064,7 @@ function buildKeyboard() {
 function savePreset() {
   const name = document.getElementById('preset-name').value || 'PATCH';
   const snap = {
-    label: name, version: 7, ts: Date.now(),
+    label: name, version: 8, ts: Date.now(),
     state: {
       oscs:   ST.oscs.map(o => ({ ...o })),
       noise:  { ...ST.noise },
@@ -1976,15 +2119,19 @@ function loadPreset(json) {
     }
     if (s.glide !== undefined) ST.glide = s.glide;
     if (s.vcaBias !== undefined) ST.vcaBias = s.vcaBias;
-    if (s.matrix) {
+    // Matrix — only applied when dimensions match the current layout; presets
+    // saved before the 14×16 expansion had different row/col meanings, so
+    // applying them index-for-index would mis-patch.
+    if (Array.isArray(s.matrix) &&
+        s.matrix.length === SOURCES.length &&
+        Array.isArray(s.matrix[0]) && s.matrix[0].length === DESTS.length) {
       ST.matrix.forEach(r => r.fill(0));
       document.querySelectorAll('.mat-cell').forEach(c => {
         c.dataset.s = 0; if (ROUTER) ROUTER.setCell(+c.dataset.si, +c.dataset.di, 0);
       });
       s.matrix.forEach((row, si) => {
-        if (si >= SOURCES.length) return;
         row.forEach((v, di) => {
-          if (!v || di >= DESTS.length) return;
+          if (!v) return;
           ST.matrix[si][di] = v;
           const cell = document.querySelector(`.mat-cell[data-si="${si}"][data-di="${di}"]`);
           if (cell) { cell.dataset.s = v; if (ROUTER) ROUTER.setCell(si, di, v); }
@@ -1994,15 +2141,24 @@ function loadPreset(json) {
     if (ENG && actx) {
       const n = ENG.nodes, t = actx.currentTime;
       n.oscs.forEach((o, i) => {
-        o.osc.setPeriodicWave(n.mkWave(ST.oscs[i].wave, ST.oscs[i].phase));
+        const isOsc3 = (i === 2);
+        o.osc.setPeriodicWave(n.mkWave(isOsc3 ? 'square' : ST.oscs[i].wave, ST.oscs[i].phase));
         o.gain.gain.setTargetAtTime(ST.oscs[i].level, t, 0.02);
-        o.driftGain.gain.setTargetAtTime(i === 2 ? 0 : ST.master.drift, t, 0.1);
+        o.driftGain.gain.setTargetAtTime(isOsc3 ? 0 : ST.master.drift, t, 0.1);
         o.osc.frequency.setTargetAtTime(ST.oscs[i].hz, t, 0.02);
+        if (o.oscB) {
+          o.oscB.setPeriodicWave(n.mkWave('sawtooth', ST.oscs[i].phase));
+          o.gainB.gain.setTargetAtTime(ST.oscs[i].level, t, 0.02);
+          o.oscB.frequency.setTargetAtTime(ST.oscs[i].hz, t, 0.02);
+        }
       });
       n.noiseGain.gain.setTargetAtTime(ST.noise.level, t, 0.02);
+      if (n.noiseSrc.buffer !== n.noiseBufs[ST.noise.type]) setNoiseType(ST.noise.type);
       n.filter.frequency.setTargetAtTime(ST.vcf.cutoff, t, 0.02);
       n.filter.Q.setTargetAtTime(ST.vcf.res, t, 0.02);
       n.filter.type = ST.vcf.type;
+      n.filter2.frequency.setTargetAtTime(ST.vcf.cutoff, t, 0.02);
+      n.filter2.type = (ST.vcf.type === 'lowpass' || ST.vcf.type === 'highpass') ? ST.vcf.type : 'allpass';
       n.preDrive.curve = n.mkDriveCurve(ST.vcf.drive);
       n.masterGain.gain.setTargetAtTime(ST.master.volume, t, 0.02);
       n.reverbWet.gain.setTargetAtTime(ST.reverb.wet, t, 0.05);
@@ -2015,6 +2171,7 @@ function loadPreset(json) {
       ['time', 'feedback', 'mix', 'tone'].forEach(k => setDelay(k, ST.delay[k]));
     }
     refreshSeqUI();
+    syncUIFromState();
   } catch(err) { console.error('[AKS] load preset failed:', err); }
 }
 
@@ -2034,6 +2191,179 @@ function refreshSeqUI() {
   setSel('arp-chord', ST.arp.chord); setSel('arp-dir', ST.arp.dir);
   setSel('arp-oct', ST.arp.octaves); setSel('arp-rate', ST.arp.rate);
   const ab = document.getElementById('arp-on'); if (ab) ab.classList.toggle('active', ST.arp.on);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FACTORY PRESETS
+   Classic EMS patches recreated on this matrix. Each is a full preset state
+   fed through loadPreset(), so hand-saved JSON and factory patches share one
+   code path. Matrix pins are given as [sourceRow, destCol, strength].
+
+   Source rows: 0 OUT L · 1 OUT R · 2 OSC1 · 3 OSC2 · 4 OSC3⊓ · 5 OSC3⩘ ·
+                6 NOISE · 7 VCF OUT · 8 TRAP · 9 ENV SIG · 10 RING · 11 REVERB ·
+                12 JOY X · 13 JOY Y
+   Dest cols:   0 OutL · 1 OutR · 2 RING A · 3 RING B · 4 VCF In · 5 RVB In ·
+                6 DLY · 7 O1ƒ · 8 O2ƒ · 9 O3ƒ · 10 O1LVL · 11 O2LVL · 12 VCFƒ ·
+                13 VCFQ · 14 RVBMX · 15 VCA
+═══════════════════════════════════════════════════════════════════════ */
+function mkPins(pins) {
+  const m = Array.from({ length: SOURCES.length }, () => new Array(DESTS.length).fill(0));
+  pins.forEach(([si, di, s]) => { m[si][di] = s; });
+  return m;
+}
+function mkSteps(notes, vel = 0.82, len = 16) {
+  return Array.from({ length: 16 }, (_, i) => ({
+    note: notes[i % notes.length] ?? 60, vel, active: i < len,
+  }));
+}
+
+const FACTORY = [
+  {
+    label: 'FIRST PATCH',
+    hint: 'basic lead — the manual\'s first exercise',
+    state: {
+      oscs: [{ hz: 220, level: 0.42, phase: 0, wave: 'sawtooth' },
+             { hz: 220, level: 0.0,  phase: 0, wave: 'square'   },
+             { hz: 2,   level: 0.3,  phase: 0, wave: 'square'   }],
+      noise: { type: 'white', level: 0 },
+      env: { attack: 0.01, on: 0.15, decay: 0.35, off: 0.1, loop: false },
+      vcf: { cutoff: 1400, res: 4, drive: 0.2, type: 'lowpass' },
+      reverb: { wet: 0.15, decay: 2 }, delay: { time: 0.3, feedback: 0.35, mix: 0, tone: 4200 },
+      master: { volume: 0.5, tune: 0, drift: 1.5 }, vcaBias: 0, glide: 0,
+      arp: { on: false, chord: 'min7', dir: 'up', octaves: 2, rate: 2, gate: 0.6, root: 60 },
+      matrix: mkPins([[2,4,2],[7,0,2],[7,1,2],[8,15,2]]),
+    },
+  },
+  {
+    label: 'ON THE RUN',
+    hint: '8-step runner — press Play',
+    state: {
+      oscs: [{ hz: 220, level: 0.38, phase: 0, wave: 'sawtooth' },
+             { hz: 220, level: 0.0,  phase: 0, wave: 'square'   },
+             { hz: 2,   level: 0.3,  phase: 0, wave: 'square'   }],
+      noise: { type: 'white', level: 0.10 },
+      env: { attack: 0.002, on: 0.02, decay: 0.12, off: 0.01, loop: false },
+      vcf: { cutoff: 950, res: 7, drive: 0.3, type: 'lowpass' },
+      reverb: { wet: 0.08, decay: 1.2 }, delay: { time: 0.185, feedback: 0.32, mix: 0.26, tone: 3800 },
+      master: { volume: 0.5, tune: 0, drift: 1 }, vcaBias: 0, glide: 0.02,
+      seq: { running: false, bpm: 165, swing: 0, length: 8,
+             steps: mkSteps([40, 43, 45, 43, 50, 48, 50, 52], 0.85, 8) },
+      arp: { on: false, chord: 'min7', dir: 'up', octaves: 2, rate: 2, gate: 0.6, root: 52 },
+      matrix: mkPins([[2,4,2],[6,4,1],[7,0,2],[7,1,2],[7,6,1],[8,15,2]]),
+    },
+  },
+  {
+    label: 'SEAGULLS',
+    hint: 'self-osc filter cries — LOOP runs itself',
+    state: {
+      oscs: [{ hz: 220, level: 0,    phase: 0, wave: 'sawtooth' },
+             { hz: 220, level: 0,    phase: 0, wave: 'square'   },
+             { hz: 0.35, level: 0.6, phase: 0, wave: 'square'   }],
+      noise: { type: 'pink', level: 0.14 },
+      env: { attack: 0.15, on: 0.05, decay: 0.6, off: 0.4, loop: true },
+      vcf: { cutoff: 2100, res: 19.5, drive: 0.1, type: 'lowpass' },
+      reverb: { wet: 0.45, decay: 3.5 }, delay: { time: 0.5, feedback: 0.4, mix: 0.15, tone: 5000 },
+      master: { volume: 0.45, tune: 0, drift: 1.5 }, vcaBias: 0, glide: 0,
+      arp: { on: false, chord: 'min7', dir: 'up', octaves: 2, rate: 2, gate: 0.6, root: 60 },
+      matrix: mkPins([[5,12,2],[13,12,1],[6,4,1],[7,0,2],[7,1,2],[7,5,1],[8,15,2]]),
+    },
+  },
+  {
+    label: 'RADIOPHONIC',
+    hint: 'ring-mod metal — BBC workshop tones',
+    state: {
+      oscs: [{ hz: 300, level: 0.5,  phase: 0, wave: 'sine'     },
+             { hz: 423, level: 0.5,  phase: 0, wave: 'sawtooth' },
+             { hz: 6,   level: 0.4,  phase: 0, wave: 'square'   }],
+      noise: { type: 'white', level: 0 },
+      env: { attack: 0.005, on: 0.3, decay: 0.5, off: 0.1, loop: false },
+      vcf: { cutoff: 3200, res: 3, drive: 0.15, type: 'lowpass' },
+      reverb: { wet: 0.25, decay: 2.2 }, delay: { time: 0.3, feedback: 0.35, mix: 0.1, tone: 4200 },
+      master: { volume: 0.5, tune: 0, drift: 2 }, vcaBias: 0, glide: 0,
+      arp: { on: false, chord: 'min7', dir: 'up', octaves: 2, rate: 2, gate: 0.6, root: 60 },
+      matrix: mkPins([[2,2,2],[3,3,2],[10,4,2],[5,8,1],[7,0,2],[7,1,2],[8,15,2]]),
+    },
+  },
+  {
+    label: 'AUDIO-RATE FM',
+    hint: 'OSC3 at 180 Hz FMs OSC1 — clangs & bells',
+    state: {
+      oscs: [{ hz: 220, level: 0.5,  phase: 0, wave: 'sine'   },
+             { hz: 220, level: 0,    phase: 0, wave: 'square' },
+             { hz: 180, level: 0.55, phase: 0, wave: 'square' }],
+      noise: { type: 'white', level: 0 },
+      env: { attack: 0.003, on: 0.05, decay: 1.4, off: 0.1, loop: false },
+      vcf: { cutoff: 4200, res: 2, drive: 0.1, type: 'lowpass' },
+      reverb: { wet: 0.3, decay: 2.8 }, delay: { time: 0.42, feedback: 0.4, mix: 0.2, tone: 4200 },
+      master: { volume: 0.5, tune: 0, drift: 1 }, vcaBias: 0, glide: 0,
+      arp: { on: false, chord: 'min7', dir: 'up', octaves: 2, rate: 2, gate: 0.6, root: 60 },
+      matrix: mkPins([[5,7,2],[2,4,2],[7,0,2],[7,1,2],[8,15,2]]),
+    },
+  },
+  {
+    label: 'SPACE DRONE',
+    hint: 'beating saws, slow sweep — no keys needed',
+    state: {
+      oscs: [{ hz: 55,   level: 0.36, phase: 0,  wave: 'sawtooth' },
+             { hz: 55.6, level: 0.36, phase: 20, wave: 'sawtooth' },
+             { hz: 0.06, level: 0.5,  phase: 0,  wave: 'square'   }],
+      noise: { type: 'pink', level: 0.05 },
+      env: { attack: 0.5, on: 1, decay: 1, off: 0.5, loop: false },
+      vcf: { cutoff: 700, res: 9, drive: 0.35, type: 'lowpass' },
+      reverb: { wet: 0.35, decay: 4 }, delay: { time: 0.6, feedback: 0.55, mix: 0.35, tone: 2800 },
+      master: { volume: 0.45, tune: 0, drift: 2.5 }, vcaBias: 0.9, glide: 0,
+      arp: { on: false, chord: 'min7', dir: 'up', octaves: 2, rate: 2, gate: 0.6, root: 60 },
+      matrix: mkPins([[2,4,2],[3,4,2],[4,12,1],[7,0,2],[7,1,2],[7,6,1],[7,5,1]]),
+    },
+  },
+  {
+    label: 'FEEDBACK HOWL',
+    hint: 'output feeds itself — steer with joystick X',
+    state: {
+      oscs: [{ hz: 220, level: 0.3, phase: 0, wave: 'sawtooth' },
+             { hz: 220, level: 0,   phase: 0, wave: 'square'   },
+             { hz: 0.4, level: 0.3, phase: 0, wave: 'square'   }],
+      noise: { type: 'white', level: 0 },
+      env: { attack: 0.01, on: 0.5, decay: 1, off: 0.1, loop: false },
+      vcf: { cutoff: 1200, res: 12, drive: 0.4, type: 'lowpass' },
+      reverb: { wet: 0.2, decay: 2.5 }, delay: { time: 0.3, feedback: 0.35, mix: 0.2, tone: 4200 },
+      master: { volume: 0.4, tune: 0, drift: 1.5 }, vcaBias: 0.8, glide: 0,
+      arp: { on: false, chord: 'min7', dir: 'up', octaves: 2, rate: 2, gate: 0.6, root: 60 },
+      matrix: mkPins([[0,4,1],[2,4,1],[7,0,2],[7,1,1],[12,12,2],[8,15,1]]),
+    },
+  },
+  {
+    label: 'ARP ECHO',
+    hint: 'arpeggiator + ping-pong — press Play, hit Arp',
+    state: {
+      oscs: [{ hz: 220, level: 0.4, phase: 0, wave: 'square'   },
+             { hz: 220, level: 0,   phase: 0, wave: 'square'   },
+             { hz: 2,   level: 0.3, phase: 0, wave: 'square'   }],
+      noise: { type: 'white', level: 0 },
+      env: { attack: 0.003, on: 0.05, decay: 0.18, off: 0.05, loop: false },
+      vcf: { cutoff: 1800, res: 6, drive: 0.2, type: 'lowpass' },
+      reverb: { wet: 0.12, decay: 1.8 }, delay: { time: 0.35, feedback: 0.45, mix: 0.4, tone: 3500 },
+      master: { volume: 0.5, tune: 0, drift: 1 }, vcaBias: 0, glide: 0,
+      seq: { running: false, bpm: 130, swing: 0.12, length: 16,
+             steps: mkSteps([48, 48, 51, 55, 58, 55, 51, 48], 0.8, 16) },
+      arp: { on: true, chord: 'min7', dir: 'updown', octaves: 2, rate: 2, gate: 0.5, root: 48 },
+      matrix: mkPins([[2,4,2],[7,0,2],[7,1,1],[7,6,2],[8,15,2]]),
+    },
+  },
+];
+
+function buildFactoryPresets() {
+  const list = document.getElementById('factory-list');
+  FACTORY.forEach(p => {
+    const b = document.createElement('button');
+    b.className = 'btn-sm'; b.style.textAlign = 'left';
+    b.textContent = p.label; b.title = p.hint;
+    b.addEventListener('click', () => {
+      if (ST.seq.running) seqStop();
+      loadPreset(JSON.stringify({ label: p.label, state: p.state }));
+    });
+    list.appendChild(b);
+  });
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -2077,6 +2407,7 @@ document.addEventListener('DOMContentLoaded', () => {
   buildDelaySection();
   buildSeqSection();
   buildKeyboard();
+  buildFactoryPresets();
 
   /* Power — every click tears down and rebuilds so Power Off → On works without reload */
   document.getElementById('btn-power').addEventListener('click', async () => {
@@ -2088,7 +2419,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (ENG) {
         const en = ENG.nodes;
         [
-          ...en.oscs.flatMap(o => [o.osc, o.driftOsc]),
+          ...en.oscs.flatMap(o => o.oscB ? [o.osc, o.oscB, o.driftOsc] : [o.osc, o.driftOsc]),
           en.noiseSrc,
           en.envCS, en.joyX, en.joyY, en.vcaBias, en.selfOsc,
         ].forEach(node => { try { node.stop(); } catch(e) {} });
@@ -2096,9 +2427,8 @@ document.addEventListener('DOMContentLoaded', () => {
       try { await actx.close(); } catch(e) {}
       actx = null; ENG = null; ROUTER = null;
       ST.pitchBend = 0;
-      // Reset matrix — clear DOM cells and ST so Power On always starts empty
-      ST.matrix.forEach(r => r.fill(0));
-      document.querySelectorAll('.mat-cell').forEach(c => { c.dataset.s = '0'; });
+      // Matrix pins survive a Restart (ROUTER.fromDOM() re-applies them below)
+      // so a loaded factory preset isn't wiped by cycling power.
       document.getElementById('status-led').classList.remove('on');
       document.getElementById('status-txt').textContent = 'Power Off';
     }
