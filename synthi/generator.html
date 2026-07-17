@@ -498,6 +498,30 @@
       box-shadow: 0 0 4px rgba(45,232,121,.45);
     }
 
+    /* ── ROTARY KNOBS ──
+       Every range slider is upgraded in-place to a rotary knob (see the knob
+       upgrade script). The native <input type=range> stays in the DOM (hidden)
+       as the value/event source, so all existing bindings keep working. */
+    .gknob {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: radial-gradient(circle at 34% 28%, #3a3f4a, #0d1015);
+      border: 1px solid #262b34; border-top-color: #454c5e;
+      position: relative; cursor: ns-resize; user-select: none;
+      justify-self: center; align-self: center; flex: 0 0 auto;
+      box-shadow: 0 2px 6px rgba(0,0,0,.7), inset 0 1px 1px rgba(255,255,255,.06);
+      transition: border-color .1s, box-shadow .1s;
+    }
+    .gknob:hover { border-top-color: #5a648a; }
+    .gknob:active { border-color: rgba(45,232,121,.5); box-shadow: 0 2px 6px rgba(0,0,0,.7), 0 0 10px rgba(45,232,121,.18); }
+    .gknob > i { position: absolute; inset: 0; border-radius: 50%; transform: rotate(var(--deg, -135deg)); }
+    .gknob > i::before {
+      content: ''; position: absolute; top: 2px; left: 50%; margin-left: -1px;
+      width: 2px; height: 8px; border-radius: 1px;
+      background: var(--green); box-shadow: 0 0 4px rgba(45,232,121,.6);
+    }
+    .adsr .miniCell .gknob { margin-top: 2px; }
+    .rowMini { min-height: 28px; }
+
     /* ── SEQUENCER + KEYBOARD ── */
     .seqWrap {
       grid-area: seq;
@@ -1029,19 +1053,39 @@
       masterGain.gain.value = masterVol;
 
       const limiter = actx.createDynamicsCompressor();
-      limiter.threshold.value = -6;
-      limiter.knee.value = 4; limiter.ratio.value = 12;
+      limiter.threshold.value = -3;
+      limiter.knee.value = 3; limiter.ratio.value = 20;
       limiter.attack.value = 0.003; limiter.release.value = 0.15;
+
+      // Brick-wall safety ceiling. A DynamicsCompressor never truly clips —
+      // feed it a runaway internal signal (matrix Out→Out feedback loops, high
+      // filter Q, delay pile-ups) and its output still creeps above 0 dBFS,
+      // which is what made the VU read +100 dB. This tanh shaper hard-bounds the
+      // final signal to ~0 dBFS so neither the speakers nor the meter can blow up.
+      const ceiling = actx.createWaveShaper();
+      ceiling.oversample = '2x';
+      ceiling.curve = (() => {
+        const N = 2048, c = new Float32Array(N), k = 1.5;
+        for (let i = 0; i < N; i++) {
+          const x = (i * 2 / (N - 1)) - 1;
+          c[i] = Math.tanh(x * k) / Math.tanh(k);
+        }
+        return c;
+      })();
 
       vuAnalyser = actx.createAnalyser();
       vuAnalyser.fftSize = 1024;
       vuAnalyser.smoothingTimeConstant = 0.6;
       vuBuf = new Float32Array(vuAnalyser.fftSize);
 
+      // Signal path: mix → master → limiter → ceiling → destination.
+      // The VU taps POST-ceiling so it reports what actually reaches the output,
+      // never the unbounded pre-limiter bus.
       mixBus.connect(masterGain);
-      masterGain.connect(vuAnalyser);
       masterGain.connect(limiter);
-      limiter.connect(actx.destination);
+      limiter.connect(ceiling);
+      ceiling.connect(vuAnalyser);
+      ceiling.connect(actx.destination);
 
       window.dispatchEvent(new CustomEvent('synthiAudioReady', { detail: { actx, mixBus } }));
 
@@ -2031,6 +2075,105 @@
 
     buildMatrix();
     buildKeyboard();
+  }());
+  </script>
+
+  <!-- ── ROTARY KNOB UPGRADE ──
+       Turns every <input type=range> into a rotary knob without touching any of
+       the binding logic. Each native input is hidden but kept in the DOM as the
+       source of truth: dragging the knob writes input.value and dispatches an
+       'input' event (so bindSlider / bindTimeSlider handlers fire exactly as
+       before), and a rAF loop redraws each knob from its input's current value
+       (so preset loads / syncSlidersFromState are reflected too). -->
+  <script>
+  (function () {
+    'use strict';
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    const knobs = []; // { el, tick, last }
+    const SWEEP = 270; // degrees of travel (−135° … +135°)
+
+    function normOf(el) {
+      const min = parseFloat(el.min) || 0;
+      const max = (el.max === '' || el.max == null) ? 100 : parseFloat(el.max);
+      if (max === min) return 0;
+      return clamp((parseFloat(el.value) - min) / (max - min), 0, 1);
+    }
+    function draw(k) {
+      const n = normOf(k.el);
+      k.tick.style.setProperty('--deg', (-135 + n * SWEEP) + 'deg');
+      k.last = k.el.value;
+    }
+
+    function upgrade(el) {
+      if (el.dataset.knobbed) return;
+      el.dataset.knobbed = '1';
+      const knob = document.createElement('div'); knob.className = 'gknob';
+      const tick = document.createElement('i');   knob.appendChild(tick);
+      el.parentNode.insertBefore(knob, el);
+      el.style.display = 'none';
+      const k = { el, tick, last: el.value };
+      knobs.push(k);
+      draw(k);
+
+      let startY = 0, startNorm = 0, dragging = false;
+      const apply = (norm) => {
+        const min = parseFloat(el.min) || 0;
+        const max = (el.max === '' || el.max == null) ? 100 : parseFloat(el.max);
+        const step = parseFloat(el.step) || 0;
+        let v = min + (max - min) * clamp(norm, 0, 1);
+        if (step > 0) v = Math.round(v / step) * step;
+        v = clamp(v, Math.min(min, max), Math.max(min, max));
+        el.value = v;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        draw(k);
+      };
+      const onMove = (e) => {
+        if (!dragging) return;
+        const y = e.touches ? e.touches[0].clientY : e.clientY;
+        const speed = e.shiftKey ? 760 : 190; // Shift = fine
+        apply(startNorm + (startY - y) / speed);
+        e.preventDefault();
+      };
+      const onUp = () => {
+        dragging = false;
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+        window.removeEventListener('touchmove', onMove);
+        window.removeEventListener('touchend', onUp);
+      };
+      const onDown = (e) => {
+        dragging = true;
+        startY = e.touches ? e.touches[0].clientY : e.clientY;
+        startNorm = normOf(el);
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+        window.addEventListener('touchmove', onMove, { passive: false });
+        window.addEventListener('touchend', onUp);
+        e.preventDefault();
+      };
+      knob.addEventListener('mousedown', onDown);
+      knob.addEventListener('touchstart', onDown, { passive: false });
+      // Double-click resets to the input's default (mid or authored value).
+      knob.addEventListener('dblclick', () => {
+        if (el.defaultValue !== '') { el.value = el.defaultValue; el.dispatchEvent(new Event('input', { bubbles: true })); draw(k); }
+      });
+    }
+
+    function upgradeAll() {
+      document.querySelectorAll('input[type="range"]').forEach(upgrade);
+    }
+    // Keep knobs in sync with value changes made elsewhere (preset load, etc.).
+    (function tick() {
+      for (const k of knobs) if (k.el.value !== k.last) draw(k);
+      requestAnimationFrame(tick);
+    })();
+
+    if (document.readyState === 'loading')
+      window.addEventListener('DOMContentLoaded', upgradeAll);
+    else upgradeAll();
+    // Catch any range inputs added after load (e.g. rebuilt sequencer rows).
+    window.addEventListener('load', upgradeAll);
+    window.addEventListener('aksReady', () => setTimeout(upgradeAll, 0));
   }());
   </script>
 

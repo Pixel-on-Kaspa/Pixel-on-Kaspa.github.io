@@ -89,9 +89,9 @@
     /* ── MAIN 4-COLUMN ── */
     #main{
       display:grid;
-      grid-template-columns:268px 1fr 268px 268px;
+      grid-template-columns:262px 1fr 262px 262px;
       gap:6px;padding:6px;
-      min-width:1080px;overflow-x:auto;
+      min-width:1200px;overflow-x:auto;
       flex:1;min-height:0;
     }
     #col-left,#col-right{display:flex;flex-direction:column;gap:5px;min-height:0;overflow-y:auto}
@@ -197,10 +197,10 @@
     .mat-row-lbl{
       font-size:6.5px;color:var(--muted);letter-spacing:.03em;
       display:flex;align-items:center;justify-content:flex-end;
-      padding-right:5px;height:24px;white-space:nowrap
+      padding-right:4px;height:20px;white-space:nowrap
     }
     .mat-cell{
-      width:24px;height:24px;
+      width:20px;height:20px;
       display:flex;align-items:center;justify-content:center;
       cursor:pointer;position:relative;border-radius:2px;
       transition:background .08s
@@ -235,6 +235,47 @@
 
     /* ── MASTER ── */
     .master-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+
+    /* ── SEQUENCER BAR ── */
+    #seqbar{
+      flex-shrink:0;
+      display:flex;align-items:stretch;gap:14px;
+      padding:7px 14px;
+      background:linear-gradient(180deg,#12151d 0%,var(--panel) 100%);
+      border-top:1px solid var(--border3);
+      box-shadow:0 -2px 10px rgba(0,0,0,.4);
+      overflow-x:auto;
+    }
+    .seq-group{display:flex;flex-direction:column;gap:5px;justify-content:center;flex-shrink:0}
+    .seq-group.pad-l{padding-left:14px;border-left:1px solid var(--border2)}
+    .seq-hd{
+      font-size:8px;letter-spacing:.16em;color:var(--amber);text-transform:uppercase;
+      display:flex;align-items:center;gap:6px
+    }
+    .seq-hd::before{content:'';width:10px;height:1px;background:var(--amber);opacity:.5}
+    .seq-steps{display:flex;gap:3px;align-items:flex-end;flex:1;min-width:0}
+    .seq-step{display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0}
+    .seq-step-note{
+      width:24px;height:46px;border:1px solid var(--border2);border-radius:2px;
+      background:rgba(255,255,255,.03);cursor:ns-resize;position:relative;overflow:hidden;
+      display:flex;align-items:flex-end;justify-content:center;user-select:none
+    }
+    .seq-step-fill{width:100%;background:linear-gradient(180deg,var(--amber2),var(--amber));opacity:.45}
+    .seq-step-lbl{font-size:6px;color:var(--text2);position:absolute;top:2px;left:0;right:0;text-align:center;pointer-events:none;letter-spacing:.02em}
+    .seq-step.playing .seq-step-note{border-color:var(--green);box-shadow:0 0 9px var(--green-glow)}
+    .seq-step.playing .seq-step-fill{opacity:.75}
+    .seq-step-tog{
+      width:14px;height:14px;border-radius:50%;border:1px solid var(--border2);
+      background:rgba(255,255,255,.05);cursor:pointer;transition:.1s
+    }
+    .seq-step-tog.on{background:var(--yellow);border-color:rgba(255,200,64,.85);box-shadow:0 0 6px rgba(255,200,64,.5)}
+    .seq-sel{
+      background:rgba(255,255,255,.04);border:1px solid var(--border2);
+      color:var(--text);font-family:var(--font);font-size:8px;
+      padding:3px 5px;border-radius:2px;outline:none;letter-spacing:.04em
+    }
+    .seq-sel:focus{border-color:rgba(212,160,64,.45)}
+    .seq-row{display:flex;gap:5px;align-items:center}
 
     /* ── KEYBOARD BAR ── */
     #keyboard-bar{
@@ -399,6 +440,10 @@
       <div class="panel-body" id="reverb-body"></div>
     </div>
     <div class="panel">
+      <div class="panel-title">Stereo Delay <span>patch → DLY send</span></div>
+      <div class="panel-body" id="delay-body"></div>
+    </div>
+    <div class="panel">
       <div class="panel-title">Presets</div>
       <div class="panel-body" style="display:flex;flex-direction:column;gap:6px">
         <input id="preset-name" type="text" placeholder="PATCH NAME" maxlength="32" value="INIT"
@@ -419,14 +464,56 @@
       <div class="panel-body" style="font-size:8px;color:var(--text2);letter-spacing:.04em;line-height:1.55">
         <div style="color:var(--amber2);margin-bottom:4px">Nothing sounds until patched.</div>
         Try these starters:<br>
-        • OSC1 → Out L <span style="color:var(--amber)">(direct)</span><br>
+        • OSC1 → Out L + OSC2 → Out R <span style="color:var(--amber)">(stereo)</span><br>
         • OSC1 → VCF In, VCF Out → Out L<br>
         • TRAP ENV → VCA<br>
         • OSC3 → O1 ƒ <span style="color:var(--amber)">(slow vibrato)</span><br>
         • OSC3 → VCF ƒ <span style="color:var(--amber)">(filter sweep)</span><br>
-        • TRAP ENV → VCF ƒ + LOOP on<br>
-        <div style="margin-top:6px;color:var(--dim);font-size:7px">Shift+drag knobs for fine tune. Press D for debug overlay.</div>
+        • VCF Out → DLY <span style="color:var(--amber)">(echo send)</span><br>
+        • OSC1 → RING A, OSC2 → RING B <span style="color:var(--amber)">(metallic)</span><br>
+        • RES to max + VCF Out → Out L <span style="color:var(--amber)">(filter sings)</span><br>
+        <div style="margin-top:6px;color:var(--dim);font-size:7px">Power on, then Play/Arp drive the sequencer. Shift+drag knobs for fine tune. Press D for debug.</div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- SEQUENCER BAR -->
+<div id="seqbar">
+  <div class="seq-group">
+    <div class="seq-hd">Sequencer</div>
+    <div class="seq-row">
+      <button class="btn-sm" id="seq-play">Play</button>
+      <span id="seq-bpm-wrap"></span>
+      <span id="seq-swing-wrap"></span>
+    </div>
+  </div>
+  <div class="seq-group" style="flex:1;min-width:0">
+    <div class="seq-hd">Steps <span style="color:var(--dim);font-size:7px;letter-spacing:.05em">drag = pitch · dot = on/off</span></div>
+    <div class="seq-steps" id="seq-steps"></div>
+  </div>
+  <div class="seq-group pad-l">
+    <div class="seq-hd">Arpeggiator</div>
+    <div class="seq-row">
+      <button class="btn-sm" id="arp-on">Arp</button>
+      <select class="seq-sel" id="arp-chord" title="chord">
+        <option value="oct">OCT</option><option value="maj">MAJ</option>
+        <option value="min">MIN</option><option value="sus">SUS</option>
+        <option value="maj7">MAJ7</option><option value="min7" selected>MIN7</option>
+        <option value="dim">DIM</option><option value="m6">M6</option>
+      </select>
+      <select class="seq-sel" id="arp-dir" title="direction">
+        <option value="up">UP</option><option value="down">DOWN</option>
+        <option value="updown">UP/DN</option><option value="random">RAND</option>
+      </select>
+      <select class="seq-sel" id="arp-oct" title="octaves">
+        <option value="1">1 oct</option><option value="2" selected>2 oct</option>
+        <option value="3">3 oct</option><option value="4">4 oct</option>
+      </select>
+      <select class="seq-sel" id="arp-rate" title="rate">
+        <option value="1">1/16</option><option value="2" selected>1/8</option><option value="4">1/4</option>
+      </select>
+      <span id="arp-gate-wrap"></span>
     </div>
   </div>
 </div>
@@ -479,6 +566,9 @@ const fmtHz      = v => v >= 1000 ? (v / 1000).toFixed(1) + 'kHz'
                        : v >= 10  ? v.toFixed(0) + 'Hz'
                        : v >= 1   ? v.toFixed(1) + 'Hz'
                                   : v.toFixed(2) + 'Hz';
+// Filter self-oscillation amount as a function of resonance (Q). Silent below
+// Q≈14, ramps in quadratically to a firm singing tone at the top of the range.
+const resToSing  = r => { const t = clamp((r - 14) / (20 - 14), 0, 1); return t * t * 0.22; };
 
 /* PeriodicWave with phase rotation — N=32 harmonics is enough resolution
    while staying cheap to rebuild on every phase tweak.  Each shape supplies
@@ -518,21 +608,27 @@ const SOURCES = [
   { id:'joyX',   label:'JOY X'   },
   { id:'joyY',   label:'JOY Y'   },
   { id:'vcfout', label:'VCF Out' },
+  { id:'ring',   label:'RING'    },
 ];
 // type:'node'  → matrix GainNode connects to an AudioNode input (audio routing)
 // type:'param' → matrix GainNode connects to an AudioParam (CV/modulation routing)
 // Scales are tuned so a "full" (strength 2) connection produces a clearly audible
-// modulation. Audio destinations (VCF In, Out L) intentionally peak at ~0.5 so
-// stacking multiple pins doesn't blow up the bus — a post-bus soft saturator
-// catches anything beyond that.
+// modulation. Audio destinations (VCF In, Out L/R, RING, DLY) intentionally peak
+// at ~0.5–0.6 so stacking multiple pins doesn't blow up the bus — a post-bus soft
+// saturator plus the master ceiling catch anything beyond that.
 const DESTS = [
   { id:'osc1f', label:'O1 ƒ',  scale: 800,  type:'param' },
   { id:'osc2f', label:'O2 ƒ',  scale: 800,  type:'param' },
   { id:'osc3f', label:'O3 ƒ',  scale: 50,   type:'param' },
-  { id:'filtf', label:'VCF ƒ', scale: 6000, type:'param' },
+  { id:'filtf', label:'VCF ƒ', scale: 4000, type:'param' },
+  { id:'filtq', label:'VCF Q', scale: 12,   type:'param' },
   { id:'vcfin', label:'VCF In',scale: 0.5,  type:'node'  },
+  { id:'ringA', label:'RING A',scale: 0.6,  type:'node'  },
+  { id:'ringB', label:'RING B',scale: 1.0,  type:'param' },
   { id:'vca',   label:'VCA',   scale: 1.5,  type:'param' },
   { id:'outl',  label:'Out L', scale: 0.5,  type:'node'  },
+  { id:'outr',  label:'Out R', scale: 0.5,  type:'node'  },
+  { id:'dly',   label:'DLY',   scale: 0.5,  type:'node'  },
 ];
 
 const WHITE_MIDI = [48,50,52,53,55,57,59, 60,62,64,65,67,69,71];
@@ -568,9 +664,36 @@ const ST = {
   reverb: { wet: 0.20, decay: 2.0 },
   master: { volume: 0.50, tune: 0, drift: 1.5 },
   glide:  0,
+  // Stereo ping-pong tape delay — outboard send fed from the matrix 'DLY' pin.
+  delay:  { time: 0.30, feedback: 0.35, mix: 0.0, tone: 4200 },
+  // 16-step sequencer. Steps carry a note offset (semitones from C4=60) plus
+  // per-step active/velocity. BPM + swing shape the groove.
+  seq: {
+    running: false, bpm: 120, swing: 0.0, length: 16,
+    steps: Array.from({ length: 16 }, (_, i) => ({
+      note: 60 + [0,0,3,5,7,7,10,12, 12,10,7,5,3,0,-2,0][i],
+      vel:  0.8,
+      active: i % 2 === 0,
+    })),
+  },
+  // Arpeggiator — runs on the sequencer clock, replacing seq pitches with an
+  // arpeggio of chord tones rooted on the last played note.
+  arp: { on: false, chord: 'min7', dir: 'up', octaves: 2, rate: 2, gate: 0.6, root: 60 },
   matrix: Array.from({ length: SOURCES.length }, () => new Array(DESTS.length).fill(0)),
   vcaBias: 0.0,
   currentNote: null, holdOn: false, octShift: 0, pitchBend: 0,
+};
+
+// Arpeggiator chord shapes (semitone offsets from the root).
+const ARP_CHORDS = {
+  oct:  [0, 12],
+  maj:  [0, 4, 7],
+  min:  [0, 3, 7],
+  sus:  [0, 5, 7],
+  maj7: [0, 4, 7, 11],
+  min7: [0, 3, 7, 10],
+  dim:  [0, 3, 6],
+  m6:   [0, 3, 7, 9],
 };
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -657,6 +780,7 @@ class MatrixRouter {
         const g = actx.createGain(); g.gain.value = 0;
         src.connect(g);
         if (dst.type === 'node') g.connect(dst.node);
+        else if (dst.params)     dst.params.forEach(p => g.connect(p)); // multi-target CV
         else                     g.connect(dst.param);
         return g;
       })
@@ -789,9 +913,11 @@ function buildAudio() {
      Nothing sounds until explicitly patched in the matrix.
 
      VCF path:  vcfIn → vcfSat → preDrive → filter → vcfOut (matrix source)
-     Output path: outIn → outSat → vca (bias + CV) → DC blocker → reverb → master
+     Output path: outInL/R → outSatL/R → panL/R → stereoBus → vca (bias + CV)
+                  → DC blocker → reverb ┐
+                                  delay ┴→ master → limiter → ceiling → out
 
-     vcfSat / outSat are soft tanh saturators that compensate for matrix-pin
+     vcfSat / outSatL/R are soft tanh saturators that compensate for matrix-pin
      stacking — without them, patching 4 pins into Out L would multiply the
      signal 4×, blowing the limiter.  Tanh smoothly bends anything above ~0.7
      back toward unity, so 1 pin sounds ~the same as 4. */
@@ -818,14 +944,48 @@ function buildAudio() {
   n.vcfOut = actx.createGain(); n.vcfOut.gain.value = 1.0; // matrix audio source
   n.filter.connect(n.vcfOut);
 
-  n.outIn = actx.createGain(); n.outIn.gain.value = 1.0;   // matrix audio dest
-  n.outSat = actx.createWaveShaper(); n.outSat.curve = softSatCurve; n.outSat.oversample = '2x';
-  n.outIn.connect(n.outSat);
+  /* === FILTER SELF-OSCILLATION ===
+     The real EMS Synthi diode-ladder filter *sings* a near-sine tone at the
+     cutoff frequency when resonance is pushed high — its defining sound. A
+     BiquadFilterNode never self-oscillates (it only rings on input), so we model
+     it: a sine locked to the cutoff frequency, faded in as RES climbs toward its
+     max, summed into the filter output. It tracks the CUTOFF knob and any matrix
+     'VCF ƒ' modulation (see matDests — the pin drives both params). */
+  n.selfOsc = actx.createOscillator(); n.selfOsc.type = 'sine';
+  n.selfOsc.frequency.value = ST.vcf.cutoff;
+  n.selfOscGain = actx.createGain(); n.selfOscGain.gain.value = resToSing(ST.vcf.res);
+  n.selfOsc.connect(n.selfOscGain); n.selfOscGain.connect(n.vcfOut);
+
+  /* === RING MODULATOR ===
+     4-quadrant-style ring mod: RING A (col) feeds the audio input, RING B (col)
+     feeds the gain AudioParam (the modulator/carrier). Output ≈ A × B. With the
+     gain biased at 0 and B swinging bipolar, patching e.g. OSC2 → RING B and
+     OSC1 → RING A gives classic metallic sum/difference tones. */
+  n.ring    = actx.createGain(); n.ring.gain.value = 0;    // RING A in, RING B → .gain
+  n.ringOut = actx.createGain(); n.ringOut.gain.value = 1.0; // matrix source
+  n.ring.connect(n.ringOut);
+
+  /* === STEREO OUTPUT BUS ===
+     Out L and Out R are independent matrix audio dests, hard-panned L/R so the
+     patch can be spread across the stereo field (and the ping-pong delay lands
+     in real stereo). Each has its own soft saturator for pin-stacking safety. */
+  n.outInL = actx.createGain(); n.outInL.gain.value = 1.0; // matrix audio dest (Out L)
+  n.outSatL = actx.createWaveShaper(); n.outSatL.curve = softSatCurve; n.outSatL.oversample = '2x';
+  n.panL = actx.createStereoPanner(); n.panL.pan.value = -1;
+  n.outInL.connect(n.outSatL); n.outSatL.connect(n.panL);
+
+  n.outInR = actx.createGain(); n.outInR.gain.value = 1.0; // matrix audio dest (Out R)
+  n.outSatR = actx.createWaveShaper(); n.outSatR.curve = softSatCurve; n.outSatR.oversample = '2x';
+  n.panR = actx.createStereoPanner(); n.panR.pan.value = 1;
+  n.outInR.connect(n.outSatR); n.outSatR.connect(n.panR);
+
+  n.stereoBus = actx.createGain(); n.stereoBus.gain.value = 1.0;
+  n.panL.connect(n.stereoBus); n.panR.connect(n.stereoBus);
 
   n.vca = actx.createGain(); n.vca.gain.value = 0;         // bias + envelope sum into gain
   n.vcaBias = actx.createConstantSource(); n.vcaBias.offset.value = ST.vcaBias;
   n.vcaBias.connect(n.vca.gain);
-  n.outSat.connect(n.vca);
+  n.stereoBus.connect(n.vca);
 
   /* DC blocker — 5 Hz highpass kills any subsonic drift that would
      otherwise eat headroom and bump the limiter constantly. */
@@ -845,22 +1005,52 @@ function buildAudio() {
   const rvMix = actx.createGain();
   n.reverbWet.connect(rvMix); n.reverbDry.connect(rvMix);
 
-  /* Master chain: reverb → master → lim → vuAnalyser → destination
-     VU reads post-limiter so it reflects what actually hits the speakers.
-     Threshold pulled to −6 dB to leave 6 dB of headroom — the soft sats
-     handle most of the transient work; this catches anything that slips. */
+  /* === STEREO PING-PONG TAPE DELAY ===
+     Outboard echo fed from the matrix 'DLY' pin (a send — not gated by the VCA).
+     The mono send enters the LEFT delay; cross-coupled feedback bounces each
+     repeat across the stereo field. A lowpass per side darkens repeats like tape.
+     Its wet output sums into the master, in parallel with the dry voice. */
+  n.delaySend = actx.createGain(); n.delaySend.gain.value = 1.0; // matrix audio dest (DLY)
+  n.delayL    = actx.createDelay(2.0); n.delayL.delayTime.value = ST.delay.time;
+  n.delayR    = actx.createDelay(2.0); n.delayR.delayTime.value = ST.delay.time;
+  n.delayToneL = actx.createBiquadFilter(); n.delayToneL.type = 'lowpass'; n.delayToneL.frequency.value = ST.delay.tone;
+  n.delayToneR = actx.createBiquadFilter(); n.delayToneR.type = 'lowpass'; n.delayToneR.frequency.value = ST.delay.tone;
+  n.delayFbL  = actx.createGain(); n.delayFbL.gain.value = ST.delay.feedback; // toneL → delayR
+  n.delayFbR  = actx.createGain(); n.delayFbR.gain.value = ST.delay.feedback; // toneR → delayL
+  n.delayPanL = actx.createStereoPanner(); n.delayPanL.pan.value = -1;
+  n.delayPanR = actx.createStereoPanner(); n.delayPanR.pan.value =  1;
+  n.delayMix  = actx.createGain(); n.delayMix.gain.value = ST.delay.mix;
+  n.delaySend.connect(n.delayL);
+  n.delayL.connect(n.delayToneL);
+  n.delayR.connect(n.delayToneR);
+  n.delayToneL.connect(n.delayPanL); n.delayPanL.connect(n.delayMix);
+  n.delayToneR.connect(n.delayPanR); n.delayPanR.connect(n.delayMix);
+  n.delayToneL.connect(n.delayFbL); n.delayFbL.connect(n.delayR);
+  n.delayToneR.connect(n.delayFbR); n.delayFbR.connect(n.delayL);
+
+  /* Master chain: (reverb mix + delay wet) → master → lim → ceiling → dest.
+     The limiter can't truly brick-wall (a compressor only bends), so a tanh
+     ceiling after it hard-bounds the signal to ~0 dBFS — no matrix feedback loop
+     or high-Q self-oscillation can blow the output up. VU reads post-ceiling so
+     it reflects exactly what hits the speakers. */
   n.masterGain = actx.createGain(); n.masterGain.gain.value = ST.master.volume;
   n.lim        = actx.createDynamicsCompressor();
   n.lim.threshold.value = -6;  n.lim.knee.value = 2;
   n.lim.ratio.value = 20; n.lim.attack.value = 0.003; n.lim.release.value = 0.10;
+  n.ceiling = actx.createWaveShaper(); n.ceiling.oversample = '2x';
+  n.ceiling.curve = (() => {
+    const N = 2048, c = new Float32Array(N), k = 1.5;
+    for (let i = 0; i < N; i++) { const x = (i * 2 / (N - 1)) - 1; c[i] = Math.tanh(x * k) / Math.tanh(k); }
+    return c;
+  })();
   n.vuAnalyser = actx.createAnalyser();
   n.vuAnalyser.fftSize = 256; n.vuAnalyser.smoothingTimeConstant = 0.8;
 
-  // Master chain is fixed: limiter is always in-circuit (no bypass) so the
-  // output can never exceed the safe ceiling.
   rvMix.connect(n.masterGain);
+  n.delayMix.connect(n.masterGain);
   n.masterGain.connect(n.lim);
-  n.lim.connect(n.vuAnalyser);
+  n.lim.connect(n.ceiling);
+  n.ceiling.connect(n.vuAnalyser);
   n.vuAnalyser.connect(actx.destination);
 
   /* === MATRIX SOURCES AND DESTINATIONS ===
@@ -874,15 +1064,21 @@ function buildAudio() {
     n.joyX,        // 5: JOY X
     n.joyY,        // 6: JOY Y
     n.vcfOut,      // 7: VCF Out
+    n.ringOut,     // 8: RING
   ];
   n.matDests = [
-    { type:'param', param: n.oscs[0].osc.frequency, scale: DESTS[0].scale }, // 0 O1 ƒ
-    { type:'param', param: n.oscs[1].osc.frequency, scale: DESTS[1].scale }, // 1 O2 ƒ
-    { type:'param', param: n.oscs[2].osc.frequency, scale: DESTS[2].scale }, // 2 O3 ƒ
-    { type:'param', param: n.filter.frequency,      scale: DESTS[3].scale }, // 3 VCF ƒ
-    { type:'node',  node:  n.vcfIn,                 scale: DESTS[4].scale }, // 4 VCF In
-    { type:'param', param: n.vca.gain,              scale: DESTS[5].scale }, // 5 VCA
-    { type:'node',  node:  n.outIn,                 scale: DESTS[6].scale }, // 6 Out L
+    { type:'param', param: n.oscs[0].osc.frequency, scale: DESTS[0].scale },  // 0  O1 ƒ
+    { type:'param', param: n.oscs[1].osc.frequency, scale: DESTS[1].scale },  // 1  O2 ƒ
+    { type:'param', param: n.oscs[2].osc.frequency, scale: DESTS[2].scale },  // 2  O3 ƒ
+    { type:'param', params:[n.filter.frequency, n.selfOsc.frequency], scale: DESTS[3].scale }, // 3 VCF ƒ (+ self-osc)
+    { type:'param', param: n.filter.Q,              scale: DESTS[4].scale },  // 4  VCF Q
+    { type:'node',  node:  n.vcfIn,                 scale: DESTS[5].scale },  // 5  VCF In
+    { type:'node',  node:  n.ring,                  scale: DESTS[6].scale },  // 6  RING A (audio in)
+    { type:'param', param: n.ring.gain,             scale: DESTS[7].scale },  // 7  RING B (multiplier)
+    { type:'param', param: n.vca.gain,              scale: DESTS[8].scale },  // 8  VCA
+    { type:'node',  node:  n.outInL,                scale: DESTS[9].scale },  // 9  Out L
+    { type:'node',  node:  n.outInR,                scale: DESTS[10].scale }, // 10 Out R
+    { type:'node',  node:  n.delaySend,             scale: DESTS[11].scale }, // 11 DLY
   ];
 
   /* Start all nodes */
@@ -892,6 +1088,7 @@ function buildAudio() {
   n.envCS.start(t0);
   n.joyX.start(t0); n.joyY.start(t0);
   n.vcaBias.start(t0);
+  n.selfOsc.start(t0);
 
   ENG = { nodes: n };
   return ENG;
@@ -911,20 +1108,26 @@ function buildAudio() {
 ═══════════════════════════════════════════════════════════════════════ */
 let envLoopTO = null;
 
-function envFire(t) {
+/* Fire one trapezoid cycle at time t.
+   allowLoop  — when false, never schedules a free-running retrigger (the
+                sequencer/arp retrigger the envelope themselves per step).
+   onOverride — replaces the ON hold time for this cycle (arp gate uses it).
+   peak       — envelope ceiling for this cycle (sequencer maps step velocity). */
+function envFire(t, allowLoop = true, onOverride = null, peak = 1) {
   if (!ENG || !actx) return;
   clearTimeout(envLoopTO);
-  const { attack, on, decay, off, loop } = ST.env;
+  const { attack, decay, off, loop } = ST.env;
+  const on = onOverride != null ? onOverride : ST.env.on;
   const cs = ENG.nodes.envCS;
 
   cs.offset.cancelScheduledValues(t);
   cs.offset.setValueAtTime(0, t);
-  cs.offset.linearRampToValueAtTime(1, t + attack);
-  cs.offset.setValueAtTime(1, t + attack + on);
+  cs.offset.linearRampToValueAtTime(peak, t + attack);
+  cs.offset.setValueAtTime(peak, t + attack + on);
   cs.offset.linearRampToValueAtTime(0, t + attack + on + decay);
   cs.offset.setValueAtTime(0, t + attack + on + decay + off);
 
-  if (loop) {
+  if (loop && allowLoop) {
     const cycleMs = (attack + on + decay + off) * 1000;
     // schedule next fire ~20ms before the previous cycle's OFF ends so the
     // ramps line up seamlessly
@@ -972,6 +1175,7 @@ function noteOn(midi, vel = 0.82) {
   envFire(t);
 
   ST.currentNote = midi;
+  ST.arp.root = midi; // manually-played notes set the arpeggiator root
   document.querySelector(`[data-midi="${midi}"]`)?.classList.add('active');
 
   const nn = noteName(midi);
@@ -1009,6 +1213,140 @@ function panicAllNotes() {
   if (!ENG || !actx) return;
   envStop();
   document.querySelectorAll('.key-w.active,.key-b.active').forEach(k => k.classList.remove('active'));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   STEREO DELAY
+═══════════════════════════════════════════════════════════════════════ */
+function setDelay(key, v) {
+  ST.delay[key] = v;
+  if (!ENG || !actx) return;
+  const n = ENG.nodes, t = actx.currentTime;
+  switch (key) {
+    case 'time':
+      n.delayL.delayTime.setTargetAtTime(clamp(v, 0, 2), t, 0.05);
+      n.delayR.delayTime.setTargetAtTime(clamp(v, 0, 2), t, 0.05);
+      break;
+    case 'feedback':
+      n.delayFbL.gain.setTargetAtTime(clamp(v, 0, 0.95), t, 0.03);
+      n.delayFbR.gain.setTargetAtTime(clamp(v, 0, 0.95), t, 0.03);
+      break;
+    case 'mix':  n.delayMix.gain.setTargetAtTime(clamp(v, 0, 1), t, 0.03); break;
+    case 'tone':
+      n.delayToneL.frequency.setTargetAtTime(clamp(v, 200, 16000), t, 0.03);
+      n.delayToneR.frequency.setTargetAtTime(clamp(v, 200, 16000), t, 0.03);
+      break;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SEQUENCER + ARPEGGIATOR
+
+   A lookahead scheduler (requestAnimationFrame drives a ~140 ms audio-time
+   window) fires notes precisely on the Web Audio clock, immune to rAF jitter.
+   Each step retriggers the trapezoid envelope at its scheduled time. When the
+   arpeggiator is on, it DRIVES the clock — an arpeggio of chord tones (rooted on
+   the last played note) replaces the programmed step pitches.
+═══════════════════════════════════════════════════════════════════════ */
+const SEQ_NOTE_MIN = 36, SEQ_NOTE_MAX = 84;
+let seqRafId = null, seqStepPos = 0, seqNextTime = 0, arpIdx = 0;
+let _seqQueue = [], _seqLastNotified = -1, _seqStepEls = [];
+
+/* Schedule one note on the oscillators + envelope at absolute time `when`. */
+function seqTrigger(midi, vel, when, onOverride = null) {
+  if (!ENG || !actx) return;
+  const n = ENG.nodes;
+  const m = clamp(midi + ST.master.tune, 0, 127);
+  const ratio = Math.pow(2, (m - 69) / 12);
+  const tc = ST.glide > 0.001 ? ST.glide / 3.5 : 0.001;
+  n.oscs.forEach((o, i) => {
+    if (i === 2) return; // OSC3 ignores pitch
+    o.osc.frequency.setTargetAtTime(ST.oscs[i].hz * ratio, when, tc);
+  });
+  envFire(when, false, onOverride, clamp(vel, 0, 1));
+  ST.currentNote = midi;
+}
+
+function arpNoteList() {
+  const arp = ST.arp;
+  const iv  = ARP_CHORDS[arp.chord] || ARP_CHORDS.min;
+  const oct = clamp(arp.octaves | 0, 1, 4);
+  let list = [];
+  for (let o = 0; o < oct; o++) for (const x of iv) list.push(clamp(arp.root + x + 12 * o, 0, 127));
+  if (arp.dir === 'down') list = list.slice().reverse();
+  else if (arp.dir === 'updown' && list.length > 2) list = list.concat(list.slice(1, -1).reverse());
+  return list;
+}
+function nextArpNote() {
+  const notes = arpNoteList();
+  if (!notes.length) return ST.arp.root;
+  if (ST.arp.dir === 'random') return notes[Math.floor(Math.random() * notes.length)];
+  const note = notes[arpIdx % notes.length];
+  arpIdx = (arpIdx + 1) % notes.length;
+  return note;
+}
+
+function seqSchedule() {
+  if (!ST.seq.running || !ENG || !actx) return;
+  const bpm     = clamp(ST.seq.bpm, 30, 280);
+  const baseDur = 60 / bpm / 4; // 16th-note
+  const ahead   = 0.14;
+  const len     = clamp(ST.seq.length | 0, 1, 16);
+
+  while (seqNextTime < actx.currentTime + ahead) {
+    const idx  = seqStepPos % len;
+    const step = ST.seq.steps[idx];
+    const when = seqNextTime;
+    _seqQueue.push({ step: idx, when });
+
+    if (ST.arp.on) {
+      const every = ST.arp.rate || 2;
+      if (seqStepPos % every === 0) {
+        const note   = nextArpNote();
+        const accent = ((seqStepPos / every) % 4 === 0);
+        const vel    = accent ? 0.95 : 0.72;
+        const noteDur = baseDur * every;
+        seqTrigger(note, vel, when, clamp(ST.arp.gate, 0.05, 1) * noteDur);
+      }
+    } else if (step.active) {
+      seqTrigger(step.note, step.vel, when);
+    }
+
+    const swingOff = (idx % 2 === 1) ? ST.seq.swing * baseDur * 0.55 : 0;
+    seqNextTime += baseDur + swingOff;
+    seqStepPos++;
+  }
+
+  // Fire the UI playhead when audio time reaches each queued step.
+  const now = actx.currentTime;
+  let due = -1;
+  while (_seqQueue.length && _seqQueue[0].when <= now) due = _seqQueue.shift().step;
+  if (due >= 0 && due !== _seqLastNotified) { _seqLastNotified = due; seqSetPlayhead(due); }
+
+  seqRafId = requestAnimationFrame(seqSchedule);
+}
+
+function seqStart() {
+  if (!ENG || !actx) return;
+  if (seqRafId) cancelAnimationFrame(seqRafId);
+  seqStepPos = 0; arpIdx = 0;
+  seqNextTime = actx.currentTime + 0.05;
+  _seqQueue = []; _seqLastNotified = -1;
+  ST.seq.running = true;
+  const b = document.getElementById('seq-play');
+  if (b) { b.classList.add('active'); b.textContent = 'Stop'; }
+  seqSchedule();
+}
+function seqStop() {
+  ST.seq.running = false;
+  if (seqRafId) { cancelAnimationFrame(seqRafId); seqRafId = null; }
+  _seqQueue = []; _seqLastNotified = -1;
+  const b = document.getElementById('seq-play');
+  if (b) { b.classList.remove('active'); b.textContent = 'Play'; }
+  _seqStepEls.forEach(el => el.classList.remove('playing'));
+}
+function seqSetPlayhead(idx) {
+  _seqStepEls.forEach((el, i) => el.classList.toggle('playing', i === idx));
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1211,8 +1549,8 @@ function buildMatrixSection() {
   const grid = document.getElementById('matrix-grid');
   const N_SRC = SOURCES.length, N_DST = DESTS.length;
 
-  grid.style.gridTemplateColumns = '50px repeat(' + N_DST + ', 24px)';
-  grid.style.gap = '3px';
+  grid.style.gridTemplateColumns = '46px repeat(' + N_DST + ', 20px)';
+  grid.style.gap = '2px';
   grid.style.display = 'grid';
 
   // Header row
@@ -1372,14 +1710,18 @@ function buildFilterSection() {
     fmt: fmtHz, taper: 'log',
     onChange: v => {
       ST.vcf.cutoff = v;
-      if (ENG) ENG.nodes.filter.frequency.setTargetAtTime(v, actx.currentTime, 0.02);
+      if (!ENG) return;
+      ENG.nodes.filter.frequency.setTargetAtTime(v, actx.currentTime, 0.02);
+      ENG.nodes.selfOsc.frequency.setTargetAtTime(v, actx.currentTime, 0.02); // self-osc tracks cutoff
     }
   });
   const kRes = new Knob({
     min: 0.1, max: 20, value: ST.vcf.res, label: 'RES', decimals: 1, taper: 'log',
     onChange: v => {
       ST.vcf.res = v;
-      if (ENG) ENG.nodes.filter.Q.setTargetAtTime(v, actx.currentTime, 0.02);
+      if (!ENG) return;
+      ENG.nodes.filter.Q.setTargetAtTime(v, actx.currentTime, 0.02);
+      ENG.nodes.selfOscGain.gain.setTargetAtTime(resToSing(v), actx.currentTime, 0.05); // fade the singing tone
     }
   });
   const kDrv = new Knob({
@@ -1437,6 +1779,106 @@ function buildReverbSection() {
 }
 let _reverbTO = null;
 
+/* ── DELAY SECTION ── */
+function buildDelaySection() {
+  const body = document.getElementById('delay-body');
+  const row  = document.createElement('div'); row.className = 'knob-row';
+  const kTime = new Knob({
+    min: 0.02, max: 1.5, value: ST.delay.time, label: 'TIME', taper: 'log', fmt: fmtTime,
+    onChange: v => setDelay('time', v)
+  });
+  const kFb = new Knob({
+    min: 0, max: 0.95, value: ST.delay.feedback, label: 'FEEDBK',
+    fmt: v => Math.round(v * 100) + '%', onChange: v => setDelay('feedback', v)
+  });
+  const kMix = new Knob({
+    min: 0, max: 1, value: ST.delay.mix, label: 'MIX', taper: 'cube',
+    fmt: v => Math.round(v * 100) + '%', onChange: v => setDelay('mix', v)
+  });
+  const kTone = new Knob({
+    min: 200, max: 16000, value: ST.delay.tone, label: 'TONE', taper: 'log', fmt: fmtHz,
+    onChange: v => setDelay('tone', v)
+  });
+  row.append(kTime.el, kFb.el, kMix.el, kTone.el);
+  body.appendChild(row);
+}
+
+/* ── SEQUENCER / ARP SECTION ── */
+function buildSeqSection() {
+  const kBpm = new Knob({
+    min: 40, max: 240, value: ST.seq.bpm, label: 'BPM', step: 1, decimals: 0,
+    fmt: v => Math.round(v) + '', onChange: v => { ST.seq.bpm = Math.round(v); }
+  });
+  document.getElementById('seq-bpm-wrap').appendChild(kBpm.el);
+  const kSwing = new Knob({
+    min: 0, max: 0.5, value: ST.seq.swing, label: 'SWING',
+    fmt: v => Math.round(v * 100) + '%', onChange: v => { ST.seq.swing = v; }
+  });
+  document.getElementById('seq-swing-wrap').appendChild(kSwing.el);
+  const kGate = new Knob({
+    min: 0.05, max: 1, value: ST.arp.gate, label: 'GATE',
+    fmt: v => Math.round(v * 100) + '%', onChange: v => { ST.arp.gate = v; }
+  });
+  document.getElementById('arp-gate-wrap').appendChild(kGate.el);
+
+  const cont = document.getElementById('seq-steps');
+  _seqStepEls = [];
+  ST.seq.steps.forEach((step, i) => {
+    const cell = document.createElement('div'); cell.className = 'seq-step';
+    const note = document.createElement('div'); note.className = 'seq-step-note';
+    const fill = document.createElement('div'); fill.className = 'seq-step-fill';
+    const lbl  = document.createElement('div'); lbl.className  = 'seq-step-lbl';
+    note.append(fill, lbl);
+    const tog  = document.createElement('div'); tog.className = 'seq-step-tog' + (step.active ? ' on' : '');
+    cell.append(note, tog);
+    cont.appendChild(cell);
+    _seqStepEls.push(cell);
+
+    const draw = () => {
+      const f = clamp((step.note - SEQ_NOTE_MIN) / (SEQ_NOTE_MAX - SEQ_NOTE_MIN), 0, 1);
+      fill.style.height = (f * 100) + '%';
+      lbl.textContent = noteName(step.note);
+    };
+    draw();
+
+    tog.addEventListener('click', () => {
+      step.active = !step.active;
+      tog.classList.toggle('on', step.active);
+    });
+
+    let sy, sNote;
+    note.addEventListener('mousedown', e => {
+      sy = e.clientY; sNote = step.note; e.preventDefault();
+      const move = ev => {
+        const dy = sy - ev.clientY;
+        step.note = clamp(Math.round(sNote + dy / 6), SEQ_NOTE_MIN, SEQ_NOTE_MAX);
+        draw();
+      };
+      const up = () => {
+        window.removeEventListener('mousemove', move);
+        window.removeEventListener('mouseup', up);
+      };
+      window.addEventListener('mousemove', move);
+      window.addEventListener('mouseup', up);
+    });
+  });
+
+  document.getElementById('seq-play').addEventListener('click', () => {
+    if (!ENG || !actx) return; // power on first
+    if (ST.seq.running) seqStop(); else seqStart();
+  });
+  const arpBtn = document.getElementById('arp-on');
+  arpBtn.addEventListener('click', () => {
+    ST.arp.on = !ST.arp.on;
+    arpBtn.classList.toggle('active', ST.arp.on);
+    arpIdx = 0;
+  });
+  document.getElementById('arp-chord').addEventListener('change', e => { ST.arp.chord = e.target.value; });
+  document.getElementById('arp-dir').addEventListener('change',   e => { ST.arp.dir   = e.target.value; });
+  document.getElementById('arp-oct').addEventListener('change',   e => { ST.arp.octaves = +e.target.value; });
+  document.getElementById('arp-rate').addEventListener('change',  e => { ST.arp.rate  = +e.target.value; });
+}
+
 /* ── KEYBOARD ── */
 function buildKeyboard() {
   const wrap = document.getElementById('kbd-wrap');
@@ -1479,7 +1921,7 @@ function buildKeyboard() {
 function savePreset() {
   const name = document.getElementById('preset-name').value || 'PATCH';
   const snap = {
-    label: name, version: 6, ts: Date.now(),
+    label: name, version: 7, ts: Date.now(),
     state: {
       oscs:   ST.oscs.map(o => ({ ...o })),
       noise:  { ...ST.noise },
@@ -1487,6 +1929,10 @@ function savePreset() {
       vcf:    { ...ST.vcf },
       reverb: { ...ST.reverb },
       master: { ...ST.master },
+      delay:  { ...ST.delay },
+      seq:    { running: false, bpm: ST.seq.bpm, swing: ST.seq.swing, length: ST.seq.length,
+                steps: ST.seq.steps.map(s => ({ ...s })) },
+      arp:    { ...ST.arp },
       glide:  ST.glide,
       vcaBias: ST.vcaBias,
       matrix: ST.matrix.map(r => [...r]),
@@ -1517,6 +1963,17 @@ function loadPreset(json) {
     if (s.vcf)    Object.assign(ST.vcf,    s.vcf);
     if (s.reverb) Object.assign(ST.reverb, s.reverb);
     if (s.master) Object.assign(ST.master, s.master);
+    if (s.delay)  Object.assign(ST.delay,  s.delay);
+    if (s.arp)    Object.assign(ST.arp,    s.arp);
+    if (s.seq) {
+      if (typeof s.seq.bpm    === 'number') ST.seq.bpm    = s.seq.bpm;
+      if (typeof s.seq.swing  === 'number') ST.seq.swing  = s.seq.swing;
+      if (typeof s.seq.length === 'number') ST.seq.length = s.seq.length;
+      // Mutate step objects in place — the step UI drag handlers close over them.
+      if (Array.isArray(s.seq.steps)) s.seq.steps.forEach((st, i) => {
+        if (ST.seq.steps[i]) Object.assign(ST.seq.steps[i], st);
+      });
+    }
     if (s.glide !== undefined) ST.glide = s.glide;
     if (s.vcaBias !== undefined) ST.vcaBias = s.vcaBias;
     if (s.matrix) {
@@ -1551,8 +2008,32 @@ function loadPreset(json) {
       n.reverbWet.gain.setTargetAtTime(ST.reverb.wet, t, 0.05);
       n.reverbDry.gain.setTargetAtTime(1 - ST.reverb.wet, t, 0.05);
       n.vcaBias.offset.setTargetAtTime(ST.vcaBias, t, 0.02);
+      // Filter self-oscillation follows the loaded cutoff / resonance.
+      n.selfOsc.frequency.setTargetAtTime(ST.vcf.cutoff, t, 0.02);
+      n.selfOscGain.gain.setTargetAtTime(resToSing(ST.vcf.res), t, 0.05);
+      // Delay — re-apply every parameter to the live graph.
+      ['time', 'feedback', 'mix', 'tone'].forEach(k => setDelay(k, ST.delay[k]));
     }
+    refreshSeqUI();
   } catch(err) { console.error('[AKS] load preset failed:', err); }
+}
+
+/* Refresh sequencer/arp DOM to match ST (used after preset load). */
+function refreshSeqUI() {
+  _seqStepEls.forEach((cell, i) => {
+    const step = ST.seq.steps[i]; if (!step) return;
+    const fill = cell.querySelector('.seq-step-fill');
+    const lbl  = cell.querySelector('.seq-step-lbl');
+    const tog  = cell.querySelector('.seq-step-tog');
+    const f = clamp((step.note - SEQ_NOTE_MIN) / (SEQ_NOTE_MAX - SEQ_NOTE_MIN), 0, 1);
+    fill.style.height = (f * 100) + '%';
+    lbl.textContent = noteName(step.note);
+    tog.classList.toggle('on', step.active);
+  });
+  const setSel = (id, val) => { const el = document.getElementById(id); if (el) el.value = String(val); };
+  setSel('arp-chord', ST.arp.chord); setSel('arp-dir', ST.arp.dir);
+  setSel('arp-oct', ST.arp.octaves); setSel('arp-rate', ST.arp.rate);
+  const ab = document.getElementById('arp-on'); if (ab) ab.classList.toggle('active', ST.arp.on);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1593,6 +2074,8 @@ document.addEventListener('DOMContentLoaded', () => {
   buildMasterSection();
   buildFilterSection();
   buildReverbSection();
+  buildDelaySection();
+  buildSeqSection();
   buildKeyboard();
 
   /* Power — every click tears down and rebuilds so Power Off → On works without reload */
@@ -1600,13 +2083,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tear down existing engine
     if (actx) {
       panicAllNotes();
+      seqStop();
       clearTimeout(envLoopTO);
       if (ENG) {
         const en = ENG.nodes;
         [
           ...en.oscs.flatMap(o => [o.osc, o.driftOsc]),
           en.noiseSrc,
-          en.envCS, en.joyX, en.joyY, en.vcaBias,
+          en.envCS, en.joyX, en.joyY, en.vcaBias, en.selfOsc,
         ].forEach(node => { try { node.stop(); } catch(e) {} });
       }
       try { await actx.close(); } catch(e) {}
