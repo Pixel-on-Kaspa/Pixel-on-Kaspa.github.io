@@ -516,11 +516,27 @@
     .gknob > i { position: absolute; inset: 0; border-radius: 50%; transform: rotate(var(--deg, -135deg)); }
     .gknob > i::before {
       content: ''; position: absolute; top: 2px; left: 50%; margin-left: -1px;
-      width: 2px; height: 8px; border-radius: 1px;
+      width: 2px; height: 7px; border-radius: 1px;
       background: var(--green); box-shadow: 0 0 4px rgba(45,232,121,.6);
     }
-    .adsr .miniCell .gknob { margin-top: 2px; }
-    .rowMini { min-height: 28px; }
+    /* Compact knob layout — applied only once the upgrade script confirms knobs
+       are live (body.knobs). Falls back to the original slider grid otherwise.
+       The label takes the slack (1fr) so knob + value form a tight right cluster
+       instead of a small knob floating in a wide column. */
+    body.knobs .gknob { width: 22px; height: 22px; }
+    body.knobs .rowMini {
+      min-height: 22px; gap: 5px;
+      grid-template-columns: 1fr 54px 22px 42px;   /* lbl · wave · knob · val */
+    }
+    body.knobs .rowMini.noWave { grid-template-columns: 1fr 22px 42px; }
+    body.knobs .rowMini.duo {
+      grid-template-columns: 1fr 22px 22px 34px 6px 22px 34px; /* lbl · shp · lvl · val · sep · tune · val */
+    }
+    body.knobs .rowMini .lbl { white-space: nowrap; align-self: center; }
+    body.knobs .rowMini .val { align-self: center; }
+    body.knobs .rowMini .sep { align-self: center; }
+    body.knobs .adsr .miniCell { align-items: center; }
+    body.knobs .adsr .miniCell .miniHead { width: 100%; }
 
     /* ── SEQUENCER + KEYBOARD ── */
     .seqWrap {
@@ -2161,6 +2177,7 @@
 
     function upgradeAll() {
       document.querySelectorAll('input[type="range"]').forEach(upgrade);
+      if (knobs.length) document.body.classList.add('knobs'); // enable compact grid
     }
     // Keep knobs in sync with value changes made elsewhere (preset load, etc.).
     (function tick() {
