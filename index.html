@@ -534,20 +534,25 @@
         </div>
       </article>
 
-      <article class="nft-card nft-card--empty">
-        <div class="nft-card-visual artistThumb">
-          <span class="nft-card-category">Guest slot</span>
+      <article class="nft-card">
+        <div class="nft-card-visual artistThumb" id="marekozorThumb">
+          <div id="marekozorSlideshow"></div>
+          <span class="nft-card-category">@marekozor</span>
         </div>
         <div class="nft-card-body">
           <header class="nft-card-header">
-            <h3 class="nft-card-title">NEXT</h3>
-            <span class="nft-card-meta">tba</span>
+            <h3 class="nft-card-title">VISUAL ENGINE</h3>
+            <span class="nft-card-meta">marekozor</span>
           </header>
-          <p class="nft-card-tagline">Want a slot here? Ping us on X or TG.</p>
+          <p class="nft-card-tagline">4-oscillator Lissajous engine — X/Y frequency ratios draw the curve.</p>
           <nav class="nft-card-actions">
-            <a href="artists.html" class="nft-card-action-primary">Artists →</a>
+            <a href="synthi/visual-engine.html" class="nft-card-action-primary">Engine →</a>
             <span class="nft-card-sep">·</span>
-            <a href="https://x.com/PixelonKas" target="_blank" rel="noreferrer" class="nft-card-action">Contact on X</a>
+            <a href="https://opensea.io/collection/deepmemory" target="_blank" rel="noreferrer" class="nft-card-action">Deep Memory ↗</a>
+            <span class="nft-card-sep">·</span>
+            <a href="https://opensea.io/collection/sphericalharmony" target="_blank" rel="noreferrer" class="nft-card-action">Spherical ↗</a>
+            <span class="nft-card-sep">·</span>
+            <a href="https://opensea.io/collection/angryheadsv2" target="_blank" rel="noreferrer" class="nft-card-action">Angry Heads ↗</a>
           </nav>
         </div>
       </article>
@@ -1086,6 +1091,33 @@
     "assets/img/yohei_1769032347663.png",
     "assets/img/yohei_1769032671810.png",
     "assets/img/yohei_1769032957909.png"
+  ];
+  wrap.style.cssText = "position:absolute;inset:0;";
+  const imgs = srcs.map((src, i) => {
+    const el = document.createElement("img");
+    el.src = src;
+    el.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity 5s ease;opacity:" + (i === 0 ? "1" : "0") + ";";
+    wrap.appendChild(el);
+    return el;
+  });
+  let cur = 0;
+  setInterval(() => {
+    imgs[cur].style.opacity = "0";
+    cur = (cur + 1) % imgs.length;
+    imgs[cur].style.opacity = "1";
+  }, 15000);
+})();
+</script>
+
+<script>
+// ── MAREKOZOR PREVIEW — Visual Engine crossfade slideshow ──
+(function(){
+  const wrap = document.getElementById("marekozorSlideshow");
+  if(!wrap) return;
+  const srcs = [
+    "assets/img/visual-engine_1780070064420.jpg",
+    "assets/img/visual-engine_1780070173311.jpg",
+    "assets/img/visual-engine_1780009902472.jpg"
   ];
   wrap.style.cssText = "position:absolute;inset:0;";
   const imgs = srcs.map((src, i) => {

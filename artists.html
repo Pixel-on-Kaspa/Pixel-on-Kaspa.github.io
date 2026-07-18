@@ -376,6 +376,33 @@
         </div>
       </div>
 
+      <!-- MAREKOZOR -->
+      <div class="card">
+        <div class="thumb" id="marekozorThumb">
+          <div id="marekozorSlideshow"></div>
+          <span class="hint">@marekozor</span>
+          <div class="bottomline">
+            <b>marekozor</b><br>
+            4-oscillator Lissajous engine
+          </div>
+        </div>
+        <div class="cardHead">
+          <b>VISUAL ENGINE</b>
+          <span class="chip">artist</span>
+        </div>
+        <p>Mathematical Lissajous visual engine — X/Y frequency ratios draw the closed curve, phase rotates it. By <b>@marekozor</b>.</p>
+        <div class="cardActions">
+          <a class="btn btnPrimary" href="synthi/visual-engine.html">Open engine</a>
+          <a class="btn btnGhost" href="https://x.com/marekozor" target="_blank" rel="noreferrer">X profile</a>
+        </div>
+        <p style="margin-top:10px;font-size:13px;opacity:.75">NFT collections on OpenSea:</p>
+        <div class="cardActions">
+          <a class="btn btnGhost" href="https://opensea.io/collection/deepmemory" target="_blank" rel="noreferrer">Deep Memory ↗</a>
+          <a class="btn btnGhost" href="https://opensea.io/collection/sphericalharmony" target="_blank" rel="noreferrer">Spherical Harmony ↗</a>
+          <a class="btn btnGhost" href="https://opensea.io/collection/angryheadsv2" target="_blank" rel="noreferrer">Angry Heads ↗</a>
+        </div>
+      </div>
+
       <!-- OPEN SLOT -->
       <div class="card">
         <div class="thumb openSlotThumb">
@@ -519,6 +546,33 @@
     "assets/img/yohei_1769032347663.png",
     "assets/img/yohei_1769032671810.png",
     "assets/img/yohei_1769032957909.png"
+  ];
+  wrap.style.cssText = "position:absolute;inset:0;";
+  const imgs = srcs.map((src, i) => {
+    const el = document.createElement("img");
+    el.src = src;
+    el.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity 15s ease;opacity:" + (i === 0 ? "1" : "0") + ";";
+    wrap.appendChild(el);
+    return el;
+  });
+  let cur = 0;
+  setInterval(() => {
+    imgs[cur].style.opacity = "0";
+    cur = (cur + 1) % imgs.length;
+    imgs[cur].style.opacity = "1";
+  }, 25000);
+})();
+</script>
+
+<script>
+// ── MAREKOZOR PREVIEW — Visual Engine crossfade slideshow ──
+(function(){
+  const wrap = document.getElementById("marekozorSlideshow");
+  if(!wrap) return;
+  const srcs = [
+    "assets/img/visual-engine_1780070064420.jpg",
+    "assets/img/visual-engine_1780070173311.jpg",
+    "assets/img/visual-engine_1780009902472.jpg"
   ];
   wrap.style.cssText = "position:absolute;inset:0;";
   const imgs = srcs.map((src, i) => {
