@@ -134,7 +134,9 @@
       color:#fff;
       transition:color 12s ease-in-out,text-shadow 12s ease-in-out;
     }
-    h1 .teal{color:var(--accent);}
+    /* LAB tracks the hero image on the complementary hue (set in JS), and eases
+       on its own slightly quicker curve so it shifts distinctly from the rest. */
+    h1 .teal{color:var(--accent);transition:color 8s ease-in-out,text-shadow 8s ease-in-out;}
     .sub{
       font-size:17px;
       color:var(--muted);
@@ -1211,16 +1213,28 @@
       let [h, s, l] = rgbToHsl(bestR, bestG, bestB);
       s = Math.max(s, 0.60);
       l = Math.max(l, 0.65);
-      return `hsl(${Math.round(h)},${Math.round(s*100)}%,${Math.round(l*100)}%)`;
+      return { h, s, l };
     }catch(e){ return null; }
   }
 
   function applyColor(imgEl){
     if(!heroH1 || !imgEl.complete || imgEl.naturalWidth === 0) return;
-    const color = dominantColor(imgEl);
-    if(!color) return;
-    heroH1.style.color = color;
-    heroH1.style.textShadow = `0 0 40px ${color.replace("hsl(","hsla(").replace(")",",0.35)")}`;
+    const c = dominantColor(imgEl);
+    if(!c) return;
+    // "PIXEL ART" takes the image's dominant colour.
+    const mh = Math.round(c.h), ms = Math.round(c.s*100), ml = Math.round(c.l*100);
+    heroH1.style.color = `hsl(${mh},${ms}%,${ml}%)`;
+    heroH1.style.textShadow = `0 0 40px hsla(${mh},${ms}%,${ml}%,0.35)`;
+    // "LAB" tracks the same image but on the complementary hue, so it always
+    // reads as a distinct accent against the rest of the title.
+    const lab = heroH1.querySelector(".teal");
+    if(lab){
+      const lh = Math.round((c.h + 180) % 360);
+      const ls = Math.round(Math.min(1, c.s + 0.08) * 100);
+      const ll = Math.round(Math.min(0.72, c.l + 0.03) * 100);
+      lab.style.color = `hsl(${lh},${ls}%,${ll}%)`;
+      lab.style.textShadow = `0 0 34px hsla(${lh},${ls}%,${ll}%,0.45)`;
+    }
   }
 
   // ── Build DOM in slot order ──
