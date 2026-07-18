@@ -474,7 +474,7 @@
         • OSC1 → RING A, OSC2 → RING B <span style="color:var(--amber)">(metallic)</span><br>
         • VCF OUT → DLY / RVB In <span style="color:var(--amber)">(sends)</span><br>
         • OUT L → VCF In <span style="color:var(--amber)">(feedback!)</span><br>
-        • RES to max <span style="color:var(--amber)">(filter sings)</span><br>
+        • RES to max <span style="color:var(--amber)">(filter sings — KBD TRACK plays it)</span><br>
         <div style="margin-top:6px;color:var(--dim);font-size:7px">Power on, then Play/Arp drive the sequencer. Shift+drag knobs for fine tune. Press D for debug.</div>
       </div>
     </div>
@@ -681,7 +681,11 @@ const ST = {
   // Trapezoidal envelope: A → ON (hold @ 1) → D → OFF (hold @ 0).
   // Fires complete cycle on each note trigger.  loop = auto-retrigger forever.
   env:    { attack: 0.08, on: 0.20, decay: 0.30, off: 0.40, loop: false },
-  vcf:    { cutoff: 1200, res: 6.0, drive: 0.25, type: 'lowpass' },
+  // track: keyboard tracking — cutoff (and the self-osc singing tone) follow
+  // the played note, like the real Filter/Oscillator driven by keyboard CV.
+  // Without it, high-RES patches feel dead to the keys: the loudest tone
+  // (the singing filter) never moves.
+  vcf:    { cutoff: 1200, res: 6.0, drive: 0.25, type: 'lowpass', track: true },
   reverb: { wet: 0.20, decay: 2.0 },
   master: { volume: 0.50, tune: 0, drift: 1.5 },
   glide:  0,
@@ -1260,6 +1264,7 @@ function noteOn(midi, vel = 0.82) {
     o.osc.frequency.cancelScheduledValues(t);
     o.osc.frequency.setTargetAtTime(ST.oscs[i].hz * ratio, t, tc);
   });
+  applyVcfTracking(ratio, t, tc);
 
   envFire(t);
 
@@ -1341,6 +1346,20 @@ const SEQ_NOTE_MIN = 36, SEQ_NOTE_MAX = 84;
 let seqRafId = null, seqStepPos = 0, seqNextTime = 0, arpIdx = 0;
 let _seqQueue = [], _seqLastNotified = -1, _seqStepEls = [];
 
+/* Keyboard tracking of the Filter/Oscillator — when vcf.track is on, the
+   cutoff (and with it the self-oscillation singing tone) shifts by the same
+   ratio as the note, so playing the singing filter melodically works like on
+   the real AKS with keyboard CV patched to the filter. The CUTOFF knob is the
+   pitch at A4. */
+function applyVcfTracking(ratio, t, tc) {
+  if (!ST.vcf.track || !ENG) return;
+  const n = ENG.nodes;
+  const f = clamp(ST.vcf.cutoff * ratio, 5, 10000);
+  n.filter.frequency.setTargetAtTime(f, t, tc);
+  n.filter2.frequency.setTargetAtTime(f, t, tc);
+  n.selfOsc.frequency.setTargetAtTime(f, t, tc);
+}
+
 /* Schedule one note on the oscillators + envelope at absolute time `when`. */
 function seqTrigger(midi, vel, when, onOverride = null) {
   if (!ENG || !actx) return;
@@ -1352,6 +1371,7 @@ function seqTrigger(midi, vel, when, onOverride = null) {
     if (i === 2) return; // OSC3 ignores pitch
     o.osc.frequency.setTargetAtTime(ST.oscs[i].hz * ratio, when, tc);
   });
+  applyVcfTracking(ratio, when, tc);
   envFire(when, false, onOverride, clamp(vel, 0, 1));
   ST.currentNote = midi;
 }
@@ -1828,16 +1848,22 @@ function buildFilterSection() {
   const body = document.getElementById('vcf-body');
   const row  = document.createElement('div'); row.className = 'knob-row';
 
-  // 5 Hz – 10 kHz per the service manual (p.38).
+  // 5 Hz – 10 kHz per the service manual (p.38). With KBD TRACK on, the knob
+  // sets the cutoff at A4 and held notes re-apply their ratio immediately.
   const kCut = new Knob({
     min: 5, max: 10000, value: clamp(ST.vcf.cutoff, 5, 10000), label: 'CUTOFF',
     fmt: fmtHz, taper: 'log',
     onChange: v => {
       ST.vcf.cutoff = v;
       if (!ENG) return;
-      ENG.nodes.filter.frequency.setTargetAtTime(v, actx.currentTime, 0.02);
-      ENG.nodes.filter2.frequency.setTargetAtTime(v, actx.currentTime, 0.02); // 2nd pole pair tracks
-      ENG.nodes.selfOsc.frequency.setTargetAtTime(v, actx.currentTime, 0.02); // self-osc tracks cutoff
+      let f = v;
+      if (ST.vcf.track && ST.currentNote !== null) {
+        const m = clamp(ST.currentNote + ST.master.tune, 0, 127);
+        f = clamp(v * Math.pow(2, (m - 69) / 12), 5, 10000);
+      }
+      ENG.nodes.filter.frequency.setTargetAtTime(f, actx.currentTime, 0.02);
+      ENG.nodes.filter2.frequency.setTargetAtTime(f, actx.currentTime, 0.02); // 2nd pole pair tracks
+      ENG.nodes.selfOsc.frequency.setTargetAtTime(f, actx.currentTime, 0.02); // self-osc tracks cutoff
     }
   });
   const kRes = new Knob({
@@ -1879,9 +1905,34 @@ function buildFilterSection() {
     wb.appendChild(b);
   });
   body.appendChild(wb);
+
+  // KBD TRACK — the filter follows the keyboard like the real
+  // Filter/Oscillator under keyboard CV; the singing tone becomes playable.
+  const tr = document.createElement('div'); tr.className = 'master-row';
+  const btnTrack = document.createElement('button');
+  btnTrack.className = 'btn-sm' + (ST.vcf.track ? ' active' : '');
+  btnTrack.textContent = 'KBD TRACK';
+  btnTrack.title = 'Cutoff + self-oscillation follow the played note (CUTOFF = pitch at A4)';
+  btnTrack.addEventListener('click', () => {
+    ST.vcf.track = !ST.vcf.track;
+    btnTrack.classList.toggle('active', ST.vcf.track);
+    if (!ENG) return;
+    // Re-apply immediately: with track back off, return to the knob's base value.
+    if (ST.vcf.track && ST.currentNote !== null) {
+      const m = clamp(ST.currentNote + ST.master.tune, 0, 127);
+      applyVcfTracking(Math.pow(2, (m - 69) / 12), actx.currentTime, 0.02);
+    } else {
+      ['filter', 'filter2', 'selfOsc'].forEach(k =>
+        ENG.nodes[k].frequency.setTargetAtTime(ST.vcf.cutoff, actx.currentTime, 0.02));
+    }
+  });
+  tr.appendChild(btnTrack);
+  body.appendChild(tr);
+
   UI_SYNC.push(() => {
     kCut.set(ST.vcf.cutoff); kRes.set(ST.vcf.res); kDrv.set(ST.vcf.drive);
     wb.querySelectorAll('.wave-btn').forEach(x => x.classList.toggle('active', x.dataset.vtype === ST.vcf.type));
+    btnTrack.classList.toggle('active', !!ST.vcf.track);
   });
 }
 
@@ -2227,7 +2278,7 @@ const FACTORY = [
              { hz: 2,   level: 0.3,  phase: 0, wave: 'square'   }],
       noise: { type: 'white', level: 0 },
       env: { attack: 0.01, on: 0.15, decay: 0.35, off: 0.1, loop: false },
-      vcf: { cutoff: 1400, res: 4, drive: 0.2, type: 'lowpass' },
+      vcf: { cutoff: 1400, res: 4, drive: 0.2, type: 'lowpass', track: true },
       reverb: { wet: 0.15, decay: 2 }, delay: { time: 0.3, feedback: 0.35, mix: 0, tone: 4200 },
       master: { volume: 0.5, tune: 0, drift: 1.5 }, vcaBias: 0, glide: 0,
       arp: { on: false, chord: 'min7', dir: 'up', octaves: 2, rate: 2, gate: 0.6, root: 60 },
@@ -2243,7 +2294,7 @@ const FACTORY = [
              { hz: 2,   level: 0.3,  phase: 0, wave: 'square'   }],
       noise: { type: 'white', level: 0.10 },
       env: { attack: 0.002, on: 0.02, decay: 0.12, off: 0.01, loop: false },
-      vcf: { cutoff: 950, res: 7, drive: 0.3, type: 'lowpass' },
+      vcf: { cutoff: 950, res: 7, drive: 0.3, type: 'lowpass', track: true },
       reverb: { wet: 0.08, decay: 1.2 }, delay: { time: 0.185, feedback: 0.32, mix: 0.26, tone: 3800 },
       master: { volume: 0.5, tune: 0, drift: 1 }, vcaBias: 0, glide: 0.02,
       seq: { running: false, bpm: 165, swing: 0, length: 8,
@@ -2261,7 +2312,7 @@ const FACTORY = [
              { hz: 0.35, level: 0.6, phase: 0, wave: 'square'   }],
       noise: { type: 'pink', level: 0.14 },
       env: { attack: 0.15, on: 0.05, decay: 0.6, off: 0.4, loop: true },
-      vcf: { cutoff: 2100, res: 19.5, drive: 0.1, type: 'lowpass' },
+      vcf: { cutoff: 2100, res: 19.5, drive: 0.1, type: 'lowpass', track: false },
       reverb: { wet: 0.45, decay: 3.5 }, delay: { time: 0.5, feedback: 0.4, mix: 0.15, tone: 5000 },
       master: { volume: 0.45, tune: 0, drift: 1.5 }, vcaBias: 0, glide: 0,
       arp: { on: false, chord: 'min7', dir: 'up', octaves: 2, rate: 2, gate: 0.6, root: 60 },
@@ -2277,7 +2328,7 @@ const FACTORY = [
              { hz: 6,   level: 0.4,  phase: 0, wave: 'square'   }],
       noise: { type: 'white', level: 0 },
       env: { attack: 0.005, on: 0.3, decay: 0.5, off: 0.1, loop: false },
-      vcf: { cutoff: 3200, res: 3, drive: 0.15, type: 'lowpass' },
+      vcf: { cutoff: 3200, res: 3, drive: 0.15, type: 'lowpass', track: false },
       reverb: { wet: 0.25, decay: 2.2 }, delay: { time: 0.3, feedback: 0.35, mix: 0.1, tone: 4200 },
       master: { volume: 0.5, tune: 0, drift: 2 }, vcaBias: 0, glide: 0,
       arp: { on: false, chord: 'min7', dir: 'up', octaves: 2, rate: 2, gate: 0.6, root: 60 },
@@ -2293,7 +2344,7 @@ const FACTORY = [
              { hz: 180, level: 0.55, phase: 0, wave: 'square' }],
       noise: { type: 'white', level: 0 },
       env: { attack: 0.003, on: 0.05, decay: 1.4, off: 0.1, loop: false },
-      vcf: { cutoff: 4200, res: 2, drive: 0.1, type: 'lowpass' },
+      vcf: { cutoff: 4200, res: 2, drive: 0.1, type: 'lowpass', track: true },
       reverb: { wet: 0.3, decay: 2.8 }, delay: { time: 0.42, feedback: 0.4, mix: 0.2, tone: 4200 },
       master: { volume: 0.5, tune: 0, drift: 1 }, vcaBias: 0, glide: 0,
       arp: { on: false, chord: 'min7', dir: 'up', octaves: 2, rate: 2, gate: 0.6, root: 60 },
@@ -2309,7 +2360,7 @@ const FACTORY = [
              { hz: 0.06, level: 0.5,  phase: 0,  wave: 'square'   }],
       noise: { type: 'pink', level: 0.05 },
       env: { attack: 0.5, on: 1, decay: 1, off: 0.5, loop: false },
-      vcf: { cutoff: 700, res: 9, drive: 0.35, type: 'lowpass' },
+      vcf: { cutoff: 700, res: 9, drive: 0.35, type: 'lowpass', track: false },
       reverb: { wet: 0.35, decay: 4 }, delay: { time: 0.6, feedback: 0.55, mix: 0.35, tone: 2800 },
       master: { volume: 0.45, tune: 0, drift: 2.5 }, vcaBias: 0.9, glide: 0,
       arp: { on: false, chord: 'min7', dir: 'up', octaves: 2, rate: 2, gate: 0.6, root: 60 },
@@ -2325,7 +2376,7 @@ const FACTORY = [
              { hz: 0.4, level: 0.3, phase: 0, wave: 'square'   }],
       noise: { type: 'white', level: 0 },
       env: { attack: 0.01, on: 0.5, decay: 1, off: 0.1, loop: false },
-      vcf: { cutoff: 1200, res: 12, drive: 0.4, type: 'lowpass' },
+      vcf: { cutoff: 1200, res: 12, drive: 0.4, type: 'lowpass', track: false },
       reverb: { wet: 0.2, decay: 2.5 }, delay: { time: 0.3, feedback: 0.35, mix: 0.2, tone: 4200 },
       master: { volume: 0.4, tune: 0, drift: 1.5 }, vcaBias: 0.8, glide: 0,
       arp: { on: false, chord: 'min7', dir: 'up', octaves: 2, rate: 2, gate: 0.6, root: 60 },
@@ -2341,7 +2392,7 @@ const FACTORY = [
              { hz: 2,   level: 0.3, phase: 0, wave: 'square'   }],
       noise: { type: 'white', level: 0 },
       env: { attack: 0.003, on: 0.05, decay: 0.18, off: 0.05, loop: false },
-      vcf: { cutoff: 1800, res: 6, drive: 0.2, type: 'lowpass' },
+      vcf: { cutoff: 1800, res: 6, drive: 0.2, type: 'lowpass', track: true },
       reverb: { wet: 0.12, decay: 1.8 }, delay: { time: 0.35, feedback: 0.45, mix: 0.4, tone: 3500 },
       master: { volume: 0.5, tune: 0, drift: 1 }, vcaBias: 0, glide: 0,
       seq: { running: false, bpm: 130, swing: 0.12, length: 16,
