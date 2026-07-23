@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gallery — Pixel Art Lab</title>
+<meta name="description" content="Creations from the Pixel Art Lab. Open any piece back in its Lab and remix it.">
+<style>
+  :root{
+    --bg0:#121623; --bg1:#050608; --panel:rgba(255,255,255,.03);
+    --line:#1c2740; --accent:#00c4ff; --text:#e8eef6; --muted:#9fb0c4; --muted2:#6d7d92;
+    --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    min-height:100vh; color:var(--text);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    background:radial-gradient(120% 120% at 50% 0%, var(--bg0) 0%, var(--bg1) 70%);
+  }
+  a{color:var(--accent)}
+  header{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:20px 24px; border-bottom:1px solid var(--line);
+    position:sticky; top:0; backdrop-filter:blur(10px);
+    background:rgba(5,6,8,.6); z-index:10;
+  }
+  .brand{font-weight:700; letter-spacing:.14em; font-size:14px; text-transform:uppercase}
+  .brand span{color:var(--accent)}
+  nav a{color:var(--muted); text-decoration:none; font-size:13px; margin-left:18px}
+  nav a:hover{color:var(--text)}
+  main{max-width:1200px; margin:0 auto; padding:28px 24px 80px}
+
+  /* ── grid ── */
+  .lead{margin:0 0 22px}
+  .lead h1{margin:0 0 6px; font-size:22px; letter-spacing:.02em}
+  .lead p{margin:0; color:var(--muted); font-size:14px; line-height:1.5; max-width:640px}
+  .grid{
+    display:grid; gap:14px;
+    grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));
+  }
+  .card{
+    display:block; text-decoration:none; color:inherit;
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    overflow:hidden; transition:transform .15s ease, border-color .15s ease;
+  }
+  .card:hover{transform:translateY(-3px); border-color:#2f4368}
+  .thumb{width:100%; aspect-ratio:1/1; display:block; object-fit:cover; background:#0a0d15}
+  .meta{padding:10px 12px}
+  .meta .t{font-size:13px; font-weight:600; margin:0 0 2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .meta .s{font-size:11px; color:var(--muted2); font-family:var(--mono)}
+
+  .empty{
+    text-align:center; padding:70px 20px; color:var(--muted);
+    border:1px dashed var(--line); border-radius:16px;
+  }
+  .empty h2{color:var(--text); font-size:18px; margin:0 0 8px}
+  .empty a{font-weight:600}
+
+  /* ── detail ── */
+  .detail{display:grid; grid-template-columns:minmax(0,1.4fr) minmax(240px,.9fr); gap:28px; align-items:start}
+  .detail .art{background:#0a0d15; border:1px solid var(--line); border-radius:16px; overflow:hidden}
+  .detail .art img{display:block; width:100%; height:auto}
+  .side h1{font-size:20px; margin:0 0 4px}
+  .side .lab{color:var(--muted); font-size:13px; margin:0 0 18px; font-family:var(--mono)}
+  .btns{display:flex; flex-direction:column; gap:10px; margin-bottom:22px}
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding:11px 14px; border-radius:10px; font-size:14px; font-weight:600;
+    text-decoration:none; cursor:pointer; border:1px solid transparent;
+  }
+  .btn.primary{background:var(--accent); color:#04121b}
+  .btn.ghost{background:transparent; color:var(--text); border-color:#2a3a58}
+  .btn.ghost:hover{border-color:var(--accent)}
+  .kv{font-size:12px; color:var(--muted2); font-family:var(--mono); line-height:1.7; border-top:1px solid var(--line); padding-top:14px}
+  .back{display:inline-block; margin-bottom:18px; font-size:13px; color:var(--muted); text-decoration:none}
+  .back:hover{color:var(--text)}
+  @media(max-width:720px){ .detail{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">PIXEL <span>ART LAB</span></div>
+  <nav>
+    <a href="/index.html">Lab</a>
+    <a href="/gallery.html">Gallery</a>
+    <a href="/synthi/visual-engine.html">SYNTHI</a>
+  </nav>
+</header>
+
+<main id="view"><!-- rendered by JS --></main>
+
+<script src="/js/gallery.js"></script>
+<script>
+(function () {
+  var view = document.getElementById("view");
+  var params = new URLSearchParams(location.search);
+  var itemId = params.get("item");
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function ago(ts) {
+    var d = Math.floor((Date.now() - ts) / 1000);
+    if (d < 60) return d + "s ago";
+    if (d < 3600) return Math.floor(d / 60) + "m ago";
+    if (d < 86400) return Math.floor(d / 3600) + "h ago";
+    return Math.floor(d / 86400) + "d ago";
+  }
+
+  function renderGrid() {
+    PixelGallery.list().then(function (items) {
+      if (!items.length) {
+        view.innerHTML =
+          '<div class="empty"><h2>No creations yet</h2>' +
+          '<p>Make something in a Lab and hit <b>Publish</b> — it lands here as a permanent, shareable page.</p>' +
+          '<p style="margin-top:16px"><a href="/synthi/visual-engine.html">Open SYNTHI Visual Engine →</a></p></div>';
+        return;
+      }
+      var cards = items.map(function (it) {
+        return '<a class="card" href="/gallery.html?item=' + encodeURIComponent(it.id) + '">' +
+          '<img class="thumb" loading="lazy" alt="' + esc(it.title) + '" src="' + it.thumb + '">' +
+          '<div class="meta"><p class="t">' + esc(it.title) + '</p>' +
+          '<span class="s">' + esc(it.lab) + ' · ' + ago(it.ts) + '</span></div></a>';
+      }).join("");
+      view.innerHTML =
+        '<div class="lead"><h1>Gallery</h1>' +
+        '<p>Creations made in the Labs. Hit <b>Remix</b> on any piece to open it in its Lab, change the parameters, and publish your own version — every remix keeps a link back to the original.</p></div>' +
+        '<div class="grid">' + cards + '</div>';
+    });
+  }
+
+  function renderDetail(id) {
+    Promise.all([PixelGallery.get(id), PixelGallery.list()]).then(function (r) {
+      var it = r[0], all = r[1];
+      if (!it) {
+        view.innerHTML = '<a class="back" href="/gallery.html">← Gallery</a>' +
+          '<div class="empty"><h2>Not found</h2><p>This creation is not on this device. ' +
+          '(The stub gallery is local to your browser; the live version will be shared for everyone.)</p></div>';
+        return;
+      }
+      var openHref = PixelGallery.labLink(it);
+      var remixes = PixelGallery.remixCount(it.id, all);
+      var parent = it.parentId ? all.filter(function (x) { return x.id === it.parentId; })[0] : null;
+
+      var lineage = "";
+      if (it.parentId) {
+        lineage = parent
+          ? '<p class="lab" style="margin-top:-12px">↳ remix of <a href="/gallery.html?item=' +
+              encodeURIComponent(parent.id) + '">' + esc(parent.title) + '</a></p>'
+          : '<p class="lab" style="margin-top:-12px">↳ a remix</p>';
+      }
+      var remixLine = '<div style="font-size:13px;color:var(--muted);margin-bottom:16px">' +
+        '✦ Remixed ' + remixes + ' time' + (remixes === 1 ? '' : 's') + '</div>';
+
+      view.innerHTML =
+        '<a class="back" href="/gallery.html">← Gallery</a>' +
+        '<div class="detail">' +
+          '<div class="art"><img alt="' + esc(it.title) + '" src="' + it.thumb + '"></div>' +
+          '<div class="side">' +
+            '<h1>' + esc(it.title) + '</h1>' +
+            '<p class="lab">' + esc(it.lab) + ' · ' + ago(it.ts) + '</p>' +
+            lineage +
+            remixLine +
+            '<div class="btns">' +
+              '<a class="btn primary" href="' + esc(openHref) + '">✦ Remix</a>' +
+              '<button class="btn ghost" id="shareBtn">Share ↗</button>' +
+            '</div>' +
+            '<div class="kv">id · ' + esc(it.id) + '<br>backend · ' + esc(it.backend || "stub") + '</div>' +
+          '</div>' +
+        '</div>';
+
+      document.getElementById("shareBtn").addEventListener("click", function () {
+        var url = location.origin + "/gallery.html?item=" + encodeURIComponent(it.id);
+        var text = it.title + " — made in the Pixel Art Lab (" + it.lab + "). Make your own:";
+        var intent = "https://twitter.com/intent/tweet?text=" +
+          encodeURIComponent(text) + "&url=" + encodeURIComponent(url) +
+          "&hashtags=creativecoding,generativeart";
+        window.open(intent, "_blank", "noopener");
+      });
+    });
+  }
+
+  if (itemId) renderDetail(itemId); else renderGrid();
+})();
+</script>
+</body>
+</html>

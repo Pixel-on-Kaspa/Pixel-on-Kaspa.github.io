@@ -93,6 +93,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
 </style>
 <script defer src="https://cloud.umami.is/script.js" data-website-id="6ee0e9a9-7066-4115-b91d-5667d8042abe"></script>
 <script src="/js/share.js"></script>
+<script src="/js/gallery.js"></script>
 </head>
 <body>
 
@@ -104,6 +105,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
     <button class="btn" id="btnRec">⏺ MP4</button>
     <button class="btn" id="btnShareX">Share ↗</button>
     <button class="btn" id="btnRecShare">Share clip ↗</button>
+    <button class="btn" id="btnPublish">✦ Publish</button>
     <button class="btn" id="btnZoomIn">＋</button>
     <button class="btn" id="btnZoomOut">－</button>
     <div style="display:flex;gap:16px;align-items:center">
@@ -760,6 +762,77 @@ if (window.PixelShare) {
     hashtags: ['creativecoding', 'synthesizer'],
     filenamePrefix: 'synthi-lissajous'
   });
+}
+
+/* ── PUBLISH TO GALLERY + patch rehydration ── */
+function capturePatch() {
+  const osc = [];
+  for (let i = 0; i < 4; i++) {
+    const active = document.querySelector("#wave" + i + " .btn.active");
+    osc.push({
+      wave: active ? active.dataset.w : "sine",
+      fr: document.getElementById("fr" + i).value,
+      ph: document.getElementById("ph" + i).value,
+      dt: document.getElementById("dt" + i).value,
+      vl: document.getElementById("vl" + i).value,
+      on: document.getElementById("on" + i).classList.contains("on")
+    });
+  }
+  const ce = {};
+  ["ceHue","ceSpan","ceSat","ceBrt","ceGlow","ceSpeed"].forEach(id => {
+    ce[id] = document.getElementById(id).value;
+  });
+  return { v: 1, osc, ce, vol: document.getElementById("masterVol").value };
+}
+
+function applyPatch(p) {
+  if (!p || !Array.isArray(p.osc)) return;
+  const setInput = (id, val) => {
+    if (val == null) return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = val;
+    el.dispatchEvent(new Event("input"));
+  };
+  p.osc.forEach((o, i) => {
+    if (i > 3 || !o) return;
+    const wrap = document.getElementById("wave" + i);
+    const tgt = wrap.querySelector('[data-w="' + o.wave + '"]');
+    const cur = wrap.querySelector(".btn.active");
+    if (tgt && tgt !== cur) tgt.click();
+    setInput("fr" + i, o.fr);
+    setInput("ph" + i, o.ph);
+    setInput("dt" + i, o.dt);
+    setInput("vl" + i, o.vl);
+    const onBtn = document.getElementById("on" + i);
+    if (onBtn.classList.contains("on") !== !!o.on) onBtn.click();
+  });
+  if (p.ce) Object.keys(p.ce).forEach(id => setInput(id, p.ce[id]));
+  if (p.vol != null) setInput("masterVol", p.vol);
+}
+
+if (window.PixelGallery) {
+  const _qs = new URLSearchParams(location.search);
+  // If we arrived via a Remix link, remember the parent so the next Publish
+  // records this piece's lineage.
+  let _parentId = _qs.get("from") || null;
+
+  PixelGallery.mountPublish({
+    buttonId: "btnPublish",
+    getDataURL: () => canvas.toDataURL("image/png"),
+    capturePatch: capturePatch,
+    getParentId: () => _parentId,
+    lab: "SYNTHI Visual Engine",
+    labUrl: "/synthi/visual-engine.html",
+    title: "SYNTHI Lissajous"
+  });
+
+  // Rehydrate from a shared / remix permalink (?patch=…)
+  const _pq = _qs.get("patch");
+  if (_pq) {
+    const _p = PixelGallery.decodePatch(_pq);
+    if (_p) { try { applyPatch(_p); } catch (e) { console.warn("patch apply failed", e); } }
+  }
 }
 
 /* ── OFFSCREEN RECORD (6s) ── */
