@@ -24,3 +24,6 @@ beautiful-jekyll-theme-*.gem
 
 node_modules/
 bun.lock
+
+# wrangler local state/cache
+worker/.wrangler/
