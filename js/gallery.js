@@ -75,10 +75,12 @@
       var item = {
         id: id,
         lab: payload.lab || "Lab",
+        labId: payload.labId || null,          // stable Lab id (for filtering / featured lab)
         labUrl: payload.labUrl || "/",
         title: payload.title || payload.lab || "Untitled",
-        patch: payload.patch || null,
-        parentId: payload.parentId || null,   // remix lineage
+        patch: payload.patch || null,          // serialized captureState() output
+        parentId: payload.parentId || null,    // remix lineage
+        featured: false,                       // discovery flag (curation comes later)
         thumb: thumb,
         ts: Date.now(),
         backend: "stub"
@@ -118,37 +120,70 @@
     return (items || []).filter(function (x) { return x.parentId === id; }).length;
   }
 
-  /* ── wire a "Publish" button on a Lab page ───────────────────────────── */
-  function mountPublish(opts) {
-    var btn = document.getElementById(opts.buttonId);
-    if (!btn) return;
-    btn.addEventListener("click", function () {
-      if (btn.disabled) return;
-      var original = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = "… publishing";
-      Promise.resolve()
-        .then(function () {
-          return publish({
-            pngDataURL: opts.getDataURL(),
-            patch: opts.capturePatch ? opts.capturePatch() : null,
-            lab: opts.lab,
-            labUrl: opts.labUrl,
-            title: opts.title,
-            parentId: opts.getParentId ? opts.getParentId() : null
+  /* ── PixelLab interface ───────────────────────────────────────────────
+     Every Lab registers once and becomes an interchangeable client of the
+     same gallery infrastructure. A Lab implements three hooks:
+
+       captureState()      -> a serializable object describing the creation
+       restoreState(state) -> apply such an object back to the Lab
+       renderThumbnail()   -> a PNG data URL of the current frame
+
+     `publish()` is provided BY the platform (not each Lab). registerLab wires
+     the Publish button to it, handles remix lineage (?from=) and rehydration
+     from a shared/remix permalink (?patch=). ── */
+  var _labs = {};
+
+  function registerLab(spec) {
+    if (!spec || !spec.id) return;
+    _labs[spec.id] = spec;
+
+    var qs = new URLSearchParams(location.search);
+    var parentId = qs.get("from") || null;
+
+    // wire Publish
+    var btn = spec.publishButtonId && document.getElementById(spec.publishButtonId);
+    if (btn) {
+      btn.addEventListener("click", function () {
+        if (btn.disabled) return;
+        var original = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "… publishing";
+        Promise.resolve()
+          .then(function () {
+            return publish({
+              pngDataURL: spec.renderThumbnail(),
+              patch: spec.captureState ? spec.captureState() : null,
+              lab: spec.name,
+              labId: spec.id,
+              labUrl: spec.labUrl,
+              title: spec.title,
+              parentId: parentId
+            });
+          })
+          .then(function (res) { toast(res); })
+          .catch(function (err) {
+            console.error("[gallery] publish failed", err);
+            alert("Publish failed: " + (err && err.message ? err.message : err));
+          })
+          .then(function () {
+            btn.disabled = false;
+            btn.textContent = original;
           });
-        })
-        .then(function (res) { toast(res); })
-        .catch(function (err) {
-          console.error("[gallery] publish failed", err);
-          alert("Publish failed: " + (err && err.message ? err.message : err));
-        })
-        .then(function () {
-          btn.disabled = false;
-          btn.textContent = original;
-        });
-    });
+      });
+    }
+
+    // rehydrate / remix from a permalink
+    var pq = qs.get("patch");
+    if (pq && spec.restoreState) {
+      var state = decodePatch(pq);
+      if (state != null) {
+        try { spec.restoreState(state); }
+        catch (e) { console.warn("[gallery] restoreState failed", e); }
+      }
+    }
   }
+
+  function getLab(id) { return _labs[id] || null; }
 
   /* ── minimal confirmation toast with permalink ───────────────────────── */
   function toast(res) {
@@ -200,6 +235,7 @@
     get: get,
     labLink: labLink,
     remixCount: remixCount,
-    mountPublish: mountPublish
+    registerLab: registerLab,
+    getLab: getLab
   };
 })(window);

@@ -764,8 +764,8 @@ if (window.PixelShare) {
   });
 }
 
-/* ── PUBLISH TO GALLERY + patch rehydration ── */
-function capturePatch() {
+/* ── PixelLab interface: publish / remix / rehydrate ── */
+function captureState() {
   const osc = [];
   for (let i = 0; i < 4; i++) {
     const active = document.querySelector("#wave" + i + " .btn.active");
@@ -785,7 +785,7 @@ function capturePatch() {
   return { v: 1, osc, ce, vol: document.getElementById("masterVol").value };
 }
 
-function applyPatch(p) {
+function restoreState(p) {
   if (!p || !Array.isArray(p.osc)) return;
   const setInput = (id, val) => {
     if (val == null) return;
@@ -812,27 +812,16 @@ function applyPatch(p) {
 }
 
 if (window.PixelGallery) {
-  const _qs = new URLSearchParams(location.search);
-  // If we arrived via a Remix link, remember the parent so the next Publish
-  // records this piece's lineage.
-  let _parentId = _qs.get("from") || null;
-
-  PixelGallery.mountPublish({
-    buttonId: "btnPublish",
-    getDataURL: () => canvas.toDataURL("image/png"),
-    capturePatch: capturePatch,
-    getParentId: () => _parentId,
-    lab: "SYNTHI Visual Engine",
+  PixelGallery.registerLab({
+    id: "synthi-visual-engine",
+    name: "SYNTHI Visual Engine",
     labUrl: "/synthi/visual-engine.html",
-    title: "SYNTHI Lissajous"
+    title: "SYNTHI Lissajous",
+    publishButtonId: "btnPublish",
+    captureState: captureState,
+    restoreState: restoreState,
+    renderThumbnail: () => canvas.toDataURL("image/png")
   });
-
-  // Rehydrate from a shared / remix permalink (?patch=…)
-  const _pq = _qs.get("patch");
-  if (_pq) {
-    const _p = PixelGallery.decodePatch(_pq);
-    if (_p) { try { applyPatch(_p); } catch (e) { console.warn("patch apply failed", e); } }
-  }
 }
 
 /* ── OFFSCREEN RECORD (6s) ── */

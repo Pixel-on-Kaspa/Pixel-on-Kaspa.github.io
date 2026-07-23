@@ -190,6 +190,7 @@
             <button class="btn btnPrimary btnSm" id="btnPause" type="button">Pause</button>
             <button class="btn btnSm" id="btnShot" type="button">PNG</button>
             <button class="btn btnPrimary btnSm" id="btnShareX" type="button">Share on X ↗</button>
+            <button class="btn btnPrimary btnSm" id="btnPublish" type="button">✦ Publish</button>
             <button class="btn btnSm btnRec" id="btnRec" type="button">REC 8s</button>
             <button class="btn btnSm" id="btnReset" type="button">Reset</button>
             <button class="btn btnPrimary btnSm" id="btnRand" type="button">Randomize</button>
@@ -278,6 +279,7 @@
   <!-- p5 (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
   <script src="/js/share.js"></script>
+  <script src="/js/gallery.js"></script>
 
 <script>
 (() => {
@@ -556,6 +558,25 @@ circle(y,x,4*cos(g));f+=B/8}`;
       url: "https://pixel-on-kaspa.fyi/pixel-p5.html",
       hashtags: ["creativecoding", "p5js"],
       filenamePrefix: "koma-pixel-on-kaspa"
+    });
+  }
+
+  // ── PixelLab interface: publish / remix / rehydrate ──
+  if(window.PixelGallery){
+    PixelGallery.registerLab({
+      id: "koma-p5",
+      name: "KOMA p5",
+      labUrl: "/pixel-p5.html",
+      title: "KOMA Field",
+      publishButtonId: "btnPublish",
+      renderThumbnail: () => p5instance.canvas.toDataURL("image/png"),
+      captureState: () => Object.assign({}, params),
+      restoreState: (st) => {
+        ids.forEach(id => { if(st[id] != null && el[id]) el[id].value = String(st[id]); });
+        commit();
+        rebuildSketch();
+        btnPause.textContent = "Pause";
+      }
     });
   }
 
