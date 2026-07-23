@@ -19,6 +19,28 @@
   var MAX_ITEMS = 40;          // stub-only cap so we never blow localStorage
   var THUMB_SIZE = 520;        // stub-only downscale for stored thumbnails
 
+  /* ── backend selection ────────────────────────────────────────────────
+     If an API base is configured, the browser talks ONLY to the Worker and
+     is storage-independent. If not, it falls back to the local stub so dev
+     works with zero infra. Configure via:
+       window.PIXEL_GALLERY_API_BASE = "https://pixel-gallery.<acct>.workers.dev"
+       or <meta name="pixel-gallery-api" content="…">
+       or PixelGallery.configure({ apiBase }) */
+  var API_BASE = null;
+  (function () {
+    if (typeof window !== "undefined" && window.PIXEL_GALLERY_API_BASE) {
+      API_BASE = String(window.PIXEL_GALLERY_API_BASE);
+    } else if (typeof document !== "undefined" && document.querySelector) {
+      var meta = document.querySelector('meta[name="pixel-gallery-api"]');
+      if (meta && meta.content) API_BASE = meta.content;
+    }
+    if (API_BASE) API_BASE = API_BASE.replace(/\/+$/, "");
+  })();
+  function configure(opts) {
+    if (opts && opts.apiBase != null) API_BASE = String(opts.apiBase).replace(/\/+$/, "");
+  }
+  function usingWorker() { return !!API_BASE; }
+
   /* ── patch <-> URL (base64url of JSON) ───────────────────────────────── */
   function encodePatch(obj) {
     var json = JSON.stringify(obj);
@@ -64,10 +86,9 @@
     });
   }
 
-  /* ── backend: PUBLISH ─────────────────────────────────────────────────
-     Stub. Real version POSTs {png, patch, meta} to the Worker, which pins to
-     Pinata and returns { cid }. Here we fake a CID and keep a local thumb. */
-  function publish(payload) {
+  /* ── local STUB backend (no infra) ────────────────────────────────────
+     Browser-local only. Used when no API base is configured. */
+  function stubPublish(payload) {
     // payload: { pngDataURL, patch, lab, labUrl, title, parentId }
     return makeThumb(payload.pngDataURL, THUMB_SIZE).then(function (thumb) {
       var id = "stub-" + Date.now().toString(36) + "-" +
@@ -97,13 +118,53 @@
     });
   }
 
-  /* ── backend: LIST / GET ──────────────────────────────────────────────
-     Stub. Real version GETs the Worker's /api/gallery (Pinata pinList). */
-  function list() { return Promise.resolve(readAll()); }
-  function get(id) {
+  function stubList() { return Promise.resolve(readAll()); }
+  function stubGet(id) {
     var found = readAll().filter(function (x) { return x.id === id; })[0] || null;
     return Promise.resolve(found);
   }
+
+  /* ── WORKER backend (platform API) ────────────────────────────────────
+     The browser never touches storage — it only speaks /api/v1 to the Worker. */
+  function workerPublish(payload) {
+    return fetch(API_BASE + "/api/v1/publish", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        png: payload.pngDataURL,
+        patch: payload.patch,
+        lab: payload.lab,
+        labId: payload.labId,
+        labUrl: payload.labUrl,
+        title: payload.title,
+        parentId: payload.parentId,
+      }),
+    }).then(function (r) {
+      return r.json().then(function (d) {
+        if (!r.ok) throw new Error(d && d.error ? d.error : "HTTP " + r.status);
+        return {
+          id: d.id,
+          url: location.origin + "/gallery.html?item=" + encodeURIComponent(d.id),
+          item: d.item,
+        };
+      });
+    });
+  }
+  function workerList() {
+    return fetch(API_BASE + "/api/v1/gallery")
+      .then(function (r) { return r.json(); })
+      .then(function (d) { return (d && d.items) || []; });
+  }
+  function workerGet(id) {
+    return fetch(API_BASE + "/api/v1/artwork/" + encodeURIComponent(id))
+      .then(function (r) { return r.ok ? r.json().then(function (d) { return d.item; }) : null; })
+      .catch(function () { return null; });
+  }
+
+  /* ── dispatchers (frontend calls only these) ──────────────────────────── */
+  function publish(payload) { return usingWorker() ? workerPublish(payload) : stubPublish(payload); }
+  function list() { return usingWorker() ? workerList() : stubList(); }
+  function get(id) { return usingWorker() ? workerGet(id) : stubGet(id); }
 
   /* ── permalink to REMIX a patch back in its Lab ──────────────────────
      Carries `from=<id>` so the next Publish records this piece as its parent
@@ -228,6 +289,7 @@
   }
 
   global.PixelGallery = {
+    configure: configure,
     encodePatch: encodePatch,
     decodePatch: decodePatch,
     publish: publish,
