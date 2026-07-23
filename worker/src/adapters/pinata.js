@@ -1,19 +1,18 @@
-/* PinataAdapter — production storage on IPFS via Pinata.
+/* PinataAdapter — production storage on IPFS via Pinata's v3 Files API.
 
-   Pins TWO objects per artwork:
-     • the PNG file            -> imageCid  (served from the dedicated gateway)
-     • a metadata JSON record  -> keeps the gallery index queryable via pinList
+   Stores TWO public files per artwork:
+     • the PNG image           -> served from the dedicated gateway
+     • a metadata JSON record  -> the queryable gallery index (keyvalues filter)
 
    Config (Worker secrets / vars):
      PINATA_JWT       — required, stays server-side (never reaches the browser)
-     PINATA_GATEWAY   — e.g. https://your-name.mypinata.cloud (falls back to public)
+     PINATA_GATEWAY   — dedicated gateway, e.g. https://<name>.mypinata.cloud
 
-   NOTE: pinList + per-item gateway GETs are fine to start, but the gallery INDEX
-   is a good candidate to move to Workers KV or R2 later (cheaper, faster to list).
-   The StorageAdapter interface is exactly what makes that swap a one-file change. */
-const PIN_FILE = "https://api.pinata.cloud/pinning/pinFileToIPFS";
-const PIN_JSON = "https://api.pinata.cloud/pinning/pinJSONToIPFS";
-const PIN_LIST = "https://api.pinata.cloud/data/pinList";
+   NOTE: two uploads + per-item gateway GETs are fine to start. The gallery INDEX
+   is a good future move to Workers KV or R2 (cheaper/faster to list). The
+   StorageAdapter interface makes that a one-file change. */
+const UPLOAD = "https://uploads.pinata.cloud/v3/files";
+const FILES = "https://api.pinata.cloud/v3/files/public";
 const APP_TAG = "pixel-gallery";
 
 export function PinataAdapter(env) {
@@ -22,51 +21,29 @@ export function PinataAdapter(env) {
   if (!JWT) throw new Error("PINATA_JWT not configured");
   const auth = { Authorization: "Bearer " + JWT };
 
-  async function pinFile(id, image) {
+  async function upload(blob, filename, keyvalues) {
     const form = new FormData();
-    form.append("file", new Blob([image.bytes], { type: image.contentType || "image/png" }), id + ".png");
-    form.append("pinataOptions", JSON.stringify({ cidVersion: 1 }));
-    form.append("pinataMetadata", JSON.stringify({
-      name: "pixel-img:" + id,
-      keyvalues: { app: APP_TAG, type: "image", id },
-    }));
-    const r = await fetch(PIN_FILE, { method: "POST", headers: auth, body: form });
-    if (!r.ok) throw new Error("pinFile failed: " + r.status + " " + (await r.text()));
-    return (await r.json()).IpfsHash;
+    form.append("file", blob, filename);
+    form.append("network", "public");
+    form.append("name", filename);
+    form.append("keyvalues", JSON.stringify(keyvalues));
+    const r = await fetch(UPLOAD, { method: "POST", headers: auth, body: form });
+    if (!r.ok) throw new Error("upload failed: " + r.status + " " + (await r.text()));
+    return (await r.json()).data; // { id, cid, ... }
   }
 
-  async function pinMeta(record) {
-    const r = await fetch(PIN_JSON, {
-      method: "POST",
-      headers: { ...auth, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        pinataContent: record,
-        pinataMetadata: {
-          name: "pixel-meta:" + record.id,
-          keyvalues: {
-            app: APP_TAG, type: "meta", id: record.id,
-            labId: record.labId || "", parentId: record.parentId || "",
-          },
-        },
-        pinataOptions: { cidVersion: 1 },
-      }),
-    });
-    if (!r.ok) throw new Error("pinMeta failed: " + r.status + " " + (await r.text()));
-    return (await r.json()).IpfsHash;
-  }
-
-  async function queryPins(extraKeyvalues, limit) {
-    const kv = { app: { value: APP_TAG, op: "eq" }, type: { value: "meta", op: "eq" }, ...extraKeyvalues };
-    const u = new URL(PIN_LIST);
-    u.searchParams.set("status", "pinned");
-    u.searchParams.set("pageLimit", String(limit || 60));
-    u.searchParams.set("metadata[keyvalues]", JSON.stringify(kv));
+  async function queryFiles(extra, limit) {
+    const u = new URL(FILES);
+    u.searchParams.set("keyvalues[app]", APP_TAG);
+    u.searchParams.set("keyvalues[type]", "meta");
+    for (const k in extra) u.searchParams.set("keyvalues[" + k + "]", extra[k]);
+    if (limit) u.searchParams.set("limit", String(limit));
     const r = await fetch(u, { headers: auth });
-    if (!r.ok) throw new Error("pinList failed: " + r.status);
-    return (await r.json()).rows || [];
+    if (!r.ok) throw new Error("list failed: " + r.status);
+    return ((await r.json()).data || {}).files || [];
   }
 
-  async function fetchMeta(cid) {
+  async function fetchJson(cid) {
     const r = await fetch(`${gateway}/ipfs/${cid}`);
     if (!r.ok) return null;
     return r.json().catch(() => null);
@@ -74,25 +51,29 @@ export function PinataAdapter(env) {
 
   return {
     async save({ id, image, record }) {
-      const imageCid = await pinFile(id, image);
-      const imageUrl = `${gateway}/ipfs/${imageCid}`;
-      const full = { ...record, image: imageUrl, thumb: imageUrl, imageCid, backend: "pinata" };
-      await pinMeta(full);
+      const imgBlob = new Blob([image.bytes], { type: image.contentType || "image/png" });
+      const img = await upload(imgBlob, id + ".png", { app: APP_TAG, type: "image", id });
+      const imageUrl = `${gateway}/ipfs/${img.cid}`;
+      const full = { ...record, image: imageUrl, thumb: imageUrl, imageCid: img.cid, backend: "pinata" };
+      const metaBlob = new Blob([JSON.stringify(full)], { type: "application/json" });
+      await upload(metaBlob, id + ".json", {
+        app: APP_TAG, type: "meta", id,
+        labId: record.labId || "", parentId: record.parentId || "",
+      });
       return full;
     },
     async get(id) {
-      const rows = await queryPins({ id: { value: id, op: "eq" } }, 1);
-      if (!rows.length) return null;
-      return fetchMeta(rows[0].ipfs_pin_hash);
+      const files = await queryFiles({ id }, 1);
+      if (!files.length) return null;
+      return fetchJson(files[0].cid);
     },
     async getImage() {
       return null; // images are served directly from the gateway URL
     },
     async list({ limit }) {
-      const rows = await queryPins({}, limit);
-      rows.sort((a, b) => new Date(b.date_pinned) - new Date(a.date_pinned));
-      const items = await Promise.all(rows.map((row) => fetchMeta(row.ipfs_pin_hash)));
-      return items.filter(Boolean);
+      const files = await queryFiles({}, limit);
+      const items = await Promise.all(files.map((f) => fetchJson(f.cid)));
+      return items.filter(Boolean).sort((a, b) => b.ts - a.ts);
     },
   };
 }
