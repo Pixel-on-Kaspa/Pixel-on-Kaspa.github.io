@@ -259,6 +259,7 @@
             <button class="btn btnSm" id="btnClearOv" type="button">Clear overrides</button>
             <button class="btn btnSm" id="btnShot" type="button">PNG</button>
             <button class="btn btnPrimary btnSm" id="btnShareX" type="button">Share on X ↗</button>
+            <button class="btn btnPrimary btnSm" id="btnPublish" type="button">✦ Publish</button>
             <button class="btn btnSm btnRec" id="btnRec" type="button">REC 8s</button>
             <button class="btn btnSm" id="btnCopy" type="button">Copy share URL</button>
           </div>
@@ -395,6 +396,7 @@
   <!-- p5 (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
   <script src="/js/share.js"></script>
+  <script src="/js/gallery.js"></script>
 
 <script>
 (() => {
@@ -1419,6 +1421,27 @@
       url: 'https://pixel-on-kaspa.fyi/sykora-lab.html',
       hashtags: ['generative', 'creativecoding'],
       filenamePrefix: 'sykora-pixel-on-kaspa'
+    });
+  }
+
+  // ── PixelLab interface: publish / remix / rehydrate ──
+  if (window.PixelGallery) {
+    PixelGallery.registerLab({
+      id: 'sykora-lab',
+      name: 'SÝKORA Lab',
+      labUrl: '/sykora-lab.html',
+      title: 'SÝKORA Grid',
+      publishButtonId: 'btnPublish',
+      renderThumbnail: () => p5instance.canvas.toDataURL('image/png'),
+      captureState: () => Object.assign({}, state, { _ov: encodeOverrides() }),
+      restoreState: (st) => {
+        for (const k of Object.keys(defaults)) { if (st[k] != null) state[k] = st[k]; }
+        overrides = {};
+        if (st._ov) decodeOverrides(st._ov);
+        syncSliders();
+        syncGroups();
+        commitAndRedraw();
+      }
     });
   }
 

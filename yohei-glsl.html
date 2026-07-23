@@ -232,6 +232,7 @@
   </style>
   <script defer src="https://cloud.umami.is/script.js" data-website-id="6ee0e9a9-7066-4115-b91d-5667d8042abe"></script>
   <script src="/js/share.js"></script>
+  <script src="/js/gallery.js"></script>
 </head>
 <body>
 
@@ -252,6 +253,7 @@
     <button class="btn btnPrimary" id="btnPause" type="button">Pause</button>
     <button class="btn" id="btnShot" type="button">PNG</button>
     <button class="btn btnPrimary" id="btnShareX" type="button">Share on X ↗</button>
+    <button class="btn btnPrimary" id="btnPublish" type="button">✦ Publish</button>
     <button class="btn" id="btnReset" type="button">Reset</button>
     <button class="btn" id="btnCopy" type="button">Copy URL</button>
     <button class="btn btnGhost btnRec" id="btnRec" type="button">REC 8s</button>
@@ -1119,6 +1121,25 @@ void main(){
       url: "https://pixel-on-kaspa.fyi/yohei-glsl.html",
       hashtags: ["creativecoding", "glsl"],
       filenamePrefix: "yohei-pixel-on-kaspa"
+    });
+  }
+
+  // ── PixelLab interface: publish / remix / rehydrate ──
+  if(window.PixelGallery){
+    PixelGallery.registerLab({
+      id: "yohei-glsl",
+      name: "Yohei GLSL",
+      labUrl: "/yohei-glsl.html",
+      title: "Yohei Raymarch",
+      publishButtonId: "btnPublish",
+      renderThumbnail: shareDataURL,
+      captureState: () => { const s = Object.assign({}, params); s.shader = currentShader; return s; },
+      restoreState: (st) => {
+        if(st.shader === 2){ document.getElementById("btnShader2").click(); }
+        else { document.getElementById("btnShader1").click(); }
+        allIds.forEach(id => { if(st[id] != null && el[id]) el[id].value = String(st[id]); });
+        commit();
+      }
     });
   }
 
