@@ -6,6 +6,7 @@ compatibility_date = "2026-07-01"
 [vars]
 STORAGE = "pinata"
 PINATA_GATEWAY = "https://fuchsia-genuine-stingray-776.mypinata.cloud"
+PINATA_GROUP_ID = "673ae097-8e99-4c4e-81bd-fd4c7c08b0f3"   # "pixel-gallery" group
 
 # PINATA_JWT is a SECRET — never put it here. Set it with:
 #   npx wrangler secret put PINATA_JWT

@@ -18,6 +18,7 @@ const APP_TAG = "pixel-gallery";
 export function PinataAdapter(env) {
   const JWT = env.PINATA_JWT;
   const gateway = (env.PINATA_GATEWAY || "https://gateway.pinata.cloud").replace(/\/+$/, "");
+  const groupId = env.PINATA_GROUP_ID || null;   // keeps all gallery files in one Pinata group
   if (!JWT) throw new Error("PINATA_JWT not configured");
   const auth = { Authorization: "Bearer " + JWT };
 
@@ -27,6 +28,7 @@ export function PinataAdapter(env) {
     form.append("network", "public");
     form.append("name", filename);
     form.append("keyvalues", JSON.stringify(keyvalues));
+    if (groupId) form.append("group_id", groupId);
     const r = await fetch(UPLOAD, { method: "POST", headers: auth, body: form });
     if (!r.ok) throw new Error("upload failed: " + r.status + " " + (await r.text()));
     return (await r.json()).data; // { id, cid, ... }
