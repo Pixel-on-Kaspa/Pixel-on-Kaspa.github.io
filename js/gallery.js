@@ -18,6 +18,11 @@
   var KEY = "pixel_gallery_v1";
   var MAX_ITEMS = 40;          // stub-only cap so we never blow localStorage
   var THUMB_SIZE = 520;        // stub-only downscale for stored thumbnails
+  // Published images are downscaled+recompressed before hitting the Worker so a
+  // 2x lossless PNG from a high-entropy Lab (e.g. the Yohei raymarcher) can't
+  // exceed the Worker's 8 MB cap — and pins stay small (Pinata quota).
+  var PUBLISH_MAX_EDGE = 1280;
+  var PUBLISH_QUALITY = 0.9;
 
   /* ── backend selection ────────────────────────────────────────────────
      If an API base is configured, the browser talks ONLY to the Worker and
@@ -69,7 +74,7 @@
     }
   }
 
-  function makeThumb(dataURL, size) {
+  function makeThumb(dataURL, size, quality) {
     return new Promise(function (resolve) {
       var img = new Image();
       img.onload = function () {
@@ -78,7 +83,7 @@
         c.width = Math.max(1, Math.round(img.width * s));
         c.height = Math.max(1, Math.round(img.height * s));
         c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        try { resolve(c.toDataURL("image/jpeg", 0.85)); }
+        try { resolve(c.toDataURL("image/jpeg", quality == null ? 0.85 : quality)); }
         catch (e) { resolve(dataURL); }
       };
       img.onerror = function () { resolve(dataURL); };
@@ -127,11 +132,14 @@
   /* ── WORKER backend (platform API) ────────────────────────────────────
      The browser never touches storage — it only speaks /api/v1 to the Worker. */
   function workerPublish(payload) {
-    return fetch(API_BASE + "/api/v1/publish", {
+    // Bound the image before upload: downscale to a max edge + JPEG so a 2x
+    // lossless PNG can't exceed the Worker's 8 MB cap (returns 413 otherwise).
+    return makeThumb(payload.pngDataURL, PUBLISH_MAX_EDGE, PUBLISH_QUALITY).then(function (png) {
+      return fetch(API_BASE + "/api/v1/publish", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        png: payload.pngDataURL,
+        png: png,
         patch: payload.patch,
         lab: payload.lab,
         labId: payload.labId,
@@ -148,6 +156,7 @@
           item: d.item,
         };
       });
+    });
     });
   }
   function workerList() {
