@@ -33,9 +33,22 @@
   main{max-width:1200px; margin:0 auto; padding:28px 24px 80px}
 
   /* ── grid ── */
-  .lead{margin:0 0 22px}
+  .lead{margin:0 0 18px}
   .lead h1{margin:0 0 6px; font-size:22px; letter-spacing:.02em}
   .lead p{margin:0; color:var(--muted); font-size:14px; line-height:1.5; max-width:640px}
+
+  /* ── discovery controls ── */
+  .controls{display:flex; flex-wrap:wrap; align-items:center; gap:12px 18px; margin:0 0 22px}
+  .seg{display:inline-flex; gap:2px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:3px}
+  .seg button{background:transparent; border:none; color:var(--muted); font:inherit; font-size:12.5px; padding:6px 13px; border-radius:8px; cursor:pointer}
+  .seg button:hover{color:var(--text)}
+  .seg button.on{background:var(--accent); color:#04121b; font-weight:600}
+  .labs{display:flex; flex-wrap:wrap; gap:8px}
+  .chip{background:var(--panel); border:1px solid var(--line); color:var(--muted); font:inherit; font-size:12px; padding:6px 12px; border-radius:999px; cursor:pointer; transition:border-color .15s ease, color .15s ease}
+  .chip:hover{color:var(--text); border-color:#2f4368}
+  .chip.on{border-color:var(--accent); color:var(--text)}
+  .count{margin-left:auto; font-size:12px; color:var(--muted2); font-family:var(--mono)}
+  .meta .s .rmx{color:var(--accent)}
   .grid{
     display:grid; gap:14px;
     grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));
@@ -111,25 +124,105 @@
     return Math.floor(d / 86400) + "d ago";
   }
 
+  // discovery-lite state, seeded from (and reflected back to) the URL so a
+  // sorted/filtered view is itself a shareable link.
+  var state = { sort: params.get("sort") === "remixed" ? "remixed" : "new",
+                lab: params.get("lab") || "all" };
+
+  function syncURL() {
+    var p = new URLSearchParams();
+    if (state.sort !== "new") p.set("sort", state.sort);
+    if (state.lab !== "all") p.set("lab", state.lab);
+    var qs = p.toString();
+    history.replaceState(null, "", location.pathname + (qs ? "?" + qs : ""));
+  }
+
+  // remix count per item id, from the whole (unfiltered) set
+  function remixMap(all) {
+    var m = {};
+    all.forEach(function (x) { if (x.parentId) m[x.parentId] = (m[x.parentId] || 0) + 1; });
+    return m;
+  }
+
+  function card(it, rmx) {
+    var n = rmx[it.id] || 0;
+    var sub = esc(it.lab) + ' · ' + ago(it.ts) +
+      (n ? ' · <span class="rmx">✦ ' + n + '</span>' : '');
+    return '<a class="card" href="/gallery.html?item=' + encodeURIComponent(it.id) + '">' +
+      '<img class="thumb" loading="lazy" alt="' + esc(it.title) + '" src="' + it.thumb + '">' +
+      '<div class="meta"><p class="t">' + esc(it.title) + '</p>' +
+      '<span class="s">' + sub + '</span></div></a>';
+  }
+
   function renderGrid() {
-    PixelGallery.list().then(function (items) {
-      if (!items.length) {
+    PixelGallery.list().then(function (all) {
+      if (!all.length) {
         view.innerHTML =
           '<div class="empty"><h2>No creations yet</h2>' +
           '<p>Make something in a Lab and hit <b>Publish</b> — it lands here as a permanent, shareable page.</p>' +
           '<p style="margin-top:16px"><a href="/synthi/visual-engine.html">Open SYNTHI Visual Engine →</a></p></div>';
         return;
       }
-      var cards = items.map(function (it) {
-        return '<a class="card" href="/gallery.html?item=' + encodeURIComponent(it.id) + '">' +
-          '<img class="thumb" loading="lazy" alt="' + esc(it.title) + '" src="' + it.thumb + '">' +
-          '<div class="meta"><p class="t">' + esc(it.title) + '</p>' +
-          '<span class="s">' + esc(it.lab) + ' · ' + ago(it.ts) + '</span></div></a>';
-      }).join("");
-      view.innerHTML =
-        '<div class="lead"><h1>Gallery</h1>' +
-        '<p>Creations made in the Labs. Hit <b>Remix</b> on any piece to open it in its Lab, change the parameters, and publish your own version — every remix keeps a link back to the original.</p></div>' +
-        '<div class="grid">' + cards + '</div>';
+      var rmx = remixMap(all);
+
+      // distinct Labs present, keyed by stable labId (fallback to display name)
+      var labs = [], seen = {};
+      all.forEach(function (x) {
+        var key = x.labId || x.lab;
+        if (key && !seen[key]) { seen[key] = 1; labs.push({ key: key, name: x.lab }); }
+      });
+      labs.sort(function (a, b) { return a.name.localeCompare(b.name); });
+      // an unknown lab in the URL falls back to "all"
+      if (state.lab !== "all" && !seen[state.lab]) state.lab = "all";
+
+      function draw() {
+        var items = all.filter(function (x) {
+          return state.lab === "all" || (x.labId || x.lab) === state.lab;
+        });
+        if (state.sort === "remixed") {
+          items = items.slice().sort(function (a, b) {
+            return ((rmx[b.id] || 0) - (rmx[a.id] || 0)) || (b.ts - a.ts);
+          });
+        } else {
+          items = items.slice().sort(function (a, b) { return b.ts - a.ts; });
+        }
+
+        var chips = '<button class="chip' + (state.lab === "all" ? " on" : "") +
+          '" data-lab="all">All</button>' +
+          labs.map(function (l) {
+            return '<button class="chip' + (state.lab === l.key ? " on" : "") +
+              '" data-lab="' + esc(l.key) + '">' + esc(l.name) + '</button>';
+          }).join("");
+
+        var grid = items.length
+          ? '<div class="grid">' + items.map(function (it) { return card(it, rmx); }).join("") + '</div>'
+          : '<div class="empty"><h2>Nothing here yet</h2><p>No creations from this Lab so far.</p></div>';
+
+        view.innerHTML =
+          '<div class="lead"><h1>Gallery</h1>' +
+          '<p>Creations made in the Labs. Hit <b>Remix</b> on any piece to open it in its Lab, change the parameters, and publish your own version — every remix keeps a link back to the original.</p></div>' +
+          '<div class="controls">' +
+            '<div class="seg" id="sortSeg">' +
+              '<button data-sort="new"' + (state.sort === "new" ? ' class="on"' : '') + '>New</button>' +
+              '<button data-sort="remixed"' + (state.sort === "remixed" ? ' class="on"' : '') + '>Most remixed</button>' +
+            '</div>' +
+            '<div class="labs" id="labChips">' + chips + '</div>' +
+            '<span class="count">' + items.length + ' piece' + (items.length === 1 ? '' : 's') + '</span>' +
+          '</div>' + grid;
+
+        view.querySelector("#sortSeg").addEventListener("click", function (e) {
+          var b = e.target.closest("button[data-sort]"); if (!b) return;
+          if (state.sort === b.getAttribute("data-sort")) return;
+          state.sort = b.getAttribute("data-sort"); syncURL(); draw();
+        });
+        view.querySelector("#labChips").addEventListener("click", function (e) {
+          var b = e.target.closest("button[data-lab]"); if (!b) return;
+          if (state.lab === b.getAttribute("data-lab")) return;
+          state.lab = b.getAttribute("data-lab"); syncURL(); draw();
+        });
+      }
+
+      draw();
     });
   }
 
