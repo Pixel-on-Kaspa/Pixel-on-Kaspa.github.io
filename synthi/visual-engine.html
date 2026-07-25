@@ -117,8 +117,8 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
     <button class="btn" id="btnUnison">UNISON</button>
     <button class="btn" id="btnSync">⟳ SYNC</button>
     <span style="font-size:11px;color:var(--muted)">VOL</span>
-    <input type="range" id="masterVol" min="0" max="1" step="0.01" value="0.7" style="width:72px">
-    <span id="masterVolV" style="font-size:11px;color:var(--accent);font-family:var(--mono);width:30px">0.70</span>
+    <input type="range" id="masterVol" min="0" max="1" step="0.01" value="0.05" style="width:72px">
+    <span id="masterVolV" style="font-size:11px;color:var(--accent);font-family:var(--mono);width:30px">0.05</span>
   </div>
   <div id="statusBar">— stopped —</div>
 </div>
@@ -256,7 +256,7 @@ const oState = [
   { wave:"sine", freq:0.439340, det:0, vol:.1, on:true, pan:-1, phase:0 },
   { wave:"sine", freq:0.497450, det:0, vol:.1, on:true, pan:+1, phase:1.5708 },
 ];
-let masterVol = 0.70;
+let masterVol = 0.05;
 
 let nd = null;
 /* ── BUILD AUDIO GRAPH ── */
