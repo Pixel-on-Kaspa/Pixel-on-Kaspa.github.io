@@ -119,6 +119,45 @@
     .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
     .btnSm{padding:8px 12px;font-size:13px}
 
+    /* collapsible control groups */
+    details.group{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);border-radius:14px;padding:4px 12px;margin-top:10px}
+    details.group>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:900;opacity:.82;padding:8px 0}
+    details.group>summary::-webkit-details-marker{display:none}
+    details.group[open]>summary{opacity:1}
+    details.group>summary .chev{transition:transform .18s ease;opacity:.6}
+    details.group[open]>summary .chev{transform:rotate(180deg)}
+    .grpItems{padding-bottom:8px}
+    /* clean rows inside a group (the group is the card — drop nested boxes) */
+    .grpItems .ctrl{border:none;background:transparent;padding:2px 0 0;margin-top:13px}
+    .grpItems .ctrl:first-child{margin-top:4px}
+    .ctrlHead{margin-bottom:7px}
+    select{width:100%;background:rgba(0,0,0,.35);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:8px;font:inherit;font-size:13px}
+    select:focus{outline:none;border-color:var(--accent)}
+    details.group[open]{border-color:rgba(0,196,255,.22)}
+
+    /* value read-out as a monospace accent pill */
+    .ctrlVal{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--accent);
+      background:rgba(0,196,255,.10);border:1px solid rgba(0,196,255,.22);padding:2px 8px;border-radius:999px;
+      min-width:46px;text-align:center;opacity:1}
+
+    /* instrument-grade range sliders (accent-filled track + glowing thumb) */
+    input[type="range"]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;cursor:pointer;margin:0}
+    input[type="range"]::-webkit-slider-runnable-track{height:5px;border-radius:999px;
+      background:linear-gradient(90deg,var(--accent) 0,var(--accent) var(--p,50%),rgba(255,255,255,.14) var(--p,50%),rgba(255,255,255,.14) 100%)}
+    input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:15px;height:15px;margin-top:-5px;
+      border-radius:50%;background:#eaf7ff;border:2px solid var(--accent);
+      box-shadow:0 0 0 3px rgba(0,196,255,.16),0 0 12px rgba(0,196,255,.55)}
+    input[type="range"]::-moz-range-track{height:5px;border-radius:999px;background:rgba(255,255,255,.14)}
+    input[type="range"]::-moz-range-progress{height:5px;border-radius:999px;background:var(--accent)}
+    input[type="range"]::-moz-range-thumb{width:15px;height:15px;border:2px solid var(--accent);background:#eaf7ff;border-radius:50%;
+      box-shadow:0 0 10px rgba(0,196,255,.5)}
+    input[type="range"]:focus{outline:none}
+
+    /* accent mark on the brand + a glow frame around the artwork */
+    .brand::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--accent);
+      box-shadow:0 0 10px var(--accent);align-self:center}
+    #sketchWrap{box-shadow:inset 0 0 0 1px rgba(0,196,255,.12), 0 12px 44px rgba(0,0,0,.55)}
+
     /* REC button active state */
     .btnRec.recording{
       border-color: rgba(255,60,60,.80);
@@ -198,7 +237,9 @@
           </div>
 
           <div class="muted" style="margin-top:10px;line-height:1.55">
-            Original one-liner by <b>Koma Tebe</b> (@KomaTebe). Controls affect real geometry: step, warp, rotation, zoom, persistence.
+            Original one-liner by <b>Koma Tebe</b> (@KomaTebe), rebuilt as a deep generator.
+            Controls reshape the field itself — harmonics, cross-modulation, warp, flow, colour, symmetry.
+            The <b>Coverage</b> group closes the moving dark void; <b>Randomize</b> explores the whole space.
           </div>
 
           <pre class="muted" id="creditCode"></pre>
@@ -212,64 +253,7 @@
         </div>
         <div class="panelBody">
 
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Speed</div><div class="ctrlVal" id="vSpeed">—</div></div>
-            <input id="speed" type="range" min="0.00" max="3.00" step="0.01" value="1.00">
-          </div>
-
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Zoom</div><div class="ctrlVal" id="vZoom">—</div></div>
-            <input id="zoom" type="range" min="0.60" max="2.20" step="0.01" value="1.00">
-          </div>
-
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Step</div><div class="ctrlVal" id="vStep">—</div></div>
-            <input id="step" type="range" min="0.010" max="0.120" step="0.001" value="0.049">
-            <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
-              Angular sampling step (PI/64 originally ≈ 0.0491). Smaller = denser structure.
-            </div>
-          </div>
-
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Dot size</div><div class="ctrlVal" id="vDot">—</div></div>
-            <input id="dot" type="range" min="1.0" max="10.0" step="0.1" value="4.0">
-          </div>
-
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Warp</div><div class="ctrlVal" id="vWarp">—</div></div>
-            <input id="warp" type="range" min="0.0" max="2.4" step="0.01" value="1.0">
-            <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
-              Multiplies the sin/cos deformation terms (changes forms a lot).
-            </div>
-          </div>
-
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Rotation</div><div class="ctrlVal" id="vRot">—</div></div>
-            <input id="rot" type="range" min="-3.14" max="3.14" step="0.01" value="0.0">
-          </div>
-
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Persistence (fade)</div><div class="ctrlVal" id="vFade">—</div></div>
-            <input id="fade" type="range" min="0" max="255" step="1" value="8">
-            <div class="muted" style="margin-top:8px;font-size:12px;line-height:1.5">
-              Lower = longer trails. Higher = cleaner frames.
-            </div>
-          </div>
-
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Invert XY</div><div class="ctrlVal" id="vInv">—</div></div>
-            <input id="invert" type="range" min="0" max="1" step="1" value="1">
-          </div>
-
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Seed</div><div class="ctrlVal" id="vSeed">—</div></div>
-            <input id="seed" type="range" min="0" max="9999" step="1" value="1337">
-          </div>
-
-          <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Canvas size</div><div class="ctrlVal" id="vSize">—</div></div>
-            <input id="size" type="range" min="260" max="760" step="10" value="400">
-          </div>
+          <div id="controlsHost"></div>
 
         </div>
       </div>
@@ -284,92 +268,136 @@
 
 <script>
 (() => {
-  const KEY = "koma_p5_params_v2";
-  const ids = ["speed","zoom","step","dot","warp","rot","fade","invert","seed","size"];
+  const KEY = "koma_p5_params_v3";
 
-  const el = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
+  // ── control schema — drives the UI, params, URL, storage AND gallery capture.
+  //    Every new param defaults to a no-op so already-published pieces are unchanged.
+  //    R=range, N=integer range, SEL=enum select (stored as an integer index). ──
+  const R   = (id,label,min,max,step,def,dec,unit)=>({id,label,type:"range",min,max,step,def,dec:(dec==null?2:dec),unit:unit||""});
+  const N   = (id,label,min,max,step,def,unit)=>({id,label,type:"range",min,max,step,def,int:true,unit:unit||""});
+  const SEL = (id,label,options,def)=>({id,label,type:"select",options,def,min:0,max:options.length-1,int:true});
+
+  const GROUPS = [
+    { name:"Form", items:[
+      R("zoom","Zoom",0.60,2.20,0.01,1.00),
+      R("step","Step",0.010,0.120,0.001,0.049,3),
+      R("warp","Warp Y",0.0,2.4,0.01,1.0),
+      R("warpX","Warp X",0.0,2.4,0.01,0.0),
+      N("harmonics","Harmonics",1,4,1,1),
+      R("freqI","Freq ratio",0.5,3.0,0.01,1.0),
+      R("jMod","Cross-mod",0.0,2.0,0.01,0.0),
+    ]},
+    { name:"Motion", items:[
+      R("speed","Speed",0.00,3.00,0.01,1.00),
+      R("rot","Rotation",-3.14,3.14,0.01,0.0),
+      R("flow","Flow",0.0,1.5,0.01,0.0),
+      SEL("timeShape","Time",["linear","breathe"],0),
+    ]},
+    { name:"Coverage", items:[
+      R("fill","Fill hole",0,1,0.01,0),
+      N("layers","Layers",1,2,1,1),
+    ]},
+    { name:"Render", items:[
+      R("dot","Dot size",1.0,10.0,0.1,4.0,1),
+      N("fade","Persistence",0,255,1,8),
+      SEL("invert","Invert XY",["off","on"],1),
+      SEL("blend","Blend",["add","screen","normal"],0),
+      SEL("dotShape","Shape",["dot","streak"],0),
+      N("hue","Hue",0,360,1,0),
+      N("sat","Saturation",0,100,1,0),
+      N("hueSpread","Hue spread",0,360,1,0),
+    ]},
+    { name:"Symmetry", items:[
+      SEL("mirror","Mirror",["off","mirror 2","mirror 4","radial 6","radial 8"],0),
+    ]},
+    { name:"Output", items:[
+      N("seed","Seed",0,9999,1,1337),
+      N("size","Canvas",260,760,10,400,"px"),
+    ]},
+  ];
+
+  const meta = {}, ids = [], defaults = {};
+  GROUPS.forEach(g=>g.items.forEach(it=>{ meta[it.id]=it; ids.push(it.id); defaults[it.id]=it.def; }));
+
   const status = document.getElementById("status");
   const shareHint = document.getElementById("shareHint");
-
   const num = (v)=>{ const x = parseFloat(v); return Number.isFinite(x) ? x : null; };
 
-  const defaults = {
-    speed: 1.00,
-    zoom:  1.00,
-    step:  0.049,   // ~ PI/64
-    dot:   4.0,
-    warp:  1.00,
-    rot:   0.00,
-    fade:  8,
-    invert: 1,
-    seed:  1337,
-    size:  400
-  };
+  // ── build the control DOM (collapsible groups) ──
+  const controlsHost = document.getElementById("controlsHost");
+  function makeControl(it){
+    const ctrl = document.createElement("div"); ctrl.className = "ctrl";
+    const head = document.createElement("div"); head.className = "ctrlHead";
+    head.innerHTML = `<div class="ctrlTitle">${it.label}</div><div class="ctrlVal" id="v_${it.id}">—</div>`;
+    ctrl.appendChild(head);
+    let input;
+    if(it.type === "select"){
+      input = document.createElement("select");
+      it.options.forEach((o,idx)=>{ const op = document.createElement("option"); op.value = String(idx); op.textContent = o; input.appendChild(op); });
+    } else {
+      input = document.createElement("input"); input.type = "range";
+      input.min = String(it.min); input.max = String(it.max); input.step = String(it.step);
+    }
+    input.id = it.id; input.value = String(it.def);
+    ctrl.appendChild(input);
+    return ctrl;
+  }
+  GROUPS.forEach((grp,gi)=>{
+    const det = document.createElement("details"); det.className = "group"; det.open = gi < 3;
+    const sum = document.createElement("summary");
+    sum.innerHTML = `<span>${grp.name}</span><span class="chev">▾</span>`;
+    det.appendChild(sum);
+    const box = document.createElement("div"); box.className = "grpItems";
+    grp.items.forEach(it=>box.appendChild(makeControl(it)));
+    det.appendChild(box);
+    controlsHost.appendChild(det);
+  });
 
+  const el = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
   const params = Object.assign({}, defaults);
 
   function readUrl(){
-    const u = new URL(location.href);
-    const out = {};
-    ids.forEach(id=>{
-      const v = num(u.searchParams.get(id));
-      if(v != null) out[id]=v;
-    });
+    const u = new URL(location.href), out = {};
+    ids.forEach(id=>{ const v = num(u.searchParams.get(id)); if(v != null) out[id]=v; });
     return out;
   }
-  function readStore(){
-    try{ return JSON.parse(localStorage.getItem(KEY) || "{}"); }catch{ return {}; }
-  }
-  function writeStore(){
-    try{ localStorage.setItem(KEY, JSON.stringify(params)); }catch{}
-  }
+  function readStore(){ try{ return JSON.parse(localStorage.getItem(KEY) || "{}"); }catch{ return {}; } }
+  function writeStore(){ try{ localStorage.setItem(KEY, JSON.stringify(params)); }catch{} }
   function writeUrl(){
     const u = new URL(location.href);
     ids.forEach(id=>u.searchParams.delete(id));
     ids.forEach(id=>u.searchParams.set(id, String(params[id])));
     history.replaceState(null,"",u.toString());
   }
-
   function clampToSlider(id, v){
-    const e = el[id];
-    if(!e) return v;
-    const mn = num(e.min), mx = num(e.max);
-    if(mn != null) v = Math.max(mn, v);
-    if(mx != null) v = Math.min(mx, v);
-    if(id==="fade" || id==="invert" || id==="seed" || id==="size") v = Math.round(v);
+    const it = meta[id]; if(!it) return v;
+    if(v == null) v = it.def;
+    v = Math.max(it.min, Math.min(it.max, v));
+    if(it.int || it.type === "select") v = Math.round(v);
     return v;
   }
-
-  function setTxt(id, txt){
-    const x = document.getElementById(id);
-    if(x) x.textContent = txt;
+  function fmtVal(it, v){
+    if(it.type === "select") return it.options[v] != null ? it.options[v] : String(v);
+    if(it.int) return String(v) + it.unit;
+    return v.toFixed(it.dec) + it.unit;
   }
-
   function renderVals(){
-    setTxt("vSpeed", params.speed.toFixed(2));
-    setTxt("vZoom",  params.zoom.toFixed(2));
-    setTxt("vStep",  params.step.toFixed(3));
-    setTxt("vDot",   params.dot.toFixed(1));
-    setTxt("vWarp",  params.warp.toFixed(2));
-    setTxt("vRot",   params.rot.toFixed(2));
-    setTxt("vFade",  String(params.fade));
-    setTxt("vInv",   params.invert ? "ON" : "OFF");
-    setTxt("vSeed",  String(params.seed));
-    setTxt("vSize",  `${params.size}px`);
+    ids.forEach(id=>{ const s = document.getElementById("v_"+id); if(s) s.textContent = fmtVal(meta[id], params[id]); });
   }
-
+  function paintRange(id){
+    const it = meta[id], e = el[id];
+    if(!it || !e || it.type === "select") return;
+    const pct = ((params[id] - it.min) / (it.max - it.min)) * 100;
+    e.style.setProperty("--p", Math.max(0, Math.min(100, pct)) + "%");
+  }
   function commit(){
-    ids.forEach(id=>{
-      const v = num(el[id]?.value);
-      params[id] = clampToSlider(id, v == null ? defaults[id] : v);
-    });
-    writeStore();
-    writeUrl();
-    renderVals();
+    ids.forEach(id=>{ params[id] = clampToSlider(id, num(el[id]?.value)); });
+    writeStore(); writeUrl(); renderVals();
+    ids.forEach(paintRange);
   }
 
   Object.assign(params, readStore(), readUrl());
-  ids.forEach(id=>{ if(el[id]) el[id].value = String(params[id]); });
+  ids.forEach(id=>{ if(el[id]) el[id].value = String(clampToSlider(id, params[id])); });
   commit();
   ids.forEach(id=> el[id]?.addEventListener("input", commit));
 
@@ -378,9 +406,7 @@
       await navigator.clipboard.writeText(location.href);
       shareHint.textContent = "Copied!";
       setTimeout(()=>shareHint.textContent="share: URL params", 900);
-    }catch{
-      shareHint.textContent = "Copy failed";
-    }
+    }catch{ shareHint.textContent = "Copy failed"; }
   });
 
   document.getElementById("btnReset").addEventListener("click", ()=>{
@@ -389,16 +415,19 @@
     commit();
   });
 
+  const rnd = (a,b)=> a + Math.random()*(b-a);
   document.getElementById("btnRand").addEventListener("click", ()=>{
-    // randomize only "form" parameters (keep size sane)
-    params.seed = Math.floor(Math.random()*10000);
-    params.step = clampToSlider("step", 0.020 + Math.random()*0.070);
-    params.warp = clampToSlider("warp", Math.random()*2.2);
-    params.rot  = clampToSlider("rot", -3.14 + Math.random()*6.28);
-    params.zoom = clampToSlider("zoom", 0.80 + Math.random()*1.20);
-    params.dot  = clampToSlider("dot", 2.0 + Math.random()*6.0);
-    params.fade = clampToSlider("fade", Math.floor(2 + Math.random()*26));
-    ids.forEach(id=>{ if(el[id]) el[id].value = String(params[id]); });
+    const set = {
+      seed: Math.floor(Math.random()*10000),
+      step: rnd(0.020,0.090), warp: rnd(0,2.2), warpX: Math.random()<0.5?0:rnd(0,1.6),
+      rot: rnd(-3.14,3.14), zoom: rnd(0.8,1.8), dot: rnd(2,7), fade: Math.floor(rnd(2,28)),
+      harmonics: Math.floor(rnd(1,4.99)), freqI: rnd(0.7,2.4), jMod: Math.random()<0.5?0:rnd(0,1.4),
+      fill: Math.random()<0.5?0:rnd(0,0.8), layers: Math.random()<0.3?2:1,
+      dotShape: Math.random()<0.25?1:0, blend: Math.floor(rnd(0,2.99)),
+      mirror: Math.random()<0.4?Math.floor(rnd(1,4.99)):0,
+    };
+    if(Math.random()<0.5){ set.sat = Math.floor(rnd(30,90)); set.hue = Math.floor(rnd(0,360)); set.hueSpread = Math.floor(rnd(0,220)); }
+    Object.keys(set).forEach(id=>{ params[id] = clampToSlider(id, set[id]); if(el[id]) el[id].value = String(params[id]); });
     commit();
   });
 
@@ -411,7 +440,7 @@ for(i=0;i<P;i+=B)n=(f+cos(j+f))%B,g=f+cos(i+n),x=(i+n)*(W/P),y=(j+2*sin(g))*(W/P
 circle(y,x,4*cos(g));f+=B/8}`;
 
   document.getElementById("creditCode").textContent =
-`Original by Koma Tebe (@KomaTebe)\n${originalOneLiner}\n\nAdapted: added UI + parameters (zoom/step/warp/rot/fade/seed).`;
+`Original by Koma Tebe (@KomaTebe)\n${originalOneLiner}\n\nAdapted: field harmonics, cross-mod, warp X/Y, flow, coverage, HSB colour, streaks, symmetry.`;
 
   let p5instance = null;
 
@@ -425,105 +454,119 @@ circle(y,x,4*cos(g));f+=B/8}`;
       const cnv = p.createCanvas(W, W);
       cnv.parent(wrap);
       p.pixelDensity(Math.min(2, window.devicePixelRatio || 1));
+      p.colorMode(p.HSB, 360, 100, 100, 255);
       p.noStroke();
       p.background(0);
       status.textContent = `running • seed ${params.seed}`;
     };
 
     function ensureSize(){
-      if(params.size !== W){
-        W = params.size;
-        p.resizeCanvas(W, W);
-        p.background(0);
-      }
+      if(params.size !== W){ W = params.size; p.resizeCanvas(W, W); p.background(0); }
     }
 
     function softFade(){
-      // draw black rectangle with alpha = fade
-      const a = params.fade;
-      if(a <= 0) return;
-      p.push();
-      p.blendMode(p.BLEND);
-      p.fill(0, a);
-      p.rect(0, 0, p.width, p.height);
-      p.pop();
+      const a = params.fade; if(a <= 0) return;
+      p.push(); p.blendMode(p.BLEND); p.fill(0,0,0,a); p.rect(0,0,p.width,p.height); p.pop();
+    }
+
+    // symmetry transforms, applied in center-origin space
+    function symList(mirror){
+      const T = Math.PI*2;
+      switch(mirror){
+        case 1: return [()=>{}, ()=>p.scale(-1,1)];
+        case 2: return [()=>{}, ()=>p.scale(-1,1), ()=>p.scale(1,-1), ()=>p.scale(-1,-1)];
+        case 3: return [0,1,2,3,4,5].map(k=>()=>p.rotate(T*k/6));
+        case 4: return [0,1,2,3,4,5,6,7].map(k=>()=>p.rotate(T*k/8));
+        default: return [()=>{}];
+      }
     }
 
     p.draw = () => {
       ensureSize();
+      if(paused){ softFade(); return; }
 
-      if(paused){
-        softFade(); // still allow slow decay
-        return;
-      }
-
-      // time
       t += (params.step * 0.25) * params.speed;
-
-      // persistence
       softFade();
 
-      // deterministic randomness
       p.randomSeed(params.seed);
       p.noiseSeed(params.seed);
 
-      const B = params.step;     // angular step
-      const P = Math.PI;         // PI
-      const TAU = Math.PI * 2;
+      const P = Math.PI, TAU = Math.PI*2, S = p.width;
+      const z = params.zoom, dot = params.dot, warp = params.warp, warpX = params.warpX;
+      const H = params.harmonics|0, freqI = params.freqI, jMod = params.jMod, flow = params.flow;
+      const invert = params.invert, fillv = params.fill, layers = params.layers|0;
+      const streak = params.dotShape === 1;
+      const sat = params.sat, hue = params.hue, hueSpread = params.hueSpread;
+      const tEff = params.timeShape === 1 ? t + 0.6*Math.sin(t*0.5) : t;
 
-      // mapping
-      const S = p.width;         // canvas size
-      const z = params.zoom;
-      const dotBase = params.dot;
-      const warp = params.warp;
+      const syms = symList(params.mirror);
 
-      // center + rotate
-      p.push();
-      p.translate(S/2, S/2);
-      p.rotate(params.rot);
-      p.translate(-S/2, -S/2);
+      // adaptive detail — keep circles-per-frame within a budget so heavy
+      // symmetry / harmonics / layers stay smooth (coarsen the angular step).
+      let B = params.step;
+      const per = ((TAU + P)/B) * (P/B);
+      const total = per * syms.length * (layers === 2 ? 2 : 1);
+      const BUDGET = 46000;
+      if(total > BUDGET) B *= Math.sqrt(total / BUDGET);
 
-      // brightness slightly tied to warp for nicer presence
-      p.blendMode(p.ADD);
-      p.fill(235, 235, 235, 22);
+      const bm = params.blend === 1 ? p.SCREEN : params.blend === 2 ? p.BLEND : p.ADD;
+      const alpha = params.blend === 0 ? 22 : params.blend === 1 ? 60 : 120;
+      p.blendMode(bm);
+      const white = p.color(0, 0, 100, alpha);
+      if(streak) p.noFill(); else p.noStroke();
 
-      // loops (same topology as original)
-      for(let j = -P; j < TAU; j += B){
-        for(let i = 0; i < P; i += B){
-          const n = (t + Math.cos(j + t)) % B;
-          const g = t + Math.cos(i + n);
-
-          // original mapping (x,y swapped in circle call)
-          let x = (i + n) * (S / P);
-          let y = (j + 2 * Math.sin(g) * warp) * (S / P);
-
-          // apply zoom around center
-          x = (x - S/2) * z + S/2;
-          y = (y - S/2) * z + S/2;
-
-          // invert (original did circle(y,x,...))
-          const px = params.invert ? y : x;
-          const py = params.invert ? x : y;
-
-          const r = Math.max(0.4, dotBase * Math.abs(Math.cos(g)));
-          p.circle(px, py, r);
+      function emit(i, j, n, g){
+        let disp = 0; for(let k=1;k<=H;k++) disp += Math.sin(k*g)/k;
+        disp *= 2*warp;
+        let x = (i + n) * (S/P);
+        let y = (j + disp) * (S/P);
+        if(warpX) x += warpX * Math.cos(g) * (S/P) * 0.5;
+        x = (x - S/2)*z + S/2;
+        y = (y - S/2)*z + S/2;
+        const px = invert ? y : x, py = invert ? x : y;
+        let r = dot * (fillv + (1 - fillv) * Math.abs(Math.cos(g)));
+        if(r < 0.4) r = 0.4;
+        const col = sat > 0
+          ? p.color(((((hue + hueSpread*Math.cos(g)) % 360) + 360) % 360), sat, 100, alpha)
+          : white;
+        if(streak){
+          p.stroke(col); p.strokeWeight(Math.max(0.6, r*0.5));
+          p.line(px, py, px + Math.cos(g)*r*2, py + Math.sin(g)*r*2);
+        } else {
+          p.fill(col); p.circle(px, py, r);
         }
       }
 
-      p.pop();
-      p.blendMode(p.BLEND);
+      function plotGrid(){
+        p.push();
+        p.translate(S/2, S/2); p.rotate(params.rot); p.translate(-S/2, -S/2);
+        for(let j = -P; j < TAU; j += B){
+          for(let i = 0; i < P; i += B){
+            let nb = tEff + Math.cos(j + tEff);
+            if(flow) nb += flow * (p.noise(i*0.7, j*0.7, tEff*0.12) - 0.5) * 3;
+            const n = nb % B;
+            const g = tEff + Math.cos(freqI*i + n) + jMod*Math.cos(j);
+            emit(i, j, n, g);
+            if(layers === 2) emit(i, j, n, g + Math.PI/2);
+          }
+        }
+        p.pop();
+      }
 
-      status.textContent = `running • seed ${params.seed} • step ${params.step.toFixed(3)} • warp ${params.warp.toFixed(2)}`;
+      for(const s of syms){
+        p.push();
+        p.translate(S/2, S/2); s(); p.translate(-S/2, -S/2);
+        plotGrid();
+        p.pop();
+      }
+
+      p.blendMode(p.BLEND);
+      status.textContent = `seed ${params.seed} • step ${params.step.toFixed(3)} • H${H} • ${['add','screen','normal'][params.blend]}${params.mirror ? ' • sym' : ''}`;
     };
 
-    // expose controls to buttons
     p._togglePause = () => { paused = !paused; };
     p._isPaused = () => paused;
-
-    p.windowResized = () => {
-      // keep canvas square but fill wrap
-      // (we keep fixed pixel size slider, so no auto resize here)
-    };
+    p.windowResized = () => {};
   }
 
   function rebuildSketch(){
