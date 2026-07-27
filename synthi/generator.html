@@ -98,6 +98,14 @@
     .btnRec { border-color: var(--red); background: rgba(230,59,59,.16); color: var(--red); animation: recPulse 1s ease-in-out infinite; }
     @keyframes recPulse { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
     #recTime { min-width: 30px; text-align: center; }
+    .recResult {
+      flex-shrink: 0; display: flex; align-items: center; gap: 10px;
+      padding: 8px 14px; border-bottom: 1px solid rgba(255,255,255,.06);
+      background: rgba(155,89,182,.06);
+    }
+    .recResult audio { height: 30px; max-width: 320px; flex: 1; }
+    .recResultLbl { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; font-weight: 800; color: var(--accent); }
+    .recResultHint { font-size: 10px; color: var(--muted, #8a8f98); opacity: .7; }
 
     /* ── CONTROL BAR ── */
     .ctrlbar {
@@ -716,7 +724,6 @@
     <div class="ctrlGroup">
       <button class="btn" id="recBtn" type="button" title="Record a 15s clip of what you play" disabled>● REC</button>
       <span class="val" id="recTime">15s</span>
-      <button class="btn btnSm btnGhost" id="recShare" type="button" style="display:none">Share ↗</button>
     </div>
     <div class="ctrlGroup">
       <span class="midiDot" id="midiDot"></span>
@@ -744,6 +751,14 @@
       <span class="val" id="aks-swing-val">0%</span>
     </div>
     <button class="btn btnPrimary" id="aks-seq-toggle" type="button">Seq ▶</button>
+  </div>
+
+  <div class="recResult" id="recResult" style="display:none">
+    <span class="recResultLbl">Clip</span>
+    <audio id="recPlayer" controls preload="metadata"></audio>
+    <button class="btn btnSm" id="recSave" type="button">↓ Save</button>
+    <button class="btn btnSm btnGhost" id="recShare" type="button">Share ↗</button>
+    <span class="recResultHint">saved to your Downloads folder</span>
   </div>
 
   <div class="main">
@@ -1073,9 +1088,12 @@
     let vuPeakHoldDb = -Infinity, vuPeakHoldTs = 0;
 
     const startBtn   = document.getElementById('audioStart');
-    const recBtn     = document.getElementById('recBtn');
-    const recTimeEl  = document.getElementById('recTime');
-    const recShareEl = document.getElementById('recShare');
+    const recBtn      = document.getElementById('recBtn');
+    const recTimeEl   = document.getElementById('recTime');
+    const recResultEl = document.getElementById('recResult');
+    const recPlayerEl = document.getElementById('recPlayer');
+    const recSaveEl   = document.getElementById('recSave');
+    const recShareEl  = document.getElementById('recShare');
     const masterEl   = document.getElementById('masterVol');
     const masterValEl= document.getElementById('masterVolVal');
     const vuCanvas   = document.getElementById('vuCanvas');
@@ -1159,6 +1177,12 @@
     const REC_MAX_SEC = 15;                    // TODO: unlimited behind membership
     let mediaRecorder = null, recChunks = [], recCountdown = null, recTimeout = null;
     let lastRec = null;                        // { blob, patch, engineVersion, ts }
+    let lastRecUrl = null;                     // object URL for the <audio> preview
+
+    function recFilename() {
+      return 'synthi-aks-' + (lastRec ? lastRec.ts : Date.now()) +
+             (lastRec && /ogg/.test(lastRec.blob.type) ? '.ogg' : '.webm');
+    }
 
     function recMime() {
       const c = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
@@ -1170,7 +1194,7 @@
         recBtn.textContent = '■ STOP';
         recBtn.classList.add('btnRec');
         recTimeEl.textContent = secsLeft + 's';
-        recShareEl.style.display = 'none';
+        recResultEl.style.display = 'none';
       } else {
         recBtn.textContent = '● REC';
         recBtn.classList.remove('btnRec');
@@ -1202,7 +1226,10 @@
         try { if (aks && aks.savePreset) patch = aks.savePreset('SYNTHI AKS'); } catch (e) {}
         lastRec = { blob, patch, engineVersion: ENGINE_VERSION, ts: Date.now() };
         setRecUI(false);
-        recShareEl.style.display = '';
+        if (lastRecUrl) URL.revokeObjectURL(lastRecUrl);
+        lastRecUrl = URL.createObjectURL(blob);
+        recPlayerEl.src = lastRecUrl;
+        recResultEl.style.display = '';
       };
       const started = Date.now();
       mediaRecorder.start();
@@ -1221,6 +1248,15 @@
 
     if (recBtn) {
       recBtn.addEventListener('click', () => { isRecording() ? stopRec() : startRec(); });
+    }
+    if (recSaveEl) {
+      recSaveEl.addEventListener('click', () => {
+        if (!lastRec) return;
+        const url = lastRecUrl || URL.createObjectURL(lastRec.blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = recFilename();
+        document.body.appendChild(a); a.click(); a.remove();
+      });
     }
     if (recShareEl) {
       recShareEl.addEventListener('click', () => {
