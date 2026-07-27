@@ -376,6 +376,7 @@
       <div id="status-txt">Power Off</div>
     </div>
     <button class="btn-power" id="btn-power">Power On</button>
+    <span id="srecMount"></span>
   </div>
 </div>
 
@@ -554,6 +555,8 @@
   </div>
 </div>
 
+<script src="../js/share.js"></script>
+<script src="../js/synthi-record.js"></script>
 <script>
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════════
@@ -2460,6 +2463,22 @@ document.addEventListener('DOMContentLoaded', () => {
   buildKeyboard();
   buildFactoryPresets();
 
+  /* Record — taps the live post-ceiling output (drift-proof audio artifact) */
+  const synRec = (window.SynthiRecord ? SynthiRecord.mount({
+    container: 'srecMount',
+    getContext: () => actx,
+    getTap: () => (ENG && ENG.nodes) ? ENG.nodes.ceiling : null,
+    getPatch: () => { try { return JSON.stringify({ engineVersion: 'aks-2026.07', ts: Date.now(), state: ST }); } catch (e) { return null; } },
+    engineVersion: 'aks-2026.07',
+    maxSec: 15,
+    share: {
+      filenamePrefix: 'synthi-aks',
+      text: 'Made a patch on the SYNTHI AKS — make your own:',
+      url: 'https://pixel-on-kaspa.fyi/synthi/aks.html',
+      hashtags: ['synthesizer', 'generativeart']
+    }
+  }) : { enable: () => {} });
+
   /* Power — every click tears down and rebuilds so Power Off → On works without reload */
   document.getElementById('btn-power').addEventListener('click', async () => {
     // Tear down existing engine
@@ -2482,6 +2501,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // so a loaded factory preset isn't wiped by cycling power.
       document.getElementById('status-led').classList.remove('on');
       document.getElementById('status-txt').textContent = 'Power Off';
+      synRec.enable(false);
     }
     // Build fresh engine
     buildAudio();
@@ -2492,6 +2512,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('status-txt').textContent = 'RUNNING';
     document.getElementById('btn-power').textContent  = 'Restart';
     document.getElementById('freq-display').textContent = 'play a key';
+    synRec.enable(true);
   });
 
   /* Hold */
