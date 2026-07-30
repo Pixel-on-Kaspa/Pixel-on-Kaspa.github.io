@@ -1,0 +1,9 @@
+{
+  "_comment": "Log of media files already posted to X, per artist folder. Before selecting media in /post, exclude any filename listed here for that artist so images are never reused across posts.",
+  "sykora-lab": [
+    "sykora_1227_1781218963391.png",
+    "sykora_5881_1781217302854.png",
+    "sykora_5663_1781218839043.png",
+    "sykora_2208_1781218695477.png"
+  ]
+}

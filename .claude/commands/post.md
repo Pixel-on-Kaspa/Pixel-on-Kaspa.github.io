@@ -41,6 +41,24 @@ Post a visual (PNG or MP4) from a local artist export folder to X profiles.
 
 Pick a separate random file per profile from `~/Desktop/pixel-exports/$ARTIST/`. Each of the three X profiles gets a different file. Instagram @marekozor reuses the @marekozor X file.
 
+### NEVER reuse a media file — check `.claude/posted-media.json` FIRST
+
+Export folders are static, so a naive random pick WILL re-post a file that already went out (this happened with `sykora_1227…`, posted twice a week apart). Before selecting media for any profile:
+
+1. Read `.claude/posted-media.json`. It is keyed by artist folder name, e.g.
+   ```json
+   { "sykora-lab": ["sykora_1227_1781218963391.png", "sykora_5881_1781217302854.png"] }
+   ```
+   If the file doesn't exist, treat every folder as empty (nothing used yet).
+2. Build the candidate list as the folder's files **minus** every filename listed under that artist. Pick each profile's media only from the remaining unused files (still a different file per profile).
+3. If the unused pool is empty (all files already posted), STOP and report:
+   ```
+   All files in ~/Desktop/pixel-exports/$ARTIST/ have already been posted — export new files first.
+   ```
+4. **After a real (non-dry-run) post**, append each posted filename to its artist array in `.claude/posted-media.json` (create the file/array if missing). Same dry-run rule as post-state.json: never write in dry-run.
+
+This applies to all media modes (default, `--wip`, `--promo` local media). `--nft` fetches from chain so it's exempt.
+
 ### Export složky
 ```
 ~/Desktop/pixel-exports/yohei/         — GLSL shader exporty (PNG/MP4)
@@ -473,6 +491,7 @@ Confirm on success:
 - [ ] @synthicoin — experimental lens vždy, **EN only**, 2–3 hashtags, nikdy #NFT, nikdy přímé promo/CTA
 - [ ] PIXELONKAS a SYKORA mint linky → `kaspa.com` (ne OpenSea)
 - [ ] Každý profil dostane jiný soubor média
+- [ ] Žádný soubor už není v `.claude/posted-media.json` — po reálném postu přidat použité soubory do logu
 - [ ] Post schválen před odesláním
 - [ ] `pixel-on-kaspa.fyi` — ~60% postů, pozici variovat
 - [ ] #creativecoding — zařadit do rotace u vizuálních postů
