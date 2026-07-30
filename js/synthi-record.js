@@ -4,9 +4,10 @@
    Taps the final post-limiter node of a live Web Audio graph via a
    PARALLEL MediaStreamDestination (fan-out), so what reaches the speakers
    is never altered. Records up to N seconds to WebM/Opus, then shows a
-   floating clip bar with inline playback, a direct Save (download), and
-   Share (via PixelShare → X). Silently snapshots a provenance blob so a
-   remix/gallery layer can be turned on later without re-recording.
+   floating clip bar with inline playback, a direct Save (WebM download),
+   a lossless WAV master (parallel PCM tap), and Share (via PixelShare → X).
+   Silently snapshots a provenance blob so a remix/gallery layer can be
+   turned on later without re-recording.
 
    Free tier = 15s; unlimited length is planned behind membership.
 
@@ -55,6 +56,27 @@
   function elById(x) { return typeof x === "string" ? document.getElementById(x) : x; }
   function mk(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
 
+  // ── inline AudioWorklet: captures PCM off the main thread (no dropout risk),
+  //    loaded from a Blob so there's no separate module file to deploy ──
+  var PCM_WORKLET_CODE =
+    "class PcmCapture extends AudioWorkletProcessor{" +
+      "process(inputs){var input=inputs[0];" +
+        "if(input&&input.length){var chans=[],b=[];" +
+          "for(var c=0;c<input.length;c++){var cp=input[c]?input[c].slice():new Float32Array(128);chans.push(cp);b.push(cp.buffer);}" +
+          "this.port.postMessage(chans,b);}" +
+        "return true;}}" +
+    "registerProcessor('synthi-pcm-capture',PcmCapture);";
+  var pcmWorkletUrl = null;
+  function workletUrl() {
+    if (!pcmWorkletUrl) pcmWorkletUrl = URL.createObjectURL(new Blob([PCM_WORKLET_CODE], { type: "application/javascript" }));
+    return pcmWorkletUrl;
+  }
+  function ensureWorklet(ctx) {
+    if (!ctx || !ctx.audioWorklet) return Promise.reject(new Error("no audioWorklet"));
+    if (!ctx.__synthiPcmWorklet) ctx.__synthiPcmWorklet = ctx.audioWorklet.addModule(workletUrl());
+    return ctx.__synthiPcmWorklet;
+  }
+
   function mount(cfg) {
     injectStyle();
     var container = elById(cfg.container);
@@ -74,14 +96,16 @@
     // ── floating clip bar ──
     var result = mk("div", "srec-result");
     var audio = mk("audio"); audio.controls = true; audio.preload = "metadata";
-    var saveBtn = mk("button", "srec-btn", "↓ Save"); saveBtn.type = "button";
+    var saveBtn = mk("button", "srec-btn", "↓ Save"); saveBtn.type = "button"; saveBtn.title = "Save the WebM/Opus clip";
+    var wavBtn = mk("button", "srec-btn", "↓ WAV"); wavBtn.type = "button"; wavBtn.title = "Save a lossless WAV master";
     var shareBtn = mk("button", "srec-btn", "Share ↗"); shareBtn.type = "button";
     result.appendChild(mk("span", "srec-lbl", "Clip"));
-    result.appendChild(audio); result.appendChild(saveBtn); result.appendChild(shareBtn);
+    result.appendChild(audio); result.appendChild(saveBtn); result.appendChild(wavBtn); result.appendChild(shareBtn);
     document.body.appendChild(result);
 
     var mediaRecorder = null, chunks = [], countdown = null, timeout = null, msDest = null, tapNode = null;
     var lastBlob = null, lastUrl = null, lastTs = 0, lastPatch = null;
+    var workletNode = null, silentGain = null, pcmBuffers = [], pcmRate = 44100, recToken = 0;
 
     function supportedMime() {
       var c = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus"];
@@ -100,13 +124,36 @@
       if (countdown) { clearInterval(countdown); countdown = null; }
       if (timeout) { clearTimeout(timeout); timeout = null; }
     }
-    function cleanupTap() { try { if (tapNode && msDest) tapNode.disconnect(msDest); } catch (e) {} msDest = null; tapNode = null; }
+    function cleanupTap() {
+      try { if (tapNode && msDest) tapNode.disconnect(msDest); } catch (e) {}
+      try { if (tapNode && workletNode) tapNode.disconnect(workletNode); } catch (e) {}
+      try { if (workletNode) { workletNode.port.onmessage = null; workletNode.disconnect(); } } catch (e) {}
+      try { if (silentGain) silentGain.disconnect(); } catch (e) {}
+      msDest = null; tapNode = null; workletNode = null; silentGain = null;
+    }
 
-    function start() {
+    async function start() {
       if (cfg.ensureAudio) { try { cfg.ensureAudio(); } catch (e) {} }
       var ctx = cfg.getContext && cfg.getContext();
       tapNode = cfg.getTap && cfg.getTap();
       if (!ctx || !tapNode) return;
+      var myToken = ++recToken;
+      pcmBuffers = []; pcmRate = ctx.sampleRate || 44100;
+      // ── WAV master via AudioWorklet (off main thread); best-effort, WebM below is the fallback ──
+      try {
+        await ensureWorklet(ctx);
+        if (recToken !== myToken || !tapNode) return;   // stopped/restarted while the module loaded
+        workletNode = new AudioWorkletNode(ctx, "synthi-pcm-capture");
+        workletNode.port.onmessage = function (e) {
+          var chans = e.data, c;
+          if (!pcmBuffers.length) for (c = 0; c < chans.length; c++) pcmBuffers.push([]);
+          for (c = 0; c < chans.length && c < pcmBuffers.length; c++) pcmBuffers[c].push(chans[c]);
+        };
+        silentGain = ctx.createGain(); silentGain.gain.value = 0;
+        tapNode.connect(workletNode);
+        workletNode.connect(silentGain);
+        silentGain.connect(ctx.destination);   // worklet needs a sink; gain 0 → adds silence, never touches the mix
+      } catch (e) { /* no AudioWorklet in this browser — WebM still records, WAV button will report it */ }
       try {
         msDest = ctx.createMediaStreamDestination();
         tapNode.connect(msDest);   // parallel fan-out — does NOT alter the speaker path
@@ -152,6 +199,42 @@
       a.href = u; a.download = filename();
       document.body.appendChild(a); a.click(); a.remove();
     });
+    function wavFilename() { return (share.filenamePrefix || "synthi") + "-" + (lastTs || Date.now()) + ".wav"; }
+    function flatten(list) {
+      var len = 0, i; for (i = 0; i < list.length; i++) len += list[i].length;
+      var out = new Float32Array(len), o = 0;
+      for (i = 0; i < list.length; i++) { out.set(list[i], o); o += list[i].length; }
+      return out;
+    }
+    function encodeWav(chans, rate) {
+      var numCh = chans.length, len = chans[0] ? chans[0].length : 0;
+      var view = new DataView(new ArrayBuffer(44 + len * numCh * 2));
+      function str(off, s) { for (var i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); }
+      str(0, "RIFF"); view.setUint32(4, 36 + len * numCh * 2, true); str(8, "WAVE");
+      str(12, "fmt "); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, numCh, true);
+      view.setUint32(24, rate, true); view.setUint32(28, rate * numCh * 2, true); view.setUint16(32, numCh * 2, true); view.setUint16(34, 16, true);
+      str(36, "data"); view.setUint32(40, len * numCh * 2, true);
+      var off = 44;
+      for (var i = 0; i < len; i++) for (var ch = 0; ch < numCh; ch++) {
+        var s = Math.max(-1, Math.min(1, chans[ch][i]));
+        view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7fff, true); off += 2;
+      }
+      return new Blob([view], { type: "audio/wav" });
+    }
+    function buildWavBlob() {
+      if (!pcmBuffers.length || !pcmBuffers[0] || !pcmBuffers[0].length) return null;
+      var chans = []; for (var c = 0; c < pcmBuffers.length; c++) chans.push(flatten(pcmBuffers[c]));
+      return encodeWav(chans, pcmRate);
+    }
+    wavBtn.addEventListener("click", function () {
+      var blob = buildWavBlob();
+      if (!blob) { alert("No PCM was captured for WAV in this browser."); return; }
+      var u = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = u; a.download = wavFilename();
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(u); }, 4000);
+    });
     shareBtn.addEventListener("click", function () {
       if (!lastBlob || !window.PixelShare) return;
       PixelShare.share({
@@ -164,7 +247,11 @@
     });
 
     return {
-      enable: function (on) { btn.disabled = !on; if (!on) setRecording(false); },
+      enable: function (on) {
+        btn.disabled = !on;
+        if (!on) { setRecording(false); return; }
+        try { var c = cfg.getContext && cfg.getContext(); if (c) ensureWorklet(c).catch(function () {}); } catch (e) {}  // pre-warm the worklet module
+      },
       getLast: function () { return lastBlob ? { blob: lastBlob, patch: lastPatch, engineVersion: engineVersion, ts: lastTs } : null; }
     };
   }
