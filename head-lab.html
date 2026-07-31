@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Head Lab • Voxel • Pixel on Kaspa</title>
+  <title>Head Lab • Pixel Characters • Pixel on Kaspa</title>
   <style>
     :root{
       --bg:#070b12; --bg2:#0c111b; --panel:rgba(0,0,0,.28);
@@ -20,8 +20,6 @@
       font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased;
     }
     .wrap{max-width:1180px;margin:0 auto;padding:18px 16px 64px}
-
-    /* topbar */
     .topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
     .brand{display:flex;align-items:baseline;gap:10px;font-weight:900;letter-spacing:.18em;font-size:20px;color:var(--accent)}
     .brand small{font-weight:600;letter-spacing:.08em;font-size:11px;color:var(--muted)}
@@ -38,8 +36,7 @@
     .btnRec.recording{border-color:rgba(230,70,70,.6);background:rgba(230,70,70,.18);color:#ff8080;animation:recPulse 1s ease-in-out infinite}
     @keyframes recPulse{0%,100%{opacity:1}50%{opacity:.55}}
 
-    /* layout */
-    .grid{display:grid;grid-template-columns:1.25fr .75fr;gap:14px;align-items:start}
+    .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:14px;align-items:start}
     @media (max-width:940px){.grid{grid-template-columns:1fr}}
     .panel{border:1px solid var(--border);border-radius:var(--radius);
       background:var(--panel);backdrop-filter:blur(10px);box-shadow:var(--shadow);overflow:hidden}
@@ -51,45 +48,27 @@
       padding:2px 8px;border-radius:20px;white-space:nowrap}
     .panelBody{padding:12px 14px}
 
-    /* stage */
     #stageWrap{position:relative;width:100%;aspect-ratio:1/1;border-radius:8px;overflow:hidden;
       background:#04070c;border:1px solid var(--border)}
-    @media (max-width:940px){#stageWrap{aspect-ratio:4/5}}
-    #stage{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
-    #stage:active{cursor:grabbing}
+    #stage{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
     #recOverlay{position:absolute;top:12px;right:14px;font-family:var(--mono);font-size:13px;
       font-weight:800;color:#ff7a7a;letter-spacing:.06em;display:none}
     #recOverlay.show{display:block}
-
     .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 
-    /* controls */
-    .typeRow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
-    .typeBtn{padding:8px 4px;border-radius:8px;font-size:12px;font-weight:800;letter-spacing:.04em;
-      border:1px solid var(--border2);background:rgba(255,255,255,.04);color:var(--text);cursor:pointer;text-transform:uppercase}
-    .typeBtn.active{border-color:rgba(73,234,203,.5);background:rgba(73,234,203,.14);color:var(--accent)}
-
-    details.group{border-top:1px solid var(--border)}
-    details.group[open]>summary{color:var(--accent)}
-    details.group>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;
-      font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:900;opacity:.85;padding:11px 0}
-    details.group>summary::-webkit-details-marker{display:none}
-    .grpLock{font-family:var(--mono);font-size:10px;color:var(--muted);display:flex;align-items:center;gap:5px;cursor:pointer;letter-spacing:.06em}
-    .grpLock input{accent-color:var(--accent)}
-
-    .ctrl{margin-bottom:11px}
-    .ctrlHead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:5px}
-    .ctrlLbl{font-size:12px;opacity:.85}
-    .ctrlVal{font-family:var(--mono);font-size:11px;color:var(--accent)}
-    input[type=range]{-webkit-appearance:none;width:100%;height:3px;border-radius:2px;
-      background:rgba(255,255,255,.14);outline:none;cursor:pointer}
-    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;
-      background:var(--accent);box-shadow:0 0 5px rgba(73,234,203,.5);cursor:pointer}
-    input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-radius:50%;background:var(--accent)}
+    /* trait rows */
+    .trait{display:grid;grid-template-columns:82px 1fr auto;gap:8px;align-items:center;margin-bottom:7px}
+    .traitLbl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
     select.sel{width:100%;background:var(--bg2);color:var(--text);border:1px solid var(--border2);
-      border-radius:8px;padding:8px 9px;font-size:12px;font-family:var(--mono);cursor:pointer}
-    .swatchRow{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-    .pal{width:26px;height:26px;border-radius:6px;border:2px solid transparent;cursor:pointer;overflow:hidden;position:relative}
+      border-radius:8px;padding:7px 8px;font-size:12px;font-family:var(--mono);cursor:pointer}
+    .lockBtn{width:30px;height:30px;border-radius:7px;border:1px solid var(--border2);background:rgba(255,255,255,.04);
+      color:var(--muted);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center}
+    .lockBtn.on{border-color:rgba(73,234,203,.5);background:rgba(73,234,203,.14);color:var(--accent)}
+
+    .sect{border-top:1px solid var(--border);margin-top:10px;padding-top:10px}
+    .sectHd{font-size:10px;letter-spacing:.16em;text-transform:uppercase;font-weight:900;opacity:.7;margin-bottom:8px}
+    .swatchRow{display:flex;gap:6px;flex-wrap:wrap}
+    .pal{width:26px;height:26px;border-radius:6px;border:2px solid transparent;cursor:pointer;overflow:hidden}
     .pal.active{border-color:var(--accent);box-shadow:0 0 6px rgba(73,234,203,.5)}
 
     .recResult{display:none;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
@@ -100,22 +79,15 @@
     kbd{font-family:var(--mono);font-size:10px;background:rgba(255,255,255,.07);border:1px solid var(--border2);
       border-radius:4px;padding:1px 5px}
   </style>
-
   <script defer src="https://cloud.umami.is/script.js" data-website-id="6ee0e9a9-7066-4115-b91d-5667d8042abe"></script>
   <script src="/js/share.js"></script>
   <meta name="pixel-gallery-api" content="https://pixel-gallery.pixelonkaspa.workers.dev">
   <script src="/js/gallery.js"></script>
-  <script type="importmap">
-  { "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-  } }
-  </script>
 </head>
 <body>
   <div class="wrap">
     <div class="topbar">
-      <div class="brand">HEAD <small>voxel • Pixel on Kaspa</small></div>
+      <div class="brand">HEAD <small>pixel · attitude · Pixel on Kaspa</small></div>
       <div class="nav">
         <a class="btn btnSm" href="/">Home</a>
         <a class="btn btnSm" href="/artists">Artists</a>
@@ -125,19 +97,14 @@
     </div>
 
     <section class="grid">
-      <!-- STAGE -->
       <div class="panel">
-        <div class="panelHead"><b>Voxel Head</b><span class="chip" id="status">booting…</span></div>
+        <div class="panelHead"><b>Character</b><span class="chip" id="seedChip">seed —</span></div>
         <div class="panelBody">
-          <div id="stageWrap">
-            <canvas id="stage"></canvas>
-            <div id="recOverlay"></div>
-          </div>
+          <div id="stageWrap"><canvas id="stage" width="512" height="512"></canvas><div id="recOverlay"></div></div>
           <div class="row">
-            <button class="btn btnSm btnPrimary" id="btnSeed" type="button">New seed</button>
+            <button class="btn btnSm btnPrimary" id="btnRand" type="button">Randomize</button>
+            <button class="btn btnSm" id="btnSeed" type="button">New seed</button>
             <button class="btn btnSm" id="btnMutate" type="button">Mutate</button>
-            <button class="btn btnSm" id="btnRand" type="button">Randomize</button>
-            <button class="btn btnSm" id="btnRot" type="button">⟳ Auto</button>
             <button class="btn btnSm" id="btnShot" type="button">PNG</button>
             <button class="btn btnSm btnRec" id="btnRec" type="button">REC 6s</button>
             <button class="btn btnSm btnPrimary" id="btnShareX" type="button">Share on X ↗</button>
@@ -148,479 +115,426 @@
             <span class="lbl">Clip</span>
             <video id="recPlayer" controls preload="metadata"></video>
             <button class="btn btnSm" id="recSave" type="button">↓ Save</button>
-            <span class="hint">turntable clip</span>
+            <span class="hint">idle-loop clip</span>
           </div>
         </div>
       </div>
 
-      <!-- CONTROLS -->
       <div class="panel">
-        <div class="panelHead"><b>Genome</b><span class="chip" id="seedChip">seed —</span></div>
+        <div class="panelHead"><b>Traits</b><span class="chip">lock 🔒 to keep on Randomize</span></div>
         <div class="panelBody">
-          <div class="typeRow" id="typeRow"></div>
-          <div id="controlsHost"></div>
+          <div id="traitHost"></div>
+          <div class="sect">
+            <div class="sectHd">Palette</div>
+            <div class="swatchRow" id="palRow"></div>
+          </div>
+          <div class="sect">
+            <div class="sectHd">Colors</div>
+            <div id="colorHost"></div>
+          </div>
         </div>
       </div>
     </section>
 
     <div class="foot">
-      <kbd>drag</kbd> orbit · <kbd>scroll</kbd> zoom · <kbd>Space</kbd> auto-rotate · <kbd>R</kbd> new seed ·
-      lock a group to keep it while you Randomize
+      <kbd>Randomize</kbd> for a new character · <kbd>R</kbd> new seed · lock traits to breed a coherent set
     </div>
   </div>
 
-<script type="module">
-import * as THREE from 'three';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+<script>
+(() => {
+"use strict";
 
 /* ═══════════════════ helpers ═══════════════════ */
-const clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
-const lerp  = (a,b,t)=>a+(b-a)*t;
-const round = Math.round;
+const W=32, H=32, AX=15.5; // symmetry axis (mirror x ↔ 31-x)
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+// deterministic PRNG (same family as sykora-lab)
+function hash32(a,b,c){let x=(a|0)+((b|0)*374761393)+((c|0)*668265263);x=(x^(x>>>13))*1274126177;return (x^(x>>>16))>>>0;}
+function mulberry(seed){let s=seed>>>0;return ()=>{s=(s+0x6D2B79F5)>>>0;let t=s;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296;};}
+const hx=h=>({r:parseInt(h.slice(1,3),16),g:parseInt(h.slice(3,5),16),b:parseInt(h.slice(5,7),16)});
+const toHex=o=>'#'+[o.r,o.g,o.b].map(v=>clamp(Math.round(v),0,255).toString(16).padStart(2,'0')).join('');
+const dk=(h,f)=>{const c=hx(h);return toHex({r:c.r*f,g:c.g*f,b:c.b*f});};
+const lt=(h,f)=>{const c=hx(h);return toHex({r:c.r+(255-c.r)*f,g:c.g+(255-c.g)*f,b:c.b+(255-c.b)*f});};
 
-// Deterministic PRNG (same family as the Sýkora lab) so a seed always
-// reproduces the exact same head — that's what makes "variations" shareable.
-function hash32(a,b,c){
-  let x=(a|0)+((b|0)*374761393)+((c|0)*668265263);
-  x=(x^(x>>>13))*1274126177; x=(x^(x>>>16))>>>0; return x;
-}
-const rnd=(seed,a,b,salt=0)=>(hash32(seed+salt*17,a|0,b|0)%100000)/100000;
-function smoothNoise(x,y,seed,salt=0){
-  const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,s=seed+salt*23;
-  const tl=(hash32(s,xi,yi)%100000)/100000, tr=(hash32(s,xi+1,yi)%100000)/100000;
-  const bl=(hash32(s,xi,yi+1)%100000)/100000, br=(hash32(s,xi+1,yi+1)%100000)/100000;
-  const sx=xf*xf*(3-2*xf), sy=yf*yf*(3-2*yf);
-  return lerp(lerp(tl,tr,sx),lerp(bl,br,sx),sy);
-}
-function fnoise(x,y,seed,salt=0){
-  return smoothNoise(x,y,seed,salt)*0.6 + smoothNoise(x*2.1,y*2.1,seed,salt+1)*0.4;
-}
-// pseudo-3D noise by mixing two 2D slices
-const noise3=(x,y,z,seed,salt=0)=>
-  fnoise(x*3+z*1.3, y*3, seed, salt)*0.5 + fnoise(y*3+x*1.1, z*3, seed, salt+7)*0.5;
-
-const hex=h=>{h=h.replace('#','');return {r:parseInt(h.slice(0,2),16),g:parseInt(h.slice(2,4),16),b:parseInt(h.slice(4,6),16)};};
-const mixRGB=(a,b,t)=>({r:lerp(a.r,b.r,t),g:lerp(a.g,b.g,t),b:lerp(a.b,b.b,t)});
-const scaleRGB=(a,s)=>({r:a.r*s,g:a.g*s,b:a.b*s});
-
-/* ═══════════════════ palettes ═══════════════════ */
+/* ═══════════════════ colour banks ═══════════════════ */
+// palettes give the mood: background pair + accent + outline tint
 const PALETTES=[
-  {name:'Kaspa Cyan', lo:'#0f5b66', hi:'#3fd6c0', eye:'#06222a', pupil:'#7ffbe6', mouth:'#06222a', rim:'#49EACB'},
-  {name:'Copper',     lo:'#5a2f14', hi:'#d98a3a', eye:'#1c0f06', pupil:'#ffcf8a', mouth:'#1c0f06', rim:'#e8a020'},
-  {name:'Bone',       lo:'#6b6f74', hi:'#e9e6df', eye:'#2a0d0d', pupil:'#ff5a5a', mouth:'#2a0d0d', rim:'#ff8a8a'},
-  {name:'Vapor',      lo:'#3a1466', hi:'#d05ad0', eye:'#12061f', pupil:'#6ffbff', mouth:'#12061f', rim:'#7fd8ff'},
-  {name:'Terminal',   lo:'#06331a', hi:'#34d06a', eye:'#021a0c', pupil:'#b6ffce', mouth:'#021a0c', rim:'#49ff9b'},
+  {name:'Neon',   bg1:'#241243', bg2:'#120826', accent:'#ff2d8e', outline:'#0a0612'},
+  {name:'Cyber',  bg1:'#0a2230', bg2:'#04121b', accent:'#00e5ff', outline:'#03090e'},
+  {name:'Toxic',  bg1:'#123016', bg2:'#07160b', accent:'#9dff3d', outline:'#050e06'},
+  {name:'Vapor',  bg1:'#3a1650', bg2:'#141033', accent:'#26e0d0', outline:'#0a0714'},
+  {name:'Blood',  bg1:'#3a0f14', bg2:'#180608', accent:'#ff3b30', outline:'#0d0405'},
+  {name:'Gold',   bg1:'#2a2410', bg2:'#141005', accent:'#ffc83a', outline:'#0c0a03'},
+  {name:'Void',   bg1:'#141a22', bg2:'#05080c', accent:'#7fe9ff', outline:'#02040a'},
+  {name:'Kaspa',  bg1:'#0c3038', bg2:'#04141a', accent:'#49EACB', outline:'#03100f'},
 ];
+const SKINS=['#e9b48f','#d99a6c','#b97a4e','#8a5636','#f2c1a3','#a7d18a','#8fd0c9','#b7bcc6','#c88fe0','#9aa6ff'];
+const HAIRS=['#20242c','#4a3524','#7a4a1e','#c9c9d2','#ff2d6f','#00e5ff','#9dff3d','#ffc83a','#b45cff','#ff6a3d','#12e39a','#e8e8ef'];
+const IRISES=['#00e5ff','#ff2d8e','#9dff3d','#ffc83a','#7fe9ff','#ff5a5a','#b45cff','#12e39a','#ffffff'];
 
-/* ═══════════════════ control schema (the genome) ═══════════════════ */
-// group: which lock-group it belongs to (for Randomize / locking)
-const R=(id,label,min,max,step,def,group)=>({id,label,min,max,step,def,type:'r',group});
-const N=(id,label,min,max,step,def,group)=>({id,label,min,max,step,def,type:'n',group});
-const GROUPS=[
-  {name:'Shape', items:[
-    N('res','Voxel resolution',10,24,1,18,'shape'),
-    R('cranium','Cranium width',0.72,1.18,0.01,0.98,'shape'),
-    R('depth','Depth',0.72,1.18,0.01,0.92,'shape'),
-    R('jaw','Jaw taper',0.45,1.0,0.01,0.78,'shape'),
-    R('chunk','Erosion',0.0,0.75,0.01,0.22,'shape'),
-    R('asym','Asymmetry',0.0,0.6,0.01,0.10,'shape'),
-  ]},
-  {name:'Face', items:[
-    R('eyeSize','Eye size',0.5,2.0,0.01,1.0,'face'),
-    R('eyeSep','Eye spacing',0.4,1.15,0.01,0.72,'face'),
-    R('brow','Brow / mood',-1.0,1.0,0.01,0.0,'face'),
-    R('mouth','Mouth curve',-1.0,1.0,0.01,0.15,'face'),
-  ]},
-  {name:'Material', items:[
-    R('metal','Metalness',0.0,1.0,0.01,0.25,'mat'),
-    R('rough','Roughness',0.05,1.0,0.01,0.55,'mat'),
-    R('rim','Rim glow',0.0,1.0,0.01,0.55,'mat'),
-  ]},
+/* ═══════════════════ trait schema ═══════════════════ */
+// each layer: list of variant names; index 0 of "optional" layers = none (weighted)
+const LAYERS=[
+  {key:'head',  label:'Head',    opts:['round','square','tall','wide'], optional:false},
+  {key:'ears',  label:'Ears',    opts:['normal','pointy','cyber','none'], optional:false},
+  {key:'eyes',  label:'Eyes',    opts:['angry','sharp','wide','tired','cyclops','visor','scanner','dead','star'], optional:false},
+  {key:'brows', label:'Brows',   opts:['none','angry','raised','flat','uni'], optional:false},
+  {key:'mouth', label:'Mouth',   opts:['smirk','frown','grin','shout','flat','fangs','cig','tongue'], optional:false},
+  {key:'hair',  label:'Hair',    opts:['bald','buzz','mohawk','spiky','sidecut','topknot','afro','messy'], optional:false},
+  {key:'gear',  label:'Headgear',opts:['none','beanie','cap','crown','halo','phones','bandana','horns','antenna'], optional:true},
+  {key:'acc',   label:'Face',    opts:['none','shades','eyepatch','scar','warpaint','mask','cyberjaw','tattoo'], optional:true},
+  {key:'ear1',  label:'Earring', opts:['none','stud','ring','bolt'], optional:true},
+  {key:'bust',  label:'Bust',    opts:['tee','hoodie','jacket','armor','bare'], optional:false},
 ];
-const HEAD_TYPES=['round','square','tall','alien'];
 
 /* ═══════════════════ state ═══════════════════ */
-const defaults={};
-GROUPS.forEach(g=>g.items.forEach(it=>defaults[it.id]=it.def));
-const params=Object.assign({},defaults,{headType:'round',palette:0,seed:1337,autoRotate:true});
-const locks={shape:false,face:false,mat:false,type:false,palette:false};
+const DEF={seed:7777, pal:1, skin:0, hair:4, iris:0,
+  v:{head:0,ears:0,eyes:0,brows:1,mouth:0,hair:2,gear:0,acc:1,ear1:0,bust:2}};
+const params=JSON.parse(JSON.stringify(DEF));
+const locks={}; LAYERS.forEach(l=>locks[l.key]=false);
+const lockCol={pal:false,skin:false,hair:false,iris:false};
 
-/* ═══════════════════ three.js setup ═══════════════════ */
-const canvas=document.getElementById('stage');
-const renderer=new THREE.WebGLRenderer({canvas,antialias:true,preserveDrawingBuffer:true});
-renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
-renderer.outputColorSpace=THREE.SRGBColorSpace;
-renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.05;
-renderer.shadowMap.enabled=true;
-renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-const scene=new THREE.Scene();
-const camera=new THREE.PerspectiveCamera(33,1,0.1,600);
-let camDist=34;
+/* ═══════════════════ pixel buffer ═══════════════════ */
+let ch=new Array(W*H).fill(null); // character layer (null = transparent)
+const inb=(x,y)=>x>=0&&x<W&&y>=0&&y<H;
+const S=(x,y,c)=>{ if(inb(x,y)&&c) ch[y*W+x]=c; };
+const M=(x,y,c)=>{ S(x,y,c); S(31-x,y,c); };           // mirror across axis
+const RECT=(x,y,w,h,c)=>{ for(let j=0;j<h;j++)for(let i=0;i<w;i++)S(x+i,y+j,c); };
+const HL=(x0,x1,y,c)=>{ for(let x=x0;x<=x1;x++)S(x,y,c); };
+const VL=(x,y0,y1,c)=>{ for(let y=y0;y<=y1;y++)S(x,y,c); };
 
-const headGroup=new THREE.Group();
-scene.add(headGroup);
+/* head silhouette: half-width per row for each shape (rows 6..25) */
+const HEAD_TOP=6, HEAD_BOT=25;
+const HW={
+  round:  [4,6,7,8,8,9,9,9,9,9,9,8,8,8,7,7,6,5,4,3],
+  square: [7,8,8,8,9,9,9,9,9,9,9,9,9,8,8,7,7,6,5,4],
+  tall:   [3,4,5,6,7,7,8,8,8,8,8,7,7,7,6,6,5,5,4,3],
+  wide:   [6,8,9,9,10,10,10,10,10,10,9,9,9,8,8,7,6,5,4,3],
+};
+const eyeY=15, eyeLX=11, eyeRX=20; // right = 31-11
 
-// lighting — filmic key/fill/rim. The key casts shadows so voxels self-shadow
-// (real crevice depth) and drop a soft contact shadow onto the floor.
-const keyLight=new THREE.DirectionalLight(0xffffff,2.7); keyLight.position.set(16,26,20);
-keyLight.castShadow=true; keyLight.shadow.mapSize.set(2048,2048);
-keyLight.shadow.bias=-0.0006; keyLight.shadow.normalBias=0.7;
-{ const c=keyLight.shadow.camera; c.near=1; c.far=180; c.left=c.bottom=-46; c.right=c.top=46; }
-const rimLight=new THREE.DirectionalLight(0x49EACB,2.0); rimLight.position.set(-20,7,-18);
-const fill=new THREE.DirectionalLight(0x3a5a88,0.75); fill.position.set(-12,-16,16);
-scene.add(keyLight,rimLight,fill,new THREE.HemisphereLight(0x2b3c46,0x05070b,0.7));
-
-function gradTex(stops,w,h){
-  const c=document.createElement('canvas'); c.width=w; c.height=h;
-  const g=c.getContext('2d'); const grd=g.createLinearGradient(0,0,0,h);
-  stops.forEach(s=>grd.addColorStop(s[0],s[1])); g.fillStyle=grd; g.fillRect(0,0,w,h);
-  return new THREE.CanvasTexture(c);
+/* ── layer painters ─────────────────────────────────────────────────── */
+function drawBust(C,name){
+  const y0=27;
+  const base={tee:C.accent,hoodie:dk(C.hair,.8),jacket:'#2a2f3a',armor:C.metal,bare:C.skin}[name]||C.accent;
+  for(let y=y0;y<H;y++){ const hw=Math.min(15, 6+(y-y0)*3); RECT(16-hw,y,hw*2,1,base); }
+  if(name==='hoodie'){ HL(9,22,27,lt(base,.15)); RECT(15,27,2,3,dk(base,.7)); }
+  if(name==='jacket'){ VL(15,27,H-1,dk(base,.5)); VL(16,27,H-1,dk(base,.5)); M(10,28,C.accent); }
+  if(name==='armor'){ HL(9,22,28,lt(base,.3)); M(11,29,C.accent); }
+  if(name==='tee'){ HL(10,21,27,lt(base,.2)); }
 }
-// studio backdrop — subtle vertical gradient so the head sits in a "room"
-const bgTex=gradTex([[0,'#111d29'],[0.55,'#0a121b'],[1,'#04070c']],4,256);
-bgTex.colorSpace=THREE.SRGBColorSpace; scene.background=bgTex;
-// reflection env (metals need something to reflect or they render near-black)
-const envTex=gradTex([[0,'#2a3d4a'],[0.5,'#0b1017'],[1,'#04060a']],16,64);
-envTex.mapping=THREE.EquirectangularReflectionMapping; scene.environment=envTex;
-
-// soft contact shadow catcher — transparent plane, only the shadow shows
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(600,600), new THREE.ShadowMaterial({opacity:0.42}));
-ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; ground.position.y=-14;
-scene.add(ground);
-
-// post-processing — bloom makes pupils / rim highlights read as *light*
-let composer=null, bloom=null;
-function initComposer(){
-  composer=new EffectComposer(renderer);
-  composer.addPass(new RenderPass(scene,camera));
-  bloom=new UnrealBloomPass(new THREE.Vector2(1,1),0.55,0.45,0.80); // strength, radius, threshold
-  composer.addPass(bloom);
-  composer.addPass(new OutputPass());
+function drawHead(C,shape){
+  const hw=HW[shape]||HW.round;
+  for(let r=0;r<hw.length;r++){ const y=HEAD_TOP+r, w=hw[r]; RECT(16-w,y,w*2,1,C.skin); }
+  // subtle form shading: right side + jaw darker, forehead lighter
+  for(let r=0;r<hw.length;r++){ const y=HEAD_TOP+r, w=hw[r];
+    S(16+w-1,y,dk(C.skin,.86)); S(16+w-2,y,dk(C.skin,.93));
+    if(y<10) HL(16-w+2,16+w-3,y,lt(C.skin,.08));
+  }
+  RECT(13,23,6,2,dk(C.skin,.9)); // chin/jaw shade
 }
-initComposer();
+function drawEars(C,name){
+  if(name==='none')return; const y=16;
+  if(name==='normal'){ M(5,y,C.skin);M(5,y+1,dk(C.skin,.85));M(6,y+1,C.skin); }
+  if(name==='pointy'){ M(5,y-1,C.skin);M(5,y,C.skin);M(6,y+1,dk(C.skin,.85)); }
+  if(name==='cyber'){ M(5,y,C.metal);M(4,y,C.metal);M(5,y+1,C.accent); }
+}
+function eyeBox(cx,c){ RECT(cx-2,eyeY-2,5,5,c); }
+function drawEyes(C,name,blink){
+  const white=C.white, iris=C.iris, dark=C.outline;
+  if(blink && name!=='visor' && name!=='cyclops' && name!=='dead'){
+    M(eyeLX-2,eyeY,dk(C.skin,.7)); HL(9,13,eyeY,dk(C.skin,.6)); HL(18,22,eyeY,dk(C.skin,.6)); return;
+  }
+  const eye=(cx,dir)=>{ // dir for slant
+    RECT(cx-2,eyeY-1,5,3,white);
+    if(name==='angry'){ RECT(cx-2,eyeY-1,5,1,C.skin); S(cx-2,eyeY-1,dark); }
+    const px=cx+(dir||0);
+    RECT(px-1,eyeY-1,2,3,iris); S(px,eyeY,dk(iris,.4)); S(px-1,eyeY-1,lt(iris,.5));
+  };
+  if(name==='angry'){ eye(eyeLX,1); eye(eyeRX,-1); }
+  else if(name==='sharp'){ RECT(9,eyeY,5,2,C.white); RECT(18,eyeY,5,2,C.white); M(11,eyeY,iris);M(11,eyeY+1,dk(iris,.5)); M(20-9,0,null); S(20,eyeY,iris);S(20,eyeY+1,dk(iris,.5)); }
+  else if(name==='wide'){ eyeBox(eyeLX,C.white);eyeBox(eyeRX,C.white); M(eyeLX,eyeY,iris);M(eyeLX,eyeY+1,iris); S(eyeRX,eyeY,iris);S(eyeRX,eyeY+1,iris); M(eyeLX-2,eyeY-2,dark); }
+  else if(name==='tired'){ HL(9,13,eyeY,C.white);HL(18,22,eyeY,C.white); M(11,eyeY,iris);S(20,eyeY,iris); HL(9,13,eyeY-1,dk(C.skin,.7));HL(18,22,eyeY-1,dk(C.skin,.7)); }
+  else if(name==='cyclops'){ RECT(13,eyeY-2,6,5,C.white); RECT(15,eyeY-1,2,3,iris); S(16,eyeY,lt(iris,.5)); RECT(13,eyeY-2,6,1,dark); }
+  else if(name==='visor'){ RECT(8,eyeY-1,16,4,dk(C.metal,.7)); RECT(9,eyeY,14,2,C.accent); for(let x=9;x<23;x+=3)S(x,eyeY,lt(C.accent,.5)); RECT(8,eyeY-1,16,1,dark); }
+  else if(name==='scanner'){ RECT(8,eyeY,16,1,dk(C.metal,.6)); M(11,eyeY,C.accent); S(20,eyeY,C.accent); M(11,eyeY,lt(C.accent,.4)); }
+  else if(name==='dead'){ M(eyeLX-2,eyeY-2,dark);M(eyeLX-1,eyeY-1,dark);M(eyeLX,eyeY,dark);M(eyeLX+1,eyeY+1,dark);M(eyeLX+2,eyeY-2,dark);M(eyeLX+1,eyeY-1,dark);M(eyeLX-1,eyeY+1,dark);M(eyeLX-2,eyeY+2,dark);
+    S(20-2,eyeY-2,null); } // X eyes (mirrored draws both)
+  else if(name==='star'){ eyeBox(eyeLX,C.white);eyeBox(eyeRX,C.white); M(eyeLX,eyeY-1,C.accent);M(eyeLX-1,eyeY,C.accent);M(eyeLX+1,eyeY,C.accent);M(eyeLX,eyeY+1,C.accent);M(eyeLX,eyeY,lt(C.accent,.6)); S(eyeRX,eyeY-1,C.accent);S(eyeRX-1,eyeY,C.accent);S(eyeRX+1,eyeY,C.accent);S(eyeRX,eyeY+1,C.accent);S(eyeRX,eyeY,lt(C.accent,.6)); }
+  else { eye(eyeLX,0); eye(eyeRX,0); }
+}
+function drawBrows(C,name){
+  if(name==='none')return; const y=eyeY-3, c=C.brow;
+  if(name==='angry'){ M(9,y+1,c);M(10,y+1,c);M(11,y,c);M(12,y,c);M(13,y-1,c); }
+  else if(name==='raised'){ M(9,y-1,c);M(10,y-1,c);M(11,y-1,c);M(12,y,c); }
+  else if(name==='flat'){ HL(9,13,y,c);HL(18,22,y,c); }
+  else if(name==='uni'){ HL(9,22,y,c); M(9,y-1,c); }
+}
+function drawMouth(C,name){
+  const y=21, dark=C.outline, teeth=C.white, lip=dk(C.skin,.55);
+  if(name==='smirk'){ HL(14,18,y,lip); S(19,y-1,lip); }
+  else if(name==='frown'){ HL(14,18,y,lip); S(13,y-1,lip);S(19,y-1,lip); }
+  else if(name==='grin'){ RECT(13,y-1,7,3,dark); RECT(13,y,7,1,teeth); for(let x=14;x<19;x+=2)S(x,y,dark); }
+  else if(name==='shout'){ RECT(14,y-1,5,4,dark); RECT(15,y,3,1,dk(C.accent,.7)); }
+  else if(name==='flat'){ HL(13,19,y,lip); }
+  else if(name==='fangs'){ HL(13,19,y,lip); S(14,y+1,teeth);S(18,y+1,teeth); }
+  else if(name==='cig'){ HL(14,17,y,lip); RECT(18,y,4,1,'#e8e0d0'); S(22,y,'#ff6a3d'); }
+  else if(name==='tongue'){ RECT(14,y,5,1,dark); RECT(15,y+1,3,1,'#ff5a7a'); }
+}
+function drawAcc(C,name){
+  if(name==='none')return; const dark=C.outline;
+  if(name==='shades'){ RECT(8,eyeY-1,7,4,dark); RECT(17,eyeY-1,7,4,dark); RECT(9,eyeY,5,2,dk(C.accent,.5)); RECT(18,eyeY,5,2,dk(C.accent,.5)); HL(15,16,eyeY,dark); S(9,eyeY,lt(C.accent,.6)); }
+  else if(name==='eyepatch'){ RECT(17,eyeY-2,7,5,dark); VL(20,10,eyeY-2,dark); HL(9,13,10,dark); }
+  else if(name==='scar'){ VL(12,eyeY-4,eyeY+3,'#c85a5a'); S(11,eyeY-2,'#c85a5a');S(13,eyeY,'#c85a5a'); }
+  else if(name==='warpaint'){ M(9,eyeY+2,C.accent);M(10,eyeY+2,C.accent);M(11,eyeY+3,C.accent); M(9,eyeY+3,C.accent); }
+  else if(name==='mask'){ RECT(11,20,10,6,dk(C.metal,.8)); HL(11,20,20,C.accent); for(let x=13;x<19;x+=2)VL(x,21,24,dk(C.metal,.6)); }
+  else if(name==='cyberjaw'){ RECT(11,22,10,4,C.metal); HL(11,20,22,dark); for(let x=12;x<20;x+=2)VL(x,23,25,dk(C.metal,.7)); M(11,23,C.accent); }
+  else if(name==='tattoo'){ M(9,18,C.accent);M(9,19,C.accent);M(10,19,C.accent); M(9,20,C.accent); }
+}
+function drawHair(C,name){
+  const c=C.hair, cs=dk(c,.7), hl=lt(c,.25);
+  if(name==='bald')return;
+  if(name==='buzz'){ for(let r=0;r<4;r++){const y=HEAD_TOP+r,w=(HW[params.hairShape]||HW.round)[r];RECT(16-w,y,w*2,1,cs);} return; }
+  if(name==='mohawk'){ for(let y=1;y<=11;y++){ const w=y<4?1:2; RECT(16-w,y,w*2,1,y%3?c:hl); } RECT(15,0,2,2,c); return; }
+  if(name==='spiky'){ for(let r=0;r<5;r++){const y=HEAD_TOP+r,w=9-r;RECT(16-w,y,w*2,1,c);} for(let x=8;x<24;x+=3){VL(x,3,5,c);S(x,2,hl);} return; }
+  if(name==='sidecut'){ // short hair following the skull, with a shaved undercut line
+    const P=HW[params.hairShape]||HW.round;
+    for(let r=0;r<4;r++){const y=HEAD_TOP+r,w=P[r];RECT(16-w,y,w*2,1,c);}
+    const w4=P[4]; RECT(16,HEAD_TOP+4,w4,1,cs);          // undercut fade on one temple
+    HL(9,22,HEAD_TOP,hl); return; }
+  if(name==='topknot'){ for(let r=0;r<3;r++){const y=HEAD_TOP+r,w=9-r;RECT(16-w,y,w*2,1,cs);} RECT(14,1,4,4,c); S(15,2,hl); return; }
+  if(name==='afro'){ for(let y=1;y<12;y++){ const w=Math.min(12, 4+y); RECT(16-w,y,w*2,1,y%2?c:cs);} for(let i=0;i<16;i++)S(4+((i*7)%24),1+((i*5)%9),hl); return; }
+  if(name==='messy'){ for(let r=0;r<5;r++){const y=HEAD_TOP+r,w=9-r+1;RECT(16-w,y,w*2,1,c);} S(7,4,c);S(24,3,c);S(10,3,hl);S(20,4,cs); HL(8,23,5,c); return; }
+}
+function drawGear(C,name){
+  if(name==='none')return; const dark=C.outline;
+  if(name==='beanie'){ for(let r=0;r<5;r++){const y=HEAD_TOP+r,w=9-Math.max(0,r-1);RECT(16-w,y,w*2,1,C.accent);} RECT(7,10,18,2,dk(C.accent,.6)); return; }
+  if(name==='cap'){ RECT(8,6,16,4,dk(C.accent,.85)); RECT(6,9,7,2,dk(C.accent,.6)); HL(8,23,6,lt(C.accent,.2)); M(9,7,C.accent); return; } // backwards cap: brim on left
+  if(name==='crown'){ RECT(9,4,14,3,C.metal); M(9,2,C.metal);M(9,3,C.metal); M(13,1,C.metal);M(13,2,C.metal); M(16-16,0,null); S(16,1,C.metal);S(16,2,C.metal); M(10,5,C.accent);S(16,5,C.accent); return; }
+  if(name==='halo'){ for(let x=10;x<22;x++){S(x,2,C.accent);} S(9,3,C.accent);S(22,3,C.accent); for(let x=11;x<21;x+=2)S(x,2,lt(C.accent,.5)); return; }
+  if(name==='phones'){ VL(6,10,15,dark);VL(25,10,15,dark); RECT(5,13,3,4,dk(C.metal,.8));RECT(24,13,3,4,dk(C.metal,.8)); HL(8,23,8,dark); M(6,14,C.accent); return; }
+  if(name==='bandana'){ RECT(7,8,18,3,C.accent); for(let x=8;x<24;x+=3)S(x,9,dk(C.accent,.6)); S(6,10,C.accent);S(6,11,dk(C.accent,.6)); return; }
+  if(name==='horns'){ M(9,5,C.metal);M(8,4,C.metal);M(8,3,C.metal);M(7,2,C.metal); M(9,6,dk(C.metal,.7)); return; }
+  if(name==='antenna'){ VL(11,1,5,C.metal); S(11,0,C.accent); VL(20,2,6,C.metal); S(20,1,C.accent); return; }
+}
 
-const cubeGeo=new THREE.BoxGeometry(0.92,0.92,0.92);
-let mesh=null, material=null;
-const _m=new THREE.Matrix4(), _c=new THREE.Color();
+/* ── outline pass (dark silhouette border) ──────────────────────────── */
+function outlinePass(outline){
+  const add=[];
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    if(ch[y*W+x]!==null)continue;
+    if((inb(x-1,y)&&ch[y*W+x-1])||(inb(x+1,y)&&ch[y*W+x+1])||(inb(x,y-1)&&ch[(y-1)*W+x])||(inb(x,y+1)&&ch[(y+1)*W+x]))
+      add.push(y*W+x);
+  }
+  add.forEach(i=>ch[i]=outline);
+}
 
-// dispose the InstancedMesh's instance buffers + the per-build material
-// (the cube geometry is shared and reused, so it is NOT disposed here).
-function disposeMesh(){ if(mesh){ headGroup.remove(mesh); mesh.dispose?.(); mesh=null; } if(material){ material.dispose(); material=null; } }
+/* ═══════════════════ compose colours + build ═══════════════════ */
+function colors(){
+  const P=PALETTES[params.pal], skin=SKINS[params.skin], hair=HAIRS[params.hair], iris=IRISES[params.iris];
+  return { bg1:P.bg1,bg2:P.bg2,accent:P.accent,outline:P.outline,
+    skin, hair, brow:dk(hair,.7), iris, white:'#f2f4f8', metal:'#aab2bd' };
+}
+function build(blink){
+  ch.fill(null);
+  const C=colors(), v=params.v;
+  params.hairShape=LAYERS[0].opts[v.head];
+  drawBust(C,LAYERS[9].opts[v.bust]);
+  drawHead(C,LAYERS[0].opts[v.head]);
+  drawEars(C,LAYERS[1].opts[v.ears]);
+  drawEyes(C,LAYERS[2].opts[v.eyes],blink);
+  drawBrows(C,LAYERS[3].opts[v.brows]);
+  drawMouth(C,LAYERS[4].opts[v.mouth]);
+  drawAcc(C,LAYERS[7].opts[v.acc]);
+  drawHair(C,LAYERS[5].opts[v.hair]);
+  drawGear(C,LAYERS[6].opts[v.gear]);
+  drawEar1(C,LAYERS[8].opts[v.ear1]);
+  outlinePass(C.outline);
+  return C;
+}
+function drawEar1(C,name){ if(name==='none')return; const x=6,y=17,dark=C.outline;
+  if(name==='stud'){S(x,y,C.accent);}
+  if(name==='ring'){S(x,y,C.metal);S(x,y+1,C.metal);S(x-1,y+1,C.metal);}
+  if(name==='bolt'){S(x,y,C.accent);S(x,y+1,C.metal);}
+}
 
-/* ═══════════════════ voxel head generator ═══════════════════ */
-function buildHead(){
-  const P=params, seed=P.seed|0, pal=PALETTES[P.palette];
-  const cLo=hex(pal.lo), cHi=hex(pal.hi), cEye=hex(pal.eye), cPup=hex(pal.pupil), cMouth=hex(pal.mouth);
-
-  const GY=clamp(round(P.res*1.28),8,40);
-  const GX=clamp(round(P.res*(P.headType==='tall'?0.82:1.0)),6,34);
-  const GZ=clamp(round(P.res*0.92),6,34);
-  const shapeP=P.headType==='square'?4.0:2.0;
-
-  const eyeY=0.14+P.brow*0.06, eyeX=0.30*P.eyeSep, eyeR=0.15*P.eyeSize;
-  const browY=eyeY+0.16, mouthY=-0.46;
-
-  const idx=(i,j,k)=>(i*GY+j)*GZ+k;
-  const occ=new Uint8Array(GX*GY*GZ);
-  const cR=new Float32Array(GX*GY*GZ), cG=new Float32Array(GX*GY*GZ), cB=new Float32Array(GX*GY*GZ);
-
-  // ── pass 1: occupancy + per-voxel colour ──────────────────────────────
-  for(let j=0;j<GY;j++){
-    const ny=(j+0.5)/GY*2-1;
-    for(let i=0;i<GX;i++){
-      const nx=(i+0.5)/GX*2-1;
-      for(let k=0;k<GZ;k++){
-        const nz=(k+0.5)/GZ*2-1;
-
-        let RX=0.90*P.cranium, RY=1.0, RZ=0.86*P.depth;
-        if(P.headType==='tall'){ RY=1.22; RX*=0.86; }
-        if(P.headType==='alien'){ RY=1.10; RZ*=0.92; }
-        const lower=clamp(-ny,0,1), upper=clamp(ny,0,1);
-        let taper=1-(1-P.jaw)*lower;
-        if(P.headType==='alien') taper*=1-0.35*lower;
-        const rx=RX*taper, rz=RZ*taper;
-        let bulge=1; if(P.headType==='alien') bulge=1+0.35*upper*upper;
-        const fx=Math.abs(nx/(rx*bulge)), fy=Math.abs(ny/RY), fz=Math.abs(nz/(rz*bulge));
-        const field=Math.pow(fx,shapeP)+Math.pow(fy,shapeP)+Math.pow(fz,shapeP);
-        if(field>1.0) continue;
-
-        if(field>0.62){                                   // chunky eroded edges
-          const surfBias=(field-0.62)/0.38;
-          const n=noise3(nx,ny,nz,seed);
-          const extra=(nx>0? P.asym:0)*noise3(nz,nx,ny,seed,4);
-          if(n < (P.chunk*0.9+extra)*surfBias) continue;
-        }
-
-        const front=nz>0.12;
-        let col=mixRGB(cLo,cHi,clamp((ny+1)/2,0,1)*0.9+0.05);
-        col=scaleRGB(col, 0.78+0.22*clamp(nz*0.5+0.5,0,1)); // gentle front bias (lights do the rest)
-        if(front){
-          const dyE=ny-eyeY;
-          const dEye=Math.min(Math.hypot((nx+eyeX)*1.05,dyE),Math.hypot((nx-eyeX)*1.05,dyE));
-          if(dEye<eyeR){ col=dEye<eyeR*0.5?cPup:cEye; }
-          else if(Math.abs(ny-(browY-P.brow*0.10*(1-Math.min(Math.abs(nx)/0.45,1))))<0.05 && Math.abs(nx)<0.44 && P.brow>-0.2){
-            col=scaleRGB(col,0.5);
-          } else {
-            const mCurve=mouthY + P.mouth*0.18*((nx/0.28)*(nx/0.28)-0.4);
-            if(Math.abs(ny-mCurve)<0.055 && Math.abs(nx)<0.28) col=cMouth;
-          }
-        }
-        const id=idx(i,j,k); occ[id]=1; cR[id]=col.r; cG[id]=col.g; cB[id]=col.b;
-      }
+/* ═══════════════════ render to canvas ═══════════════════ */
+const canvas=document.getElementById('stage'), ctx=canvas.getContext('2d');
+const off=document.createElement('canvas'); off.width=W; off.height=H; const octx=off.getContext('2d');
+ctx.imageSmoothingEnabled=false;
+let animT=0;
+function paint(bobY){
+  const C=lastC; const img=octx.createImageData(W,H);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    let col=ch[y*W+x];
+    if(col===null){ // background vertical gradient
+      const t=y/H; col=lerpHex(C.bg1,C.bg2,t);
     }
+    const c=hx(col), i=(y*W+x)*4; img.data[i]=c.r;img.data[i+1]=c.g;img.data[i+2]=c.b;img.data[i+3]=255;
   }
-
-  // ── pass 2: emit only surface voxels (hollow shell → perf + clean shadows) ──
-  const filled=(i,j,k)=> i>=0&&i<GX&&j>=0&&j<GY&&k>=0&&k<GZ&&occ[idx(i,j,k)];
-  const xs=[],ys=[],zs=[],rr=[],gg=[],bb=[];
-  for(let i=0;i<GX;i++)for(let j=0;j<GY;j++)for(let k=0;k<GZ;k++){
-    const id=idx(i,j,k); if(!occ[id]) continue;
-    if(filled(i+1,j,k)&&filled(i-1,j,k)&&filled(i,j+1,k)&&filled(i,j-1,k)&&filled(i,j,k+1)&&filled(i,j,k-1)) continue;
-    xs.push(i-(GX-1)/2); ys.push(j-(GY-1)/2); zs.push(k-(GZ-1)/2); rr.push(cR[id]); gg.push(cG[id]); bb.push(cB[id]);
-  }
-
-  // ── build InstancedMesh ───────────────────────────────────────────────
-  disposeMesh();
-  material=new THREE.MeshStandardMaterial({color:0xffffff,metalness:P.metal,roughness:P.rough,flatShading:true,envMapIntensity:0.7});
-  rimLight.intensity=0.8+P.rim*2.2;
-  const im=new THREE.InstancedMesh(cubeGeo,material,Math.max(1,xs.length));
-  im.castShadow=true; im.receiveShadow=true;
-  for(let n=0;n<xs.length;n++){
-    _m.makeTranslation(xs[n],ys[n],zs[n]); im.setMatrixAt(n,_m);
-    _c.setRGB(rr[n]/255,gg[n]/255,bb[n]/255,THREE.SRGBColorSpace); im.setColorAt(n,_c);
-  }
-  im.instanceMatrix.needsUpdate=true;
-  if(im.instanceColor) im.instanceColor.needsUpdate=true;
-  mesh=im; headGroup.add(mesh);
-
-  ground.position.y=-(GY/2)-0.5;
-  camDist=GY*2.25;
-  const s=document.getElementById('status');
-  if(s) s.textContent=`${GX}×${GY}×${GZ} · ${xs.length} vox · ${P.headType}`;
-  const scEl=document.getElementById('seedChip'); if(scEl) scEl.textContent='seed '+seed;
+  octx.putImageData(img,0,0);
+  ctx.imageSmoothingEnabled=false;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const s=canvas.width/W;
+  ctx.drawImage(off,0,Math.round(bobY*s),canvas.width,canvas.height);
 }
-
-/* ═══════════════════ render loop + orbit ═══════════════════ */
-let yaw=0.5, pitch=0.05;
-function resize(){
-  const w=canvas.clientWidth||1, h=canvas.clientHeight||1;
-  renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix();
-  composer&&composer.setSize(w,h); bloom&&bloom.setSize(w,h);
-}
-function frame(){
+function lerpHex(a,b,t){const A=hx(a),B=hx(b);return toHex({r:A.r+(B.r-A.r)*t,g:A.g+(B.g-A.g)*t,b:A.b+(B.b-A.b)*t});}
+let lastC=colors();
+function frame(now){
   requestAnimationFrame(frame);
-  if(params.autoRotate) yaw+=0.006;
-  headGroup.rotation.y=yaw; headGroup.rotation.x=pitch;
-  camera.position.set(0, camDist*0.18, camDist); camera.lookAt(0,0,0);
-  composer.render();
+  animT=now||0;
+  const cyc=(animT/1000)%4.2;
+  const blink=cyc>4.0; // ~180ms blink every ~4.2s
+  const bob=Math.sin(animT/900)*0.5; // gentle breathing
+  lastC=build(blink);
+  paint(bob);
 }
+requestAnimationFrame(frame);
 
-// pointer orbit
-let dragging=false,lastX=0,lastY=0;
-canvas.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture(e.pointerId);});
-canvas.addEventListener('pointermove',e=>{
-  if(!dragging)return;
-  yaw+=(e.clientX-lastX)*0.01; pitch=clamp(pitch+(e.clientY-lastY)*0.01,-1.2,1.2);
-  lastX=e.clientX;lastY=e.clientY;
-});
-canvas.addEventListener('pointerup',()=>dragging=false);
-canvas.addEventListener('pointercancel',()=>dragging=false);
-canvas.addEventListener('wheel',e=>{e.preventDefault();camDist=clamp(camDist*(e.deltaY<0?0.92:1.08),8,120);},{passive:false});
-window.addEventListener('resize',resize);
-
-/* ═══════════════════ controls UI ═══════════════════ */
-let rebuildQueued=false;
-function queueRebuild(){ if(rebuildQueued)return; rebuildQueued=true; requestAnimationFrame(()=>{rebuildQueued=false;buildHead();}); }
-
-const host=document.getElementById('controlsHost');
-const valEls={};
-function fmt(it,v){ return it.type==='n'?String(round(v)):(+v).toFixed(2); }
-
-// head type buttons
-const typeRow=document.getElementById('typeRow');
-HEAD_TYPES.forEach(t=>{
-  const b=document.createElement('button'); b.className='typeBtn'+(t===params.headType?' active':''); b.textContent=t; b.dataset.t=t;
-  b.addEventListener('click',()=>{
-    params.headType=t;
-    [...typeRow.children].forEach(x=>x.classList.toggle('active',x.dataset.t===t));
-    queueRebuild();
-  });
-  typeRow.appendChild(b);
+/* ═══════════════════ controls ═══════════════════ */
+const traitHost=document.getElementById('traitHost');
+const sels={};
+LAYERS.forEach(l=>{
+  const row=document.createElement('div'); row.className='trait';
+  row.innerHTML='<span class="traitLbl">'+l.label+'</span>';
+  const sel=document.createElement('select'); sel.className='sel';
+  l.opts.forEach((o,i)=>{ const op=document.createElement('option'); op.value=i; op.textContent=o; sel.appendChild(op); });
+  sel.value=params.v[l.key];
+  sel.addEventListener('change',()=>{ params.v[l.key]=+sel.value; });
+  const lock=document.createElement('button'); lock.className='lockBtn'; lock.textContent='🔓'; lock.title='lock';
+  lock.addEventListener('click',()=>{ locks[l.key]=!locks[l.key]; lock.classList.toggle('on',locks[l.key]); lock.textContent=locks[l.key]?'🔒':'🔓'; });
+  row.appendChild(sel); row.appendChild(lock); traitHost.appendChild(row);
+  sels[l.key]=sel;
 });
 
-// slider groups
-GROUPS.forEach((g,gi)=>{
-  const det=document.createElement('details'); det.className='group'; if(gi===0) det.open=true;
-  const sum=document.createElement('summary');
-  sum.innerHTML='<span>'+g.name+'</span>';
-  const lock=document.createElement('label'); lock.className='grpLock';
-  const lg=g.items[0].group;
-  lock.innerHTML='<input type="checkbox"> lock';
-  lock.querySelector('input').addEventListener('change',e=>{ locks[lg]=e.target.checked; });
-  lock.addEventListener('click',e=>e.stopPropagation());
-  sum.appendChild(lock); det.appendChild(sum);
-
-  g.items.forEach(it=>{
-    const c=document.createElement('div'); c.className='ctrl';
-    c.innerHTML='<div class="ctrlHead"><span class="ctrlLbl">'+it.label+'</span><span class="ctrlVal" id="v-'+it.id+'">'+fmt(it,params[it.id])+'</span></div>';
-    const inp=document.createElement('input');
-    inp.type='range'; inp.min=it.min; inp.max=it.max; inp.step=it.step; inp.value=params[it.id];
-    inp.addEventListener('input',()=>{ params[it.id]=parseFloat(inp.value); valEls[it.id].textContent=fmt(it,params[it.id]); queueRebuild(); });
-    c.appendChild(inp); det.appendChild(c);
-    valEls[it.id]=c.querySelector('#v-'+it.id);
-    it._input=inp;
-  });
-  host.appendChild(det);
+const palRow=document.getElementById('palRow');
+PALETTES.forEach((p,i)=>{ const s=document.createElement('div'); s.className='pal'+(i===params.pal?' active':'');
+  s.title=p.name; s.style.background='linear-gradient(135deg,'+p.accent+' 0%,'+p.bg1+' 55%,'+p.bg2+' 100%)';
+  s.addEventListener('click',()=>{ params.pal=i; [...palRow.children].forEach((x,xi)=>x.classList.toggle('active',xi===i)); });
+  palRow.appendChild(s);
 });
 
-// palette swatches
-let palWrap;
-(()=>{
-  const det=document.createElement('details'); det.className='group'; det.open=true;
-  det.innerHTML='<summary><span>Palette</span></summary>';
-  const wrap=document.createElement('div'); wrap.className='swatchRow';
-  PALETTES.forEach((p,i)=>{
-    const s=document.createElement('div'); s.className='pal'+(i===params.palette?' active':'');
-    s.title=p.name; s.style.background='linear-gradient(135deg,'+p.hi+' 0%,'+p.lo+' 60%,'+p.rim+' 100%)';
-    s.addEventListener('click',()=>{ params.palette=i; [...wrap.children].forEach((x,xi)=>x.classList.toggle('active',xi===i)); queueRebuild(); });
-    wrap.appendChild(s);
-  });
-  det.appendChild(wrap); host.appendChild(det);
-  palWrap=wrap;
-})();
+// colour pickers (skin / hair / eyes) as swatch strips
+const colorHost=document.getElementById('colorHost');
+function swatchStrip(label,list,cur,onPick){
+  const wrap=document.createElement('div'); wrap.style.marginBottom='8px';
+  wrap.innerHTML='<div class="traitLbl" style="margin-bottom:4px">'+label+'</div>';
+  const row=document.createElement('div'); row.className='swatchRow';
+  list.forEach((c,i)=>{ const s=document.createElement('div'); s.className='pal'+(i===cur()?' active':''); s.style.background=c;
+    s.addEventListener('click',()=>{ onPick(i); [...row.children].forEach((x,xi)=>x.classList.toggle('active',xi===cur())); });
+    row.appendChild(s); });
+  wrap.appendChild(row); colorHost.appendChild(wrap); return row;
+}
+const skinRow=swatchStrip('Skin',SKINS,()=>params.skin,i=>params.skin=i);
+const hairRow=swatchStrip('Hair',HAIRS,()=>params.hair,i=>params.hair=i);
+const irisRow=swatchStrip('Eyes',IRISES,()=>params.iris,i=>params.iris=i);
 
-function syncControls(){
-  GROUPS.forEach(g=>g.items.forEach(it=>{ it._input.value=params[it.id]; valEls[it.id].textContent=fmt(it,params[it.id]); }));
-  [...typeRow.children].forEach(x=>x.classList.toggle('active',x.dataset.t===params.headType));
-  if(palWrap)[...palWrap.children].forEach((x,xi)=>x.classList.toggle('active',xi===params.palette));
-  const sc=document.getElementById('seedChip'); if(sc) sc.textContent='seed '+(params.seed|0);
+function syncUI(){
+  LAYERS.forEach(l=>sels[l.key].value=params.v[l.key]);
+  [...palRow.children].forEach((x,xi)=>x.classList.toggle('active',xi===params.pal));
+  [...skinRow.children].forEach((x,xi)=>x.classList.toggle('active',xi===params.skin));
+  [...hairRow.children].forEach((x,xi)=>x.classList.toggle('active',xi===params.hair));
+  [...irisRow.children].forEach((x,xi)=>x.classList.toggle('active',xi===params.iris));
+  document.getElementById('seedChip').textContent='seed '+params.seed;
 }
 
 /* ═══════════════════ variation actions ═══════════════════ */
-function randomizeParams(fullSeed){
-  const s=fullSeed?(Math.random()*10000|0):params.seed;
-  if(fullSeed) params.seed=s;
-  GROUPS.forEach(g=>g.items.forEach(it=>{
-    if(locks[it.group])return;
-    if(it.id==='res')return; // keep chosen resolution
-    params[it.id]=it.min+rnd(s,it.min*100,it.max*100+GROUPS.indexOf(g)*13,it.id.length)* (it.max-it.min);
-  }));
-  if(!locks.type) params.headType=HEAD_TYPES[Math.floor(rnd(s,7,3,2)*HEAD_TYPES.length)];
-  if(!locks.palette) params.palette=Math.floor(rnd(s,11,5,9)*PALETTES.length);
-  syncControls(); queueRebuild();
+const OPTIONAL_NONE_BIAS=0.45; // chance an optional layer stays "none"
+function pick(rng,l){
+  if(l.optional && rng()<OPTIONAL_NONE_BIAS) return 0;
+  return Math.floor(rng()*l.opts.length);
+}
+function randomize(newSeed){
+  if(newSeed) params.seed=Math.floor(Math.random()*100000);
+  const rng=mulberry(hash32(params.seed,1,1));
+  LAYERS.forEach(l=>{ if(!locks[l.key]) params.v[l.key]=pick(rng,l); });
+  if(!lockCol.pal)  params.pal =Math.floor(rng()*PALETTES.length);
+  if(!lockCol.skin) params.skin=Math.floor(rng()*SKINS.length);
+  if(!lockCol.hair) params.hair=Math.floor(rng()*HAIRS.length);
+  if(!lockCol.iris) params.iris=Math.floor(rng()*IRISES.length);
+  syncUI();
+}
+function newSeed(){ params.seed=Math.floor(Math.random()*100000); randomizeFromSeed(); }
+function randomizeFromSeed(){
+  const rng=mulberry(hash32(params.seed,1,1));
+  LAYERS.forEach(l=>{ if(!locks[l.key]) params.v[l.key]=pick(rng,l); });
+  if(!lockCol.pal)  params.pal =Math.floor(rng()*PALETTES.length);
+  if(!lockCol.skin) params.skin=Math.floor(rng()*SKINS.length);
+  if(!lockCol.hair) params.hair=Math.floor(rng()*HAIRS.length);
+  if(!lockCol.iris) params.iris=Math.floor(rng()*IRISES.length);
+  syncUI();
 }
 function mutate(){
-  const s=Math.random()*10000|0;
-  GROUPS.forEach(g=>g.items.forEach(it=>{
-    if(locks[it.group]||it.id==='res')return;
-    const span=(it.max-it.min)*0.16;
-    params[it.id]=clamp(params[it.id]+(rnd(s,it.min*100,it.max*100,it.id.length)*2-1)*span,it.min,it.max);
-  }));
-  params.seed=(params.seed+ (Math.random()*97|0) +1)&0xffff;
-  syncControls(); queueRebuild();
+  const rng=mulberry((Math.random()*1e9)|0);
+  const muts=[()=>{const l=LAYERS[Math.floor(rng()*LAYERS.length)];if(!locks[l.key])params.v[l.key]=pick(rng,l);},
+              ()=>{if(!lockCol.pal)params.pal=Math.floor(rng()*PALETTES.length);},
+              ()=>{if(!lockCol.hair)params.hair=Math.floor(rng()*HAIRS.length);},
+              ()=>{if(!lockCol.iris)params.iris=Math.floor(rng()*IRISES.length);}];
+  const n=1+Math.floor(rng()*2); for(let i=0;i<n;i++)muts[Math.floor(rng()*muts.length)]();
+  syncUI();
 }
-
-document.getElementById('btnSeed').addEventListener('click',()=>{ params.seed=Math.random()*10000|0; syncControls(); queueRebuild(); });
+document.getElementById('btnRand').addEventListener('click',()=>randomize(true));
+document.getElementById('btnSeed').addEventListener('click',newSeed);
 document.getElementById('btnMutate').addEventListener('click',mutate);
-document.getElementById('btnRand').addEventListener('click',()=>randomizeParams(true));
-document.getElementById('btnReset').addEventListener('click',()=>{ Object.assign(params,defaults,{headType:'round',palette:0,seed:1337,autoRotate:true}); syncControls(); queueRebuild(); });
-const rotBtn=document.getElementById('btnRot');
-rotBtn.classList.toggle('btnPrimary',params.autoRotate);
-rotBtn.addEventListener('click',()=>{ params.autoRotate=!params.autoRotate; rotBtn.classList.toggle('btnPrimary',params.autoRotate); });
+document.getElementById('btnReset').addEventListener('click',()=>{ Object.assign(params,JSON.parse(JSON.stringify(DEF))); syncUI(); });
+window.addEventListener('keydown',e=>{ if(e.target.tagName==='SELECT')return; if(e.key==='r'||e.key==='R')newSeed(); });
 
-window.addEventListener('keydown',e=>{
-  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;
-  if(e.key===' '){ e.preventDefault(); rotBtn.click(); }
-  if(e.key==='r'||e.key==='R') document.getElementById('btnSeed').click();
-});
-
-/* ═══════════════════ PNG / share / publish ═══════════════════ */
+/* ═══════════════════ export / share / publish ═══════════════════ */
 const SHARE_URL='https://pixel-on-kaspa.fyi/head-lab.html';
-const SHARE_TXT='Voxel head, generated in the Pixel on Kaspa Head Lab. Make your own:';
-
-function snapshotDataURL(){ composer.render(); return canvas.toDataURL('image/png'); }
-
-document.getElementById('btnShot').addEventListener('click',()=>{
-  const a=document.createElement('a'); a.href=snapshotDataURL(); a.download='voxel-head-'+Date.now()+'.png'; a.click();
-});
+const SHARE_TXT='Pixel character with attitude, generated in the Pixel on Kaspa Head Lab. Make your own:';
+function exportPNG(scale){ // crisp high-res render, no bob/blink
+  const cv=document.createElement('canvas'); cv.width=W*scale; cv.height=H*scale; const c=cv.getContext('2d');
+  build(false);
+  const C=colors();
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){ let col=ch[y*W+x]; if(col===null)col=lerpHex(C.bg1,C.bg2,y/H); c.fillStyle=col; c.fillRect(x*scale,y*scale,scale,scale); }
+  return cv;
+}
+function snapshotDataURL(){ return exportPNG(16).toDataURL('image/png'); }
+document.getElementById('btnShot').addEventListener('click',()=>{ const a=document.createElement('a'); a.href=snapshotDataURL(); a.download='pixel-head-'+params.seed+'.png'; a.click(); });
 
 if(window.PixelShare){
-  PixelShare.mount({
-    buttonId:'btnShareX',
-    getDataURL:snapshotDataURL,
-    text:SHARE_TXT, url:SHARE_URL,
-    hashtags:['voxel','pixelart','creativecoding'],
-    filenamePrefix:'voxel-head'
-  });
+  PixelShare.mount({ buttonId:'btnShareX', getDataURL:snapshotDataURL, text:SHARE_TXT, url:SHARE_URL,
+    hashtags:['pixelart','nft','pfp'], filenamePrefix:'pixel-head' });
 }
-
-/* PixelLab interface: publish / remix rehydrate */
-function captureState(){ const o={v:1,headType:params.headType,palette:params.palette,seed:params.seed}; GROUPS.forEach(g=>g.items.forEach(it=>o[it.id]=params[it.id])); return o; }
-function restoreState(p){
-  if(!p)return;
-  if(p.headType&&HEAD_TYPES.includes(p.headType))params.headType=p.headType;
-  if(p.palette!=null)params.palette=clamp(p.palette|0,0,PALETTES.length-1);
+function captureState(){ return {v:1, seed:params.seed, pal:params.pal, skin:params.skin, hair:params.hair, iris:params.iris, traits:{...params.v}}; }
+function restoreState(p){ if(!p)return;
   if(p.seed!=null)params.seed=p.seed|0;
-  GROUPS.forEach(g=>g.items.forEach(it=>{ if(p[it.id]!=null)params[it.id]=clamp(parseFloat(p[it.id]),it.min,it.max); }));
-  syncControls(); buildHead();
+  ['pal','skin','hair','iris'].forEach(k=>{ if(p[k]!=null)params[k]=p[k]|0; });
+  if(p.traits)LAYERS.forEach(l=>{ if(p.traits[l.key]!=null)params.v[l.key]=clamp(p.traits[l.key]|0,0,l.opts.length-1); });
+  syncUI();
 }
 if(window.PixelGallery){
-  PixelGallery.registerLab({
-    id:'head-lab', name:'Head Lab', labUrl:'/head-lab.html', title:'Voxel Head',
-    publishButtonId:'btnPublish',
-    captureState, restoreState,
-    renderThumbnail:()=>snapshotDataURL()
-  });
+  PixelGallery.registerLab({ id:'head-lab', name:'Head Lab', labUrl:'/head-lab.html', title:'Pixel Character',
+    publishButtonId:'btnPublish', captureState, restoreState, renderThumbnail:()=>snapshotDataURL() });
 }
 
-/* ═══════════════════ REC (turntable clip) ═══════════════════ */
-const REC_MS=6000;
-let recording=false;
-const btnRec=document.getElementById('btnRec');
-const recOverlay=document.getElementById('recOverlay');
-const recResult=document.getElementById('recResult');
-const recPlayer=document.getElementById('recPlayer');
-let lastBlob=null,lastExt='mp4';
-
+/* ═══════════════════ REC (idle-loop clip) ═══════════════════ */
+const REC_MS=6000; let recording=false, lastBlob=null, lastExt='mp4';
+const btnRec=document.getElementById('btnRec'), recOverlay=document.getElementById('recOverlay');
+const recResult=document.getElementById('recResult'), recPlayer=document.getElementById('recPlayer');
 btnRec.addEventListener('click',()=>{
-  if(recording)return; recording=true;
-  const wasRot=params.autoRotate; params.autoRotate=true; // guarantee motion in the clip
-  btnRec.classList.add('recording'); btnRec.textContent='● REC';
-  const stream=canvas.captureStream(60), chunks=[];
+  if(recording)return; recording=true; btnRec.classList.add('recording'); btnRec.textContent='● REC';
+  const stream=canvas.captureStream(30), chunks=[];
   const FMT=['video/mp4;codecs=avc1.42E01E','video/mp4','video/webm;codecs=vp9','video/webm'];
-  let rec; for(const m of FMT){ if(MediaRecorder.isTypeSupported(m)){ try{rec=new MediaRecorder(stream,{mimeType:m,videoBitsPerSecond:16_000_000});break;}catch(e){} } }
+  let rec; for(const m of FMT){ if(MediaRecorder.isTypeSupported(m)){ try{rec=new MediaRecorder(stream,{mimeType:m,videoBitsPerSecond:8_000_000});break;}catch(e){} } }
   if(!rec) rec=new MediaRecorder(stream);
   const mime=rec.mimeType||'video/webm'; lastExt=mime.includes('mp4')?'mp4':'webm';
   rec.ondataavailable=e=>{ if(e.data.size)chunks.push(e.data); };
-  rec.onstop=()=>{
-    lastBlob=new Blob(chunks,{type:mime});
-    recPlayer.src=URL.createObjectURL(lastBlob);
-    recResult.style.display='flex';
-    recording=false; params.autoRotate=wasRot;
-    rotBtn.classList.toggle('btnPrimary',params.autoRotate);
-    btnRec.classList.remove('recording'); btnRec.textContent='REC 6s';
-    recOverlay.classList.remove('show');
-  };
+  rec.onstop=()=>{ lastBlob=new Blob(chunks,{type:mime}); recPlayer.src=URL.createObjectURL(lastBlob); recResult.style.display='flex';
+    recording=false; btnRec.classList.remove('recording'); btnRec.textContent='REC 6s'; recOverlay.classList.remove('show'); };
   rec.start(100);
   const t0=performance.now();
-  (function tick(){
-    const left=Math.ceil((REC_MS-(performance.now()-t0))/1000);
+  (function tick(){ const left=Math.ceil((REC_MS-(performance.now()-t0))/1000);
     if(performance.now()-t0>=REC_MS){ rec.stop(); return; }
-    recOverlay.classList.add('show'); recOverlay.textContent='● REC '+Math.max(0,left);
-    requestAnimationFrame(tick);
-  })();
+    recOverlay.classList.add('show'); recOverlay.textContent='● REC '+Math.max(0,left); requestAnimationFrame(tick); })();
 });
-document.getElementById('recSave').addEventListener('click',()=>{
-  if(!lastBlob)return;
-  const a=document.createElement('a'); a.href=URL.createObjectURL(lastBlob); a.download='voxel-head-'+Date.now()+'.'+lastExt; a.click();
-});
+document.getElementById('recSave').addEventListener('click',()=>{ if(!lastBlob)return; const a=document.createElement('a'); a.href=URL.createObjectURL(lastBlob); a.download='pixel-head-'+params.seed+'.'+lastExt; a.click(); });
 
-/* ═══════════════════ boot ═══════════════════ */
-resize(); buildHead(); frame();
+/* boot — optional ?seed= deep-link builds that character on load */
+(()=>{ const q=new URLSearchParams(location.search); const sd=q.get('seed');
+  if(sd!=null && sd!=='' && !isNaN(+sd)){ params.seed=(+sd)|0; randomizeFromSeed(); } })();
+syncUI();
+})();
 </script>
 </body>
 </html>
