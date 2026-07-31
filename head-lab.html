@@ -165,9 +165,8 @@ const LAYERS=[
   {key:'acc',   label:'Face',    opts:['none','shades','eyepatch','scar','warpaint','mask','cyberjaw','tattoo'], optional:true},
   {key:'ear1',  label:'Earring', opts:['none','stud','ring','bolt'], optional:true},
   {key:'bust',  label:'Bust',    opts:['tee','hoodie','jacket','armor','bare'], optional:false},
-  {key:'px',    label:'Pixel',   opts:['fine','chunky','blocky'], optional:false, weights:[6,3,1]},
+  {key:'px',    label:'Pixel',   opts:['fine','chunky','blocky','mosaic','shards'], optional:false, weights:[7,2,1,3,2]},
 ];
-const PXSIZE=[1,2,4];
 
 /* ═══════════════════ state ═══════════════════ */
 const DEF={seed:7777, pal:1, skin:0, hair:4, iris:0,
@@ -401,7 +400,8 @@ function build(blink){
   ch.fill(null);
   const C=colors(), v=params.v;
   params.hairShape=LAYERS[0].opts[v.head];
-  params.px=PXSIZE[v.px||0];              // fine / chunky / blocky render grid
+  params.style=LAYERS[10].opts[v.px||0];  // fine/chunky/blocky/mosaic/shards
+  params.px = params.style==='chunky'?2 : params.style==='blocky'?4 : 1;
   computeShape(params.seed);              // seed-driven silhouette (mirrored)
   drawBust(C,LAYERS[9].opts[v.bust]);
   drawHead(C,LAYERS[0].opts[v.head]);
@@ -427,22 +427,41 @@ function gridForRender(){ const p=params.px||1; if(p<=1) return ch;
   const q=new Array(W*H), o=p>>1;
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const by=Math.min(H-1,Math.floor(y/p)*p+o), bx=Math.min(W-1,Math.floor(x/p)*p+o); q[y*W+x]=ch[by*W+bx]; }
   return q; }
+// ── mixed-size / triangle mosaic ──
+// adaptive quad-tree: flat regions merge into big tiles, detail subdivides to
+// 1px, and (in 'shards') edge tiles become triangle facets → varied pixel
+// sizes and shapes within one image.
+function drawStyled(cc,SC,mx,my){
+  const shards=params.style==='shards';
+  const cell=(x,y)=>(x<0||x>=W||y<0||y>=H)?null:ch[y*W+x];
+  const rect=(gx,gy,sz,col)=>{ if(col){cc.fillStyle=col;cc.fillRect(mx+gx*SC,my+gy*SC,sz*SC,sz*SC);} };
+  const tri=(gx,gy,sz,ur,col)=>{ if(!col)return; const x=mx+gx*SC,y=my+gy*SC,s=sz*SC; cc.fillStyle=col; cc.beginPath();
+    if(ur){cc.moveTo(x,y);cc.lineTo(x+s,y);cc.lineTo(x+s,y+s);}else{cc.moveTo(x,y);cc.lineTo(x,y+s);cc.lineTo(x+s,y+s);}
+    cc.closePath();cc.fill(); };
+  const uni=(gx,gy,sz)=>{ const c0=cell(gx,gy); for(let j=0;j<sz;j++)for(let i=0;i<sz;i++)if(cell(gx+i,gy+j)!==c0)return 0; return c0===null?2:1; };
+  const maj=(gx,gy,sz)=>{ const n={};let b=null,bn=0; for(let j=0;j<sz;j++)for(let i=0;i<sz;i++){const c=cell(gx+i,gy+j);if(!c)continue;n[c]=(n[c]||0)+1;if(n[c]>bn){bn=n[c];b=c;}} return b; };
+  function tile(gx,gy,sz){ const u=uni(gx,gy,sz);
+    if(u===2)return; if(u===1){rect(gx,gy,sz,cell(gx,gy));return;}     // uniform colour → one big pixel
+    if(shards && sz<=2){ const base=maj(gx,gy,sz); rect(gx,gy,sz,base); // edge tile → triangle facet
+      const TR=cell(gx+sz-1,gy),BL=cell(gx,gy+sz-1);
+      if(TR&&TR!==base)tri(gx,gy,sz,true,TR); if(BL&&BL!==base)tri(gx,gy,sz,false,BL); return; }
+    if(sz>1){const h=sz>>1;tile(gx,gy,h);tile(gx+h,gy,h);tile(gx,gy+h,h);tile(gx+h,gy+h,h);return;}
+    rect(gx,gy,1,cell(gx,gy)); }
+  for(let gy=0;gy<H;gy+=8)for(let gx=0;gx<W;gx+=8)tile(gx,gy,8);
+}
 function paint(bobY){
-  const C=lastC, G=gridForRender(), img=octx.createImageData(W,H);
-  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-    let col=G[y*W+x];
-    if(col===null){ const t=y/H, r=Math.hypot(x-32,y-30)/40; col=lerpHex(lt(C.bg1,0.05*(1-r)),C.bg2,clamp(t*1.05,0,1)); }
-    const c=hx(col), i=(y*W+x)*4; img.data[i]=c.r;img.data[i+1]=c.g;img.data[i+2]=c.b;img.data[i+3]=255;
-  }
-  octx.putImageData(img,0,0);
-  // studio frame: fill with the palette gradient, then draw the grid at an
-  // integer scale (crisp uniform pixels) centred with a margin so nothing
-  // touches the edge.
+  const C=lastC;
   const g=ctx.createLinearGradient(0,0,0,canvas.height); g.addColorStop(0,lt(C.bg1,.06)); g.addColorStop(1,C.bg2);
   ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
   ctx.imageSmoothingEnabled=false;
-  const SC=7, dw=W*SC, m=(canvas.width-dw)/2;
-  ctx.drawImage(off,m,m+Math.round(bobY*SC),dw,dw);
+  const SC=7, dw=W*SC, m=(canvas.width-dw)/2, my=m+Math.round(bobY*SC);
+  if(params.style==='mosaic'||params.style==='shards'){ drawStyled(ctx,SC,m,my); return; }
+  const G=gridForRender(), img=octx.createImageData(W,H);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){ let col=G[y*W+x];
+    if(col===null){ const t=y/H, r=Math.hypot(x-32,y-30)/40; col=lerpHex(lt(C.bg1,0.05*(1-r)),C.bg2,clamp(t*1.05,0,1)); }
+    const c=hx(col), i=(y*W+x)*4; img.data[i]=c.r;img.data[i+1]=c.g;img.data[i+2]=c.b;img.data[i+3]=255; }
+  octx.putImageData(img,0,0);
+  ctx.drawImage(off,m,my,dw,dw);
 }
 function frame(now){
   requestAnimationFrame(frame);
@@ -531,6 +550,7 @@ function exportPNG(scale){
   build(false); const C=colors(), G=gridForRender();
   const g=c.createLinearGradient(0,0,0,total); g.addColorStop(0,lt(C.bg1,.06)); g.addColorStop(1,C.bg2);
   c.fillStyle=g; c.fillRect(0,0,total,total);
+  if(params.style==='mosaic'||params.style==='shards'){ drawStyled(c,scale,m,m); return cv; }
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){ let col=G[y*W+x]; if(col===null)continue;
     c.fillStyle=col; c.fillRect(m+x*scale,m+y*scale,scale,scale); }
   return cv;
