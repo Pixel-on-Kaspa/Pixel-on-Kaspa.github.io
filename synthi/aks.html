@@ -401,7 +401,7 @@
       <div class="panel-title">Trapezoid Envelope</div>
       <div class="panel-body" id="env-body"></div>
     </div>
-    <div class="panel" style="flex:1">
+    <div class="panel" style="flex:1 0 auto">
       <div class="panel-title">
         Patch Matrix
         <span>click = cycle: off → weak → strong · row=source col=dest</span>
@@ -488,6 +488,7 @@
     <div class="seq-hd">Sequencer</div>
     <div class="seq-row">
       <button class="btn-sm" id="seq-play">Play</button>
+      <button class="btn-sm" id="seq-rnd" title="Randomize the sequence (musical pentatonic)">Rnd</button>
       <span id="seq-bpm-wrap"></span>
       <span id="seq-swing-wrap"></span>
     </div>
@@ -2064,6 +2065,22 @@ function buildSeqSection() {
     if (!ENG || !actx) return; // power on first
     if (ST.seq.running) seqStop(); else seqStart();
   });
+
+  // Randomize the sequence with a musical, minor-pentatonic pattern so a fresh
+  // idea always sounds usable rather than atonal.
+  document.getElementById('seq-rnd').addEventListener('click', () => {
+    const PENTA = [0, 3, 5, 7, 10];
+    const root  = 40 + Math.floor(Math.random() * 8); // 40–47
+    ST.seq.steps.forEach(s => {
+      s.active = Math.random() < 0.55;
+      const oct = Math.floor(Math.random() * 2) * 12;
+      const deg = PENTA[Math.floor(Math.random() * PENTA.length)];
+      s.note = clamp(root + oct + deg, SEQ_NOTE_MIN, SEQ_NOTE_MAX);
+      s.vel  = 0.6 + Math.random() * 0.3;
+    });
+    refreshSeqUI();
+  });
+
   const arpBtn = document.getElementById('arp-on');
   arpBtn.addEventListener('click', () => {
     ST.arp.on = !ST.arp.on;
@@ -2470,7 +2487,7 @@ document.addEventListener('DOMContentLoaded', () => {
     getTap: () => (ENG && ENG.nodes) ? ENG.nodes.ceiling : null,
     getPatch: () => { try { return JSON.stringify({ engineVersion: 'aks-2026.07', ts: Date.now(), state: ST }); } catch (e) { return null; } },
     engineVersion: 'aks-2026.07',
-    maxSec: 15,
+    maxSec: 20,
     share: {
       filenamePrefix: 'synthi-aks',
       text: 'Made a patch on the SYNTHI AKS — make your own:',

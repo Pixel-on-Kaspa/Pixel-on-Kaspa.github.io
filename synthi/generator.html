@@ -722,8 +722,8 @@
   <div class="ctrlbar">
     <button class="btn btnPrimary" id="audioStart" type="button">▶ Start</button>
     <div class="ctrlGroup">
-      <button class="btn" id="recBtn" type="button" title="Record a 15s clip of what you play" disabled>● REC</button>
-      <span class="val" id="recTime">15s</span>
+      <button class="btn" id="recBtn" type="button" title="Record a 20s clip of what you play" disabled>● REC</button>
+      <span class="val" id="recTime">20s</span>
     </div>
     <div class="ctrlGroup">
       <span class="midiDot" id="midiDot"></span>
@@ -750,6 +750,7 @@
       <input id="aks-swing" type="range" min="0" max="0.5" step="0.01" value="0" style="min-width:50px"/>
       <span class="val" id="aks-swing-val">0%</span>
     </div>
+    <button class="btn" id="aks-seq-rand" type="button" title="Randomize the sequence (musical pentatonic)">🎲 Rnd</button>
     <button class="btn btnPrimary" id="aks-seq-toggle" type="button">Seq ▶</button>
   </div>
 
@@ -1171,10 +1172,10 @@
        The clip is the drift-proof artifact: it never changes if the engine
        evolves later. We ALSO silently snapshot the patch + engineVersion so a
        remix layer can be turned on later without re-recording (provenance is
-       append-only). Free tier = 15s; unlimited length is planned behind
+       append-only). Free tier = 20s; unlimited length is planned behind
        membership. */
     const ENGINE_VERSION = 'aks-2026.07';
-    const REC_MAX_SEC = 15;                    // TODO: unlimited behind membership
+    const REC_MAX_SEC = 20;                    // TODO: unlimited behind membership
     let mediaRecorder = null, recChunks = [], recCountdown = null, recTimeout = null;
     let lastRec = null;                        // { blob, patch, engineVersion, ts }
     let lastRecUrl = null;                     // object URL for the <audio> preview
@@ -1981,6 +1982,28 @@
           }
         });
       }
+
+      // Randomize the current sequencer (A or B) with a musical, minor-pentatonic
+      // pattern so a fresh idea always sounds usable rather than atonal.
+      const PENTA = [0, 3, 5, 7, 10];
+      function randomizeSeq() {
+        if (!aks) return;
+        const steps = seqStepsOf();
+        const root = 48 + Math.floor(Math.random() * 10); // 48–57
+        for (let i = 0; i < steps.length; i++) {
+          const s = steps[i];
+          s.active   = Math.random() < 0.55;
+          const oct  = Math.floor(Math.random() * 2) * 12;
+          const deg  = PENTA[Math.floor(Math.random() * PENTA.length)];
+          s.note     = Math.max(24, Math.min(96, root + oct + deg));
+          s.velocity = 0.6 + Math.random() * 0.3;
+          s.accent   = Math.random() < 0.20;
+        }
+        refreshAllStepBtns();
+        openStepEditor(selectedStep);
+      }
+      const seqRandBtn = document.getElementById('aks-seq-rand');
+      if (seqRandBtn) seqRandBtn.addEventListener('click', randomizeSeq);
 
       const noteOnBtn = document.getElementById('aks-note-on');
       if (noteOnBtn) {
