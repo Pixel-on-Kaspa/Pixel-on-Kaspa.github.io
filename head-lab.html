@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Head Lab • Voxel • Pixel on Kaspa</title>
+  <style>
+    :root{
+      --bg:#070b12; --bg2:#0c111b; --panel:rgba(0,0,0,.28);
+      --border:rgba(255,255,255,.10); --border2:rgba(255,255,255,.16);
+      --accent:#49EACB; --accent2:#00c4ff; --text:#eef3f2; --muted:#8a929c;
+      --radius:12px; --shadow:0 8px 30px rgba(0,0,0,.45);
+      --mono:"JetBrains Mono","Fira Code",ui-monospace,SFMono-Regular,Menlo,monospace;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      background:radial-gradient(1200px 800px at 50% -10%,var(--bg2),var(--bg)) fixed;
+      color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+      font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased;
+    }
+    .wrap{max-width:1180px;margin:0 auto;padding:18px 16px 64px}
+
+    /* topbar */
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+    .brand{display:flex;align-items:baseline;gap:10px;font-weight:900;letter-spacing:.18em;font-size:20px;color:var(--accent)}
+    .brand small{font-weight:600;letter-spacing:.08em;font-size:11px;color:var(--muted)}
+    .nav{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+      padding:9px 13px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;
+      border:1px solid var(--border2);background:rgba(255,255,255,.05);color:var(--text);
+      text-decoration:none;transition:background .12s,border-color .12s,color .12s;white-space:nowrap;line-height:1}
+    .btn:hover{background:rgba(255,255,255,.10)}
+    .btnPrimary{border-color:rgba(73,234,203,.45);background:rgba(73,234,203,.12);color:var(--accent)}
+    .btnPrimary:hover{background:var(--accent);color:#031014}
+    .btnGhost{background:transparent;opacity:.9}
+    .btnSm{padding:7px 10px;font-size:12px}
+    .btnRec.recording{border-color:rgba(230,70,70,.6);background:rgba(230,70,70,.18);color:#ff8080;animation:recPulse 1s ease-in-out infinite}
+    @keyframes recPulse{0%,100%{opacity:1}50%{opacity:.55}}
+
+    /* layout */
+    .grid{display:grid;grid-template-columns:1.25fr .75fr;gap:14px;align-items:start}
+    @media (max-width:940px){.grid{grid-template-columns:1fr}}
+    .panel{border:1px solid var(--border);border-radius:var(--radius);
+      background:var(--panel);backdrop-filter:blur(10px);box-shadow:var(--shadow);overflow:hidden}
+    .panelHead{padding:11px 14px;border-bottom:1px solid var(--border);
+      display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .panelHead b{letter-spacing:.14em;text-transform:uppercase;font-size:12px;opacity:.92}
+    .chip{font-family:var(--mono);font-size:11px;color:var(--accent);
+      background:rgba(73,234,203,.10);border:1px solid rgba(73,234,203,.25);
+      padding:2px 8px;border-radius:20px;white-space:nowrap}
+    .panelBody{padding:12px 14px}
+
+    /* stage */
+    #stageWrap{position:relative;width:100%;aspect-ratio:1/1;border-radius:8px;overflow:hidden;
+      background:#04070c;border:1px solid var(--border)}
+    @media (max-width:940px){#stageWrap{aspect-ratio:4/5}}
+    #stage{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+    #stage:active{cursor:grabbing}
+    #recOverlay{position:absolute;top:12px;right:14px;font-family:var(--mono);font-size:13px;
+      font-weight:800;color:#ff7a7a;letter-spacing:.06em;display:none}
+    #recOverlay.show{display:block}
+
+    .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+
+    /* controls */
+    .typeRow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+    .typeBtn{padding:8px 4px;border-radius:8px;font-size:12px;font-weight:800;letter-spacing:.04em;
+      border:1px solid var(--border2);background:rgba(255,255,255,.04);color:var(--text);cursor:pointer;text-transform:uppercase}
+    .typeBtn.active{border-color:rgba(73,234,203,.5);background:rgba(73,234,203,.14);color:var(--accent)}
+
+    details.group{border-top:1px solid var(--border)}
+    details.group[open]>summary{color:var(--accent)}
+    details.group>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;
+      font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:900;opacity:.85;padding:11px 0}
+    details.group>summary::-webkit-details-marker{display:none}
+    .grpLock{font-family:var(--mono);font-size:10px;color:var(--muted);display:flex;align-items:center;gap:5px;cursor:pointer;letter-spacing:.06em}
+    .grpLock input{accent-color:var(--accent)}
+
+    .ctrl{margin-bottom:11px}
+    .ctrlHead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:5px}
+    .ctrlLbl{font-size:12px;opacity:.85}
+    .ctrlVal{font-family:var(--mono);font-size:11px;color:var(--accent)}
+    input[type=range]{-webkit-appearance:none;width:100%;height:3px;border-radius:2px;
+      background:rgba(255,255,255,.14);outline:none;cursor:pointer}
+    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;
+      background:var(--accent);box-shadow:0 0 5px rgba(73,234,203,.5);cursor:pointer}
+    input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-radius:50%;background:var(--accent)}
+    select.sel{width:100%;background:var(--bg2);color:var(--text);border:1px solid var(--border2);
+      border-radius:8px;padding:8px 9px;font-size:12px;font-family:var(--mono);cursor:pointer}
+    .swatchRow{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+    .pal{width:26px;height:26px;border-radius:6px;border:2px solid transparent;cursor:pointer;overflow:hidden;position:relative}
+    .pal.active{border-color:var(--accent);box-shadow:0 0 6px rgba(73,234,203,.5)}
+
+    .recResult{display:none;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+    .recResult .lbl{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:var(--accent)}
+    .recResult video{max-width:220px;border-radius:8px;border:1px solid var(--border)}
+    .hint{font-size:11px;color:var(--muted)}
+    .foot{margin-top:16px;font-size:11px;color:var(--muted);text-align:center;letter-spacing:.04em}
+    kbd{font-family:var(--mono);font-size:10px;background:rgba(255,255,255,.07);border:1px solid var(--border2);
+      border-radius:4px;padding:1px 5px}
+  </style>
+
+  <script defer src="https://cloud.umami.is/script.js" data-website-id="6ee0e9a9-7066-4115-b91d-5667d8042abe"></script>
+  <script src="/js/share.js"></script>
+  <meta name="pixel-gallery-api" content="https://pixel-gallery.pixelonkaspa.workers.dev">
+  <script src="/js/gallery.js"></script>
+  <script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js" } }
+  </script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">HEAD <small>voxel • Pixel on Kaspa</small></div>
+      <div class="nav">
+        <a class="btn btnSm" href="/">Home</a>
+        <a class="btn btnSm" href="/artists">Artists</a>
+        <a class="btn btnSm btnPrimary" href="/head-lab.html">Head</a>
+        <a class="btn btnSm btnGhost" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
+      </div>
+    </div>
+
+    <section class="grid">
+      <!-- STAGE -->
+      <div class="panel">
+        <div class="panelHead"><b>Voxel Head</b><span class="chip" id="status">booting…</span></div>
+        <div class="panelBody">
+          <div id="stageWrap">
+            <canvas id="stage"></canvas>
+            <div id="recOverlay"></div>
+          </div>
+          <div class="row">
+            <button class="btn btnSm btnPrimary" id="btnSeed" type="button">New seed</button>
+            <button class="btn btnSm" id="btnMutate" type="button">Mutate</button>
+            <button class="btn btnSm" id="btnRand" type="button">Randomize</button>
+            <button class="btn btnSm" id="btnRot" type="button">⟳ Auto</button>
+            <button class="btn btnSm" id="btnShot" type="button">PNG</button>
+            <button class="btn btnSm btnRec" id="btnRec" type="button">REC 6s</button>
+            <button class="btn btnSm btnPrimary" id="btnShareX" type="button">Share on X ↗</button>
+            <button class="btn btnSm btnPrimary" id="btnPublish" type="button">✦ Publish</button>
+            <button class="btn btnSm btnGhost" id="btnReset" type="button">Reset</button>
+          </div>
+          <div class="recResult" id="recResult">
+            <span class="lbl">Clip</span>
+            <video id="recPlayer" controls preload="metadata"></video>
+            <button class="btn btnSm" id="recSave" type="button">↓ Save</button>
+            <span class="hint">turntable clip</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTROLS -->
+      <div class="panel">
+        <div class="panelHead"><b>Genome</b><span class="chip" id="seedChip">seed —</span></div>
+        <div class="panelBody">
+          <div class="typeRow" id="typeRow"></div>
+          <div id="controlsHost"></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="foot">
+      <kbd>drag</kbd> orbit · <kbd>scroll</kbd> zoom · <kbd>Space</kbd> auto-rotate · <kbd>R</kbd> new seed ·
+      lock a group to keep it while you Randomize
+    </div>
+  </div>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* ═══════════════════ helpers ═══════════════════ */
+const clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
+const lerp  = (a,b,t)=>a+(b-a)*t;
+const round = Math.round;
+
+// Deterministic PRNG (same family as the Sýkora lab) so a seed always
+// reproduces the exact same head — that's what makes "variations" shareable.
+function hash32(a,b,c){
+  let x=(a|0)+((b|0)*374761393)+((c|0)*668265263);
+  x=(x^(x>>>13))*1274126177; x=(x^(x>>>16))>>>0; return x;
+}
+const rnd=(seed,a,b,salt=0)=>(hash32(seed+salt*17,a|0,b|0)%100000)/100000;
+function smoothNoise(x,y,seed,salt=0){
+  const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,s=seed+salt*23;
+  const tl=(hash32(s,xi,yi)%100000)/100000, tr=(hash32(s,xi+1,yi)%100000)/100000;
+  const bl=(hash32(s,xi,yi+1)%100000)/100000, br=(hash32(s,xi+1,yi+1)%100000)/100000;
+  const sx=xf*xf*(3-2*xf), sy=yf*yf*(3-2*yf);
+  return lerp(lerp(tl,tr,sx),lerp(bl,br,sx),sy);
+}
+function fnoise(x,y,seed,salt=0){
+  return smoothNoise(x,y,seed,salt)*0.6 + smoothNoise(x*2.1,y*2.1,seed,salt+1)*0.4;
+}
+// pseudo-3D noise by mixing two 2D slices
+const noise3=(x,y,z,seed,salt=0)=>
+  fnoise(x*3+z*1.3, y*3, seed, salt)*0.5 + fnoise(y*3+x*1.1, z*3, seed, salt+7)*0.5;
+
+const hex=h=>{h=h.replace('#','');return {r:parseInt(h.slice(0,2),16),g:parseInt(h.slice(2,4),16),b:parseInt(h.slice(4,6),16)};};
+const mixRGB=(a,b,t)=>({r:lerp(a.r,b.r,t),g:lerp(a.g,b.g,t),b:lerp(a.b,b.b,t)});
+const scaleRGB=(a,s)=>({r:a.r*s,g:a.g*s,b:a.b*s});
+
+/* ═══════════════════ palettes ═══════════════════ */
+const PALETTES=[
+  {name:'Kaspa Cyan', lo:'#0f5b66', hi:'#3fd6c0', eye:'#06222a', pupil:'#7ffbe6', mouth:'#06222a', rim:'#49EACB'},
+  {name:'Copper',     lo:'#5a2f14', hi:'#d98a3a', eye:'#1c0f06', pupil:'#ffcf8a', mouth:'#1c0f06', rim:'#e8a020'},
+  {name:'Bone',       lo:'#6b6f74', hi:'#e9e6df', eye:'#2a0d0d', pupil:'#ff5a5a', mouth:'#2a0d0d', rim:'#ff8a8a'},
+  {name:'Vapor',      lo:'#3a1466', hi:'#d05ad0', eye:'#12061f', pupil:'#6ffbff', mouth:'#12061f', rim:'#7fd8ff'},
+  {name:'Terminal',   lo:'#06331a', hi:'#34d06a', eye:'#021a0c', pupil:'#b6ffce', mouth:'#021a0c', rim:'#49ff9b'},
+];
+
+/* ═══════════════════ control schema (the genome) ═══════════════════ */
+// group: which lock-group it belongs to (for Randomize / locking)
+const R=(id,label,min,max,step,def,group)=>({id,label,min,max,step,def,type:'r',group});
+const N=(id,label,min,max,step,def,group)=>({id,label,min,max,step,def,type:'n',group});
+const GROUPS=[
+  {name:'Shape', items:[
+    N('res','Voxel resolution',10,24,1,16,'shape'),
+    R('cranium','Cranium width',0.72,1.18,0.01,0.98,'shape'),
+    R('depth','Depth',0.72,1.18,0.01,0.92,'shape'),
+    R('jaw','Jaw taper',0.45,1.0,0.01,0.78,'shape'),
+    R('chunk','Erosion',0.0,0.75,0.01,0.22,'shape'),
+    R('asym','Asymmetry',0.0,0.6,0.01,0.10,'shape'),
+  ]},
+  {name:'Face', items:[
+    R('eyeSize','Eye size',0.5,2.0,0.01,1.0,'face'),
+    R('eyeSep','Eye spacing',0.4,1.15,0.01,0.72,'face'),
+    R('brow','Brow / mood',-1.0,1.0,0.01,0.0,'face'),
+    R('mouth','Mouth curve',-1.0,1.0,0.01,0.15,'face'),
+  ]},
+  {name:'Material', items:[
+    R('metal','Metalness',0.0,1.0,0.01,0.25,'mat'),
+    R('rough','Roughness',0.05,1.0,0.01,0.55,'mat'),
+    R('rim','Rim glow',0.0,1.0,0.01,0.55,'mat'),
+  ]},
+];
+const HEAD_TYPES=['round','square','tall','alien'];
+
+/* ═══════════════════ state ═══════════════════ */
+const defaults={};
+GROUPS.forEach(g=>g.items.forEach(it=>defaults[it.id]=it.def));
+const params=Object.assign({},defaults,{headType:'round',palette:0,seed:1337,autoRotate:true});
+const locks={shape:false,face:false,mat:false,type:false,palette:false};
+
+/* ═══════════════════ three.js setup ═══════════════════ */
+const canvas=document.getElementById('stage');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(38,1,0.1,500);
+let camDist=34;
+
+const headGroup=new THREE.Group();
+scene.add(headGroup);
+
+// lighting — key + cool rim, matching the dark cyan aesthetic
+const keyLight=new THREE.DirectionalLight(0xffffff,2.1); keyLight.position.set(0.6,1.0,1.4);
+const rimLight=new THREE.DirectionalLight(0x49EACB,1.4); rimLight.position.set(-1.1,0.3,-1.0);
+const fill=new THREE.DirectionalLight(0x88aaff,0.5); fill.position.set(-0.6,-0.8,0.9);
+scene.add(keyLight,rimLight,fill,new THREE.AmbientLight(0x30404a,1.0));
+
+// Cheap procedural environment so MeshStandardMaterial metals have something to
+// reflect (without an envmap high metalness renders near-black). A vertical
+// gradient mapped as an equirect reflection is enough for subtle sheen.
+(function(){
+  const c=document.createElement('canvas'); c.width=16; c.height=64;
+  const g=c.getContext('2d'); const grd=g.createLinearGradient(0,0,0,64);
+  grd.addColorStop(0,'#243642'); grd.addColorStop(0.5,'#0a0f16'); grd.addColorStop(1,'#04060a');
+  g.fillStyle=grd; g.fillRect(0,0,16,64);
+  const tex=new THREE.CanvasTexture(c); tex.mapping=THREE.EquirectangularReflectionMapping;
+  scene.environment=tex;
+})();
+
+const cubeGeo=new THREE.BoxGeometry(0.92,0.92,0.92);
+let mesh=null, material=null;
+const _m=new THREE.Matrix4(), _c=new THREE.Color();
+
+// dispose the InstancedMesh's instance buffers + the per-build material
+// (the cube geometry is shared and reused, so it is NOT disposed here).
+function disposeMesh(){ if(mesh){ headGroup.remove(mesh); mesh.dispose?.(); mesh=null; } if(material){ material.dispose(); material=null; } }
+
+/* ═══════════════════ voxel head generator ═══════════════════ */
+function buildHead(){
+  const P=params, seed=P.seed|0, pal=PALETTES[P.palette];
+  const cLo=hex(pal.lo), cHi=hex(pal.hi), cEye=hex(pal.eye), cPup=hex(pal.pupil), cMouth=hex(pal.mouth);
+
+  const GY=clamp(round(P.res*1.28),8,40);
+  const GX=clamp(round(P.res*(P.headType==='tall'?0.82:1.0)),6,34);
+  const GZ=clamp(round(P.res*0.92),6,34);
+  const shapeP=P.headType==='square'?4.0:2.0;
+
+  const voxels=[]; // {x,y,z, r,g,b}
+  const eyeY=0.14+P.brow*0.06, eyeX=0.30*P.eyeSep, eyeR=0.15*P.eyeSize;
+  const browY=eyeY+0.16, mouthY=-0.46;
+
+  for(let j=0;j<GY;j++){
+    const ny=(j+0.5)/GY*2-1;
+    for(let i=0;i<GX;i++){
+      const nx=(i+0.5)/GX*2-1;
+      for(let k=0;k<GZ;k++){
+        const nz=(k+0.5)/GZ*2-1;
+
+        // base skull field ------------------------------------------------
+        let RX=0.90*P.cranium, RY=1.0, RZ=0.86*P.depth;
+        if(P.headType==='tall'){ RY=1.22; RX*=0.86; }
+        if(P.headType==='alien'){ RY=1.10; RZ*=0.92; }
+        const lower=clamp(-ny,0,1);              // 0 at mid → 1 at chin
+        const upper=clamp(ny,0,1);
+        let taper=1-(1-P.jaw)*lower;             // jaw narrows the lower head
+        if(P.headType==='alien') taper*=1-0.35*lower;      // pointed chin
+        const rx=RX*taper, rz=RZ*taper;
+        let bulge=1;
+        if(P.headType==='alien') bulge=1+0.35*upper*upper;  // swollen cranium
+        const fx=Math.abs(nx/(rx*bulge)), fy=Math.abs(ny/RY), fz=Math.abs(nz/(rz*bulge));
+        let field=Math.pow(fx,shapeP)+Math.pow(fy,shapeP)+Math.pow(fz,shapeP);
+        if(field>1.0) continue;
+
+        // surface erosion + asymmetry (chunky voxel edges) ---------------
+        if(field>0.62){
+          const surfBias=(field-0.62)/0.38;
+          const n=noise3(nx,ny,nz,seed);
+          const extra=(nx>0? P.asym:0)*noise3(nz,nx,ny,seed,4);
+          if(n < (P.chunk*0.9+extra)*surfBias) continue;
+        }
+
+        // colour ---------------------------------------------------------
+        const front=nz>0.12;
+        let col=mixRGB(cLo,cHi,clamp((ny+1)/2,0,1)*0.9+0.05);
+        col=scaleRGB(col, 0.66+0.34*clamp(nz*0.5+0.5,0,1)); // front-lit shading
+
+        if(front){
+          // eyes (two sockets + bright pupils)
+          const dxL=nx+eyeX, dxR=nx-eyeX, dyE=ny-eyeY;
+          const dL=Math.hypot(dxL*1.05,dyE), dR=Math.hypot(dxR*1.05,dyE);
+          const dEye=Math.min(dL,dR);
+          if(dEye<eyeR){ col=cEye; if(dEye<eyeR*0.5) col=cPup; }
+          // brow band — angry when brow>0 (tilts inward/down toward the nose)
+          else if(Math.abs(ny-(browY - P.brow*0.10*(1-Math.min(Math.abs(nx)/0.45,1))))<0.05
+                  && Math.abs(nx)<0.44 && P.brow>-0.2){
+            col=scaleRGB(col,0.45);
+          }
+          // mouth — corners lift for smile (mouth>0), drop for frown
+          else{
+            const mCurve=mouthY + P.mouth*0.18*((nx/0.28)*(nx/0.28)-0.4);
+            if(Math.abs(ny-mCurve)<0.055 && Math.abs(nx)<0.28) col=cMouth;
+          }
+        }
+        voxels.push({x:i-(GX-1)/2, y:j-(GY-1)/2, z:k-(GZ-1)/2, c:col});
+      }
+    }
+  }
+
+  // build InstancedMesh -------------------------------------------------
+  disposeMesh();
+  material=new THREE.MeshStandardMaterial({color:0xffffff,metalness:P.metal,roughness:P.rough,flatShading:true});
+  rimLight.intensity=0.5+P.rim*1.8;
+  const im=new THREE.InstancedMesh(cubeGeo,material,Math.max(1,voxels.length));
+  for(let n=0;n<voxels.length;n++){
+    const v=voxels[n];
+    _m.makeTranslation(v.x,v.y,v.z);
+    im.setMatrixAt(n,_m);
+    _c.setRGB((v.c.r/255)**2.2,(v.c.g/255)**2.2,(v.c.b/255)**2.2); // approx sRGB→linear
+    im.setColorAt(n,_c);
+  }
+  im.instanceMatrix.needsUpdate=true;
+  if(im.instanceColor) im.instanceColor.needsUpdate=true;
+  mesh=im; headGroup.add(mesh);
+
+  camDist=GY*1.9;
+  const s=document.getElementById('status');
+  if(s) s.textContent=`${GX}×${GY}×${GZ} · ${voxels.length} vox · ${HEAD_TYPES.indexOf(P.headType)>=0?P.headType:''}`;
+  const sc=document.getElementById('seedChip'); if(sc) sc.textContent='seed '+seed;
+}
+
+/* ═══════════════════ render loop + orbit ═══════════════════ */
+let yaw=0.5, pitch=0.05;
+function resize(){
+  const w=canvas.clientWidth||1, h=canvas.clientHeight||1;
+  renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix();
+}
+function frame(){
+  requestAnimationFrame(frame);
+  if(params.autoRotate) yaw+=0.006;
+  headGroup.rotation.y=yaw; headGroup.rotation.x=pitch;
+  camera.position.set(0,0,camDist); camera.lookAt(0,0,0);
+  renderer.render(scene,camera);
+}
+
+// pointer orbit
+let dragging=false,lastX=0,lastY=0;
+canvas.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointermove',e=>{
+  if(!dragging)return;
+  yaw+=(e.clientX-lastX)*0.01; pitch=clamp(pitch+(e.clientY-lastY)*0.01,-1.2,1.2);
+  lastX=e.clientX;lastY=e.clientY;
+});
+canvas.addEventListener('pointerup',()=>dragging=false);
+canvas.addEventListener('pointercancel',()=>dragging=false);
+canvas.addEventListener('wheel',e=>{e.preventDefault();camDist=clamp(camDist*(e.deltaY<0?0.92:1.08),8,120);},{passive:false});
+window.addEventListener('resize',resize);
+
+/* ═══════════════════ controls UI ═══════════════════ */
+let rebuildQueued=false;
+function queueRebuild(){ if(rebuildQueued)return; rebuildQueued=true; requestAnimationFrame(()=>{rebuildQueued=false;buildHead();}); }
+
+const host=document.getElementById('controlsHost');
+const valEls={};
+function fmt(it,v){ return it.type==='n'?String(round(v)):(+v).toFixed(2); }
+
+// head type buttons
+const typeRow=document.getElementById('typeRow');
+HEAD_TYPES.forEach(t=>{
+  const b=document.createElement('button'); b.className='typeBtn'+(t===params.headType?' active':''); b.textContent=t; b.dataset.t=t;
+  b.addEventListener('click',()=>{
+    params.headType=t;
+    [...typeRow.children].forEach(x=>x.classList.toggle('active',x.dataset.t===t));
+    queueRebuild();
+  });
+  typeRow.appendChild(b);
+});
+
+// slider groups
+GROUPS.forEach((g,gi)=>{
+  const det=document.createElement('details'); det.className='group'; if(gi===0) det.open=true;
+  const sum=document.createElement('summary');
+  sum.innerHTML='<span>'+g.name+'</span>';
+  const lock=document.createElement('label'); lock.className='grpLock';
+  const lg=g.items[0].group;
+  lock.innerHTML='<input type="checkbox"> lock';
+  lock.querySelector('input').addEventListener('change',e=>{ locks[lg]=e.target.checked; });
+  lock.addEventListener('click',e=>e.stopPropagation());
+  sum.appendChild(lock); det.appendChild(sum);
+
+  g.items.forEach(it=>{
+    const c=document.createElement('div'); c.className='ctrl';
+    c.innerHTML='<div class="ctrlHead"><span class="ctrlLbl">'+it.label+'</span><span class="ctrlVal" id="v-'+it.id+'">'+fmt(it,params[it.id])+'</span></div>';
+    const inp=document.createElement('input');
+    inp.type='range'; inp.min=it.min; inp.max=it.max; inp.step=it.step; inp.value=params[it.id];
+    inp.addEventListener('input',()=>{ params[it.id]=parseFloat(inp.value); valEls[it.id].textContent=fmt(it,params[it.id]); queueRebuild(); });
+    c.appendChild(inp); det.appendChild(c);
+    valEls[it.id]=c.querySelector('#v-'+it.id);
+    it._input=inp;
+  });
+  host.appendChild(det);
+});
+
+// palette swatches
+let palWrap;
+(()=>{
+  const det=document.createElement('details'); det.className='group'; det.open=true;
+  det.innerHTML='<summary><span>Palette</span></summary>';
+  const wrap=document.createElement('div'); wrap.className='swatchRow';
+  PALETTES.forEach((p,i)=>{
+    const s=document.createElement('div'); s.className='pal'+(i===params.palette?' active':'');
+    s.title=p.name; s.style.background='linear-gradient(135deg,'+p.hi+' 0%,'+p.lo+' 60%,'+p.rim+' 100%)';
+    s.addEventListener('click',()=>{ params.palette=i; [...wrap.children].forEach((x,xi)=>x.classList.toggle('active',xi===i)); queueRebuild(); });
+    wrap.appendChild(s);
+  });
+  det.appendChild(wrap); host.appendChild(det);
+  palWrap=wrap;
+})();
+
+function syncControls(){
+  GROUPS.forEach(g=>g.items.forEach(it=>{ it._input.value=params[it.id]; valEls[it.id].textContent=fmt(it,params[it.id]); }));
+  [...typeRow.children].forEach(x=>x.classList.toggle('active',x.dataset.t===params.headType));
+  if(palWrap)[...palWrap.children].forEach((x,xi)=>x.classList.toggle('active',xi===params.palette));
+  const sc=document.getElementById('seedChip'); if(sc) sc.textContent='seed '+(params.seed|0);
+}
+
+/* ═══════════════════ variation actions ═══════════════════ */
+function randomizeParams(fullSeed){
+  const s=fullSeed?(Math.random()*10000|0):params.seed;
+  if(fullSeed) params.seed=s;
+  GROUPS.forEach(g=>g.items.forEach(it=>{
+    if(locks[it.group])return;
+    if(it.id==='res')return; // keep chosen resolution
+    params[it.id]=it.min+rnd(s,it.min*100,it.max*100+GROUPS.indexOf(g)*13,it.id.length)* (it.max-it.min);
+  }));
+  if(!locks.type) params.headType=HEAD_TYPES[Math.floor(rnd(s,7,3,2)*HEAD_TYPES.length)];
+  if(!locks.palette) params.palette=Math.floor(rnd(s,11,5,9)*PALETTES.length);
+  syncControls(); queueRebuild();
+}
+function mutate(){
+  const s=Math.random()*10000|0;
+  GROUPS.forEach(g=>g.items.forEach(it=>{
+    if(locks[it.group]||it.id==='res')return;
+    const span=(it.max-it.min)*0.16;
+    params[it.id]=clamp(params[it.id]+(rnd(s,it.min*100,it.max*100,it.id.length)*2-1)*span,it.min,it.max);
+  }));
+  params.seed=(params.seed+ (Math.random()*97|0) +1)&0xffff;
+  syncControls(); queueRebuild();
+}
+
+document.getElementById('btnSeed').addEventListener('click',()=>{ params.seed=Math.random()*10000|0; syncControls(); queueRebuild(); });
+document.getElementById('btnMutate').addEventListener('click',mutate);
+document.getElementById('btnRand').addEventListener('click',()=>randomizeParams(true));
+document.getElementById('btnReset').addEventListener('click',()=>{ Object.assign(params,defaults,{headType:'round',palette:0,seed:1337,autoRotate:true}); syncControls(); queueRebuild(); });
+const rotBtn=document.getElementById('btnRot');
+rotBtn.classList.toggle('btnPrimary',params.autoRotate);
+rotBtn.addEventListener('click',()=>{ params.autoRotate=!params.autoRotate; rotBtn.classList.toggle('btnPrimary',params.autoRotate); });
+
+window.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;
+  if(e.key===' '){ e.preventDefault(); rotBtn.click(); }
+  if(e.key==='r'||e.key==='R') document.getElementById('btnSeed').click();
+});
+
+/* ═══════════════════ PNG / share / publish ═══════════════════ */
+const SHARE_URL='https://pixel-on-kaspa.fyi/head-lab.html';
+const SHARE_TXT='Voxel head, generated in the Pixel on Kaspa Head Lab. Make your own:';
+
+function snapshotDataURL(){ renderer.render(scene,camera); return canvas.toDataURL('image/png'); }
+
+document.getElementById('btnShot').addEventListener('click',()=>{
+  const a=document.createElement('a'); a.href=snapshotDataURL(); a.download='voxel-head-'+Date.now()+'.png'; a.click();
+});
+
+if(window.PixelShare){
+  PixelShare.mount({
+    buttonId:'btnShareX',
+    getDataURL:snapshotDataURL,
+    text:SHARE_TXT, url:SHARE_URL,
+    hashtags:['voxel','pixelart','creativecoding'],
+    filenamePrefix:'voxel-head'
+  });
+}
+
+/* PixelLab interface: publish / remix rehydrate */
+function captureState(){ const o={v:1,headType:params.headType,palette:params.palette,seed:params.seed}; GROUPS.forEach(g=>g.items.forEach(it=>o[it.id]=params[it.id])); return o; }
+function restoreState(p){
+  if(!p)return;
+  if(p.headType&&HEAD_TYPES.includes(p.headType))params.headType=p.headType;
+  if(p.palette!=null)params.palette=clamp(p.palette|0,0,PALETTES.length-1);
+  if(p.seed!=null)params.seed=p.seed|0;
+  GROUPS.forEach(g=>g.items.forEach(it=>{ if(p[it.id]!=null)params[it.id]=clamp(parseFloat(p[it.id]),it.min,it.max); }));
+  syncControls(); buildHead();
+}
+if(window.PixelGallery){
+  PixelGallery.registerLab({
+    id:'head-lab', name:'Head Lab', labUrl:'/head-lab.html', title:'Voxel Head',
+    publishButtonId:'btnPublish',
+    captureState, restoreState,
+    renderThumbnail:()=>snapshotDataURL()
+  });
+}
+
+/* ═══════════════════ REC (turntable clip) ═══════════════════ */
+const REC_MS=6000;
+let recording=false;
+const btnRec=document.getElementById('btnRec');
+const recOverlay=document.getElementById('recOverlay');
+const recResult=document.getElementById('recResult');
+const recPlayer=document.getElementById('recPlayer');
+let lastBlob=null,lastExt='mp4';
+
+btnRec.addEventListener('click',()=>{
+  if(recording)return; recording=true;
+  const wasRot=params.autoRotate; params.autoRotate=true; // guarantee motion in the clip
+  btnRec.classList.add('recording'); btnRec.textContent='● REC';
+  const stream=canvas.captureStream(60), chunks=[];
+  const FMT=['video/mp4;codecs=avc1.42E01E','video/mp4','video/webm;codecs=vp9','video/webm'];
+  let rec; for(const m of FMT){ if(MediaRecorder.isTypeSupported(m)){ try{rec=new MediaRecorder(stream,{mimeType:m,videoBitsPerSecond:16_000_000});break;}catch(e){} } }
+  if(!rec) rec=new MediaRecorder(stream);
+  const mime=rec.mimeType||'video/webm'; lastExt=mime.includes('mp4')?'mp4':'webm';
+  rec.ondataavailable=e=>{ if(e.data.size)chunks.push(e.data); };
+  rec.onstop=()=>{
+    lastBlob=new Blob(chunks,{type:mime});
+    recPlayer.src=URL.createObjectURL(lastBlob);
+    recResult.style.display='flex';
+    recording=false; params.autoRotate=wasRot;
+    rotBtn.classList.toggle('btnPrimary',params.autoRotate);
+    btnRec.classList.remove('recording'); btnRec.textContent='REC 6s';
+    recOverlay.classList.remove('show');
+  };
+  rec.start(100);
+  const t0=performance.now();
+  (function tick(){
+    const left=Math.ceil((REC_MS-(performance.now()-t0))/1000);
+    if(performance.now()-t0>=REC_MS){ rec.stop(); return; }
+    recOverlay.classList.add('show'); recOverlay.textContent='● REC '+Math.max(0,left);
+    requestAnimationFrame(tick);
+  })();
+});
+document.getElementById('recSave').addEventListener('click',()=>{
+  if(!lastBlob)return;
+  const a=document.createElement('a'); a.href=URL.createObjectURL(lastBlob); a.download='voxel-head-'+Date.now()+'.'+lastExt; a.click();
+});
+
+/* ═══════════════════ boot ═══════════════════ */
+resize(); buildHead(); frame();
+</script>
+</body>
+</html>
