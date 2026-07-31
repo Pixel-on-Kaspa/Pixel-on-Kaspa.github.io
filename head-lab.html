@@ -165,11 +165,13 @@ const LAYERS=[
   {key:'acc',   label:'Face',    opts:['none','shades','eyepatch','scar','warpaint','mask','cyberjaw','tattoo'], optional:true},
   {key:'ear1',  label:'Earring', opts:['none','stud','ring','bolt'], optional:true},
   {key:'bust',  label:'Bust',    opts:['tee','hoodie','jacket','armor','bare'], optional:false},
+  {key:'px',    label:'Pixel',   opts:['fine','chunky','blocky'], optional:false, weights:[6,3,1]},
 ];
+const PXSIZE=[1,2,4];
 
 /* ═══════════════════ state ═══════════════════ */
 const DEF={seed:7777, pal:1, skin:0, hair:4, iris:0,
-  v:{head:0,ears:0,eyes:0,brows:1,mouth:0,hair:2,gear:0,acc:1,ear1:0,bust:2}};
+  v:{head:0,ears:0,eyes:0,brows:1,mouth:0,hair:2,gear:0,acc:1,ear1:0,bust:2,px:0}};
 const params=JSON.parse(JSON.stringify(DEF));
 const locks={}; LAYERS.forEach(l=>locks[l.key]=false);
 const lockCol={pal:false,skin:false,hair:false,iris:false};
@@ -198,10 +200,10 @@ function snoise1(x,seed){ const xi=Math.floor(x),xf=x-xi;
 let HS={w:1,jaw:.34,chin:0,cheek:0,crown:1,wob:0,wseed:0};
 function computeShape(seed){
   const r=mulberry(hash32(seed,55,7));
-  HS={ w:0.90+r()*0.30, jaw:0.12+r()*0.52, chin:r()*0.55,
-       cheek:(r()-0.38)*0.42, crown:0.86+r()*0.36, wob:r()*0.085, wseed:(r()*1e5)|0,
-       asym:0.35+r()*0.95, aseed:(r()*1e5)|0,      // slight left/right skull imbalance
-       cock:(r()<0.55)?(r()<0.5?-1:1):0 };          // occasionally raise one brow
+  HS={ w:0.80+r()*0.46, jaw:0.06+r()*0.80, chin:r()*0.85,
+       cheek:(r()-0.40)*0.60, crown:0.80+r()*0.50, wob:r()*0.11, wseed:(r()*1e5)|0,
+       asym:0.6+r()*1.5, aseed:(r()*1e5)|0,        // left/right skull imbalance
+       cock:(r()<0.6)?(r()<0.5?-1:1):0 };           // occasionally raise one brow
 }
 function hwFor(shape,y){                     // mirrored head half-width per row
   let maxW=(shape==='wide'?20:shape==='tall'?15:17)*HS.w;
@@ -236,20 +238,23 @@ function colors(){
 
 /* ═══════════════════ layer painters ═══════════════════ */
 function drawBust(C,name){
-  const y0=50;
-  const base={tee:C.accent,hoodie:dk(C.hair,.85),jacket:'#2b303c',armor:C.metal,bare:C.skin}[name]||C.accent;
-  const hi=lt(base,.2), sh=dk(base,.6);
-  for(let y=y0;y<H;y++){ const w=Math.min(31, 10+(y-y0)*4); RECT(CXL-w+1,y,w*2,1,base); }
-  // neck
-  RECT(27,46,10,5,C.skin); RECT(27,46,10,1,C.skinSh); RECT(35,46,2,5,C.skinDk);
-  // shoulder top light + under-chin cast shadow
-  for(let y=y0;y<y0+2;y++){ const w=Math.min(31,10+(y-y0)*4); HL(CXL-w+1,CXR+w-1,y,hi); }
-  RECT(24,50,16,2,dk(base,.5));
-  if(name==='hoodie'){ RECT(22,52,4,10,base); RECT(38,52,4,10,base); RECT(28,50,8,4,sh); VL(CXL,52,H-1,sh);VL(CXR,52,H-1,sh); }
-  if(name==='jacket'){ VL(CXL,52,H-1,sh);VL(CXR,52,H-1,sh); M(20,55,C.accent); M(21,55,C.accent); HL(22,41,53,hi); }
-  if(name==='armor'){ HL(20,43,52,C.metalHi); M(23,56,C.accent); RECT(29,53,6,2,C.metalSh); }
-  if(name==='tee'){ HL(21,42,51,hi); M(24,58,sh); }
-  if(name==='bare'){ RECT(26,52,12,3,C.skinSh); }
+  const y0=51, base={tee:C.accent,hoodie:dk(C.hair,.85),jacket:'#2b303c',armor:C.metal,bare:C.skin}[name]||C.accent;
+  const hi=lt(base,.18), sh=dk(base,.62), swf=y=>Math.min(27,Math.round(12+Math.sqrt(Math.max(0,y-y0))*6));
+  // rounded shoulders
+  for(let y=y0;y<H;y++){ const w=swf(y); RECT(32-w,y,2*w,1,base); S(32-w,y,sh);S(31+w,y,sh); }
+  HL(32-15,31+15,y0,hi);                                  // top-of-shoulder light
+  // neck (skin) in front of the collar
+  RECT(28,46,8,6,C.skin); VL(28,46,50,C.skinSh); RECT(34,46,2,6,C.skinDk); HL(28,35,46,C.skinSh);
+  RECT(27,50,10,1,C.skinDk);                              // under-jaw cast shadow onto chest
+  if(name==='tee'){ for(let i=0;i<5;i++){S(29+i,51+i,sh);S(34-i,51+i,sh);} HL(20,43,52,hi); }
+  else if(name==='hoodie'){ RECT(25,50,14,3,dk(base,.82)); RECT(23,52,4,H-52,base);RECT(37,52,4,H-52,base);
+    VL(31,53,H-1,sh);VL(32,53,H-1,sh); S(30,55,'#dcdce2');S(30,56,'#dcdce2');S(33,57,'#dcdce2'); }
+  else if(name==='jacket'){ for(let i=0;i<7;i++){S(31-i,51+i,dk(base,.5));S(32+i,51+i,dk(base,.5));}
+    VL(31,52,H-1,sh);VL(32,52,H-1,sh); for(let y=54;y<H;y+=2)S(31,y,C.metalHi); RECT(24,52,3,3,dk(base,.5));RECT(37,52,3,3,dk(base,.5)); }
+  else if(name==='armor'){ DISC(22,55,4,C.metalHi);DISC(41,55,4,C.metalHi); RECT(24,51,16,2,C.metalSh);
+    for(let x=27;x<37;x+=3)VL(x,54,H-1,C.metalSh); M(24,58,C.accent); HL(28,35,52,C.metalHi); }
+  else if(name==='bare'){ HL(24,39,52,C.skinSh); S(27,54,C.skinDk);S(36,54,C.skinDk); RECT(30,52,4,1,C.skinDk);
+    S(23,53,C.accent);S(24,54,C.accent); }                // little chain
 }
 
 function drawHead(C,shape){
@@ -339,7 +344,13 @@ function drawAcc(C,name){
   if(name==='none')return; const dark=C.dark;
   if(name==='shades'){ RECT(16,eyeY-3,16,8,dark); RECT(32,eyeY-3,16,8,dark); RECT(18,eyeY-2,12,5,dk(C.accent,.5)); RECT(34,eyeY-2,12,5,dk(C.accent,.5));
     HL(30,33,eyeY,dark); S(19,eyeY-1,lt(C.accent,.6)); S(35,eyeY-1,lt(C.accent,.6)); HL(14,16,eyeY-2,dark);HL(47,49,eyeY-2,dark); }
-  else if(name==='eyepatch'){ RECT(exR-6,eyeY-5,14,10,dark); RECT(exR-4,eyeY-3,10,6,dk('#101015',1)); M(exL-1,20,dark); for(let x=16;x<26;x++)S(x,20,dark); VL(exR,18,eyeY-5,dark); }
+  else if(name==='eyepatch'){ // rounded patch over the right eye + a strap across the brow
+    DISC(exR,eyeY,5,dark); RECT(exR-4,eyeY-2,9,5,dark);
+    S(exR-2,eyeY-1,dk('#20232c',1)); S(exR+1,eyeY,dk('#20232c',1)); // subtle sheen
+    // strap from patch up to the left head edge
+    const eL=32-edgeL(params.hairShape,22);
+    for(let x=eL;x<=exR+4;x++){ const yy=Math.round(eyeY-5 - (x-eL)/(exR+4-eL)*0 + (exR+4-x)*0.0); S(x, 22 + Math.round((x-eL)/(exR+4-eL)*7), dark); }
+    S(exR-4,eyeY-2,dark); }
   else if(name==='scar'){ VL(24,eyeY-7,eyeY+6,'#c85a5a'); S(23,eyeY-4,'#e08a8a');S(25,eyeY-1,'#e08a8a');S(24,eyeY+2,'#a04040'); }
   else if(name==='warpaint'){ RECT(exL-5,eyeY+4,10,2,C.accent); RECT(exR-4,eyeY+4,10,2,C.accent); M(exL-5,eyeY+6,C.accent); M(exL,eyeY+6,C.accent); }
   else if(name==='mask'){ RECT(24,40,16,11,C.metalSh); RECT(25,41,14,9,dk(C.metal,.8)); HL(24,39,40,C.accent); for(let x=27;x<38;x+=2)VL(x,42,48,C.metal); RECT(29,44,6,2,dk(C.accent,.6)); }
@@ -390,6 +401,7 @@ function build(blink){
   ch.fill(null);
   const C=colors(), v=params.v;
   params.hairShape=LAYERS[0].opts[v.head];
+  params.px=PXSIZE[v.px||0];              // fine / chunky / blocky render grid
   computeShape(params.seed);              // seed-driven silhouette (mirrored)
   drawBust(C,LAYERS[9].opts[v.bust]);
   drawHead(C,LAYERS[0].opts[v.head]);
@@ -410,10 +422,15 @@ const canvas=document.getElementById('stage'), ctx=canvas.getContext('2d');
 const off=document.createElement('canvas'); off.width=W; off.height=H; const octx=off.getContext('2d');
 let lastC=colors();
 function lerpHex(a,b,t){const A=hx(a),B=hx(b);return toHex({r:A.r+(B.r-A.r)*t,g:A.g+(B.g-A.g)*t,b:A.b+(B.b-A.b)*t});}
+// optionally re-sample the grid into bigger blocks (variable pixel size)
+function gridForRender(){ const p=params.px||1; if(p<=1) return ch;
+  const q=new Array(W*H), o=p>>1;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const by=Math.min(H-1,Math.floor(y/p)*p+o), bx=Math.min(W-1,Math.floor(x/p)*p+o); q[y*W+x]=ch[by*W+bx]; }
+  return q; }
 function paint(bobY){
-  const C=lastC, img=octx.createImageData(W,H);
+  const C=lastC, G=gridForRender(), img=octx.createImageData(W,H);
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-    let col=ch[y*W+x];
+    let col=G[y*W+x];
     if(col===null){ const t=y/H, r=Math.hypot(x-32,y-30)/40; col=lerpHex(lt(C.bg1,0.05*(1-r)),C.bg2,clamp(t*1.05,0,1)); }
     const c=hx(col), i=(y*W+x)*4; img.data[i]=c.r;img.data[i+1]=c.g;img.data[i+2]=c.b;img.data[i+3]=255;
   }
@@ -475,7 +492,9 @@ function syncUI(){
 
 /* ═══════════════════ variation ═══════════════════ */
 const NONE_BIAS=0.42;
-function pick(rng,l){ if(l.optional && rng()<NONE_BIAS) return 0; return Math.floor(rng()*l.opts.length); }
+function pick(rng,l){ if(l.optional && rng()<NONE_BIAS) return 0;
+  if(l.weights){ const tot=l.weights.reduce((a,b)=>a+b,0); let r=rng()*tot; for(let i=0;i<l.weights.length;i++){ if((r-=l.weights[i])<0) return i; } return 0; }
+  return Math.floor(rng()*l.opts.length); }
 function fromSeed(){
   const rng=mulberry(hash32(params.seed,1,1));
   LAYERS.forEach(l=>{ if(!locks[l.key]) params.v[l.key]=pick(rng,l); });
@@ -509,10 +528,10 @@ const SHARE_TXT='Pixel character with attitude, generated in the Pixel on Kaspa 
 function exportPNG(scale){
   const total=(W+10)*scale, m=5*scale;              // 5-cell margin to match on-screen framing
   const cv=document.createElement('canvas'); cv.width=total; cv.height=total; const c=cv.getContext('2d');
-  build(false); const C=colors();
+  build(false); const C=colors(), G=gridForRender();
   const g=c.createLinearGradient(0,0,0,total); g.addColorStop(0,lt(C.bg1,.06)); g.addColorStop(1,C.bg2);
   c.fillStyle=g; c.fillRect(0,0,total,total);
-  for(let y=0;y<H;y++)for(let x=0;x<W;x++){ let col=ch[y*W+x]; if(col===null)continue;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){ let col=G[y*W+x]; if(col===null)continue;
     c.fillStyle=col; c.fillRect(m+x*scale,m+y*scale,scale,scale); }
   return cv;
 }
