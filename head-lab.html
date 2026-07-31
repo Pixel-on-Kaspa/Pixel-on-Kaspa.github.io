@@ -169,7 +169,7 @@ const LAYERS=[
 ];
 
 /* ═══════════════════ state ═══════════════════ */
-const DEF={seed:7777, pal:1, skin:0, hair:4, iris:0,
+const DEF={seed:7777, pal:1, skin:0, hair:4, iris:0, coarse:8,
   v:{head:0,ears:0,eyes:0,brows:1,mouth:0,hair:2,gear:0,acc:1,ear1:0,bust:2,px:0}};
 const params=JSON.parse(JSON.stringify(DEF));
 const locks={}; LAYERS.forEach(l=>locks[l.key]=false);
@@ -447,7 +447,8 @@ function drawStyled(cc,SC,mx,my){
       if(TR&&TR!==base)tri(gx,gy,sz,true,TR); if(BL&&BL!==base)tri(gx,gy,sz,false,BL); return; }
     if(sz>1){const h=sz>>1;tile(gx,gy,h);tile(gx+h,gy,h);tile(gx,gy+h,h);tile(gx+h,gy+h,h);return;}
     rect(gx,gy,1,cell(gx,gy)); }
-  for(let gy=0;gy<H;gy+=8)for(let gx=0;gx<W;gx+=8)tile(gx,gy,8);
+  const ST=params.coarse||8;                 // start tile size (power of 2) = coarseness
+  for(let gy=0;gy<H;gy+=ST)for(let gx=0;gx<W;gx+=ST)tile(gx,gy,ST);
 }
 function paint(bobY){
   const C=lastC;
@@ -500,12 +501,25 @@ function swatchStrip(label,list,cur,onPick){
 const skinRow=swatchStrip('Skin',SKINS,()=>params.skin,i=>params.skin=i);
 const hairRow=swatchStrip('Hair',HAIRS,()=>params.hair,i=>params.hair=i);
 const irisRow=swatchStrip('Eyes',IRISES,()=>params.iris,i=>params.iris=i);
+
+// mosaic coarseness slider (affects the mosaic / shards pixel styles)
+const coarseSect=document.createElement('div'); coarseSect.className='sect';
+coarseSect.innerHTML='<div class="sectHd">Mosaic coarseness</div>';
+const coarseRow=document.createElement('div'); coarseRow.className='trait'; coarseRow.style.gridTemplateColumns='1fr 54px';
+const coarseInput=document.createElement('input'); coarseInput.type='range'; coarseInput.min='1'; coarseInput.max='4'; coarseInput.step='1';
+coarseInput.value=String(Math.round(Math.log2(params.coarse)));
+const coarseVal=document.createElement('span'); coarseVal.className='ctrlVal'; coarseVal.style.fontFamily='var(--mono)'; coarseVal.style.fontSize='11px'; coarseVal.style.color='var(--accent)'; coarseVal.textContent=params.coarse+'px';
+coarseInput.addEventListener('input',()=>{ params.coarse=1<<(+coarseInput.value); coarseVal.textContent=params.coarse+'px'; });
+coarseRow.appendChild(coarseInput); coarseRow.appendChild(coarseVal); coarseSect.appendChild(coarseRow);
+colorHost.parentElement.parentElement.appendChild(coarseSect);
+
 function syncUI(){
   LAYERS.forEach(l=>sels[l.key].value=params.v[l.key]);
   [...palRow.children].forEach((x,xi)=>x.classList.toggle('active',xi===params.pal));
   [...skinRow.children].forEach((x,xi)=>x.classList.toggle('active',xi===params.skin));
   [...hairRow.children].forEach((x,xi)=>x.classList.toggle('active',xi===params.hair));
   [...irisRow.children].forEach((x,xi)=>x.classList.toggle('active',xi===params.iris));
+  coarseInput.value=String(Math.round(Math.log2(params.coarse))); coarseVal.textContent=params.coarse+'px';
   document.getElementById('seedChip').textContent='seed '+params.seed;
 }
 
@@ -558,9 +572,10 @@ function exportPNG(scale){
 function snapshotDataURL(){ return exportPNG(12).toDataURL('image/png'); }
 document.getElementById('btnShot').addEventListener('click',()=>{ const a=document.createElement('a'); a.href=snapshotDataURL(); a.download='pixel-head-'+params.seed+'.png'; a.click(); });
 if(window.PixelShare){ PixelShare.mount({ buttonId:'btnShareX', getDataURL:snapshotDataURL, text:SHARE_TXT, url:SHARE_URL, hashtags:['pixelart','nft','pfp'], filenamePrefix:'pixel-head' }); }
-function captureState(){ return {v:1, seed:params.seed, pal:params.pal, skin:params.skin, hair:params.hair, iris:params.iris, traits:{...params.v}}; }
+function captureState(){ return {v:1, seed:params.seed, pal:params.pal, skin:params.skin, hair:params.hair, iris:params.iris, coarse:params.coarse, traits:{...params.v}}; }
 function restoreState(p){ if(!p)return;
   if(p.seed!=null)params.seed=p.seed|0; ['pal','skin','hair','iris'].forEach(k=>{ if(p[k]!=null)params[k]=p[k]|0; });
+  if(p.coarse!=null)params.coarse=clamp(1<<Math.round(Math.log2(p.coarse|0||8)),2,16);
   if(p.traits)LAYERS.forEach(l=>{ if(p.traits[l.key]!=null)params.v[l.key]=clamp(p.traits[l.key]|0,0,l.opts.length-1); }); syncUI(); }
 if(window.PixelGallery){ PixelGallery.registerLab({ id:'head-lab', name:'Head Lab', labUrl:'/head-lab.html', title:'Pixel Character', publishButtonId:'btnPublish', captureState, restoreState, renderThumbnail:()=>snapshotDataURL() }); }
 
