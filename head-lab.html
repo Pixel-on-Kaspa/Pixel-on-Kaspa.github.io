@@ -106,7 +106,10 @@
   <meta name="pixel-gallery-api" content="https://pixel-gallery.pixelonkaspa.workers.dev">
   <script src="/js/gallery.js"></script>
   <script type="importmap">
-  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js" } }
+  { "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  } }
   </script>
 </head>
 <body>
@@ -168,6 +171,10 @@
 
 <script type="module">
 import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 /* ═══════════════════ helpers ═══════════════════ */
 const clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
@@ -214,7 +221,7 @@ const R=(id,label,min,max,step,def,group)=>({id,label,min,max,step,def,type:'r',
 const N=(id,label,min,max,step,def,group)=>({id,label,min,max,step,def,type:'n',group});
 const GROUPS=[
   {name:'Shape', items:[
-    N('res','Voxel resolution',10,24,1,16,'shape'),
+    N('res','Voxel resolution',10,24,1,18,'shape'),
     R('cranium','Cranium width',0.72,1.18,0.01,0.98,'shape'),
     R('depth','Depth',0.72,1.18,0.01,0.92,'shape'),
     R('jaw','Jaw taper',0.45,1.0,0.01,0.78,'shape'),
@@ -243,32 +250,58 @@ const locks={shape:false,face:false,mat:false,type:false,palette:false};
 
 /* ═══════════════════ three.js setup ═══════════════════ */
 const canvas=document.getElementById('stage');
-const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,preserveDrawingBuffer:true});
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,preserveDrawingBuffer:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.05;
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene=new THREE.Scene();
-const camera=new THREE.PerspectiveCamera(38,1,0.1,500);
+const camera=new THREE.PerspectiveCamera(33,1,0.1,600);
 let camDist=34;
 
 const headGroup=new THREE.Group();
 scene.add(headGroup);
 
-// lighting — key + cool rim, matching the dark cyan aesthetic
-const keyLight=new THREE.DirectionalLight(0xffffff,2.1); keyLight.position.set(0.6,1.0,1.4);
-const rimLight=new THREE.DirectionalLight(0x49EACB,1.4); rimLight.position.set(-1.1,0.3,-1.0);
-const fill=new THREE.DirectionalLight(0x88aaff,0.5); fill.position.set(-0.6,-0.8,0.9);
-scene.add(keyLight,rimLight,fill,new THREE.AmbientLight(0x30404a,1.0));
+// lighting — filmic key/fill/rim. The key casts shadows so voxels self-shadow
+// (real crevice depth) and drop a soft contact shadow onto the floor.
+const keyLight=new THREE.DirectionalLight(0xffffff,2.7); keyLight.position.set(16,26,20);
+keyLight.castShadow=true; keyLight.shadow.mapSize.set(2048,2048);
+keyLight.shadow.bias=-0.0006; keyLight.shadow.normalBias=0.7;
+{ const c=keyLight.shadow.camera; c.near=1; c.far=180; c.left=c.bottom=-46; c.right=c.top=46; }
+const rimLight=new THREE.DirectionalLight(0x49EACB,2.0); rimLight.position.set(-20,7,-18);
+const fill=new THREE.DirectionalLight(0x3a5a88,0.75); fill.position.set(-12,-16,16);
+scene.add(keyLight,rimLight,fill,new THREE.HemisphereLight(0x2b3c46,0x05070b,0.7));
 
-// Cheap procedural environment so MeshStandardMaterial metals have something to
-// reflect (without an envmap high metalness renders near-black). A vertical
-// gradient mapped as an equirect reflection is enough for subtle sheen.
-(function(){
-  const c=document.createElement('canvas'); c.width=16; c.height=64;
-  const g=c.getContext('2d'); const grd=g.createLinearGradient(0,0,0,64);
-  grd.addColorStop(0,'#243642'); grd.addColorStop(0.5,'#0a0f16'); grd.addColorStop(1,'#04060a');
-  g.fillStyle=grd; g.fillRect(0,0,16,64);
-  const tex=new THREE.CanvasTexture(c); tex.mapping=THREE.EquirectangularReflectionMapping;
-  scene.environment=tex;
-})();
+function gradTex(stops,w,h){
+  const c=document.createElement('canvas'); c.width=w; c.height=h;
+  const g=c.getContext('2d'); const grd=g.createLinearGradient(0,0,0,h);
+  stops.forEach(s=>grd.addColorStop(s[0],s[1])); g.fillStyle=grd; g.fillRect(0,0,w,h);
+  return new THREE.CanvasTexture(c);
+}
+// studio backdrop — subtle vertical gradient so the head sits in a "room"
+const bgTex=gradTex([[0,'#111d29'],[0.55,'#0a121b'],[1,'#04070c']],4,256);
+bgTex.colorSpace=THREE.SRGBColorSpace; scene.background=bgTex;
+// reflection env (metals need something to reflect or they render near-black)
+const envTex=gradTex([[0,'#2a3d4a'],[0.5,'#0b1017'],[1,'#04060a']],16,64);
+envTex.mapping=THREE.EquirectangularReflectionMapping; scene.environment=envTex;
+
+// soft contact shadow catcher — transparent plane, only the shadow shows
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(600,600), new THREE.ShadowMaterial({opacity:0.42}));
+ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; ground.position.y=-14;
+scene.add(ground);
+
+// post-processing — bloom makes pupils / rim highlights read as *light*
+let composer=null, bloom=null;
+function initComposer(){
+  composer=new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene,camera));
+  bloom=new UnrealBloomPass(new THREE.Vector2(1,1),0.55,0.45,0.80); // strength, radius, threshold
+  composer.addPass(bloom);
+  composer.addPass(new OutputPass());
+}
+initComposer();
 
 const cubeGeo=new THREE.BoxGeometry(0.92,0.92,0.92);
 let mesh=null, material=null;
@@ -288,10 +321,14 @@ function buildHead(){
   const GZ=clamp(round(P.res*0.92),6,34);
   const shapeP=P.headType==='square'?4.0:2.0;
 
-  const voxels=[]; // {x,y,z, r,g,b}
   const eyeY=0.14+P.brow*0.06, eyeX=0.30*P.eyeSep, eyeR=0.15*P.eyeSize;
   const browY=eyeY+0.16, mouthY=-0.46;
 
+  const idx=(i,j,k)=>(i*GY+j)*GZ+k;
+  const occ=new Uint8Array(GX*GY*GZ);
+  const cR=new Float32Array(GX*GY*GZ), cG=new Float32Array(GX*GY*GZ), cB=new Float32Array(GX*GY*GZ);
+
+  // ── pass 1: occupancy + per-voxel colour ──────────────────────────────
   for(let j=0;j<GY;j++){
     const ny=(j+0.5)/GY*2-1;
     for(let i=0;i<GX;i++){
@@ -299,76 +336,72 @@ function buildHead(){
       for(let k=0;k<GZ;k++){
         const nz=(k+0.5)/GZ*2-1;
 
-        // base skull field ------------------------------------------------
         let RX=0.90*P.cranium, RY=1.0, RZ=0.86*P.depth;
         if(P.headType==='tall'){ RY=1.22; RX*=0.86; }
         if(P.headType==='alien'){ RY=1.10; RZ*=0.92; }
-        const lower=clamp(-ny,0,1);              // 0 at mid → 1 at chin
-        const upper=clamp(ny,0,1);
-        let taper=1-(1-P.jaw)*lower;             // jaw narrows the lower head
-        if(P.headType==='alien') taper*=1-0.35*lower;      // pointed chin
+        const lower=clamp(-ny,0,1), upper=clamp(ny,0,1);
+        let taper=1-(1-P.jaw)*lower;
+        if(P.headType==='alien') taper*=1-0.35*lower;
         const rx=RX*taper, rz=RZ*taper;
-        let bulge=1;
-        if(P.headType==='alien') bulge=1+0.35*upper*upper;  // swollen cranium
+        let bulge=1; if(P.headType==='alien') bulge=1+0.35*upper*upper;
         const fx=Math.abs(nx/(rx*bulge)), fy=Math.abs(ny/RY), fz=Math.abs(nz/(rz*bulge));
-        let field=Math.pow(fx,shapeP)+Math.pow(fy,shapeP)+Math.pow(fz,shapeP);
+        const field=Math.pow(fx,shapeP)+Math.pow(fy,shapeP)+Math.pow(fz,shapeP);
         if(field>1.0) continue;
 
-        // surface erosion + asymmetry (chunky voxel edges) ---------------
-        if(field>0.62){
+        if(field>0.62){                                   // chunky eroded edges
           const surfBias=(field-0.62)/0.38;
           const n=noise3(nx,ny,nz,seed);
           const extra=(nx>0? P.asym:0)*noise3(nz,nx,ny,seed,4);
           if(n < (P.chunk*0.9+extra)*surfBias) continue;
         }
 
-        // colour ---------------------------------------------------------
         const front=nz>0.12;
         let col=mixRGB(cLo,cHi,clamp((ny+1)/2,0,1)*0.9+0.05);
-        col=scaleRGB(col, 0.66+0.34*clamp(nz*0.5+0.5,0,1)); // front-lit shading
-
+        col=scaleRGB(col, 0.78+0.22*clamp(nz*0.5+0.5,0,1)); // gentle front bias (lights do the rest)
         if(front){
-          // eyes (two sockets + bright pupils)
-          const dxL=nx+eyeX, dxR=nx-eyeX, dyE=ny-eyeY;
-          const dL=Math.hypot(dxL*1.05,dyE), dR=Math.hypot(dxR*1.05,dyE);
-          const dEye=Math.min(dL,dR);
-          if(dEye<eyeR){ col=cEye; if(dEye<eyeR*0.5) col=cPup; }
-          // brow band — angry when brow>0 (tilts inward/down toward the nose)
-          else if(Math.abs(ny-(browY - P.brow*0.10*(1-Math.min(Math.abs(nx)/0.45,1))))<0.05
-                  && Math.abs(nx)<0.44 && P.brow>-0.2){
-            col=scaleRGB(col,0.45);
-          }
-          // mouth — corners lift for smile (mouth>0), drop for frown
-          else{
+          const dyE=ny-eyeY;
+          const dEye=Math.min(Math.hypot((nx+eyeX)*1.05,dyE),Math.hypot((nx-eyeX)*1.05,dyE));
+          if(dEye<eyeR){ col=dEye<eyeR*0.5?cPup:cEye; }
+          else if(Math.abs(ny-(browY-P.brow*0.10*(1-Math.min(Math.abs(nx)/0.45,1))))<0.05 && Math.abs(nx)<0.44 && P.brow>-0.2){
+            col=scaleRGB(col,0.5);
+          } else {
             const mCurve=mouthY + P.mouth*0.18*((nx/0.28)*(nx/0.28)-0.4);
             if(Math.abs(ny-mCurve)<0.055 && Math.abs(nx)<0.28) col=cMouth;
           }
         }
-        voxels.push({x:i-(GX-1)/2, y:j-(GY-1)/2, z:k-(GZ-1)/2, c:col});
+        const id=idx(i,j,k); occ[id]=1; cR[id]=col.r; cG[id]=col.g; cB[id]=col.b;
       }
     }
   }
 
-  // build InstancedMesh -------------------------------------------------
+  // ── pass 2: emit only surface voxels (hollow shell → perf + clean shadows) ──
+  const filled=(i,j,k)=> i>=0&&i<GX&&j>=0&&j<GY&&k>=0&&k<GZ&&occ[idx(i,j,k)];
+  const xs=[],ys=[],zs=[],rr=[],gg=[],bb=[];
+  for(let i=0;i<GX;i++)for(let j=0;j<GY;j++)for(let k=0;k<GZ;k++){
+    const id=idx(i,j,k); if(!occ[id]) continue;
+    if(filled(i+1,j,k)&&filled(i-1,j,k)&&filled(i,j+1,k)&&filled(i,j-1,k)&&filled(i,j,k+1)&&filled(i,j,k-1)) continue;
+    xs.push(i-(GX-1)/2); ys.push(j-(GY-1)/2); zs.push(k-(GZ-1)/2); rr.push(cR[id]); gg.push(cG[id]); bb.push(cB[id]);
+  }
+
+  // ── build InstancedMesh ───────────────────────────────────────────────
   disposeMesh();
-  material=new THREE.MeshStandardMaterial({color:0xffffff,metalness:P.metal,roughness:P.rough,flatShading:true});
-  rimLight.intensity=0.5+P.rim*1.8;
-  const im=new THREE.InstancedMesh(cubeGeo,material,Math.max(1,voxels.length));
-  for(let n=0;n<voxels.length;n++){
-    const v=voxels[n];
-    _m.makeTranslation(v.x,v.y,v.z);
-    im.setMatrixAt(n,_m);
-    _c.setRGB((v.c.r/255)**2.2,(v.c.g/255)**2.2,(v.c.b/255)**2.2); // approx sRGB→linear
-    im.setColorAt(n,_c);
+  material=new THREE.MeshStandardMaterial({color:0xffffff,metalness:P.metal,roughness:P.rough,flatShading:true,envMapIntensity:0.7});
+  rimLight.intensity=0.8+P.rim*2.2;
+  const im=new THREE.InstancedMesh(cubeGeo,material,Math.max(1,xs.length));
+  im.castShadow=true; im.receiveShadow=true;
+  for(let n=0;n<xs.length;n++){
+    _m.makeTranslation(xs[n],ys[n],zs[n]); im.setMatrixAt(n,_m);
+    _c.setRGB(rr[n]/255,gg[n]/255,bb[n]/255,THREE.SRGBColorSpace); im.setColorAt(n,_c);
   }
   im.instanceMatrix.needsUpdate=true;
   if(im.instanceColor) im.instanceColor.needsUpdate=true;
   mesh=im; headGroup.add(mesh);
 
-  camDist=GY*1.9;
+  ground.position.y=-(GY/2)-0.5;
+  camDist=GY*2.25;
   const s=document.getElementById('status');
-  if(s) s.textContent=`${GX}×${GY}×${GZ} · ${voxels.length} vox · ${HEAD_TYPES.indexOf(P.headType)>=0?P.headType:''}`;
-  const sc=document.getElementById('seedChip'); if(sc) sc.textContent='seed '+seed;
+  if(s) s.textContent=`${GX}×${GY}×${GZ} · ${xs.length} vox · ${P.headType}`;
+  const scEl=document.getElementById('seedChip'); if(scEl) scEl.textContent='seed '+seed;
 }
 
 /* ═══════════════════ render loop + orbit ═══════════════════ */
@@ -376,13 +409,14 @@ let yaw=0.5, pitch=0.05;
 function resize(){
   const w=canvas.clientWidth||1, h=canvas.clientHeight||1;
   renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix();
+  composer&&composer.setSize(w,h); bloom&&bloom.setSize(w,h);
 }
 function frame(){
   requestAnimationFrame(frame);
   if(params.autoRotate) yaw+=0.006;
   headGroup.rotation.y=yaw; headGroup.rotation.x=pitch;
-  camera.position.set(0,0,camDist); camera.lookAt(0,0,0);
-  renderer.render(scene,camera);
+  camera.position.set(0, camDist*0.18, camDist); camera.lookAt(0,0,0);
+  composer.render();
 }
 
 // pointer orbit
@@ -508,7 +542,7 @@ window.addEventListener('keydown',e=>{
 const SHARE_URL='https://pixel-on-kaspa.fyi/head-lab.html';
 const SHARE_TXT='Voxel head, generated in the Pixel on Kaspa Head Lab. Make your own:';
 
-function snapshotDataURL(){ renderer.render(scene,camera); return canvas.toDataURL('image/png'); }
+function snapshotDataURL(){ composer.render(); return canvas.toDataURL('image/png'); }
 
 document.getElementById('btnShot').addEventListener('click',()=>{
   const a=document.createElement('a'); a.href=snapshotDataURL(); a.download='voxel-head-'+Date.now()+'.png'; a.click();
