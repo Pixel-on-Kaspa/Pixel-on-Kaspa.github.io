@@ -189,15 +189,29 @@ const DISC=(cx,cy,r,c)=>{ for(let y=-r;y<=r;y++)for(let x=-r;x<=r;x++) if(x*x+y*
 const TOP=10, BOT=50, MIDY=30;              // head vertical extent
 const eyeY=32, exL=23, exR=40;              // eye centres (40 = 63-23)
 
-function hwFor(shape,y){                     // head half-width per row
-  let maxW = shape==='wide'?20 : shape==='tall'?15 : 17;
-  const ry = shape==='tall'?21:20;
+// 1-D smooth value noise for organic silhouette wobble
+function snoise1(x,seed){ const xi=Math.floor(x),xf=x-xi;
+  const a=(hash32(seed,xi,0)%1000)/1000, b=(hash32(seed,xi+1,0)%1000)/1000;
+  const s=xf*xf*(3-2*xf); return a+(b-a)*s; }
+// seed-driven head-shape params → each seed = a unique (but mirrored) skull.
+// Same profile is mirrored L/R so the face stays bilaterally symmetric.
+let HS={w:1,jaw:.34,chin:0,cheek:0,crown:1,wob:0,wseed:0};
+function computeShape(seed){
+  const r=mulberry(hash32(seed,55,7));
+  HS={ w:0.90+r()*0.30, jaw:0.12+r()*0.52, chin:r()*0.55,
+       cheek:(r()-0.38)*0.42, crown:0.86+r()*0.36, wob:r()*0.085, wseed:(r()*1e5)|0 };
+}
+function hwFor(shape,y){                     // mirrored head half-width per row
+  let maxW=(shape==='wide'?20:shape==='tall'?15:17)*HS.w;
+  const ry=shape==='tall'?21:20;
   let t=clamp((y-MIDY)/ry,-1,1), base;
   if(shape==='square') base=maxW*Math.pow(Math.max(0,1-Math.pow(Math.abs(t),4)),0.26);
   else base=maxW*Math.sqrt(Math.max(0,1-t*t));
-  if(y<MIDY) base=maxW*Math.pow(Math.max(0,1-t*t),0.40);   // flatter crown
-  if(y>MIDY){ const l=(y-MIDY)/(BOT-MIDY); base*=1-0.34*l*l; } // jaw taper
-  return Math.round(base);
+  if(y<MIDY) base=maxW*Math.pow(Math.max(0,1-t*t),0.40)*HS.crown;     // cranium
+  if(y>MIDY){ const l=(y-MIDY)/(BOT-MIDY); base*= 1 - HS.jaw*l*l - HS.chin*Math.pow(l,3); } // jaw / chin point
+  base*= 1 + HS.cheek*Math.exp(-Math.pow((y-35)/6,2));                // cheek bulge / gaunt
+  base*= 1 + (snoise1(y*0.34,HS.wseed)-0.5)*2*HS.wob;                 // organic wobble
+  return Math.max(3, Math.round(base));
 }
 
 /* ═══════════════════ colours per render ═══════════════════ */
@@ -252,10 +266,10 @@ function drawHead(C,shape){
 }
 
 function drawEars(C,name){
-  if(name==='none')return; const y=34;
-  if(name==='normal'){ M(13,y,C.skin);M(12,y,C.skin);M(13,y+1,C.skin);M(12,y+1,C.skinSh);M(13,y+2,C.skinSh);M(14,y+1,C.skinHi); }
-  if(name==='pointy'){ M(13,y-3,C.skin);M(12,y-2,C.skin);M(13,y-1,C.skin);M(13,y,C.skin);M(13,y+1,C.skinSh);M(12,y,C.skinHi); }
-  if(name==='cyber'){ M(12,y,C.metal);M(11,y,C.metalSh);M(12,y-1,C.metalHi);M(12,y+1,C.metal);M(11,y+1,C.accent);M(13,y,C.metalSh); }
+  if(name==='none')return; const y=34, e=CXL-hwFor(params.hairShape,y)+1; // e = head left edge
+  if(name==='normal'){ M(e,y,C.skin);M(e-1,y,C.skinSh);M(e-1,y+1,C.skin);M(e,y+1,C.skinSh);M(e,y+2,C.skinSh);M(e,y-1,C.skinHi); }
+  if(name==='pointy'){ M(e,y-3,C.skin);M(e-1,y-2,C.skin);M(e,y-1,C.skin);M(e,y,C.skin);M(e,y+1,C.skinSh);M(e-1,y,C.skinHi); }
+  if(name==='cyber'){ M(e-1,y,C.metal);M(e-2,y,C.metalSh);M(e-1,y-1,C.metalHi);M(e-1,y+1,C.metal);M(e-2,y+1,C.accent);M(e,y,C.metalSh); }
 }
 
 function lids(C){ RECT(exL-5,eyeY-1,10,3,C.skinSh); HL(exL-5,exL+4,eyeY,C.lip); RECT(exR-4,eyeY-1,10,3,C.skinSh); HL(exR-4,exR+5,eyeY,C.lip); }
@@ -345,7 +359,7 @@ function drawGear(C,name){
   if(name==='horns'){ for(const s of [0,1]){ const dir=s?1:-1, bx=s?42:21; for(let k=0;k<6;k++){const x=bx+dir*Math.round(k*0.7), y=TOP-1-k; S(x,y,C.metal); if(k>2)S(x,y,C.metalHi);} S(bx,TOP,C.metalSh);} return; }
   if(name==='antenna'){ VL(24,2,TOP-1,C.metal); DISC(24,2,1,C.accent); VL(40,3,TOP,C.metal); DISC(40,3,1,C.accent); S(24,1,lt(C.accent,.5)); return; }
 }
-function drawEar1(C,name){ if(name==='none')return; const x=13,y=38;
+function drawEar1(C,name){ if(name==='none')return; const y=39, x=CXL-hwFor(params.hairShape,y)+1;
   if(name==='stud'){ M(x,y,C.accent); }
   if(name==='ring'){ M(x,y,C.metal);M(x,y+1,C.metal);M(x,y+2,C.metal);M(x-1,y+1,C.metal); }
   if(name==='bolt'){ M(x,y,C.accent);M(x,y+1,C.metal);M(x-1,y+2,C.metal); }
@@ -364,6 +378,7 @@ function build(blink){
   ch.fill(null);
   const C=colors(), v=params.v;
   params.hairShape=LAYERS[0].opts[v.head];
+  computeShape(params.seed);              // seed-driven silhouette (mirrored)
   drawBust(C,LAYERS[9].opts[v.bust]);
   drawHead(C,LAYERS[0].opts[v.head]);
   drawEars(C,LAYERS[1].opts[v.ears]);
