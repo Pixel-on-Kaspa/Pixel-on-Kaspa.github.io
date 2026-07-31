@@ -199,7 +199,9 @@ let HS={w:1,jaw:.34,chin:0,cheek:0,crown:1,wob:0,wseed:0};
 function computeShape(seed){
   const r=mulberry(hash32(seed,55,7));
   HS={ w:0.90+r()*0.30, jaw:0.12+r()*0.52, chin:r()*0.55,
-       cheek:(r()-0.38)*0.42, crown:0.86+r()*0.36, wob:r()*0.085, wseed:(r()*1e5)|0 };
+       cheek:(r()-0.38)*0.42, crown:0.86+r()*0.36, wob:r()*0.085, wseed:(r()*1e5)|0,
+       asym:0.35+r()*0.95, aseed:(r()*1e5)|0,      // slight left/right skull imbalance
+       cock:(r()<0.55)?(r()<0.5?-1:1):0 };          // occasionally raise one brow
 }
 function hwFor(shape,y){                     // mirrored head half-width per row
   let maxW=(shape==='wide'?20:shape==='tall'?15:17)*HS.w;
@@ -213,6 +215,11 @@ function hwFor(shape,y){                     // mirrored head half-width per row
   base*= 1 + (snoise1(y*0.34,HS.wseed)-0.5)*2*HS.wob;                 // organic wobble
   return Math.max(3, Math.round(base));
 }
+// per-side edge (half-width): the mirror is broken by a small independent
+// wobble on each side → a subtly lopsided, more characterful skull.
+function edgeOff(y,side){ return (snoise1(y*0.30, HS.aseed+(side<0?0:911))-0.5)*2*HS.asym; }
+const edgeL=(shape,y)=>Math.max(3,Math.round(hwFor(shape,y)+edgeOff(y,-1)));
+const edgeR=(shape,y)=>Math.max(3,Math.round(hwFor(shape,y)+edgeOff(y, 1)));
 
 /* ═══════════════════ colours per render ═══════════════════ */
 function colors(){
@@ -246,14 +253,14 @@ function drawBust(C,name){
 }
 
 function drawHead(C,shape){
-  for(let y=TOP;y<BOT;y++){ const w=hwFor(shape,y); if(w<=0)continue;
-    RECT(CXL-w+1,y,w*2,1,C.skin);
+  for(let y=TOP;y<BOT;y++){ const wl=edgeL(shape,y),wr=edgeR(shape,y); const xl=32-wl,xr=31+wr;
+    HL(xl,xr,y,C.skin);
     // right side + jaw shadow (light from upper-left)
-    S(CXR+w-1,y,C.skinSh); S(CXR+w-2,y,dk(C.skin,.9)); S(CXL-w+1,y,dk(C.skin,.94));
-    if(y>40) HL(CXL-w+1,CXR+w-1,y,dk(C.skin,.9));      // jaw plane a touch darker
+    S(xr,y,C.skinSh); S(xr-1,y,dk(C.skin,.9)); S(xl,y,dk(C.skin,.94));
+    if(y>40) HL(xl,xr,y,dk(C.skin,.9));      // jaw plane a touch darker
   }
   // forehead / cheek highlight (upper-left)
-  for(let y=TOP+2;y<24;y++){ const w=hwFor(shape,y); HL(CXL-w+3,CXL+2,y,C.skinHi); }
+  for(let y=TOP+2;y<24;y++){ const wl=edgeL(shape,y); HL(32-wl+2,CXL+2,y,C.skinHi); }
   RECT(20,26,7,4,lt(C.skin,.08));                       // left cheekbone light
   // cheek + jaw core shadow (lower-right)
   RECT(CXR+3,34,6,8,C.skinSh); S(CXR+8,40,C.skinDk);
@@ -266,10 +273,13 @@ function drawHead(C,shape){
 }
 
 function drawEars(C,name){
-  if(name==='none')return; const y=34, e=CXL-hwFor(params.hairShape,y)+1; // e = head left edge
-  if(name==='normal'){ M(e,y,C.skin);M(e-1,y,C.skinSh);M(e-1,y+1,C.skin);M(e,y+1,C.skinSh);M(e,y+2,C.skinSh);M(e,y-1,C.skinHi); }
-  if(name==='pointy'){ M(e,y-3,C.skin);M(e-1,y-2,C.skin);M(e,y-1,C.skin);M(e,y,C.skin);M(e,y+1,C.skinSh);M(e-1,y,C.skinHi); }
-  if(name==='cyber'){ M(e-1,y,C.metal);M(e-2,y,C.metalSh);M(e-1,y-1,C.metalHi);M(e-1,y+1,C.metal);M(e-2,y+1,C.accent);M(e,y,C.metalSh); }
+  if(name==='none')return; const y=34, sp=params.hairShape;
+  const ear=(ex,d)=>{ const o1=ex+d,o2=ex+2*d;   // ex = head edge column, d = outward dir
+    if(name==='normal'){ S(o1,y,C.skin);S(o2,y,C.skinSh);S(o1,y+1,C.skin);S(o2,y+1,C.skinSh);S(o1,y+2,C.skinSh);S(o1,y-1,C.skinHi); }
+    else if(name==='pointy'){ S(o1,y-3,C.skin);S(o2,y-2,C.skin);S(o1,y-1,C.skin);S(o1,y,C.skin);S(o1,y+1,C.skinSh);S(o2,y,C.skinHi); }
+    else if(name==='cyber'){ S(o1,y,C.metal);S(o2,y,C.metalSh);S(o1,y-1,C.metalHi);S(o1,y+1,C.metal);S(o2,y+1,C.accent);S(o1+d,y,C.metalSh); }
+  };
+  ear(32-edgeL(sp,y),-1); ear(31+edgeR(sp,y),1);
 }
 
 function lids(C){ RECT(exL-5,eyeY-1,10,3,C.skinSh); HL(exL-5,exL+4,eyeY,C.lip); RECT(exR-4,eyeY-1,10,3,C.skinSh); HL(exR-4,exR+5,eyeY,C.lip); }
@@ -304,13 +314,15 @@ function drawEyes(C,name,blink){
   oneEye(C,exL,1,st); oneEye(C,exR,-1,st);
 }
 function drawBrows(C,name){
-  if(name==='none')return; const c=C.brow, y=26;
-  if(name==='angry'){ // \  /  toward nose, thick
-    M(exL-4,y+2,c);M(exL-3,y+2,c);M(exL-2,y+1,c);M(exL-1,y+1,c);M(exL,y,c);M(exL+1,y,c);M(exL+2,y-1,c);M(exL+3,y-1,c);
-    M(exL-4,y+3,dk(c,.7));M(exL,y+1,dk(c,.7)); }
-  else if(name==='raised'){ RECT(exL-3,y-1,7,2,c); RECT(exR-3,y-1,7,2,c); HL(exL-3,exL+3,y-2,lt(c,.3)); }
-  else if(name==='flat'){ RECT(exL-4,y+1,8,2,c); RECT(exR-3,y+1,8,2,c); }
-  else if(name==='uni'){ RECT(exL-4,y+1,exR+4-(exL-4),2,c); HL(exL-4,exR+4,y,dk(c,.7)); }
+  if(name==='none')return; const c=C.brow;
+  const yoff=s=>(HS.cock===s?-2:0);            // raise one brow → cocked, attitude
+  const side=(cx,s)=>{ const y=26+yoff(s), innerR=cx<32;
+    if(name==='angry'){ for(let i=0;i<8;i++){ const x=cx-4+i, t=innerR?i:(7-i), yy=y-1+Math.round(t/7*3); S(x,yy,c);S(x,yy+1,c); } S(cx-(innerR?4:-3),y+2,dk(c,.7)); }
+    else if(name==='raised'){ for(let x=cx-3;x<=cx+3;x++){S(x,y-1,c);S(x,y,c);} for(let x=cx-3;x<=cx+3;x++)S(x,y-2,lt(c,.3)); }
+    else if(name==='flat'){ for(let x=cx-4;x<=cx+3;x++){S(x,y,c);S(x,y+1,c);} }
+  };
+  if(name==='uni'){ RECT(exL-4,26,exR+4-(exL-4),2,c); HL(exL-4,exR+4,25,dk(c,.7)); return; }
+  side(exL,-1); side(exR,1);
 }
 function drawMouth(C,name){
   const y=43, lip=C.lip, teeth=C.teeth, dark=C.dark;
@@ -334,7 +346,7 @@ function drawAcc(C,name){
   else if(name==='cyberjaw'){ RECT(24,44,16,7,C.metal); RECT(24,44,16,1,C.metalHi); HL(24,39,43,dark); for(let x=26;x<38;x+=2)VL(x,45,49,C.metalSh); M(24,46,C.accent); RECT(28,47,8,1,dk(C.metal,.7)); }
   else if(name==='tattoo'){ M(20,eyeY+5,C.accent);M(20,eyeY+6,C.accent);M(21,eyeY+6,C.accent);M(20,eyeY+7,C.accent);M(19,eyeY+8,C.accent); }
 }
-function capRows(C,shape,n,base,hi){ for(let r=0;r<n;r++){ const y=TOP+r, w=hwFor(shape,y)+((r<2)?1:0); RECT(CXL-w+1,y,w*2,1, r===0?hi:base); if(r>0){S(CXL-w+1,y,dk(base,.7));S(CXR+w-1,y,dk(base,.7));} } }
+function capRows(C,shape,n,base,hi){ for(let r=0;r<n;r++){ const y=TOP+r,e=(r<2)?1:0,wl=edgeL(shape,y)+e,wr=edgeR(shape,y)+e,xl=32-wl,xr=31+wr; HL(xl,xr,y, r===0?hi:base); if(r>0){S(xl,y,dk(base,.7));S(xr,y,dk(base,.7));} } }
 function drawHair(C,name){
   const sp=params.hairShape, c=C.hair, cs=C.hairSh, hl=C.hairHi;
   if(name==='bald')return;
@@ -348,7 +360,7 @@ function drawHair(C,name){
 }
 function drawGear(C,name){
   if(name==='none')return; const dark=C.dark, sp=params.hairShape;
-  if(name==='beanie'){ for(let r=0;r<7;r++){const y=TOP+r,w=hwFor(sp,y)+(r<2?1:0);RECT(CXL-w+1,y,w*2,1, r===0?lt(C.accent,.2):C.accent); if(r>0){S(CXL-w+1,y,dk(C.accent,.6));S(CXR+w-1,y,dk(C.accent,.6));}} RECT(15,TOP+7,34,3,dk(C.accent,.55)); HL(16,47,TOP+7,lt(C.accent,.15)); return; }
+  if(name==='beanie'){ for(let r=0;r<7;r++){const y=TOP+r,e=(r<2?1:0),wl=edgeL(sp,y)+e,wr=edgeR(sp,y)+e,xl=32-wl,xr=31+wr;HL(xl,xr,y, r===0?lt(C.accent,.2):C.accent); if(r>0){S(xl,y,dk(C.accent,.6));S(xr,y,dk(C.accent,.6));}} RECT(15,TOP+7,34,3,dk(C.accent,.55)); HL(16,47,TOP+7,lt(C.accent,.15)); return; }
   if(name==='cap'){ RECT(17,TOP+1,30,7,dk(C.accent,.85)); RECT(17,TOP+1,30,1,lt(C.accent,.2)); RECT(12,TOP+6,9,3,dk(C.accent,.6)); M(20,TOP+3,C.accent); RECT(28,TOP+8,8,2,dk(C.accent,.5)); return; }
   if(name==='crown'){ RECT(18,6,28,4,C.metal); RECT(18,6,28,1,C.metalHi); RECT(18,10,28,1,C.metalSh);
     [[18,2],[26,0],[32,1],[37,0],[45,2]].forEach(([x,yy])=>{for(let y=yy;y<6;y++){S(x,y,C.metal);S(x,y,y===yy?C.metalHi:C.metal);}});
@@ -359,10 +371,10 @@ function drawGear(C,name){
   if(name==='horns'){ for(const s of [0,1]){ const dir=s?1:-1, bx=s?42:21; for(let k=0;k<6;k++){const x=bx+dir*Math.round(k*0.7), y=TOP-1-k; S(x,y,C.metal); if(k>2)S(x,y,C.metalHi);} S(bx,TOP,C.metalSh);} return; }
   if(name==='antenna'){ VL(24,2,TOP-1,C.metal); DISC(24,2,1,C.accent); VL(40,3,TOP,C.metal); DISC(40,3,1,C.accent); S(24,1,lt(C.accent,.5)); return; }
 }
-function drawEar1(C,name){ if(name==='none')return; const y=39, x=CXL-hwFor(params.hairShape,y)+1;
-  if(name==='stud'){ M(x,y,C.accent); }
-  if(name==='ring'){ M(x,y,C.metal);M(x,y+1,C.metal);M(x,y+2,C.metal);M(x-1,y+1,C.metal); }
-  if(name==='bolt'){ M(x,y,C.accent);M(x,y+1,C.metal);M(x-1,y+2,C.metal); }
+function drawEar1(C,name){ if(name==='none')return; const y=39, x=(32-edgeL(params.hairShape,y))-1; // single earring, left side
+  if(name==='stud'){ S(x,y,C.accent); }
+  if(name==='ring'){ S(x,y,C.metal);S(x,y+1,C.metal);S(x,y+2,C.metal);S(x-1,y+1,C.metal); }
+  if(name==='bolt'){ S(x,y,C.accent);S(x,y+1,C.metal);S(x-1,y+2,C.metal); }
 }
 
 /* ── outline (dark silhouette border) ── */
