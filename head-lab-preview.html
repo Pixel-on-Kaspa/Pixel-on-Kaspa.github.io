@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Pixies (preview) • Pixel on Kaspa</title>
+  <style>
+    :root{
+      --bg:#070b12; --bg2:#0c111b; --panel:rgba(0,0,0,.28);
+      --border:rgba(255,255,255,.10); --border2:rgba(255,255,255,.16);
+      --accent:#49EACB; --accent2:#00c4ff; --text:#eef3f2; --muted:#8a929c;
+      --radius:12px; --shadow:0 8px 30px rgba(0,0,0,.45);
+      --mono:"JetBrains Mono","Fira Code",ui-monospace,SFMono-Regular,Menlo,monospace;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      background:radial-gradient(1200px 800px at 50% -10%,var(--bg2),var(--bg)) fixed;
+      color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+      font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased;
+    }
+    .wrap{max-width:1180px;margin:0 auto;padding:18px 16px 64px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+    .brand{display:flex;align-items:baseline;gap:10px;font-weight:900;letter-spacing:.18em;font-size:20px;color:var(--accent)}
+    .brand small{font-weight:600;letter-spacing:.08em;font-size:11px;color:var(--muted)}
+    .nav{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+      padding:9px 13px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;
+      border:1px solid var(--border2);background:rgba(255,255,255,.05);color:var(--text);
+      text-decoration:none;transition:background .12s,border-color .12s,color .12s;white-space:nowrap;line-height:1}
+    .btn:hover{background:rgba(255,255,255,.10)}
+    .btnPrimary{border-color:rgba(73,234,203,.45);background:rgba(73,234,203,.12);color:var(--accent)}
+    .btnPrimary:hover{background:var(--accent);color:#031014}
+    .btnGhost{background:transparent;opacity:.9}
+    .btnSm{padding:7px 10px;font-size:12px}
+    .btnRec.recording{border-color:rgba(230,70,70,.6);background:rgba(230,70,70,.18);color:#ff8080;animation:recPulse 1s ease-in-out infinite}
+    @keyframes recPulse{0%,100%{opacity:1}50%{opacity:.55}}
+    .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:14px;align-items:start}
+    @media (max-width:940px){.grid{grid-template-columns:1fr}}
+    .panel{border:1px solid var(--border);border-radius:var(--radius);
+      background:var(--panel);backdrop-filter:blur(10px);box-shadow:var(--shadow);overflow:hidden}
+    .panelHead{padding:11px 14px;border-bottom:1px solid var(--border);
+      display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .panelHead b{letter-spacing:.14em;text-transform:uppercase;font-size:12px;opacity:.92}
+    .chip{font-family:var(--mono);font-size:11px;color:var(--accent);
+      background:rgba(73,234,203,.10);border:1px solid rgba(73,234,203,.25);
+      padding:2px 8px;border-radius:20px;white-space:nowrap}
+    .panelBody{padding:12px 14px}
+    #stageWrap{position:relative;width:100%;aspect-ratio:1/1;border-radius:8px;overflow:hidden;
+      background:#04070c;border:1px solid var(--border)}
+    #stage{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
+    #recOverlay{position:absolute;top:12px;right:14px;font-family:var(--mono);font-size:13px;
+      font-weight:800;color:#ff7a7a;letter-spacing:.06em;display:none}
+    #recOverlay.show{display:block}
+    .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .trait{display:grid;grid-template-columns:82px 1fr auto;gap:8px;align-items:center;margin-bottom:7px}
+    .traitLbl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+    select.sel{width:100%;background:var(--bg2);color:var(--text);border:1px solid var(--border2);
+      border-radius:8px;padding:7px 8px;font-size:12px;font-family:var(--mono);cursor:pointer}
+    .lockBtn{width:30px;height:30px;border-radius:7px;border:1px solid var(--border2);background:rgba(255,255,255,.04);
+      color:var(--muted);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center}
+    .lockBtn.on{border-color:rgba(73,234,203,.5);background:rgba(73,234,203,.14);color:var(--accent)}
+    .sect{border-top:1px solid var(--border);margin-top:10px;padding-top:10px}
+    .sectHd{font-size:10px;letter-spacing:.16em;text-transform:uppercase;font-weight:900;opacity:.7;margin-bottom:8px}
+    .swatchRow{display:flex;gap:6px;flex-wrap:wrap}
+    .pal{width:26px;height:26px;border-radius:6px;border:2px solid transparent;cursor:pointer;overflow:hidden}
+    .pal.active{border-color:var(--accent);box-shadow:0 0 6px rgba(73,234,203,.5)}
+    .recResult{display:none;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+    .recResult .lbl{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:var(--accent)}
+    .recResult video{max-width:220px;border-radius:8px;border:1px solid var(--border)}
+    .hint{font-size:11px;color:var(--muted)}
+    .foot{margin-top:16px;font-size:11px;color:var(--muted);text-align:center;letter-spacing:.04em}
+    kbd{font-family:var(--mono);font-size:10px;background:rgba(255,255,255,.07);border:1px solid var(--border2);
+      border-radius:4px;padding:1px 5px}
+  </style>
+  <script defer src="https://cloud.umami.is/script.js" data-website-id="6ee0e9a9-7066-4115-b91d-5667d8042abe"></script>
+  <script src="/js/share.js"></script>
+  <meta name="pixel-gallery-api" content="https://pixel-gallery.pixelonkaspa.workers.dev">
+  <script src="/js/gallery.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">PIXIES <small>sound · dj · Pixel on Kaspa</small></div>
+      <div class="nav">
+        <a class="btn btnSm" href="/">Home</a>
+        <a class="btn btnSm" href="/artists">Artists</a>
+        <a class="btn btnSm btnPrimary" href="/head-lab.html">Pixies</a>
+        <a class="btn btnSm btnGhost" href="https://x.com/PixelonKas" target="_blank" rel="noreferrer">X</a>
+      </div>
+    </div>
+    <section class="grid">
+      <div class="panel">
+        <div class="panelHead"><b>Character</b><span class="chip" id="seedChip">seed —</span></div>
+        <div class="panelBody">
+          <div id="stageWrap"><canvas id="stage" width="512" height="512"></canvas><div id="recOverlay"></div></div>
+          <div class="row">
+            <button class="btn btnSm btnPrimary" id="btnRand" type="button">Randomize</button>
+            <button class="btn btnSm" id="btnSeed" type="button">New seed</button>
+            <button class="btn btnSm" id="btnMutate" type="button">Mutate</button>
+            <button class="btn btnSm" id="btnShot" type="button">PNG</button>
+            <button class="btn btnSm btnRec" id="btnRec" type="button">REC 6s</button>
+            <button class="btn btnSm btnPrimary" id="btnShareX" type="button">Share on X ↗</button>
+            <button class="btn btnSm btnPrimary" id="btnPublish" type="button">✦ Publish</button>
+            <button class="btn btnSm btnGhost" id="btnReset" type="button">Reset</button>
+          </div>
+          <div class="row" id="audioRow">
+            <input type="file" id="audioFile" accept="audio/*" style="display:none">
+            <button class="btn btnSm" id="btnLoadTrack" type="button">🎵 Load track</button>
+            <button class="btn btnSm" id="btnPlayTrack" type="button" disabled>▶ React</button>
+            <button class="btn btnSm btnPrimary" id="btnVideo" type="button" disabled>⬇ Video</button>
+            <span class="hint" id="audioHint">drop an audio track on the canvas → your DJ reacts</span>
+          </div>
+          <div class="recResult" id="recResult">
+            <span class="lbl">Clip</span>
+            <video id="recPlayer" controls preload="metadata"></video>
+            <button class="btn btnSm" id="recSave" type="button">↓ Save</button>
+            <span class="hint">idle-loop / track video</span>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panelHead"><b>Traits</b><span class="chip">lock 🔒 to keep on Randomize</span></div>
+        <div class="panelBody">
+          <div id="traitHost"></div>
+          <div class="sect"><div class="sectHd">Palette</div><div class="swatchRow" id="palRow"></div></div>
+          <div class="sect"><div class="sectHd">Colors</div><div id="colorHost"></div></div>
+        </div>
+      </div>
+    </section>
+    <div class="foot"><kbd>Randomize</kbd> for a new DJ · <kbd>R</kbd> new seed · lock traits to breed a coherent set</div>
+  </div>
+
+<script>
+(() => {
+"use strict";
+
+/* ═══════════════════ helpers ═══════════════════ */
+const W=64, H=64;                           // coarse grid → big, bold pixels (8px each on the 512 canvas)
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+function hash32(a,b,c){let x=(a|0)+((b|0)*374761393)+((c|0)*668265263);x=(x^(x>>>13))*1274126177;return (x^(x>>>16))>>>0;}
+function mulberry(seed){let s=seed>>>0;return ()=>{s=(s+0x6D2B79F5)>>>0;let t=s;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296;};}
+const hx=h=>({r:parseInt(h.slice(1,3),16),g:parseInt(h.slice(3,5),16),b:parseInt(h.slice(5,7),16)});
+const toHex=o=>'#'+[o.r,o.g,o.b].map(v=>clamp(Math.round(v),0,255).toString(16).padStart(2,'0')).join('');
+const dk=(h,f)=>{const c=hx(h);return toHex({r:c.r*f,g:c.g*f,b:c.b*f});};
+const lt=(h,f)=>{const c=hx(h);return toHex({r:c.r+(255-c.r)*f,g:c.g+(255-c.g)*f,b:c.b+(255-c.b)*f});};
+const blend=(a,b,t)=>{const A=hx(a),B=hx(b);return toHex({r:A.r+(B.r-A.r)*t,g:A.g+(B.g-A.g)*t,b:A.b+(B.b-A.b)*t});};
+
+/* ═══════════════════ colour banks ═══════════════════ */
+const PALETTES=[
+  {name:'Neon',   bg1:'#2a1550', bg2:'#120826', accent:'#ff2d8e', outline:'#0a0612'},
+  {name:'Cyber',  bg1:'#0a2838', bg2:'#04121b', accent:'#00e5ff', outline:'#03090e'},
+  {name:'Toxic',  bg1:'#153a1b', bg2:'#07160b', accent:'#9dff3d', outline:'#050e06'},
+  {name:'Vapor',  bg1:'#421a5c', bg2:'#141033', accent:'#26e0d0', outline:'#0a0714'},
+  {name:'Blood',  bg1:'#45121a', bg2:'#180608', accent:'#ff3b30', outline:'#0d0405'},
+  {name:'Gold',   bg1:'#332a12', bg2:'#141005', accent:'#ffc83a', outline:'#0c0a03'},
+  {name:'Void',   bg1:'#182029', bg2:'#05080c', accent:'#7fe9ff', outline:'#02040a'},
+  {name:'Kaspa',  bg1:'#0e3a44', bg2:'#04141a', accent:'#49EACB', outline:'#03100f'},
+];
+// human tones first (0..HUMAN_SKINS-1), then a short tail of intentional stylized skins
+const SKINS=['#f2c7ab','#e9b48f','#d99a6c','#c88a5a','#b97a4e','#8a5636','#6b4a34','#caa07a',
+             '#7fcbc4','#a7d18a','#b0b7c4','#c497e6','#93a0ff'];
+const HUMAN_SKINS=8;
+const HAIRS=['#20242c','#4a3524','#7a4a1e','#c9ccd4','#ff2d6f','#00e5ff','#9dff3d','#ffc83a','#b45cff','#ff6a3d','#12e39a','#f2f2f7'];
+const IRISES=['#00e5ff','#ff2d8e','#9dff3d','#ffc83a','#7fe9ff','#ff5a5a','#b45cff','#12e39a','#4a3520'];
+
+/* ═══════════════════ trait schema (DJ / sound themed) ═══════════════════ */
+const LAYERS=[
+  {key:'head',  label:'Head',    opts:['oval','square','tall','wide'], optional:false},
+  {key:'ears',  label:'Ears',    opts:['normal','pointy','cyber','none'], optional:false},
+  {key:'eyes',  label:'Eyes',    opts:['focused','sharp','wide','closed','cyclops','visor','scanner','x'], optional:false},
+  {key:'brows', label:'Brows',   opts:['none','angry','raised','flat','uni'], optional:false},
+  {key:'mouth', label:'Mouth',   opts:['smirk','frown','grin','shout','flat','fangs','grillz'], optional:false},
+  {key:'hair',  label:'Hair',    opts:['bald','mohawk','spiky','sidecut','topknot','afro'], optional:false},
+  {key:'gear',  label:'Cans',    opts:['none','cans','cap','beanie','bandana','crown'], optional:true},
+  {key:'acc',   label:'Face',    opts:['none','shades','mic','warpaint','mask','cyberjaw'], optional:true},
+  {key:'ear1',  label:'Earring', opts:['none','stud','ring','bolt','hoop'], optional:true},
+  {key:'hands', label:'Hands',   opts:['none','cue','rings-up','fist'], optional:true},
+  {key:'bust',  label:'Fit',     opts:['tee','hoodie','jacket','armor','bare'], optional:false},
+  {key:'px',    label:'Pixel',   opts:['fine','mosaic','shards','blocks'], optional:false, weights:[3,4,6,2]},
+];
+const optOf=(key)=>{ const l=LAYERS.find(x=>x.key===key); return l.opts[params.v[key]||0]; };
+
+/* ═══════════════════ state ═══════════════════ */
+const DEF={seed:7777, pal:1, skin:0, hair:4, iris:0, coarse:8,
+  v:{head:0,ears:0,eyes:0,brows:1,mouth:0,hair:1,gear:1,acc:0,ear1:0,hands:1,bust:2,px:2}};
+const params=JSON.parse(JSON.stringify(DEF));
+const locks={}; LAYERS.forEach(l=>locks[l.key]=false);
+const lockCol={pal:false,skin:false,hair:false,iris:false};
+
+/* ═══════════════════ pixel buffer ═══════════════════ */
+let ch=new Array(W*H).fill(null);
+const CXL=31, CXR=32;                       // centre columns (axis 31.5)
+const inb=(x,y)=>x>=0&&x<W&&y>=0&&y<H;
+const S=(x,y,c)=>{ if(inb(x,y)&&c) ch[y*W+x]=c; };
+const M=(x,y,c)=>{ S(x,y,c); S(W-1-x,y,c); };
+const RECT=(x,y,w,h,c)=>{ for(let j=0;j<h;j++)for(let i=0;i<w;i++)S(x+i,y+j,c); };
+const HL=(x0,x1,y,c)=>{ for(let x=x0;x<=x1;x++)S(x,y,c); };
+const VL=(x,y0,y1,c)=>{ for(let y=y0;y<=y1;y++)S(x,y,c); };
+const DISC=(cx,cy,r,c)=>{ for(let y=-r;y<=r;y++)for(let x=-r;x<=r;x++) if(x*x+y*y<=r*r+r*0.4) S(cx+x,cy+y,c); };
+const RING=(cx,cy,r,c)=>{ for(let y=-r;y<=r;y++)for(let x=-r;x<=r;x++){const d=x*x+y*y; if(d<=r*r+r*0.4 && d>=(r-1)*(r-1)) S(cx+x,cy+y,c);} };
+// protected cells: rendered crisp even in triangle styles (eyes stay regular)
+let prot=new Uint8Array(W*H);
+const PM=(x,y)=>{ if(inb(x,y)) prot[y*W+x]=1; };
+const PMR=(x,y,w,h)=>{ for(let j=0;j<h;j++)for(let i=0;i<w;i++)PM(x+i,y+j); };
+
+/* ── geometry (64 grid) ── */
+const CROWN=10, CHIN=50, HMID=30;
+const browY=26, eyeY=32, mouthY=44, earY=35, noseY0=34, noseY1=39;
+
+function snoise1(x,seed){ const xi=Math.floor(x),xf=x-xi;
+  const a=(hash32(seed,xi,0)%1000)/1000, b=(hash32(seed,xi+1,0)%1000)/1000;
+  const s=xf*xf*(3-2*xf); return a+(b-a)*s; }
+// seed-driven head shape — mirrored, gently lopsided
+let HS={w:1,jaw:.34,chin:0,cheek:0,crown:1,wob:0,wseed:0,asym:0,aseed:0,cock:0};
+function computeShape(seed){
+  const r=mulberry(hash32(seed,55,7));
+  HS={ w:0.84+r()*0.38, jaw:0.10+r()*0.68, chin:r()*0.72,
+       cheek:(r()-0.40)*0.48, crown:0.86+r()*0.40, wob:r()*0.05, wseed:(r()*1e5)|0,
+       asym:0.35+r()*0.7, aseed:(r()*1e5)|0,
+       cock:(r()<0.55)?(r()<0.5?-1:1):0 };
+}
+function hwFor(shape,y){
+  let maxW=(shape==='wide'?20:shape==='tall'?15:17)*HS.w;
+  const ry=shape==='tall'?21:20;
+  let t=clamp((y-HMID)/ry,-1,1), base;
+  if(shape==='square') base=maxW*Math.pow(Math.max(0,1-Math.pow(Math.abs(t),4)),0.26);
+  else base=maxW*Math.sqrt(Math.max(0,1-t*t));
+  if(y<HMID) base=maxW*Math.pow(Math.max(0,1-t*t),0.40)*HS.crown;
+  if(y>HMID){ const l=(y-HMID)/(CHIN-HMID); base*= 1 - HS.jaw*l*l - HS.chin*Math.pow(l,3); }
+  base*= 1 + HS.cheek*Math.exp(-Math.pow((y-35)/6,2));
+  base*= 1 + (snoise1(y*0.34,HS.wseed)-0.5)*2*HS.wob;
+  return Math.max(3, Math.round(base));
+}
+function edgeOff(y,side){ return (snoise1(y*0.30, HS.aseed+(side<0?0:911))-0.5)*2*HS.asym; }
+const edgeL=(shape,y)=>Math.max(3,Math.round(hwFor(shape,y)+edgeOff(y,-1)));
+const edgeR=(shape,y)=>Math.max(3,Math.round(hwFor(shape,y)+edgeOff(y, 1)));
+
+// per-render geometry: named anchors + skull edges → every feature tracks the skull
+function computeGeom(shape){
+  const hwEye=(edgeL(shape,eyeY)+edgeR(shape,eyeY))/2;
+  const eyeDX=Math.round(clamp(hwEye*0.42,6,11));
+  return {
+    shape, crownY:CROWN, chinY:CHIN, browY, eyeY, mouthY, earY, noseY0, noseY1,
+    exL:32-eyeDX, exR:31+eyeDX, eyeDX,
+    edgeL:(y)=>edgeL(shape,y), edgeR:(y)=>edgeR(shape,y),
+    xl:(y)=>32-edgeL(shape,y), xr:(y)=>31+edgeR(shape,y),
+  };
+}
+
+/* ═══════════════════ colours per render ═══════════════════ */
+function colors(){
+  const P=PALETTES[params.pal], sk=SKINS[params.skin], hr=HAIRS[params.hair], ir=IRISES[params.iris];
+  return {
+    bg1:P.bg1,bg2:P.bg2,accent:P.accent,outline:P.outline,
+    skin:sk, skinHi:lt(sk,.09), skinSh:dk(sk,.80), skinDk:dk(sk,.80),   // flatter: fewer tones → calmer facets
+    hair:hr, hairHi:lt(hr,.18), hairSh:dk(hr,.62),
+    brow:dk(hr,.60), iris:ir, irisHi:lt(ir,.55), irisSh:dk(ir,.5),
+    white:'#eef2f7', dark:'#0d0f16', lip:dk(sk,.5), teeth:'#f4f2ee',
+    metal:'#aab2bd', metalHi:'#dbe1e7', metalSh:'#5c636e'
+  };
+}
+
+/* ═══════════════════ layer painters ═══════════════════ */
+function drawBust(C,G,name){
+  const y0=51, base={tee:C.accent,hoodie:dk(C.hair,.85),jacket:'#2b303c',armor:C.metal,bare:C.skin}[name]||C.accent;
+  const hi=lt(base,.18), sh=dk(base,.62), swf=y=>Math.min(27,Math.round(12+Math.sqrt(Math.max(0,y-y0))*6));
+  for(let y=y0;y<H;y++){ const w=swf(y); RECT(32-w,y,2*w,1,base); S(32-w,y,sh);S(31+w,y,sh); }
+  HL(32-15,31+15,y0,hi);
+  RECT(28,46,8,6,C.skin); VL(28,46,50,C.skinSh); RECT(34,46,2,6,C.skinDk); HL(28,35,46,C.skinSh);
+  RECT(27,50,10,1,C.skinDk);
+  if(name==='tee'){ for(let i=0;i<5;i++){S(29+i,51+i,sh);S(34-i,51+i,sh);} HL(20,43,52,hi); }
+  else if(name==='hoodie'){ RECT(25,50,14,3,dk(base,.82)); RECT(23,52,4,H-52,base);RECT(37,52,4,H-52,base);
+    VL(31,53,H-1,sh);VL(32,53,H-1,sh); S(30,55,'#dcdce2');S(30,56,'#dcdce2');S(33,57,'#dcdce2'); }
+  else if(name==='jacket'){ for(let i=0;i<7;i++){S(31-i,51+i,dk(base,.5));S(32+i,51+i,dk(base,.5));}
+    VL(31,52,H-1,sh);VL(32,52,H-1,sh); for(let y=54;y<H;y+=2)S(31,y,C.metalHi); RECT(24,52,3,3,dk(base,.5));RECT(37,52,3,3,dk(base,.5)); }
+  else if(name==='armor'){ DISC(22,55,4,C.metalHi);DISC(41,55,4,C.metalHi); RECT(24,51,16,2,C.metalSh);
+    for(let x=27;x<37;x+=3)VL(x,54,H-1,C.metalSh); M(24,58,C.accent); HL(28,35,52,C.metalHi); }
+  else if(name==='bare'){ HL(24,39,52,C.skinSh); S(27,54,C.skinDk);S(36,54,C.skinDk); RECT(30,52,4,1,C.skinDk);
+    S(23,53,C.accent);S(24,54,C.accent); }
+}
+
+function drawHead(C,G){
+  for(let y=G.crownY;y<G.chinY;y++){ const xl=G.xl(y),xr=G.xr(y);
+    HL(xl,xr,y,C.skin);
+    S(xr,y,C.skinSh); S(xr-1,y,dk(C.skin,.9)); S(xl,y,dk(C.skin,.94));
+    if(y>40) HL(xl,xr,y,dk(C.skin,.9)); }
+  for(let y=G.crownY+2;y<24;y++){ const xl=G.xl(y); HL(xl+2,CXL+1,y,C.skinHi); }
+  RECT(20,26,7,4,lt(C.skin,.08));
+  RECT(CXR+3,34,6,8,C.skinSh); S(CXR+8,40,C.skinDk);
+  for(let yy=45;yy<48;yy++){ const xl=G.xl(yy),xr=G.xr(yy); if(xr-xl>8) HL(xl+3,xr-3,yy,dk(C.skin,.9)); }  // chin plane
+  VL(CXL,G.noseY0,G.noseY1,lt(C.skin,.10)); VL(CXR,G.noseY0,G.noseY1,C.skinSh);
+  RECT(28,39,2,2,C.skinSh); RECT(34,39,2,2,C.skinDk); S(31,40,C.skinSh);S(32,40,C.skinDk);
+  RECT(G.exL-5,G.eyeY-4,10,3,C.skinSh); RECT(G.exR-4,G.eyeY-4,10,3,C.skinSh);
+}
+
+function drawEars(C,G,name){
+  if(name==='none')return; const y=G.earY;
+  const ear=(ex,d)=>{ const o1=ex+d,o2=ex+2*d;
+    if(name==='normal'){ S(o1,y,C.skin);S(o2,y,C.skinSh);S(o1,y+1,C.skin);S(o2,y+1,C.skinSh);S(o1,y+2,C.skinSh);S(o1,y-1,C.skinHi); }
+    else if(name==='pointy'){ S(o1,y-3,C.skin);S(o2,y-2,C.skin);S(o1,y-1,C.skin);S(o1,y,C.skin);S(o1,y+1,C.skinSh);S(o2,y,C.skinHi); }
+    else if(name==='cyber'){ S(o1,y,C.metal);S(o2,y,C.metalSh);S(o1,y-1,C.metalHi);S(o1,y+1,C.metal);S(o2,y+1,C.accent);S(o1+d,y,C.metalSh); }
+  };
+  ear(G.xl(y),-1); ear(G.xr(y),1);
+}
+
+function lids(C,G){ const eY=G.eyeY;
+  RECT(G.exL-5,eY-1,10,3,C.skinSh); HL(G.exL-5,G.exL+4,eY,C.lip);
+  RECT(G.exR-4,eY-1,10,3,C.skinSh); HL(G.exR-4,G.exR+5,eY,C.lip); }
+function oneEye(C,G,cx,s,style){
+  // bold eye: faceted sclera (triangles) + crisp iris/pupil (squares); shape clearly varies per style
+  const eY=G.eyeY, big=style==='wide', hh=big?4:3, iw=big?5:4, ih=big?5:4;
+  RECT(cx-4,eY-hh,9,2*hh+1,C.white);                  // sclera
+  RECT(cx-4,eY-hh-1,9,2,C.dark);                       // top lash
+  const ix=cx - s*1;
+  RECT(ix-2,eY-2,iw,ih,C.iris);                        // iris
+  RECT(ix-1,eY-1,3,3,C.dark);                          // pupil
+  PMR(ix-2,eY-2,iw,ih);                                // iris/pupil crisp (squares) → eye reads
+  HL(cx-4,cx+4,eY+hh,C.skinSh);                        // lower lid
+  if(style==='focused'){                               // angry: upper lid slants down toward the centre
+    for(let i=0;i<5;i++){ const d=Math.round((4-i)/4*hh); if(d>0)RECT(cx - s*(4-i),eY-hh,1,d,C.skin); }
+    RECT(cx-4,eY-hh-1,9,2,C.dark); }
+  else if(style==='sharp') RECT(cx-4,eY-hh,9,1,C.skin);        // sharp / half-open
+  else if(style==='closed'){ RECT(cx-4,eY-hh,9,2*hh+1,C.skin); RECT(cx-4,eY-1,9,2,C.dark); }
+}
+function drawEyes(C,G,name,blink){
+  const eY=G.eyeY,exL=G.exL,exR=G.exR;
+  if(blink && !['visor','scanner','x'].includes(name)){ lids(C,G); return; }
+  if(name==='cyclops'){ RECT(26,eY-4,12,9,C.white); RECT(26,eY-4,12,1,dk(C.white,.8));
+    RECT(29,eY-3,6,7,C.iris); RECT(30,eY-1,4,3,C.dark); S(30,eY-2,C.irisHi); HL(26,37,eY-4,C.dark); return; }
+  if(name==='visor'){ RECT(16,eY-3,32,7,C.metalSh); RECT(17,eY-2,30,5,dk(C.metal,.7)); RECT(18,eY-1,28,3,C.accent);
+    for(let x=18;x<46;x+=3)VL(x,eY-1,eY+1,dk(C.accent,.6)); HL(17,46,eY-2,C.metalHi); HL(16,47,eY-3,C.dark); return; }
+  if(name==='scanner'){ RECT(17,eY-1,30,3,C.metalSh); RECT(18,eY,28,1,dk(C.metal,.6)); M(23,eY,C.accent);M(23,eY,lt(C.accent,.5)); S(40,eY,C.accent); return; }
+  if(name==='x'){ const X=(cx)=>{for(let i=-3;i<=3;i++){S(cx+i,eY+i,C.dark);S(cx+i,eY-i,C.dark);}}; X(exL);X(exR); return; }
+  if(name==='star'){ oneEye(C,G,exL,1,'wide');oneEye(C,G,exR,-1,'wide');
+    const st=(cx)=>{S(cx,eY-2,C.accent);VL(cx,eY-2,eY+2,C.accent);HL(cx-2,cx+2,eY,C.accent);S(cx-1,eY-1,C.accent);S(cx+1,eY-1,C.accent);S(cx-1,eY+1,C.accent);S(cx+1,eY+1,C.accent);S(cx,eY,lt(C.accent,.6));};
+    st(exL);st(exR); return; }
+  oneEye(C,G,exL,1,name); oneEye(C,G,exR,-1,name);       // focused / sharp / wide / closed
+}
+function drawBrows(C,G,name){
+  if(name==='none')return; const c=C.brow, eY=G.browY, exL=G.exL, exR=G.exR;
+  const yoff=s=>(HS.cock===s?-2:0);
+  const side=(cx,s)=>{ const y=eY+yoff(s), innerR=cx<32;
+    if(name==='angry'){ for(let i=0;i<8;i++){ const x=cx-4+i, t=innerR?i:(7-i), yy=y-1+Math.round(t/7*3); S(x,yy,c);S(x,yy+1,c); } }
+    else if(name==='raised'){ for(let x=cx-3;x<=cx+3;x++){S(x,y-1,c);S(x,y,c);} for(let x=cx-3;x<=cx+3;x++)S(x,y-2,lt(c,.3)); }
+    else if(name==='flat'){ for(let x=cx-4;x<=cx+3;x++){S(x,y,c);S(x,y+1,c);} }
+  };
+  if(name==='uni'){ RECT(exL-4,eY,exR+4-(exL-4),2,c); HL(exL-4,exR+4,eY-1,dk(c,.7)); return; }
+  side(exL,-1); side(exR,1);
+}
+function drawMouth(C,G,name){
+  const y=G.mouthY, lip=C.lip, teeth=C.teeth, dark=C.dark;
+  if(name==='smirk'){ HL(27,35,y,lip); S(36,y-1,lip);S(36,y-2,C.skinSh); S(26,y,dk(lip,.8)); }
+  else if(name==='frown'){ HL(27,36,y,lip); S(26,y-1,lip);S(37,y-1,lip); HL(28,35,y+1,dk(lip,.8)); }
+  else if(name==='grin'){ RECT(26,y-1,12,5,dark); RECT(27,y,10,3,teeth); for(let x=29;x<37;x+=2)VL(x,y,y+2,dk(teeth,.7)); HL(27,36,y,C.skinSh); }
+  else if(name==='shout'){ RECT(28,y-2,8,8,dark); RECT(29,y-1,6,6,dk('#5a1420',1)); RECT(29,y-1,6,1,teeth); RECT(30,y+3,4,2,'#8a2030'); }
+  else if(name==='flat'){ RECT(27,y,10,2,lip); }
+  else if(name==='fangs'){ HL(27,36,y,lip); RECT(29,y+1,2,2,teeth); RECT(33,y+1,2,2,teeth); }
+  else if(name==='grillz'){ RECT(26,y-1,12,5,dark); RECT(27,y,10,3,C.accent); for(let x=29;x<37;x+=2)VL(x,y,y+2,dk(C.accent,.7)); }  // gold grillz
+  else if(name==='tongue'){ RECT(27,y,10,2,dark); RECT(29,y+1,6,2,'#ff5a7a'); S(31,y+2,'#ff88a0'); }
+}
+function drawAcc(C,G,name){
+  if(name==='none')return; const dark=C.dark, eY=G.eyeY, exL=G.exL, exR=G.exR;
+  if(name==='shades'){ RECT(16,eY-3,16,8,dark); RECT(32,eY-3,16,8,dark); RECT(18,eY-2,12,5,dk(C.accent,.5)); RECT(34,eY-2,12,5,dk(C.accent,.5));
+    HL(30,33,eY,dark); S(19,eY-1,lt(C.accent,.6)); S(35,eY-1,lt(C.accent,.6)); HL(14,16,eY-2,dark);HL(47,49,eY-2,dark); }
+  else if(name==='mic'){ const y=G.mouthY, ax=G.xl(y)-5;   // boom mic: arm from the left cheek to a foam ball at the mouth
+    for(let k=0;k<7;k++)S(ax+k,y-1+Math.round(k/4),dark);
+    DISC(G.xl(y)-1,y-1,2,C.metalSh); S(G.xl(y)-1,y-1,C.accent); S(G.xl(y)-2,y-2,lt(C.accent,.5)); }
+  else if(name==='eyepatch'){ DISC(exR,eY,4,dark); RECT(exR-4,eY-2,9,5,dark);
+    const eLx=G.xl(22); for(let x=eLx;x<=exR+4;x++){ S(x, 22 + Math.round((x-eLx)/Math.max(1,(exR+4-eLx))*7), dark); } }
+  else if(name==='scar'){ VL(24,eY-7,eY+6,'#c85a5a'); S(23,eY-4,'#e08a8a');S(25,eY-1,'#e08a8a');S(24,eY+2,'#a04040'); }
+  else if(name==='warpaint'){ RECT(exL-5,eY+4,10,2,C.accent); RECT(exR-4,eY+4,10,2,C.accent); M(exL-5,eY+6,C.accent); M(exL,eY+6,C.accent); }
+  else if(name==='mask'){ RECT(24,40,16,11,C.metalSh); RECT(25,41,14,9,dk(C.metal,.8)); HL(24,39,40,C.accent); for(let x=27;x<38;x+=2)VL(x,42,48,C.metal); RECT(29,44,6,2,dk(C.accent,.6)); }
+  else if(name==='cyberjaw'){ RECT(24,44,16,7,C.metal); RECT(24,44,16,1,C.metalHi); HL(24,39,43,dark); for(let x=26;x<38;x+=2)VL(x,45,49,C.metalSh); M(24,46,C.accent); RECT(28,47,8,1,dk(C.metal,.7)); }
+  else if(name==='tattoo'){ M(20,eY+5,C.accent);M(20,eY+6,C.accent);M(21,eY+6,C.accent);M(20,eY+7,C.accent);M(19,eY+8,C.accent); }
+}
+function capRows(C,G,n,base,hi){ for(let r=0;r<n;r++){ const y=G.crownY+r,e=(r<2)?1:0,xl=G.xl(y)-e,xr=G.xr(y)+e; HL(xl,xr,y, r===0?hi:base); if(r>0){S(xl,y,dk(base,.7));S(xr,y,dk(base,.7));} } }
+function drawHair(C,G,name){
+  const c=C.hair, cs=C.hairSh, hl=C.hairHi, crown=G.crownY;
+  if(name==='bald')return;
+  if(name==='buzz'){ capRows(C,G,6,dk(c,.85),dk(c,.7)); for(let i=0;i<40;i++){const y=crown+((i*7)%6),w=G.edgeL(y);S(CXL-w+2+((i*5)%Math.max(2,2*w-2)),y,cs);} return; }
+  if(name==='mohawk'){ const top=1,baseY=crown+9; for(let y=top;y<=baseY;y++){const tt=clamp((y-top)/(baseY-top),0,1),w=Math.round(2+tt*7); RECT(32-Math.round(w/2),y,w,1,(y%3)?c:hl); if(y%3===0){S(32-Math.round(w/2),y,cs);S(31+Math.round(w/2),y,cs);}} return; }
+  if(name==='spiky'){ capRows(C,G,7,c,hl); for(let x=18;x<46;x+=4){ const h=4+((x)%3); for(let k=0;k<h;k++)S(x, crown-1-k, k===h-1?hl:c);} for(let x=20;x<44;x+=4)S(x,crown-1,hl); return; }
+  if(name==='sidecut'){ capRows(C,G,6,c,hl); const w4=G.edgeR(crown+5); RECT(CXR,crown+5,w4,2,cs); HL(G.xl(crown)+2,CXL+4,crown,hl); return; }
+  if(name==='topknot'){ capRows(C,G,4,cs,dk(c,.8)); DISC(CXL,4,4,c); S(CXL-1,2,hl);S(CXL,2,hl); RECT(CXL,7,2,3,cs); return; }
+  if(name==='afro'){ for(let y=0;y<24;y++){ if(y>22)break; const w=Math.round(Math.min(21, 8+y*1.4)*(y<20?1:0.7)); RECT(CXL-w+1,y+2,w*2,1,(y%2)?c:cs);} for(let i=0;i<60;i++){const a=hash32(i,3,7);S(12+(a%40),2+((a>>3)%22),(i%2)?hl:cs);} return; }
+  if(name==='messy'){ capRows(C,G,7,c,hl); for(let i=0;i<26;i++){const a=hash32(i,9,4);const x=14+(a%36),y=crown-2+((a>>4)%4);S(x,y,(i%3)?c:hl);} HL(16,47,crown-1,c); S(15,crown+2,c);S(48,crown+1,c); return; }
+}
+function drawGear(C,G,name){
+  if(name==='none')return; const dark=C.dark, crown=G.crownY;
+  if(name==='cans'){                                     // ★ DJ headphones — bold round ear cups + metal band
+    const ey=G.earY, cups=[];
+    for(const s of [-1,1]){ const edge=s<0?G.xl(ey):G.xr(ey), cx=edge+s*3; cups.push(cx);
+      DISC(cx,ey,4,C.metalSh); RING(cx,ey,4,C.metal);    // shell + bright rim
+      RECT(cx-1,ey-1,3,3,C.accent);                      // solid speaker driver (bold cluster)
+      S(cx,ey,lt(C.accent,.55)); S(cx-s,ey-1,lt(C.accent,.4)); S(cx+s,ey+1,dk(C.accent,.6));
+      VL(cx,ey-6,ey-4,C.metalSh);                        // yoke up to the band
+    }
+    const lcx=cups[0], rcx=cups[1];                      // 3px metal headband arc over the crown
+    for(let x=lcx;x<=rcx;x++){ const t=(2*x-(lcx+rcx))/((rcx-lcx)||1), yy=crown-1+Math.round((ey-6-(crown-1))*t*t);
+      S(x,yy,C.metal);S(x,yy-1,C.metalHi);S(x,yy+1,C.metalSh); }
+    return; }
+  if(name==='cap'){ for(let r=0;r<5;r++){const y=crown+r,xl=G.xl(y)-1,xr=G.xr(y)+1;HL(xl,xr,y, r===0?lt(C.accent,.2):dk(C.accent,.85));}
+    const brimY=crown+4,bx=G.xl(brimY); RECT(bx-8,brimY,9,3,dk(C.accent,.6)); HL(bx-8,bx,brimY,dk(C.accent,.5)); M(G.exL,crown+2,C.accent); return; }
+  if(name==='beanie'){ for(let r=0;r<7;r++){const y=crown+r,e=(r<2?1:0),xl=G.xl(y)-e,xr=G.xr(y)+e;HL(xl,xr,y, r===0?lt(C.accent,.2):C.accent); if(r>0){S(xl,y,dk(C.accent,.6));S(xr,y,dk(C.accent,.6));}}
+    const by=crown+7; HL(G.xl(by)-1,G.xr(by)+1,by,dk(C.accent,.55)); HL(G.xl(by)-1,G.xr(by)+1,by+1,dk(C.accent,.55)); HL(G.xl(by)-1,G.xr(by)+1,by,lt(C.accent,.15)); return; }
+  if(name==='bandana'){ const y=crown+4; for(let r=0;r<4;r++){const yy=y+r,xl=G.xl(yy)-1,xr=G.xr(yy)+1;HL(xl,xr,yy, r>1&&r%2?dk(C.accent,.65):C.accent);} for(let x=G.xl(y);x<G.xr(y);x+=3)S(x,y+1,dk(C.accent,.6)); const kx=G.xl(y+3); RECT(kx-4,y+2,4,2,C.accent); S(kx-5,y+4,dk(C.accent,.6)); HL(G.xl(y),G.xr(y),y,lt(C.accent,.2)); return; }
+  if(name==='crown'){ const y0=crown-4; RECT(20,y0+2,24,4,C.metal); RECT(20,y0+2,24,1,C.metalHi); RECT(20,y0+6,24,1,C.metalSh);
+    [[20,0],[26,-2],[31,-1],[37,-2],[43,0]].forEach(([x,yy])=>{for(let y=y0+yy;y<y0+2;y++){S(x,y,C.metal);if(y===y0+yy)S(x,y,C.metalHi);}}); S(31,y0,C.accent);S(32,y0,C.accent); M(23,y0+4,C.accent); return; }
+  if(name==='halo'){ const y=crown-6; for(let x=20;x<44;x++)S(x,y,C.accent); for(let x=22;x<42;x+=2)S(x,y,lt(C.accent,.5)); S(18,y+1,C.accent);S(45,y+1,C.accent);S(19,y+2,dk(C.accent,.6));S(44,y+2,dk(C.accent,.6)); return; }
+}
+function drawEar1(C,G,name){ if(name==='none')return; const y=G.earY+4, x=G.xl(y)-1;   // single earring, left side
+  if(name==='stud'){ S(x,y,C.accent); }
+  if(name==='ring'){ S(x,y,C.metal);S(x,y+1,C.metal);S(x,y+2,C.metal);S(x-1,y+1,C.metal); }
+  if(name==='bolt'){ S(x,y,C.accent);S(x,y+1,C.metal);S(x-1,y+2,C.metal); }
+  if(name==='hoop'){ RING(x-1,y+1,2,C.accent); }
+}
+// ── hands near the head: DJ gestures, rings render as bright colour clusters ──
+function drawHands(C,G,name){
+  if(name==='none')return; const sk=C.skin, sh=C.skinSh, hi=C.skinHi;
+  const ir=IRISES[params.iris], r1=C.accent, r2=lt(ir,.10), r3=lt(C.accent,.4);
+  if(name==='cue'){                                       // hand cupped over the left headphone
+    const bx=G.xl(G.earY)-3, by=G.earY-1;
+    RECT(bx-1,by,4,5,sk); RECT(bx-1,by,4,1,hi); HL(bx-1,bx+2,by+4,sh);
+    for(let f=0;f<4;f++)VL(bx-1+f,by-3,by,sk);            // fingers up onto the cup
+    S(bx,by-1,r1); S(bx+2,by-2,r2);                       // ring cluster
+    return; }
+  if(name==='rings-up'){                                  // raised hand beside the head, fingers up + rings
+    const x=G.xl(G.eyeY)-4, y=G.eyeY;
+    RECT(x-1,y+2,5,4,sk); RECT(x-1,y+2,5,1,hi);
+    for(let f=0;f<4;f++)VL(x-1+f,y-4,y+2,sk);
+    S(x-1,y-1,r1);S(x-1,y,r1); S(x+1,y-1,r2);S(x+1,y,r2); S(x+3,y-2,r3);   // bold ring clusters
+    return; }
+  if(name==='fist'){                                      // fist near the chin/jaw
+    const x=G.xl(G.mouthY)-3, y=G.mouthY-1;
+    RECT(x-1,y,6,5,sk); RECT(x-1,y,6,1,hi); HL(x-1,x+4,y+4,sh);
+    for(let k=1;k<5;k++)S(x-1+k,y+1,dk(sk,.8));           // knuckle line
+    S(x,y-1,r1); S(x+2,y-1,r2);                           // rings
+    return; }
+  if(name==='peace'){                                     // two fingers up beside the eye
+    const x=G.xl(G.eyeY)-4, y=G.eyeY;
+    RECT(x-1,y+2,5,4,sk); RECT(x-1,y+2,5,1,hi);
+    VL(x,y-4,y+2,sk); VL(x+2,y-4,y+2,sk);                 // V fingers
+    S(x,y-1,r1);S(x,y,r1); S(x+2,y,r2);
+    return; }
+}
+
+/* ── outline (dark silhouette border) ── */
+function outlinePass(outline){
+  const add=[];
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){ if(ch[y*W+x]!==null)continue;
+    if((x>0&&ch[y*W+x-1])||(x<W-1&&ch[y*W+x+1])||(y>0&&ch[(y-1)*W+x])||(y<H-1&&ch[(y+1)*W+x])) add.push(y*W+x); }
+  add.forEach(i=>ch[i]=outline);
+}
+
+/* ═══════════════════ build ═══════════════════ */
+function build(blink){
+  ch.fill(null); prot.fill(0);
+  const C=colors();
+  params.hairShape=optOf('head');
+  params.style=optOf('px');
+  computeShape(params.seed);
+  const G=computeGeom(params.hairShape);
+  drawBust(C,G,optOf('bust'));
+  drawHead(C,G);
+  drawEars(C,G,optOf('ears'));
+  drawEyes(C,G,optOf('eyes'),blink);
+  drawBrows(C,G,optOf('brows'));
+  drawMouth(C,G,optOf('mouth'));
+  drawAcc(C,G,optOf('acc'));
+  drawHair(C,G,optOf('hair'));
+  drawGear(C,G,optOf('gear'));
+  drawEar1(C,G,optOf('ear1'));
+  drawHands(C,G,optOf('hands'));
+  outlinePass(C.outline);
+  lastG=G;
+  return C;
+}
+
+/* ═══════════════════ render ═══════════════════ */
+const canvas=document.getElementById('stage'), ctx=canvas.getContext('2d');
+const off=document.createElement('canvas'); off.width=W; off.height=H; const octx=off.getContext('2d');
+// cached character render: the static art is rebuilt only when a trait/colour/seed
+// changes (or on blink); each frame just blits it at the bob offset → smooth idle.
+const charCv=document.createElement('canvas'); charCv.width=canvas.width; charCv.height=canvas.height; const cctx=charCv.getContext('2d');
+let lastC=colors(); let dirty=true, lastBlink=false, lastG=null;
+const markDirty=()=>{ dirty=true; };
+
+// ── animation drive: the DJ reacts to a beat. In phase 1 a synthetic beat fills
+// these; later a dropped track's audio analysis will drive the same params. ──
+const drive={level:0,beat:0,blink:false,eq:new Array(8).fill(0)};
+let audioMode=false, analyser=null, freqData=null;   // real audio drives `drive` when audioMode
+const BPM=120, BEAT=60/BPM;
+function updateDrive(t){
+  if(audioMode && analyser){                          // ── audio-reactive: analysis drives the DJ ──
+    analyser.getByteFrequencyData(freqData); const n=freqData.length;
+    let sum=0; for(let i=0;i<n;i++)sum+=freqData[i]; const avg=sum/n/255;
+    let bass=0; for(let i=1;i<9;i++)bass+=freqData[i]; bass/=(8*255);
+    drive.level=clamp(avg*1.9,0,1); drive.beat=clamp(bass*1.6,0,1); drive.blink=false;
+    for(let b=0;b<8;b++){ let s=0; for(let i=0;i<8;i++)s+=freqData[b*8+i]||0; drive.eq[b]=clamp(s/8/255*1.4,0,1); }
+    return;
+  }
+  // ── idle: calm. No beat nod / no EQ / no glow — the DJ only comes alive to sound. ──
+  const ts=t/1000;
+  drive.beat=0; drive.level=0; for(let i=0;i<8;i++) drive.eq[i]=0;
+  drive.blink=(ts%5.0)>4.85;
+}
+
+// ── Sýkora-style adaptive tiles: flat regions merge into big tiles; small edge
+// tiles pick a straight-edge element (half / quarter / triangle) with a seed-driven
+// rotation → bold constructivist grouping of motifs & colours.
+function drawStyled(cc,SC,mx,my){
+  const style=params.style, sd=params.seed;
+  const cell=(x,y)=>(x<0||x>=W||y<0||y>=H)?null:ch[y*W+x];
+  const rectPx=(gx,gy,sz,col)=>{ if(col){cc.fillStyle=col;cc.fillRect(mx+gx*SC,my+gy*SC,sz*SC,sz*SC);} };
+  const triPx=(gx,gy,sz,rot,col)=>{ if(!col)return; const x=mx+gx*SC,y=my+gy*SC,s=sz*SC; cc.fillStyle=col; cc.beginPath();
+    if(rot===0){cc.moveTo(x,y);cc.lineTo(x+s,y);cc.lineTo(x+s,y+s);}
+    else if(rot===1){cc.moveTo(x+s,y);cc.lineTo(x+s,y+s);cc.lineTo(x,y+s);}
+    else if(rot===2){cc.moveTo(x,y);cc.lineTo(x+s,y+s);cc.lineTo(x,y+s);}
+    else {cc.moveTo(x,y);cc.lineTo(x+s,y);cc.lineTo(x,y+s);}
+    cc.closePath();cc.fill(); };
+  const halfPx=(gx,gy,sz,rot,col)=>{ if(!col)return; const x=mx+gx*SC,y=my+gy*SC,s=sz*SC,h=s/2; cc.fillStyle=col;
+    if(rot%2===0) cc.fillRect(x, rot===0?y:y+h, s, h); else cc.fillRect(rot===1?x+h:x, y, h, s); };
+  const quarterPx=(gx,gy,sz,rot,col)=>{ if(!col)return; const x=mx+gx*SC,y=my+gy*SC,s=sz*SC,h=s/2; cc.fillStyle=col;
+    const ox=(rot===1||rot===2)?h:0, oy=(rot>=2)?h:0; cc.fillRect(x+ox,y+oy,h,h); };
+  const uni=(gx,gy,sz)=>{ const c0=cell(gx,gy); for(let j=0;j<sz;j++)for(let i=0;i<sz;i++)if(cell(gx+i,gy+j)!==c0)return 0; return c0===null?2:1; };
+  const maj=(gx,gy,sz)=>{ const n={};let b=null,bn=0; for(let j=0;j<sz;j++)for(let i=0;i<sz;i++){const c=cell(gx+i,gy+j);if(!c)continue;n[c]=(n[c]||0)+1;if(n[c]>bn){bn=n[c];b=c;}} return b; };
+  const minor=(gx,gy,sz,base)=>{ const n={};let b=null,bn=0; for(let j=0;j<sz;j++)for(let i=0;i<sz;i++){const c=cell(gx+i,gy+j);if(!c||c===base)continue;n[c]=(n[c]||0)+1;if(n[c]>bn){bn=n[c];b=c;}} return b; };
+  const cover2=(gx,gy,sz,a,b)=>{ let tot=0,hit=0; for(let j=0;j<sz;j++)for(let i=0;i<sz;i++){const c=cell(gx+i,gy+j);if(!c)continue;tot++;if(c===a||c===b)hit++;} return tot?hit/tot:1; };
+  const hasProt=(gx,gy,sz)=>{ for(let j=0;j<sz;j++)for(let i=0;i<sz;i++){const x=gx+i,y=gy+j; if(x<W&&y<H&&prot[y*W+x])return true;} return false; };
+  const facetMax=4;                          // only tiles ≤4px get faceted (bigger stay flat, smaller stay crisp)
+  function tile(gx,gy,sz){
+    const u=uni(gx,gy,sz);
+    if(u===2)return; if(u===1){rectPx(gx,gy,sz,cell(gx,gy));return;}
+    if(sz<=1){ rectPx(gx,gy,1,cell(gx,gy)); return; }        // ← finest detail rendered crisp (traits kept)
+    const base=maj(gx,gy,sz), second=minor(gx,gy,sz,base);
+    // facet a tile only when it's a clean two-colour edge; multi-colour feature
+    // areas (eyes, mouth, rings…) fail this test and subdivide down to crisp pixels
+    if(second && sz<=facetMax && !hasProt(gx,gy,sz) && cover2(gx,gy,sz,base,second)>=0.80){
+      rectPx(gx,gy,sz,base); const rnd=hash32(sd,gx,gy), rot=rnd&3;
+      if(style==='shards'){ triPx(gx,gy,sz,rot,second); }
+      else if(style==='blocks'){ const k=rnd%3; if(k===0)halfPx(gx,gy,sz,rot,second); else if(k===1)quarterPx(gx,gy,sz,rot,second); else triPx(gx,gy,sz,rot,second); }
+      else { const k=rnd%3; if(k===0)triPx(gx,gy,sz,rot,second); else if(k===1)halfPx(gx,gy,sz,rot,second); else quarterPx(gx,gy,sz,rot,second); }
+      return;
+    }
+    const h=sz>>1; tile(gx,gy,h);tile(gx+h,gy,h);tile(gx,gy+h,h);tile(gx+h,gy+h,h);
+  }
+  const ST=params.coarse||8;
+  for(let gy=0;gy<H;gy+=ST)for(let gx=0;gx<W;gx+=ST)tile(gx,gy,ST);
+}
+// render the current char buffer into the cache canvas once (transparent background)
+function renderCharTo(){
+  cctx.clearRect(0,0,charCv.width,charCv.height); cctx.imageSmoothingEnabled=false;
+  const SC=8, dw=W*SC, m=(charCv.width-dw)/2;
+  if(params.style==='mosaic'||params.style==='shards'||params.style==='blocks'){ drawStyled(cctx,SC,m,0); return; }
+  const img=octx.createImageData(W,H);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){ const col=ch[y*W+x], i=(y*W+x)*4;
+    if(col===null){ img.data[i+3]=0; continue; }
+    const c=hx(col); img.data[i]=c.r;img.data[i+1]=c.g;img.data[i+2]=c.b;img.data[i+3]=255; }
+  octx.putImageData(img,0,0);
+  cctx.drawImage(off,m,0,dw,dw);
+}
+function paintBg(){
+  const C=lastC;
+  const g=ctx.createLinearGradient(0,0,0,canvas.height); g.addColorStop(0,lt(C.bg1,.06)); g.addColorStop(1,C.bg2);
+  ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
+}
+// per-frame animated overlay (drawn over the cached char): headphone glow + EQ bars
+function drawOverlay(){
+  const G=lastG, C=lastC; if(!G || drive.level<0.04)return;   // only "come alive" when there's sound
+  const SC=8, m=(canvas.width-W*SC)/2;
+  if(optOf('gear')==='cans'){                       // headphone glow, brighter on the beat
+    ctx.save(); ctx.globalAlpha=0.5*drive.level; ctx.fillStyle=C.accent;
+    for(const s of [-1,1]){ const edge=s<0?G.xl(G.earY):G.xr(G.earY), cx=edge+s*3, r=(4+drive.level*8)*SC;
+      ctx.beginPath(); ctx.arc(m+cx*SC+SC/2, G.earY*SC+SC/2, r,0,Math.PI*2); ctx.fill(); }
+    ctx.restore();
+  }
+  const bars=9, x0=18, bw=2, gap=1, baseY=61;       // EQ dances on the chest while a track plays
+  for(let i=0;i<bars;i++){ const h=Math.max(1,Math.round(drive.eq[i%8]*14));
+    ctx.fillStyle = i%2 ? IRISES[params.iris] : C.accent;
+    ctx.fillRect(m+(x0+i*(bw+gap))*SC, (baseY-h)*SC, bw*SC, h*SC); }
+}
+function frame(now){
+  requestAnimationFrame(frame);
+  const t=now||0; updateDrive(t);
+  if(drive.blink!==lastBlink){ dirty=true; lastBlink=drive.blink; }
+  if(dirty){ lastC=build(drive.blink); renderCharTo(); dirty=false; }   // rebuild only on change/blink
+  paintBg(); ctx.imageSmoothingEnabled=false;
+  // expressive motion: idle sway + a strong downward head-nod that punches on every beat
+  const px=canvas.width/2, py=canvas.height*0.66;
+  const bounce=Math.sin(t/1500)*1.0 + drive.beat*22;         // idle: faint slow breath; strong nod only to the beat
+  const sc=1+drive.beat*0.07, rot=drive.beat*0.02;
+  ctx.save();
+  ctx.translate(px,py+bounce); ctx.scale(sc,sc); ctx.rotate(rot); ctx.translate(-px,-py);
+  ctx.drawImage(charCv,0,0);
+  drawOverlay();
+  ctx.restore();
+}
+requestAnimationFrame(frame);
+
+/* ═══════════════════ controls ═══════════════════ */
+const traitHost=document.getElementById('traitHost'), sels={};
+LAYERS.forEach(l=>{
+  const row=document.createElement('div'); row.className='trait';
+  row.innerHTML='<span class="traitLbl">'+l.label+'</span>';
+  const sel=document.createElement('select'); sel.className='sel';
+  l.opts.forEach((o,i)=>{ const op=document.createElement('option'); op.value=i; op.textContent=o; sel.appendChild(op); });
+  sel.value=params.v[l.key];
+  sel.addEventListener('change',()=>{ params.v[l.key]=+sel.value; markDirty(); });
+  const lock=document.createElement('button'); lock.className='lockBtn'; lock.textContent='🔓'; lock.title='lock';
+  lock.addEventListener('click',()=>{ locks[l.key]=!locks[l.key]; lock.classList.toggle('on',locks[l.key]); lock.textContent=locks[l.key]?'🔒':'🔓'; });
+  row.appendChild(sel); row.appendChild(lock); traitHost.appendChild(row); sels[l.key]=sel;
+});
+const palRow=document.getElementById('palRow');
+PALETTES.forEach((p,i)=>{ const s=document.createElement('div'); s.className='pal'+(i===params.pal?' active':'');
+  s.title=p.name; s.style.background='linear-gradient(135deg,'+p.accent+' 0%,'+p.bg1+' 55%,'+p.bg2+' 100%)';
+  s.addEventListener('click',()=>{ params.pal=i; markDirty(); [...palRow.children].forEach((x,xi)=>x.classList.toggle('active',xi===i)); });
+  palRow.appendChild(s); });
+const colorHost=document.getElementById('colorHost');
+function swatchStrip(label,list,cur,onPick){
+  const wrap=document.createElement('div'); wrap.style.marginBottom='8px';
+  wrap.innerHTML='<div class="traitLbl" style="margin-bottom:4px">'+label+'</div>';
+  const row=document.createElement('div'); row.className='swatchRow';
+  list.forEach((c,i)=>{ const s=document.createElement('div'); s.className='pal'+(i===cur()?' active':''); s.style.background=c;
+    s.addEventListener('click',()=>{ onPick(i); markDirty(); [...row.children].forEach((x,xi)=>x.classList.toggle('active',xi===cur())); }); row.appendChild(s); });
+  wrap.appendChild(row); colorHost.appendChild(wrap); return row;
+}
+const skinRow=swatchStrip('Skin',SKINS,()=>params.skin,i=>params.skin=i);
+const hairRow=swatchStrip('Hair',HAIRS,()=>params.hair,i=>params.hair=i);
+const irisRow=swatchStrip('Eyes',IRISES,()=>params.iris,i=>params.iris=i);
+
+// mosaic coarseness slider (affects mosaic / shards / blocks pixel styles)
+const coarseSect=document.createElement('div'); coarseSect.className='sect';
+coarseSect.innerHTML='<div class="sectHd">Mosaic coarseness</div>';
+const coarseRow=document.createElement('div'); coarseRow.className='trait'; coarseRow.style.gridTemplateColumns='1fr 54px';
+const coarseInput=document.createElement('input'); coarseInput.type='range'; coarseInput.min='2'; coarseInput.max='4'; coarseInput.step='1';
+coarseInput.value=String(Math.round(Math.log2(params.coarse)));
+const coarseVal=document.createElement('span'); coarseVal.className='ctrlVal'; coarseVal.style.fontFamily='var(--mono)'; coarseVal.style.fontSize='11px'; coarseVal.style.color='var(--accent)'; coarseVal.textContent=params.coarse+'px';
+coarseInput.addEventListener('input',()=>{ params.coarse=1<<(+coarseInput.value); coarseVal.textContent=params.coarse+'px'; markDirty(); });
+coarseRow.appendChild(coarseInput); coarseRow.appendChild(coarseVal); coarseSect.appendChild(coarseRow);
+colorHost.parentElement.parentElement.appendChild(coarseSect);
+
+function syncUI(){
+  LAYERS.forEach(l=>sels[l.key].value=params.v[l.key]);
+  [...palRow.children].forEach((x,xi)=>x.classList.toggle('active',xi===params.pal));
+  [...skinRow.children].forEach((x,xi)=>x.classList.toggle('active',xi===params.skin));
+  [...hairRow.children].forEach((x,xi)=>x.classList.toggle('active',xi===params.hair));
+  [...irisRow.children].forEach((x,xi)=>x.classList.toggle('active',xi===params.iris));
+  coarseInput.value=String(Math.round(Math.log2(params.coarse))); coarseVal.textContent=params.coarse+'px';
+  document.getElementById('seedChip').textContent='seed '+params.seed;
+  markDirty();   // any state sync (randomize / seed / mutate / reset / restore / boot) → rebuild
+}
+
+/* ═══════════════════ variation ═══════════════════ */
+const NONE_BIAS=0.36;
+function pick(rng,l){ if(l.optional && rng()<NONE_BIAS) return 0;
+  if(l.weights){ const tot=l.weights.reduce((a,b)=>a+b,0); let r=rng()*tot; for(let i=0;i<l.weights.length;i++){ if((r-=l.weights[i])<0) return i; } return 0; }
+  return Math.floor(rng()*l.opts.length); }
+function pickSkin(rng){ return rng()<0.72 ? Math.floor(rng()*HUMAN_SKINS) : HUMAN_SKINS+Math.floor(rng()*(SKINS.length-HUMAN_SKINS)); }
+function fromSeed(){
+  const rng=mulberry(hash32(params.seed,1,1));
+  LAYERS.forEach(l=>{ if(!locks[l.key]) params.v[l.key]=pick(rng,l); });
+  if(!lockCol.pal)  params.pal =Math.floor(rng()*PALETTES.length);
+  if(!lockCol.skin) params.skin=pickSkin(rng);
+  if(!lockCol.hair) params.hair=Math.floor(rng()*HAIRS.length);
+  if(!lockCol.iris) params.iris=Math.floor(rng()*IRISES.length);
+  const lum=h=>{const c=hx(h);return .299*c.r+.587*c.g+.114*c.b;};
+  if(!lockCol.hair && Math.abs(lum(SKINS[params.skin])-lum(HAIRS[params.hair]))<40) params.hair=(params.hair+5)%HAIRS.length;
+  syncUI();
+}
+function randomize(){ params.seed=Math.floor(Math.random()*100000); fromSeed(); }
+function mutate(){
+  const rng=mulberry((Math.random()*1e9)|0);
+  const acts=[()=>{const l=LAYERS[Math.floor(rng()*LAYERS.length)];if(!locks[l.key])params.v[l.key]=pick(rng,l);},
+              ()=>{if(!lockCol.pal)params.pal=Math.floor(rng()*PALETTES.length);},
+              ()=>{if(!lockCol.hair)params.hair=Math.floor(rng()*HAIRS.length);},
+              ()=>{if(!lockCol.iris)params.iris=Math.floor(rng()*IRISES.length);}];
+  const n=1+Math.floor(rng()*2); for(let i=0;i<n;i++)acts[Math.floor(rng()*acts.length)](); syncUI();
+}
+document.getElementById('btnRand').addEventListener('click',randomize);
+document.getElementById('btnSeed').addEventListener('click',()=>{ params.seed=Math.floor(Math.random()*100000); fromSeed(); });
+document.getElementById('btnMutate').addEventListener('click',mutate);
+document.getElementById('btnReset').addEventListener('click',()=>{ Object.assign(params,JSON.parse(JSON.stringify(DEF))); syncUI(); });
+window.addEventListener('keydown',e=>{ if(e.target.tagName==='SELECT')return; if(e.key==='r'||e.key==='R'){params.seed=Math.floor(Math.random()*100000);fromSeed();} });
+
+/* ═══════════════════ export / share / publish ═══════════════════ */
+const SHARE_URL='https://pixel-on-kaspa.fyi/head-lab.html';
+const SHARE_TXT='Pixel DJ with attitude, generated in Pixies on Pixel on Kaspa. Make your own:';
+function exportPNG(scale){
+  const margin=5, total=(W+2*margin)*scale, m=margin*scale;
+  const cv=document.createElement('canvas'); cv.width=total; cv.height=total; const c=cv.getContext('2d');
+  build(false); const C=colors();
+  const g=c.createLinearGradient(0,0,0,total); g.addColorStop(0,lt(C.bg1,.06)); g.addColorStop(1,C.bg2);
+  c.fillStyle=g; c.fillRect(0,0,total,total); c.imageSmoothingEnabled=false;
+  if(params.style==='mosaic'||params.style==='shards'||params.style==='blocks'){ drawStyled(c,scale,m,m); return cv; }
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){ let col=ch[y*W+x]; if(col===null)continue;
+    c.fillStyle=col; c.fillRect(m+x*scale,m+y*scale,scale,scale); }
+  return cv;
+}
+function snapshotDataURL(){ return exportPNG(12).toDataURL('image/png'); }
+document.getElementById('btnShot').addEventListener('click',()=>{ const a=document.createElement('a'); a.href=snapshotDataURL(); a.download='pixel-dj-'+params.seed+'.png'; a.click(); });
+if(window.PixelShare){ PixelShare.mount({ buttonId:'btnShareX', getDataURL:snapshotDataURL, text:SHARE_TXT, url:SHARE_URL, hashtags:['pixelart','nft','dj'], filenamePrefix:'pixel-dj' }); }
+function captureState(){ return {v:3, seed:params.seed, pal:params.pal, skin:params.skin, hair:params.hair, iris:params.iris, coarse:params.coarse, traits:{...params.v}}; }
+function restoreState(p){ if(!p)return;
+  if(p.seed!=null)params.seed=p.seed|0; ['pal','skin','hair','iris'].forEach(k=>{ if(p[k]!=null)params[k]=p[k]|0; });
+  if(p.coarse!=null)params.coarse=clamp(1<<Math.round(Math.log2(p.coarse|0||8)),4,16);
+  if(p.traits)LAYERS.forEach(l=>{ if(p.traits[l.key]!=null)params.v[l.key]=clamp(p.traits[l.key]|0,0,l.opts.length-1); }); syncUI(); }
+if(window.PixelGallery){ PixelGallery.registerLab({ id:'head-lab', name:'Pixies', labUrl:'/head-lab.html', title:'Pixel DJ', publishButtonId:'btnPublish', captureState, restoreState, renderThumbnail:()=>snapshotDataURL() }); }
+
+/* ═══════════════════ REC ═══════════════════ */
+const REC_MS=6000; let recording=false, lastBlob=null, lastExt='mp4';
+const btnRec=document.getElementById('btnRec'), recOverlay=document.getElementById('recOverlay');
+const recResult=document.getElementById('recResult'), recPlayer=document.getElementById('recPlayer');
+btnRec.addEventListener('click',()=>{
+  if(recording)return; recording=true; btnRec.classList.add('recording'); btnRec.textContent='● REC';
+  const stream=canvas.captureStream(30), chunks=[];
+  const FMT=['video/mp4;codecs=avc1.42E01E','video/mp4','video/webm;codecs=vp9','video/webm'];
+  let rec; for(const m of FMT){ if(MediaRecorder.isTypeSupported(m)){ try{rec=new MediaRecorder(stream,{mimeType:m,videoBitsPerSecond:8_000_000});break;}catch(e){} } }
+  if(!rec) rec=new MediaRecorder(stream);
+  const mime=rec.mimeType||'video/webm'; lastExt=mime.includes('mp4')?'mp4':'webm';
+  rec.ondataavailable=e=>{ if(e.data.size)chunks.push(e.data); };
+  rec.onstop=()=>{ lastBlob=new Blob(chunks,{type:mime}); recPlayer.src=URL.createObjectURL(lastBlob); recResult.style.display='flex';
+    recording=false; btnRec.classList.remove('recording'); btnRec.textContent='REC 6s'; recOverlay.classList.remove('show'); };
+  rec.start(100);
+  const t0=performance.now();
+  (function tick(){ const left=Math.ceil((REC_MS-(performance.now()-t0))/1000);
+    if(performance.now()-t0>=REC_MS){ rec.stop(); return; }
+    recOverlay.classList.add('show'); recOverlay.textContent='● REC '+Math.max(0,left); requestAnimationFrame(tick); })();
+});
+document.getElementById('recSave').addEventListener('click',()=>{ if(!lastBlob)return; const a=document.createElement('a'); a.href=URL.createObjectURL(lastBlob); a.download='pixel-dj-'+params.seed+'.'+lastExt; a.click(); });
+
+/* ═══════════════════ audio-reactive: drop a track → DJ reacts → export video ═══════════════════ */
+let audioCtx=null, audioBuffer=null, audioSrc=null, audioDest=null, trackName='';
+const audioHint=document.getElementById('audioHint');
+const btnPlayTrack=document.getElementById('btnPlayTrack'), btnVideo=document.getElementById('btnVideo');
+const stageWrap=document.getElementById('stageWrap');
+function ensureAudio(){
+  if(audioCtx)return;
+  audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  analyser=audioCtx.createAnalyser(); analyser.fftSize=256; analyser.smoothingTimeConstant=0.72;
+  freqData=new Uint8Array(analyser.frequencyBinCount);
+  audioDest=audioCtx.createMediaStreamDestination();
+}
+async function handleAudio(file){
+  try{ ensureAudio(); audioHint.textContent='decoding…';
+    const buf=await file.arrayBuffer(); audioBuffer=await audioCtx.decodeAudioData(buf);
+    trackName=file.name.replace(/\.[^.]+$/,'');
+    audioHint.textContent='▶ '+trackName+' · '+audioBuffer.duration.toFixed(1)+'s — hit React or Video';
+    btnPlayTrack.disabled=false; btnVideo.disabled=false;
+  }catch(e){ audioHint.textContent='could not read that audio file'; }
+}
+function stopTrack(){ if(audioSrc){ try{audioSrc.stop();}catch(e){} try{audioSrc.disconnect();}catch(e){} audioSrc=null; } audioMode=false; }
+function playTrack(toDest,onEnd){
+  if(!audioBuffer)return null; stopTrack(); ensureAudio(); audioCtx.resume();
+  audioSrc=audioCtx.createBufferSource(); audioSrc.buffer=audioBuffer;
+  audioSrc.connect(analyser); analyser.connect(audioCtx.destination);
+  if(toDest) audioSrc.connect(audioDest);
+  audioSrc.onended=()=>{ audioMode=false; if(onEnd)onEnd(); };
+  audioSrc.start(); audioMode=true; return audioSrc;
+}
+document.getElementById('btnLoadTrack').addEventListener('click',()=>document.getElementById('audioFile').click());
+document.getElementById('audioFile').addEventListener('change',e=>{ const f=e.target.files[0]; if(f)handleAudio(f); });
+btnPlayTrack.addEventListener('click',()=>{
+  if(audioMode){ stopTrack(); btnPlayTrack.textContent='▶ React'; }
+  else { playTrack(false,()=>{ btnPlayTrack.textContent='▶ React'; }); btnPlayTrack.textContent='■ Stop'; }
+});
+btnVideo.addEventListener('click',exportVideo);
+stageWrap.addEventListener('dragover',e=>{ e.preventDefault(); stageWrap.style.outline='2px dashed var(--accent)'; });
+stageWrap.addEventListener('dragleave',()=>{ stageWrap.style.outline=''; });
+stageWrap.addEventListener('drop',e=>{ e.preventDefault(); stageWrap.style.outline='';
+  const f=e.dataTransfer.files&&e.dataTransfer.files[0];
+  if(f && /audio|\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(f.type+' '+f.name)) handleAudio(f);
+  else audioHint.textContent='that wasn’t an audio file'; });
+function exportVideo(){
+  if(!audioBuffer||audioMode)return; ensureAudio(); audioCtx.resume();
+  const vstream=canvas.captureStream(30);
+  const mixed=new MediaStream([...vstream.getVideoTracks(), ...audioDest.stream.getAudioTracks()]);
+  const FMT=['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4','video/webm;codecs=vp9,opus','video/webm'];
+  let rec; for(const m of FMT){ if(MediaRecorder.isTypeSupported(m)){ try{rec=new MediaRecorder(mixed,{mimeType:m,videoBitsPerSecond:8_000_000});break;}catch(e){} } }
+  if(!rec) rec=new MediaRecorder(mixed);
+  const mime=rec.mimeType||'video/webm'; lastExt=mime.includes('mp4')?'mp4':'webm'; const chunks=[];
+  rec.ondataavailable=e=>{ if(e.data.size)chunks.push(e.data); };
+  rec.onstop=()=>{ lastBlob=new Blob(chunks,{type:mime}); recPlayer.src=URL.createObjectURL(lastBlob);
+    recResult.style.display='flex'; recOverlay.classList.remove('show');
+    audioHint.textContent='✓ video ready — preview below, ↓ Save'; btnVideo.textContent='⬇ Video'; btnVideo.disabled=false; };
+  btnVideo.disabled=true; btnVideo.textContent='● REC…';
+  playTrack(true,()=>{ setTimeout(()=>{ if(rec.state!=='inactive')rec.stop(); },150); });
+  rec.start(100);
+  const dur=audioBuffer.duration, t0=performance.now();
+  (function tick(){ if(rec.state==='inactive')return;
+    const left=Math.ceil(dur-(performance.now()-t0)/1000);
+    recOverlay.classList.add('show'); recOverlay.textContent='● REC '+Math.max(0,left); requestAnimationFrame(tick); })();
+}
+
+/* boot — optional ?seed= deep-link */
+(()=>{ const q=new URLSearchParams(location.search); const sd=q.get('seed');
+  if(sd!=null && sd!=='' && !isNaN(+sd)){ params.seed=(+sd)|0; fromSeed(); } })();
+syncUI();
+})();
+</script>
+</body>
+</html>
