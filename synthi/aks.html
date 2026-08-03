@@ -1256,6 +1256,18 @@ function envStop() {
 ═══════════════════════════════════════════════════════════════════════ */
 function noteOn(midi, vel = 0.82) {
   if (!ENG || !actx) return;
+  // While the sequence runs, the keyboard transposes the WHOLE loop live (steps
+  // and the arp shift together), relative to C4 = original key — it does not play
+  // a one-off note on top of the loop.
+  if (ST.seq.running) {
+    seqTranspose = midi - SEQ_KB_ROOT;
+    ST.currentNote = midi;
+    document.querySelector(`[data-midi="${midi}"]`)?.classList.add('active');
+    const nn = noteName(midi);
+    const nd = document.getElementById('kbd-note'); if (nd) nd.textContent = nn;
+    const fd = document.getElementById('freq-display'); if (fd) fd.textContent = nn + ' · transpose ' + (seqTranspose >= 0 ? '+' : '') + seqTranspose;
+    return;
+  }
   const n  = ENG.nodes;
   const t  = actx.currentTime;
   const m  = clamp(midi + ST.master.tune, 0, 127);
@@ -1348,6 +1360,8 @@ function setDelay(key, v) {
 ═══════════════════════════════════════════════════════════════════════ */
 const SEQ_NOTE_MIN = 36, SEQ_NOTE_MAX = 84;
 let seqRafId = null, seqStepPos = 0, seqNextTime = 0, arpIdx = 0;
+let seqTranspose = 0;               // live keyboard transpose of the running loop (semitones)
+const SEQ_KB_ROOT = 60;            // C4 — pressing this key while the seq runs = no transpose
 let _seqQueue = [], _seqLastNotified = -1, _seqStepEls = [];
 
 /* Keyboard tracking of the Filter/Oscillator — when vcf.track is on, the
@@ -1382,10 +1396,15 @@ function seqTrigger(midi, vel, when, onOverride = null) {
 
 function arpNoteList() {
   const arp = ST.arp;
-  const iv  = ARP_CHORDS[arp.chord] || ARP_CHORDS.min;
+  // Arpeggiate the SEQUENCE'S own notes (active step pitches, de-duped & sorted),
+  // spread over `octaves` and shifted by the live keyboard transpose — so the arp
+  // follows the programmed sequence and its key, not a fixed chord.
+  let base = ST.seq.steps.filter(s => s.active).map(s => s.note);
+  if (!base.length) base = [arp.root];
+  base = [...new Set(base)].sort((a, b) => a - b);
   const oct = clamp(arp.octaves | 0, 1, 4);
   let list = [];
-  for (let o = 0; o < oct; o++) for (const x of iv) list.push(clamp(arp.root + x + 12 * o, 0, 127));
+  for (let o = 0; o < oct; o++) for (const nn of base) list.push(clamp(nn + seqTranspose + 12 * o, 0, 127));
   if (arp.dir === 'down') list = list.slice().reverse();
   else if (arp.dir === 'updown' && list.length > 2) list = list.concat(list.slice(1, -1).reverse());
   return list;
@@ -1422,7 +1441,7 @@ function seqSchedule() {
         seqTrigger(note, vel, when, clamp(ST.arp.gate, 0.05, 1) * noteDur);
       }
     } else if (step.active) {
-      seqTrigger(step.note, step.vel, when);
+      seqTrigger(clamp(step.note + seqTranspose, 0, 127), step.vel, when);
     }
 
     const swingOff = (idx % 2 === 1) ? ST.seq.swing * baseDur * 0.55 : 0;

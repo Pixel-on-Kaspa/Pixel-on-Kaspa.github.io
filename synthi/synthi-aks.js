@@ -100,6 +100,9 @@ const ARP_CHORDS = {
 };
 // Arp note spacing as a count of sequencer 16th-steps (the seq runs at 1/16).
 const ARP_RATE_STEPS = { '1/16': 1, '1/8': 2, '1/4': 4 };
+// Keyboard-transpose reference: pressing this note while the sequence runs =
+// no transpose (C4). Higher/lower keys shift the whole loop by the interval.
+const SEQ_KB_ROOT = 60;
 
 // ── Default state (also used as preset template) ──────────────────────────────
 
@@ -219,6 +222,7 @@ class AKSEngine {
     this.onNote            = null; // UI callback for manually-played notes: (midi) => void
     this._lastNotifiedStep = -1;
     this._arpIdx           = 0;    // position within the current arpeggio
+    this._seqTranspose     = 0;    // live keyboard transpose of the running loop (semitones)
 
     this._buildVoice();
     this._buildEnvelopes();
@@ -462,14 +466,20 @@ class AKSEngine {
     if (key === 'on' && value) this._arpIdx = 0;
   }
 
-  /** Build the current arpeggio note list (root + chord tones over octaves, ordered). */
+  /** Build the current arpeggio note list from the SEQUENCE'S own notes: the
+   *  active Seq A step pitches (de-duped, ascending), spread over `octaves`,
+   *  shifted by the live keyboard transpose, then walked in `dir` order. The arp
+   *  therefore follows the programmed sequence and its key — not a fixed chord. */
   _arpNotes() {
     const arp = this.state.arp;
-    const intervals = ARP_CHORDS[arp.chord] || ARP_CHORDS.min;
+    const tr  = this._seqTranspose | 0;
+    let base = this.state.seqSteps.filter(s => s.active).map(s => s.note);
+    if (!base.length) base = [arp.root];   // nothing active → fall back to the root
+    base = [...new Set(base)].sort((a, b) => a - b);
     const oct = _clamp(arp.octaves | 0, 1, 4);
     let list = [];
     for (let o = 0; o < oct; o++)
-      for (const iv of intervals) list.push(_clamp(arp.root + iv + 12 * o, 0, 127));
+      for (const nn of base) list.push(_clamp(nn + tr + 12 * o, 0, 127));
     if (arp.dir === 'down') list = list.slice().reverse();
     else if (arp.dir === 'updown' && list.length > 2)
       list = list.concat(list.slice(1, -1).reverse());
@@ -670,9 +680,18 @@ class AKSEngine {
   // ──────────────────────────────────────────────────────────────────────────
 
   noteOn(midiNote, velocity = 0.8) {
-    // Manually-played notes set the arpeggiator root (sequencer notes don't).
-    this.state.arp.root = midiNote;
     if (this.onNote) this.onNote(midiNote);
+    // While the sequence runs, the keyboard transposes the WHOLE loop live
+    // (Seq A, Seq B and the arp all shift together), relative to C4 = original
+    // key: C4 = no transpose, D4 = +2, up an octave = +12. It does NOT play a
+    // one-off note on top of the loop.
+    if (this.state.seqRunning) {
+      this._seqTranspose = midiNote - SEQ_KB_ROOT;
+      return;
+    }
+    // Free play (sequence stopped): sound the note now, and remember it as the
+    // arp root for a later run.
+    this.state.arp.root = midiNote;
     this.noteOnAt(midiNote, velocity, this.actx.currentTime);
   }
 
@@ -864,6 +883,7 @@ class AKSEngine {
       // Accent falls on each downbeat (every 4th step). When off, Seq A plays
       // its programmed active steps as before. Seq B stays independent below.
       const arp = this.state.arp;
+      const tr  = this._seqTranspose | 0;   // live keyboard transpose of the loop
       if (arp.on) {
         // Fire one arp note every `every` sequencer steps (rate), so notes ring
         // distinctly instead of blurring into a 16th-note stream.
@@ -878,13 +898,13 @@ class AKSEngine {
         }
       } else if (stepA.active) {
         const vel = stepA.accent ? _clamp(stepA.velocity * 1.38, 0, 1) : stepA.velocity;
-        this.noteOnAt(stepA.note, vel, when);
+        this.noteOnAt(_clamp(stepA.note + tr, 0, 127), vel, when);
         this.noteOffAt(when + baseDur * 0.82);
       }
       if (stepB && stepB.active) {
         const vel = stepB.accent ? _clamp(stepB.velocity * 1.38, 0, 1) : stepB.velocity;
         // Tiny offset so it lands after A in the schedule queue
-        this.noteOnAt(stepB.note, vel, when + 0.0005);
+        this.noteOnAt(_clamp(stepB.note + tr, 0, 127), vel, when + 0.0005);
         this.noteOffAt(when + baseDur * 0.82 + 0.0005);
       }
 
