@@ -721,10 +721,7 @@
 
   <div class="ctrlbar">
     <button class="btn btnPrimary" id="audioStart" type="button">▶ Start</button>
-    <div class="ctrlGroup">
-      <button class="btn" id="recBtn" type="button" title="Record a 20s clip of what you play" disabled>● REC</button>
-      <span class="val" id="recTime">20s</span>
-    </div>
+    <div class="ctrlGroup" id="srecMount"></div>
     <div class="ctrlGroup">
       <span class="midiDot" id="midiDot"></span>
       <label for="midiInput">MIDI</label>
@@ -754,13 +751,6 @@
     <button class="btn btnPrimary" id="aks-seq-toggle" type="button">Seq ▶</button>
   </div>
 
-  <div class="recResult" id="recResult" style="display:none">
-    <span class="recResultLbl">Clip</span>
-    <audio id="recPlayer" controls preload="metadata"></audio>
-    <button class="btn btnSm" id="recSave" type="button">↓ Save</button>
-    <button class="btn btnSm btnGhost" id="recShare" type="button">Share ↗</button>
-    <span class="recResultHint">saved to your Downloads folder</span>
-  </div>
 
   <div class="main">
 
@@ -1077,24 +1067,19 @@
 
   <script src="./synthi-aks.js"></script>
   <script src="../js/share.js"></script>
+  <script src="../js/synthi-record.js"></script>
 
   <script>
   /* ─── AUDIO BOOTSTRAP ────────────────────────────────────────────── */
   (function () {
     'use strict';
     let actx = null, mixBus = null, masterGain = null;
-    let recDest = null;
+    let recTap = null;
     let vuAnalyser = null, vuBuf = null;
     let masterVol = 0.15;
     let vuPeakHoldDb = -Infinity, vuPeakHoldTs = 0;
 
     const startBtn   = document.getElementById('audioStart');
-    const recBtn      = document.getElementById('recBtn');
-    const recTimeEl   = document.getElementById('recTime');
-    const recResultEl = document.getElementById('recResult');
-    const recPlayerEl = document.getElementById('recPlayer');
-    const recSaveEl   = document.getElementById('recSave');
-    const recShareEl  = document.getElementById('recShare');
     const masterEl   = document.getElementById('masterVol');
     const masterValEl= document.getElementById('masterVolVal');
     const vuCanvas   = document.getElementById('vuCanvas');
@@ -1149,14 +1134,12 @@
       ceiling.connect(vuAnalyser);
       ceiling.connect(actx.destination);
 
-      // Recording tap — a PARALLEL branch off the final post-ceiling signal
-      // (same fan-out pattern as the VU tap above). Does NOT alter what reaches
-      // the speakers; it just mirrors the safe, limited output to a MediaStream.
-      recDest = actx.createMediaStreamDestination();
-      ceiling.connect(recDest);
-      if (recBtn) recBtn.disabled = false;
+      // Recording tap — SynthiRecord fans out its own parallel branch off this
+      // final post-ceiling node (never altering the speaker path).
+      recTap = ceiling;
+      synRec.enable(true);
 
-      window.dispatchEvent(new CustomEvent('synthiAudioReady', { detail: { actx, mixBus, recDest } }));
+      window.dispatchEvent(new CustomEvent('synthiAudioReady', { detail: { actx, mixBus } }));
 
       startBtn.textContent = '● Running';
       startBtn.classList.remove('btnPrimary');
@@ -1167,110 +1150,26 @@
     startBtn.addEventListener('click', ensureAudio);
 
     /* ── RECORD ───────────────────────────────────────────────────────────
-       Captures the LIVE post-ceiling output (what you hear, already limited &
-       brick-walled) via a MediaStream tap → MediaRecorder → WebM/Opus clip.
-       The clip is the drift-proof artifact: it never changes if the engine
-       evolves later. We ALSO silently snapshot the patch + engineVersion so a
-       remix layer can be turned on later without re-recording (provenance is
-       append-only). Free tier = 20s; unlimited length is planned behind
-       membership. */
-    const ENGINE_VERSION = 'aks-2026.07';
-    const REC_MAX_SEC = 20;                    // TODO: unlimited behind membership
-    let mediaRecorder = null, recChunks = [], recCountdown = null, recTimeout = null;
-    let lastRec = null;                        // { blob, patch, engineVersion, ts }
-    let lastRecUrl = null;                     // object URL for the <audio> preview
-
-    function recFilename() {
-      return 'synthi-aks-' + (lastRec ? lastRec.ts : Date.now()) +
-             (lastRec && /ogg/.test(lastRec.blob.type) ? '.ogg' : '.webm');
-    }
-
-    function recMime() {
-      const c = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
-      for (const m of c) { if (window.MediaRecorder && MediaRecorder.isTypeSupported(m)) return m; }
-      return '';
-    }
-    function setRecUI(recording, secsLeft) {
-      if (recording) {
-        recBtn.textContent = '■ STOP';
-        recBtn.classList.add('btnRec');
-        recTimeEl.textContent = secsLeft + 's';
-        recResultEl.style.display = 'none';
-      } else {
-        recBtn.textContent = '● REC';
-        recBtn.classList.remove('btnRec');
-        recTimeEl.textContent = REC_MAX_SEC + 's';
+       Shared SynthiRecord module (same as aks.html / web.html): taps the final
+       post-ceiling node via a parallel MediaStreamDestination for a WebM/Opus
+       clip, plus an AudioWorklet PCM tap for a lossless ↓ WAV master. Silently
+       snapshots the patch + engineVersion so a remix layer can be turned on
+       later without re-recording. Free tier = 20s; unlimited behind membership. */
+    const synRec = (window.SynthiRecord ? SynthiRecord.mount({
+      container:   'srecMount',
+      getContext:  () => actx,
+      getTap:      () => recTap,                 // final post-ceiling node
+      ensureAudio: ensureAudio,
+      getPatch:    () => { try { return (aks && aks.savePreset) ? aks.savePreset('SYNTHI AKS') : null; } catch (e) { return null; } },
+      engineVersion: 'aks-2026.07',
+      maxSec: 20,                                // TODO: unlimited behind membership
+      share: {
+        filenamePrefix: 'synthi-aks',
+        text: 'Made a patch on the SYNTHI AKS — make your own:',
+        url:  'https://pixel-on-kaspa.fyi/synthi/generator.html',
+        hashtags: ['synthesizer', 'generativeart']
       }
-    }
-    function clearRecTimers() {
-      if (recCountdown) { clearInterval(recCountdown); recCountdown = null; }
-      if (recTimeout)   { clearTimeout(recTimeout);   recTimeout = null; }
-    }
-    function startRec() {
-      ensureAudio();
-      if (!recDest) return;
-      const mime = recMime();
-      try {
-        mediaRecorder = mime
-          ? new MediaRecorder(recDest.stream, { mimeType: mime, audioBitsPerSecond: 128000 })
-          : new MediaRecorder(recDest.stream);
-      } catch (e) {
-        alert('Recording is not supported in this browser.'); return;
-      }
-      recChunks = [];
-      mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size) recChunks.push(e.data); };
-      mediaRecorder.onstop = () => {
-        clearRecTimers();
-        const type = mediaRecorder.mimeType || mime || 'audio/webm';
-        const blob = new Blob(recChunks, { type });
-        let patch = null;
-        try { if (aks && aks.savePreset) patch = aks.savePreset('SYNTHI AKS'); } catch (e) {}
-        lastRec = { blob, patch, engineVersion: ENGINE_VERSION, ts: Date.now() };
-        setRecUI(false);
-        if (lastRecUrl) URL.revokeObjectURL(lastRecUrl);
-        lastRecUrl = URL.createObjectURL(blob);
-        recPlayerEl.src = lastRecUrl;
-        recResultEl.style.display = '';
-      };
-      const started = Date.now();
-      mediaRecorder.start();
-      setRecUI(true, REC_MAX_SEC);
-      recCountdown = setInterval(() => {
-        const left = Math.max(0, REC_MAX_SEC - Math.floor((Date.now() - started) / 1000));
-        recTimeEl.textContent = left + 's';
-      }, 250);
-      recTimeout = setTimeout(stopRec, REC_MAX_SEC * 1000);
-    }
-    function stopRec() {
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-      clearRecTimers();
-    }
-    function isRecording() { return mediaRecorder && mediaRecorder.state === 'recording'; }
-
-    if (recBtn) {
-      recBtn.addEventListener('click', () => { isRecording() ? stopRec() : startRec(); });
-    }
-    if (recSaveEl) {
-      recSaveEl.addEventListener('click', () => {
-        if (!lastRec) return;
-        const url = lastRecUrl || URL.createObjectURL(lastRec.blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = recFilename();
-        document.body.appendChild(a); a.click(); a.remove();
-      });
-    }
-    if (recShareEl) {
-      recShareEl.addEventListener('click', () => {
-        if (!lastRec || !window.PixelShare) return;
-        PixelShare.share({
-          blob: lastRec.blob,
-          filenamePrefix: 'synthi-aks',
-          text: 'Made a patch on the SYNTHI AKS — make your own:',
-          url: 'https://pixel-on-kaspa.fyi/synthi/generator.html',
-          hashtags: ['synthesizer', 'generativeart']
-        });
-      });
-    }
+    }) : { enable: function () {} });
 
     masterEl.addEventListener('input', () => {
       masterVol = parseFloat(masterEl.value);
