@@ -201,40 +201,39 @@
           <div class="ctrl">
             <div class="ctrlHead"><div class="ctrlTitle">Primitive</div></div>
             <div class="chipGroup" id="motifGroup">
-              <button class="chipBtn" data-motif="syk-mixed">Sýkora ★</button>
-              <button class="chipBtn" data-motif="syk-full">Full</button>
-              <button class="chipBtn" data-motif="syk-half">Half</button>
-              <button class="chipBtn" data-motif="syk-diag">Diag</button>
-              <button class="chipBtn" data-motif="syk-quarter">Quarter</button>
-              <button class="chipBtn" data-motif="syk-L">L</button>
-              <button class="chipBtn" data-motif="syk-T">T</button>
-              <button class="chipBtn" data-motif="syk-step">Step</button>
-              <button class="chipBtn" data-motif="syk-notch">Notch</button>
-              <button class="chipBtn" data-motif="syk-corner">Corner</button>
-              <button class="chipBtn" data-motif="syk-bar">Bar</button>
-              <button class="chipBtn" data-motif="syk-cross">Cross</button>
-              <button class="chipBtn" data-motif="syk-frame">Frame</button>
-              <button class="chipBtn" data-motif="syk-double">Double</button>
-              <button class="chipBtn" data-motif="syk-stripes">Stripes</button>
+              <button class="chipBtn" data-motif="syk-16-mixed">16-Grid ▦</button>
+              <button class="chipBtn" data-motif="syk-16-wedge">Wedge</button>
+              <button class="chipBtn" data-motif="syk-16-band">Band</button>
+              <button class="chipBtn" data-motif="syk-16-stair">Stair</button>
+              <button class="chipBtn" data-motif="syk-16-notch">Notch</button>
+              <button class="chipBtn" data-motif="syk-16-L">L</button>
+              <button class="chipBtn" data-motif="syk-16-twin">Twin</button>
+              <button class="chipBtn" data-motif="syk-16-random">Random</button>
+              <button class="chipBtn" data-motif="syk-16-block">Block</button>
+              <button class="chipBtn" data-motif="syk-16-cross">Cross</button>
+              <button class="chipBtn" data-motif="syk-16-tee">Tee</button>
+              <button class="chipBtn" data-motif="syk-16-elbow">Elbow</button>
+              <button class="chipBtn" data-motif="syk-16-vbar">Bar</button>
+              <button class="chipBtn" data-motif="syk-16-cap">Cap</button>
             </div>
             <div class="muted" style="margin-top:8px;font-size:11px;line-height:1.4">
-              ★ Sýkora = 14 abstract black-fill elements × 4 rotations, fully straight-edge. Each element is built from a base shape plus characteristic +/− triangles (chamfers, accents, V-cuts, bridges) — Triangle sliders modulate them.
+              Sýkora's black-and-white vocabulary: chunky masses (wedge, band, stair, notch, L, twin, block) and connector bars (cross, tee, elbow, bar, cap), plus Random — squares &amp; 45° triangles × 4 rotations.
             </div>
           </div>
 
           <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Triangle size</div><div class="ctrlVal" id="vLength">—</div></div>
-            <input id="motifLength" type="range" min="0.2" max="2.0" step="0.01" value="0.9">
+            <div class="ctrlHead"><div class="ctrlTitle">Triangle mix</div><div class="ctrlVal" id="vRandTri">—</div></div>
+            <input id="randTri" type="range" min="0" max="0.6" step="0.01" value="0.15">
             <div class="muted" style="margin-top:6px;font-size:11px;line-height:1.4">
-              Size of the +/− triangles built into every element. Above ~1.2 they exceed the cell and overlap neighbours.
+              Random element: 0 = all squares, higher = more triangles.
             </div>
           </div>
 
           <div class="ctrl">
-            <div class="ctrlHead"><div class="ctrlTitle">Triangle balance</div><div class="ctrlVal" id="vThick">—</div></div>
-            <input id="motifThickness" type="range" min="0.5" max="8" step="0.1" value="4">
+            <div class="ctrlHead"><div class="ctrlTitle">Random grain</div><div class="ctrlVal" id="vRandDim">—</div></div>
+            <input id="randDim" type="range" min="2" max="4" step="1" value="2">
             <div class="muted" style="margin-top:6px;font-size:11px;line-height:1.4">
-              Low = only negatives (white carves). High = only positives (black accents). Mid = both.
+              Random element sub-grid: 2 = big bold blocks, 4 = fine detail.
             </div>
           </div>
 
@@ -407,9 +406,11 @@
   const STATE_KEY = "sykora_lab_v1";
 
   const defaults = {
-    motif: 'syk-mixed',
+    motif: 'syk-16-mixed',
     motifLength: 0.9,
     motifThickness: 4.0,
+    randTri: 0.15,
+    randDim: 2,
     gridSize: 12,
     rotationMode: 'random',
     rotationBase: 0.0,
@@ -438,7 +439,7 @@
   const intg = v => { const x = parseInt(v, 10); return Number.isFinite(x) ? x : null; };
 
   const enumKeys = {
-    motif:       ['syk-mixed','syk-full','syk-half','syk-diag','syk-quarter','syk-L','syk-T','syk-step','syk-notch','syk-corner','syk-bar','syk-cross','syk-frame','syk-double','syk-stripes'],
+    motif:       ['syk-16-mixed','syk-16-wedge','syk-16-band','syk-16-stair','syk-16-notch','syk-16-L','syk-16-twin','syk-16-random','syk-16-block','syk-16-cross','syk-16-tee','syk-16-elbow','syk-16-vbar','syk-16-cap'],
     rotationMode:['fixed','step','random','radial'],
     scaleMode:   ['uniform','gradient','pulse','random'],
     mirrorMode:  ['off','h','v','both','alt'],
@@ -446,8 +447,9 @@
     animMode:    ['rotate','wave','drift','breathe'],
     field:       ['none','regions','flow','both'],
   };
-  const fullCellMotifs = new Set(['syk-mixed','syk-full','syk-half','syk-diag','syk-quarter','syk-L','syk-T','syk-step','syk-notch','syk-corner','syk-bar','syk-cross','syk-frame','syk-double','syk-stripes']);
-  const sykElements = ['syk-full','syk-half','syk-diag','syk-quarter','syk-L','syk-T','syk-step','syk-notch','syk-corner','syk-bar','syk-cross','syk-frame','syk-double','syk-stripes'];
+  const syk16Names = ['syk-16-wedge','syk-16-band','syk-16-stair','syk-16-notch','syk-16-L','syk-16-twin','syk-16-random','syk-16-block','syk-16-cross','syk-16-tee','syk-16-elbow','syk-16-vbar','syk-16-cap'];
+  const fullCellMotifs = new Set(['syk-16-mixed',...syk16Names]);
+  const sykElements = [...syk16Names];
 
   function readStore(){
     try { return JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); } catch { return {}; }
@@ -467,7 +469,7 @@
         if (enumKeys[k].includes(v)) out[k] = v;
       } else {
         const n = num(v);
-        if (n != null) out[k] = (k === 'gridSize' || k === 'seed') ? Math.round(n) : n;
+        if (n != null) out[k] = (k === 'gridSize' || k === 'seed' || k === 'randDim') ? Math.round(n) : n;
       }
     }
     const ov = u.searchParams.get('ov');
@@ -514,8 +516,6 @@
   const overrideChip = document.getElementById('overrideChip');
 
   const sliders = {
-    motifLength: 'vLength',
-    motifThickness: 'vThick',
     gridSize: 'vGrid',
     rotationBase: 'vRotBase',
     rotationStep: 'vRotStep',
@@ -523,6 +523,8 @@
     scaleVar: 'vScaleVar',
     density: 'vDensity',
     spacing: 'vSpacing',
+    randTri: 'vRandTri',
+    randDim: 'vRandDim',
     seed: 'vSeed',
     animSpeed: 'vAnim',
     fieldScale: 'vFieldScale',
@@ -542,8 +544,8 @@
   // UI BIND
   // ───────────────────────────────────────────────────────────────
   function fmt(k, v){
-    if (k === 'seed' || k === 'gridSize') return String(v);
-    if (k === 'density' || k === 'spacing') return v.toFixed(2);
+    if (k === 'seed' || k === 'gridSize' || k === 'randDim') return String(v);
+    if (k === 'density' || k === 'spacing' || k === 'randTri') return v.toFixed(2);
     if (k === 'motifThickness') return v.toFixed(1);
     if (k === 'rotationBase' || k === 'rotationStep') return v.toFixed(2);
     if (k === 'animSpeed') return v === 0 ? 'off' : v.toFixed(2);
@@ -590,7 +592,7 @@
     el.addEventListener('input', () => {
       const v = num(el.value);
       if (v == null) return;
-      state[k] = (k === 'gridSize' || k === 'seed') ? Math.round(v) : v;
+      state[k] = (k === 'gridSize' || k === 'seed' || k === 'randDim') ? Math.round(v) : v;
       commitAndRedraw();
     });
   }
@@ -752,6 +754,115 @@
     return state.colorMode === 'mono-inv' ? 12 : 244;
   }
 
+  // ── 4×4 sub-square elements (squares + triangles only) ───────
+  // Each cell is split into 16 sub-squares. A pattern is 16 codes
+  // (row-major, top→bottom / left→right):
+  //   '#' full sub-square · '.' empty
+  //   'q' top-left half   · 'e' top-right half
+  //   'c' bottom-right half· 'z' bottom-left half   (45° diagonals)
+  // Masses run to the cell edges so neighbouring cells' black sides
+  // TOUCH and grow into Sýkora-style macrostructures. Four rotations
+  // + mirror multiply each pattern.
+  // ── GLYPH ELEMENTS ──────────────────────────────────────────
+  // Each element is a SOLID CORE (2×2 centre) with black triangles GROWING
+  // OUTWARD from it toward the edges — no white triangles inside a solid.
+  // Rays reach the cell edge, so across the grid they join into larger
+  // forms that read as faces / figures / letters / symbols.
+  // ── SÝKORA ELEMENTS ─────────────────────────────────────────
+  // Chunky black masses built from squares + 45° triangles, spanning a
+  // range of black/white ratios, plus connector bars. Across the grid
+  // the black masses meet and flow (as in the Letná chimney structure).
+  const SYK16 = {
+    // big 45° triangle filling the lower-left, clean diagonal hypotenuse
+    'syk-16-wedge':  ['z','.','.','.', '#','z','.','.', '#','#','z','.', '#','#','#','z'],
+    // fat diagonal band (\) — touches TL + BR corners
+    'syk-16-band':   ['#','z','.','.', 'e','#','z','.', '.','e','#','z', '.','.','e','#'],
+    // staircase of squares with triangle risers
+    'syk-16-stair':  ['#','z','.','.', '#','#','z','.', '.','#','#','z', '.','.','#','#'],
+    // full square with a stepped triangular bite out of one corner
+    'syk-16-notch':  ['#','#','#','#', '#','#','#','#', '#','#','#','e', '#','#','e','.'],
+    // boot / L — squares with a solid base
+    'syk-16-L':      ['#','#','.','.', '#','#','.','.', '#','#','#','z', '#','#','#','#'],
+    // two opposite corner wedges (TL + BR), diagonal-symmetric
+    'syk-16-twin':   ['#','#','#','z', '#','#','z','.', '.','e','#','#', 'e','#','#','#'],
+    // full black block (ratio 16/16) — the densest element
+    'syk-16-block':  ['#','#','#','#', '#','#','#','#', '#','#','#','#', '#','#','#','#'],
+    // ── connector bars ──
+    'syk-16-cross':  ['.','#','#','.', '#','#','#','#', '#','#','#','#', '.','#','#','.'], // 4-way
+    'syk-16-tee':    ['.','#','#','.', '#','#','#','#', '#','#','#','#', '.','.','.','.'], // 3-way
+    'syk-16-elbow':  ['.','#','#','.', '.','#','#','#', '.','.','#','#', '.','.','.','.'], // bend
+    'syk-16-vbar':   ['.','#','#','.', '.','#','#','.', '.','#','#','.', '.','#','#','.'], // straight
+    'syk-16-cap':    ['.','#','#','.', '.','#','#','.', '.','.','.','.', '.','.','.','.'], // stub
+  };
+  // Build the whole motif as ONE Path2D and fill it in a single operation:
+  // adjacent sub-shapes merge with no internal seams, corners stay sharp
+  // (no stroke → no "hairs"), and everything aligns exactly. A hair of
+  // uniform outward scale closes the seam to neighbouring cells too.
+  function drawGrid(p, pat, s){
+    const ctx = p.drawingContext;
+    const n = Math.round(Math.sqrt(pat.length));
+    const t = s / n, h = s / 2;
+    const path = new Path2D();
+    const tri = (ax,ay,bx,by,cx,cy) => { path.moveTo(ax,ay); path.lineTo(bx,by); path.lineTo(cx,cy); path.closePath(); };
+    for (let i = 0; i < n; i++){
+      for (let j = 0; j < n; j++){
+        const code = pat[i*n + j];
+        if (code === '.') continue;
+        const x0 = -h + j*t, y0 = -h + i*t;
+        if (code === '#') { path.rect(x0, y0, t, t); continue; }
+        const xm = x0 + t/2, ym = y0 + t/2;   // sub-cell edge mid-points
+        // 45° corner half-squares
+        if      (code === 'q') tri(x0,y0, x0+t,y0, x0,y0+t);
+        else if (code === 'e') tri(x0,y0, x0+t,y0, x0+t,y0+t);
+        else if (code === 'c') tri(x0+t,y0, x0+t,y0+t, x0,y0+t);
+        else if (code === 'z') tri(x0,y0, x0+t,y0+t, x0,y0+t);
+        // shallow 2:1 symmetric "arrow" triangles, apex at an edge mid-point
+        else if (code === '^') tri(x0,y0+t, x0+t,y0+t, xm,y0);
+        else if (code === 'v') tri(x0,y0, x0+t,y0, xm,y0+t);
+        else if (code === '<') tri(x0+t,y0, x0+t,y0+t, x0,ym);
+        else if (code === '>') tri(x0,y0, x0,y0+t, x0+t,ym);
+        // shallow 2:1 ASYMMETRIC right triangles (full edge + half edge)
+        else if (code === 'a') tri(x0,y0, x0+t,y0, x0+t,ym);
+        else if (code === 'b') tri(x0,y0, x0+t,y0, x0,ym);
+        else if (code === 'd') tri(x0,y0+t, x0+t,y0+t, x0+t,ym);
+        else if (code === 'g') tri(x0,y0+t, x0+t,y0+t, x0,ym);
+        else if (code === 'h') tri(x0,y0, x0,y0+t, xm,y0);
+        else if (code === 'j') tri(x0,y0, x0,y0+t, xm,y0+t);
+        else if (code === 'k') tri(x0+t,y0, x0+t,y0+t, xm,y0);
+        else /* 'm' */         tri(x0+t,y0, x0+t,y0+t, xm,y0+t);
+      }
+    }
+    const f = 1 + Math.max(0.5, s * 0.006) * 2 / s;   // tiny outward scale → seamless to neighbours
+    ctx.save();
+    ctx.scale(f, f);
+    ctx.fill(path);
+    ctx.restore();
+  }
+
+  // A per-cell randomised 3×3 fill — bold squares with the odd triangle, so
+  // 'syk-16-random' gives a fresh chunky shape at each cell instead of a fixed
+  // repeating motif (and reads at the same scale as the other elements).
+  // Triangle vocabulary: 45° corner halves, shallow 2:1 symmetric arrows, and
+  // shallow 2:1 asymmetric right triangles.
+  const RND_TRIS = ['q','e','c','z','^','v','<','>','a','b','d','g','h','j','k','m'];
+  function randomPattern(seed, r, c){
+    // Random grain (state.randDim, 2–4) sets the sub-grid; Triangle mix
+    // (state.randTri) sets how often a sub-cell is a triangle vs a square.
+    const n = Math.max(2, Math.min(4, state.randDim | 0));
+    const triP = state.randTri, emptyP = 0.22;
+    const pat = new Array(n * n);
+    for (let i=0;i<n;i++) for (let j=0;j<n;j++){
+      const t = rand01(seed, r*n + i, c*n + j, 61);
+      let code;
+      if      (t < triP)          code = RND_TRIS[Math.floor(rand01(seed, r*n + i, c*n + j, 62) * RND_TRIS.length)];
+      else if (t < triP + emptyP) code = '.';   // empty
+      else                        code = '#';   // solid square
+      pat[i*n + j] = code;
+    }
+    return pat;
+  }
+  const syk16Elements = syk16Names;   // mixed pool includes random
+
   function drawMotif(p, type, size, r, c){
     const s = size; // already scaled
     const h = s / 2;
@@ -784,6 +895,14 @@
       if (!showPos) return;
       p.triangle(x1, y1, x2, y2, x3, y3);
     };
+    // 4×4 sub-square elements (self-contained, squares + triangles only)
+    if (SYK16[type]) { drawGrid(p, SYK16[type], s); return; }
+    if (type === 'syk-16-random') { drawGrid(p, randomPattern(state.seed, r|0, c|0), s); return; }
+    if (type === 'syk-16-mixed') {
+      const k = syk16Elements[Math.floor(rand01(state.seed, r|0, c|0, 17) * syk16Elements.length)];
+      drawMotif(p, k, size, r, c);   // recurse so 'syk-16-random' is handled too
+      return;
+    }
     switch (type) {
       // ── Sýkora elements (filled area) ──────────────────────────
       case 'syk-mixed': {
@@ -1294,6 +1413,10 @@
 
       for (let r = 0; r < N; r++){
         for (let c = 0; c < N; c++){
+          const key = `${r},${c}`;
+          const ov = overrides[key];
+          if (Number.isNaN(ov)) continue;   // user-deleted cell
+
           // density — field mode 'regions' uses smooth noise so populated cells form blob-like regions
           let densityPass;
           if (state.field === 'regions' || state.field === 'both') {
@@ -1303,10 +1426,6 @@
             densityPass = rand01(state.seed, r, c, 3) <= state.density;
           }
           if (!densityPass) continue;
-
-          const key = `${r},${c}`;
-          const ov = overrides[key];
-          if (Number.isNaN(ov)) continue;
 
           let rot = rotationFor(r, c, N);
           if (typeof ov === 'number' && !Number.isNaN(ov)) rot += ov;
@@ -1386,7 +1505,7 @@
   });
   document.getElementById('btnRand').addEventListener('click', () => {
     // motif: 70% mixed (full Sýkora vocabulary), 30% single element
-    state.motif = Math.random() < 0.7 ? 'syk-mixed' : sykElements[Math.floor(Math.random() * sykElements.length)];
+    state.motif = Math.random() < 0.7 ? 'syk-16-mixed' : sykElements[Math.floor(Math.random() * sykElements.length)];
     state.rotationMode = 'random';
     state.rotationBase = (Math.random() * 2 - 1) * 0.4;
     state.scaleMode = 'uniform';
@@ -1397,8 +1516,8 @@
     state.gridSize = 8 + Math.floor(Math.random() * 10);
     state.seed = Math.floor(Math.random() * 10000);
     state.spacing = 1.0;
-    state.motifLength = 0.3 + Math.random() * 0.7;     // trim size
-    state.motifThickness = 0.5 + Math.random() * 7.5;  // trim balance (neg ↔ pos)
+    state.randTri = Math.random() * 0.5;               // random triangle mix
+    state.randDim = 2 + Math.floor(Math.random() * 3); // random grain 2–4
     state.animSpeed = Math.random() < 0.6 ? 0 : 0.1 + Math.random() * 0.4;
     state.animMode = ['rotate','wave','drift','breathe'][Math.floor(Math.random()*4)];
     const fieldRoll = Math.random();
@@ -1541,15 +1660,15 @@
   // PRESETS
   // ───────────────────────────────────────────────────────────────
   const presets = [
-    { name: '12×12 classic', state: { motif:'syk-mixed', motifLength:0.9, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0,   mirrorMode:'off', density:1,   spacing:1, colorMode:'mono',     seed:1337, animSpeed:0,    animMode:'rotate', field:'none',    fieldScale:0.35 } },
-    { name: '12×12 varied', state: { motif:'syk-mixed', motifLength:0.9, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0.7, mirrorMode:'off', density:1,   spacing:1, colorMode:'mono',     seed:88,   animSpeed:0,    animMode:'rotate', field:'none',    fieldScale:0.35 } },
-    { name: '16×16 dense', state: { motif:'syk-mixed', motifLength:0.9, motifThickness:4, gridSize:16, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0,   mirrorMode:'off', density:1,   spacing:1, colorMode:'mono',     seed:42,   animSpeed:0,    animMode:'rotate', field:'none',    fieldScale:0.35 } },
-    { name: 'Regions', state: { motif:'syk-mixed', motifLength:0.9, motifThickness:4, gridSize:14, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0.3, mirrorMode:'off', density:0.7, spacing:1, colorMode:'mono',     seed:7,    animSpeed:0,    animMode:'rotate', field:'regions', fieldScale:0.35 } },
-    { name: 'Inverse', state: { motif:'syk-mixed', motifLength:0.9, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0,   mirrorMode:'off', density:1,   spacing:1, colorMode:'mono-inv', seed:300,  animSpeed:0,    animMode:'rotate', field:'none',    fieldScale:0.35 } },
+    { name: '12×12 classic', state: { motif:'syk-16-mixed', motifLength:0.9, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0,   mirrorMode:'off', density:1,   spacing:1, colorMode:'mono',     seed:1337, animSpeed:0,    animMode:'rotate', field:'none',    fieldScale:0.35 } },
+    { name: '12×12 varied', state: { motif:'syk-16-mixed', motifLength:0.9, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0.7, mirrorMode:'off', density:1,   spacing:1, colorMode:'mono',     seed:88,   animSpeed:0,    animMode:'rotate', field:'none',    fieldScale:0.35 } },
+    { name: '16×16 dense', state: { motif:'syk-16-mixed', motifLength:0.9, motifThickness:4, gridSize:16, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0,   mirrorMode:'off', density:1,   spacing:1, colorMode:'mono',     seed:42,   animSpeed:0,    animMode:'rotate', field:'none',    fieldScale:0.35 } },
+    { name: 'Regions', state: { motif:'syk-16-mixed', motifLength:0.9, motifThickness:4, gridSize:14, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0.3, mirrorMode:'off', density:0.7, spacing:1, colorMode:'mono',     seed:7,    animSpeed:0,    animMode:'rotate', field:'regions', fieldScale:0.35 } },
+    { name: 'Inverse', state: { motif:'syk-16-mixed', motifLength:0.9, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0,   mirrorMode:'off', density:1,   spacing:1, colorMode:'mono-inv', seed:300,  animSpeed:0,    animMode:'rotate', field:'none',    fieldScale:0.35 } },
     { name: 'Frames only', state: { motif:'syk-frame', motifLength:0.9, motifThickness:4, gridSize:10, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0.5, mirrorMode:'off', density:1, spacing:1, colorMode:'mono', seed:55, animSpeed:0, animMode:'rotate', field:'none', fieldScale:0.35 } },
     { name: 'Steps', state: { motif:'syk-step', motifLength:0.9, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0, mirrorMode:'off', density:1, spacing:1, colorMode:'mono', seed:888, animSpeed:0, animMode:'rotate', field:'none', fieldScale:0.35 } },
     { name: 'Stripes', state: { motif:'syk-stripes', motifLength:0.9, motifThickness:4, gridSize:10, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0, mirrorMode:'off', density:1, spacing:1, colorMode:'mono', seed:11, animSpeed:0, animMode:'rotate', field:'none', fieldScale:0.35 } },
-    { name: 'Slow drift', state: { motif:'syk-mixed', motifLength:0.9, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0.4, mirrorMode:'off', density:1, spacing:1, colorMode:'mono', seed:555, animSpeed:0.15, animMode:'drift', field:'flow', fieldScale:0.3 } },
+    { name: 'Slow drift', state: { motif:'syk-16-mixed', motifLength:0.9, motifThickness:4, gridSize:12, rotationMode:'random', rotationBase:0, scaleMode:'uniform', scaleBase:1, scaleVar:0.4, mirrorMode:'off', density:1, spacing:1, colorMode:'mono', seed:555, animSpeed:0.15, animMode:'drift', field:'flow', fieldScale:0.3 } },
   ];
 
   function renderPresets(){
