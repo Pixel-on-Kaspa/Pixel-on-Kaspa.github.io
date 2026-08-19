@@ -115,6 +115,8 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
   <span class="brand">SYNTHI</span>
   <div class="transport">
     <button id="btnPlay">▶ PLAY</button>
+    <button class="btn" id="btnLoadTrack" title="Load a recording — its analysis composes the oscillators">🎵 TRACK</button>
+    <input type="file" id="trackFile" accept="audio/*" style="display:none">
     <button class="btn" id="btnPng">📷 PNG</button>
     <button class="btn" id="btnRec">⏺ MP4</button>
     <button class="btn" id="btnShareX">Share ↗</button>
@@ -133,6 +135,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
     <input type="range" id="masterVol" min="0" max="1" step="0.01" value="0.05" style="width:72px">
     <span id="masterVolV" style="font-size:11px;color:var(--accent);font-family:var(--mono);width:30px">0.05</span>
   </div>
+  <span id="trackHint" style="font-size:11px;color:var(--purple);font-family:var(--mono);white-space:nowrap;max-width:280px;overflow:hidden;text-overflow:ellipsis"></span>
   <div id="statusBar">— stopped —</div>
 </div>
 
@@ -209,6 +212,14 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
       <div class="sr"><label>SPEED</label><input type="range" id="ceSpeed" min="0" max="120" step="1" value="0"><span class="v" id="ceSpeedV">0°/s</span></div>
     </div>
     <div class="card">
+      <div class="cardHead">RGB</div>
+      <div class="sr"><label>SPLIT</label><input type="range" id="rgbSplit" min="0" max="20" step="0.5" value="0"><span class="v" id="rgbSplitV">0.0px</span></div>
+      <div class="sr"><label>ANGLE</label><input type="range" id="rgbAngle" min="0" max="360" step="1" value="0"><span class="v" id="rgbAngleV">0°</span></div>
+      <div class="sr"><label>R</label><input type="range" id="rgbR" min="0" max="200" step="1" value="100"><span class="v" id="rgbRV">100%</span></div>
+      <div class="sr"><label>G</label><input type="range" id="rgbG" min="0" max="200" step="1" value="100"><span class="v" id="rgbGV">100%</span></div>
+      <div class="sr"><label>B</label><input type="range" id="rgbB" min="0" max="200" step="1" value="100"><span class="v" id="rgbBV">100%</span></div>
+    </div>
+    <div class="card">
       <div class="cardHead">LEVEL</div>
       <div class="vuWrap"><div class="vuBar" id="vuBar"></div></div>
     </div>
@@ -262,6 +273,10 @@ function approxRatio(a, b, maxDen = 32) {
 
 /* ── STATE ── */
 let actx = null, playing = false;
+// TRACK → VIDEO: a loaded recording drives (does not sound through) the engine.
+// Analysis of the track builds a deterministic SCORE that "composes" the
+// oscillators frame-by-frame; the render below reads it via applyTrackScore().
+let TRACK_MODE = false, TRACK_START = 0, SCORE = null, applyTrackScore = null, stopTrackFn = null;
 
 const oState = [
   { wave:"sine", freq:0.340000, det:0, vol:.1, on:true, pan:-1, phase:0 },
@@ -272,6 +287,7 @@ const oState = [
 let masterVol = 0.05;
 
 let nd = null;
+let envAnalyser = null, envBuf = null;   // generalized env source (live osc bank OR loaded track)
 /* ── BUILD AUDIO GRAPH ── */
 function buildAudio() {
   if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
@@ -280,6 +296,7 @@ function buildAudio() {
 
   const analyserF = actx.createAnalyser(); analyserF.fftSize = 2048;
   const fftBuf  = new Uint8Array(analyserF.frequencyBinCount);
+  envAnalyser = analyserF; envBuf = fftBuf;   // env source for readEnv (live mode)
 
   const oscs = oState.map(s => {
     const o = actx.createOscillator();
@@ -350,11 +367,17 @@ function teardownAudio() {
   if (!nd) return;
   try { nd.oscs.forEach(n => { n.o.stop(); n.o.disconnect(); n.g.disconnect(); n.pan.disconnect(); }); } catch{}
   nd = null;
+  envAnalyser = null; envBuf = null;
 }
 
 function ensureNd() {
   if (!actx) buildAudio();
   if (!nd) buildAudio();
+}
+
+function ensureActx() {
+  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+  if (actx.state === "suspended") actx.resume();
 }
 
 /* ── KNOB GLOBALS ── */
@@ -365,6 +388,43 @@ let thickVal  = 2.5;
 /* ── COLOR ENGINE STATE ── */
 let ceHue = 165, ceSpan = 0, ceSat = 85, ceBrt = 70;
 let ceGlow = 0.15, ceSpeed = 0, cePhase = 0;
+
+/* ── RGB TUNING STATE ── */
+// split = chromatic aberration in px along `angle`; gain = per-channel multiplier (1 = 100%).
+let rgbSplit = 0, rgbAngle = 0, rgbGainR = 1, rgbGainG = 1, rgbGainB = 1;
+function hslToRgb(h, s, l) {          // h 0–360, s/l 0–100 → [r,g,b] 0–255
+  h = (h % 360) / 360; s /= 100; l /= 100;
+  if (s === 0) { const v = l * 255; return [v, v, v]; }
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+  const h2 = (t) => { if (t < 0) t += 1; if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q - p) * 6 * t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+    return p; };
+  return [h2(h + 1/3) * 255, h2(h) * 255, h2(h - 1/3) * 255];
+}
+// Stroke a path honoring RGB gain + chromatic split. With split>0 the curve is drawn
+// as 3 additive channel passes (R shifted +vec, G centered, B shifted -vec) so overlap
+// sums back to the tuned color and the offset leaves a colored fringe.
+function strokePath(p, hue, alpha, lw) {
+  let [r, g, b] = hslToRgb(hue, ceSat, Math.round(ceBrt * 0.8));
+  r = clamp(r * rgbGainR, 0, 255) | 0;
+  g = clamp(g * rgbGainG, 0, 255) | 0;
+  b = clamp(b * rgbGainB, 0, 255) | 0;
+  ctx2d.lineWidth = lw;
+  if (rgbSplit < 0.25) {
+    ctx2d.globalCompositeOperation = "source-over";
+    ctx2d.strokeStyle = `rgba(${r},${g},${b},${alpha})`;
+    ctx2d.stroke(p);
+    return;
+  }
+  const dpr = canvas.width / (parseFloat(canvas.style.width) || canvas.width);
+  const a = rgbAngle * Math.PI / 180, dx = Math.cos(a) * rgbSplit * dpr, dy = Math.sin(a) * rgbSplit * dpr;
+  ctx2d.globalCompositeOperation = "lighter";
+  ctx2d.save(); ctx2d.translate(dx, dy);   ctx2d.strokeStyle = `rgba(${r},0,0,${alpha})`; ctx2d.stroke(p); ctx2d.restore();
+  ctx2d.strokeStyle = `rgba(0,${g},0,${alpha})`; ctx2d.stroke(p);
+  ctx2d.save(); ctx2d.translate(-dx, -dy); ctx2d.strokeStyle = `rgba(0,0,${b},${alpha})`; ctx2d.stroke(p); ctx2d.restore();
+}
 
 /* ── KNOB COMPONENT ── */
 function makeKnob({ canvasId, wrapId, valId, min, max, defaultVal, decimals, unit, onChange }) {
@@ -445,7 +505,7 @@ function makeKnob({ canvasId, wrapId, valId, min, max, defaultVal, decimals, uni
   return { set };
 }
 
-makeKnob({ canvasId:"knobDecay",  wrapId:"knobDecayWrap",  valId:"knobDecayVal",
+const knobDecay = makeKnob({ canvasId:"knobDecay",  wrapId:"knobDecayWrap",  valId:"knobDecayVal",
   min:0.001, max:0.60, defaultVal:0.05, decimals:3, unit:"",
   onChange: v => { decayVal = v; } });
 
@@ -453,7 +513,7 @@ makeKnob({ canvasId:"knobBright", wrapId:"knobBrightWrap", valId:"knobBrightVal"
   min:10,   max:100,  defaultVal:70,   decimals:0, unit:"%",
   onChange: v => { brightVal = Math.round(v); } });
 
-makeKnob({ canvasId:"knobThick",  wrapId:"knobThickWrap",  valId:"knobThickVal",
+const knobThick = makeKnob({ canvasId:"knobThick",  wrapId:"knobThickWrap",  valId:"knobThickVal",
   min:0.001, max:8.0,  defaultVal:2.5,  decimals:3, unit:"",
   onChange: v => { thickVal = v; } });
 
@@ -475,18 +535,21 @@ function resizeCanvas() {
 }
 
 function readEnv() {
-  if (!nd) return { level:0, bass:0, mid:0, hi:0 };
-  nd.analyserF.getByteFrequencyData(nd.fftBuf);
-  const N = nd.fftBuf.length;
+  if (!envAnalyser) return { level:0, bass:0, mid:0, hi:0 };
+  envAnalyser.getByteFrequencyData(envBuf);
+  const N = envBuf.length;
   const band=(a,b) => {
     let s=0,c=0;
-    for(let i=Math.floor(a*N);i<=Math.floor(b*N);i++){s+=nd.fftBuf[i];c++;}
+    for(let i=Math.floor(a*N);i<=Math.floor(b*N);i++){s+=envBuf[i];c++;}
     return c ? s/c/255 : 0;
   };
   return { level:band(0,.9), bass:band(0,.08), mid:band(.08,.3), hi:band(.3,.9) };
 }
 
 function drawViz(now) {
+  // TRACK mode: overwrite oscillator + color state from the precomputed score
+  // at the current audio playback time, then render the Lissajous as usual.
+  if (TRACK_MODE && applyTrackScore) applyTrackScore(actx.currentTime - TRACK_START);
   fpsFrames++;
   if (now-fpsT > 500) { fpsAvg = fpsAvg*.7+(fpsFrames*1000/(now-fpsT))*.3; fpsFrames=0; fpsT=now; }
 
@@ -549,21 +612,14 @@ function drawViz(now) {
   // color engine
   cePhase = (cePhase + ceSpeed * 0.016) % 360;
   const baseHue = (ceHue + cePhase) % 360;
-  const lightness = Math.round(ceBrt * 0.8);
   const bright = clamp(.7 + .3*env.level, .5, 1);
   const lw = thickVal + env.bass*3;
-
-  ctx2d.globalCompositeOperation = "source-over";
 
   if (ceSpan < 1) {
     const p = new Path2D();
     for (let i = 0; i <= steps; i++) i ? p.lineTo(pts[i].x, pts[i].y) : p.moveTo(pts[i].x, pts[i].y);
-    ctx2d.strokeStyle = `hsla(${baseHue},${ceSat}%,${lightness}%,${ceGlow})`;
-    ctx2d.lineWidth = lw * 2.5;
-    ctx2d.stroke(p);
-    ctx2d.strokeStyle = `hsla(${baseHue},${ceSat}%,${lightness}%,${bright})`;
-    ctx2d.lineWidth = lw;
-    ctx2d.stroke(p);
+    strokePath(p, baseHue, ceGlow, lw * 2.5);   // soft glow underlay
+    strokePath(p, baseHue, bright, lw);          // sharp core
   } else {
     const SEGS = 64;
     const segLen = Math.ceil(steps / SEGS);
@@ -573,14 +629,11 @@ function drawViz(now) {
       const p = new Path2D();
       for (let i = from; i <= to; i++) i === from ? p.moveTo(pts[i].x, pts[i].y) : p.lineTo(pts[i].x, pts[i].y);
       const h = (baseHue + (s / SEGS) * ceSpan) % 360;
-      ctx2d.strokeStyle = `hsla(${h},${ceSat}%,${lightness}%,${ceGlow})`;
-      ctx2d.lineWidth = lw * 2.5;
-      ctx2d.stroke(p);
-      ctx2d.strokeStyle = `hsla(${h},${ceSat}%,${lightness}%,${bright})`;
-      ctx2d.lineWidth = lw;
-      ctx2d.stroke(p);
+      strokePath(p, h, ceGlow, lw * 2.5);
+      strokePath(p, h, bright, lw);
     }
   }
+  ctx2d.globalCompositeOperation = "source-over";
 
   document.getElementById("vuBar").style.width = clamp(env.level*110,0,100)+"%";
 
@@ -612,6 +665,7 @@ resizeCanvas();
 /* ── TRANSPORT ── */
 function togglePlay() {
   if (!playing) {
+    if (TRACK_MODE && stopTrackFn) stopTrackFn();   // leave track interpretation
     ensureNd();
     playing = true;
     document.getElementById("btnPlay").textContent = "■ STOP";
@@ -698,6 +752,11 @@ for (let i=0;i<4;i++) {
   bind("ceBrt",  "ceBrtV",  ()=>ceBrt,  v=>{ceBrt=Math.round(v);},   v=>v+"%");
   bind("ceGlow", "ceGlowV", ()=>ceGlow, v=>{ceGlow=v;},              v=>v.toFixed(2));
   bind("ceSpeed","ceSpeedV",()=>ceSpeed,v=>{ceSpeed=Math.round(v);},  v=>v+"°/s");
+  bind("rgbSplit","rgbSplitV",()=>rgbSplit,v=>{rgbSplit=v;},          v=>v.toFixed(1)+"px");
+  bind("rgbAngle","rgbAngleV",()=>rgbAngle,v=>{rgbAngle=Math.round(v);},v=>v+"°");
+  bind("rgbR",   "rgbRV",   ()=>rgbGainR*100,v=>{rgbGainR=v/100;},    v=>Math.round(v)+"%");
+  bind("rgbG",   "rgbGV",   ()=>rgbGainG*100,v=>{rgbGainG=v/100;},    v=>Math.round(v)+"%");
+  bind("rgbB",   "rgbBV",   ()=>rgbGainB*100,v=>{rgbGainB=v/100;},    v=>Math.round(v)+"%");
 })();
 
 /* ── KEYBOARD ── */
@@ -793,7 +852,8 @@ function captureState() {
     });
   }
   const ce = {};
-  ["ceHue","ceSpan","ceSat","ceBrt","ceGlow","ceSpeed"].forEach(id => {
+  ["ceHue","ceSpan","ceSat","ceBrt","ceGlow","ceSpeed",
+   "rgbSplit","rgbAngle","rgbR","rgbG","rgbB"].forEach(id => {
     ce[id] = document.getElementById(id).value;
   });
   return { v: 1, osc, ce, vol: document.getElementById("masterVol").value };
@@ -838,8 +898,228 @@ if (window.PixelGallery) {
   });
 }
 
-/* ── OFFSCREEN RECORD (6s) ── */
-const REC_DURATION = 5000;
+/* ══════════ TRACK → VIDEO (core) ══════════════════════════════════════════
+   Load a recording → analyze it offline → build a deterministic "score" that
+   composes the 4 oscillators + color engine from the track's features. The
+   Lissajous then renders as an *interpretation* of the composition (the clean
+   analytic figure is preserved). This step is analysis + score + render only;
+   audio playback here is the ORIGINAL track. Recording to MP4 comes next. ── */
+(() => {
+  const trackHint = document.getElementById('trackHint');
+  const hint = t => { trackHint.textContent = t; };
+  const centerEl = document.getElementById('center');
+
+  /* compact iterative radix-2 FFT (in place, length = power of 2) */
+  function fft(re, im) {
+    const n = re.length;
+    for (let i = 1, j = 0; i < n; i++) {
+      let bit = n >> 1;
+      for (; j & bit; bit >>= 1) j ^= bit;
+      j ^= bit;
+      if (i < j) { let t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; }
+    }
+    for (let len = 2; len <= n; len <<= 1) {
+      const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang), half = len >> 1;
+      for (let i = 0; i < n; i += len) {
+        let cwr = 1, cwi = 0;
+        for (let k = 0; k < half; k++) {
+          const ar = re[i + k], ai = im[i + k];
+          const br = re[i + k + half] * cwr - im[i + k + half] * cwi;
+          const bi = re[i + k + half] * cwi + im[i + k + half] * cwr;
+          re[i + k] = ar + br; im[i + k] = ai + bi;
+          re[i + k + half] = ar - br; im[i + k + half] = ai - bi;
+          const t = cwr * wr - cwi * wi; cwi = cwr * wi + cwi * wr; cwr = t;
+        }
+      }
+    }
+  }
+
+  /* autocorrelation pitch (decimated ×2 for speed) → [hz, confidence 0..1] */
+  function acPitch(buf, off, N, sr) {
+    const D = 2, sN = (N / D) | 0, srD = sr / D, minHz = 60, maxHz = 800;
+    const minLag = Math.max(2, (srD / maxHz) | 0), maxLag = Math.min(sN - 1, (srD / minHz) | 0);
+    let e0 = 0;
+    for (let i = 0; i < sN; i++) { const s = buf[off + i * D] || 0; e0 += s * s; }
+    if (e0 < 1e-6) return [0, 0];
+    let best = 0, bestLag = 0;
+    for (let lag = minLag; lag <= maxLag; lag++) {
+      let s = 0;
+      for (let i = 0; i < sN - lag; i++) s += (buf[off + i * D] || 0) * (buf[off + (i + lag) * D] || 0);
+      const norm = s / e0;
+      if (norm > best) { best = norm; bestLag = lag; }
+    }
+    return bestLag ? [srD / bestLag, Math.max(0, Math.min(1, best))] : [0, 0];
+  }
+
+  /* offline analysis: per-frame features over the whole buffer (yields to UI) */
+  async function analyze(buf, onProgress) {
+    const sr = buf.sampleRate, n = buf.length, ch = buf.numberOfChannels;
+    const mono = new Float32Array(n);
+    for (let c = 0; c < ch; c++) { const d = buf.getChannelData(c); for (let i = 0; i < n; i++) mono[i] += d[i]; }
+    const inv = 1 / ch; for (let i = 0; i < n; i++) mono[i] *= inv;
+
+    const FFT = 2048, HOP = 1024, half = FFT >> 1, binHz = sr / FFT;
+    const win = new Float32Array(FFT);
+    for (let i = 0; i < FFT; i++) win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (FFT - 1));
+    const binOf = hz => Math.max(0, Math.min(half - 1, Math.round(hz / binHz)));
+    const B = { bass: [binOf(20), binOf(150)], loMid: [binOf(150), binOf(500)],
+                hiMid: [binOf(500), binOf(2000)], hi: [binOf(2000), binOf(8000)] };
+    const nFrames = Math.max(1, Math.floor((n - FFT) / HOP) + 1);
+    const F = { t: [], rms: [], bass: [], loMid: [], hiMid: [], hi: [], centroid: [], flux: [], pitch: [], conf: [] };
+    const re = new Float32Array(FFT), im = new Float32Array(FFT), prev = new Float32Array(half);
+
+    for (let f = 0; f < nFrames; f++) {
+      const off = f * HOP;
+      let sum2 = 0;
+      for (let i = 0; i < FFT; i++) { const s = mono[off + i] || 0; sum2 += s * s; re[i] = s * win[i]; im[i] = 0; }
+      fft(re, im);
+      let cen = 0, cenW = 0, flux = 0;
+      const bandAvg = (a, b) => { let s = 0, c = 0; for (let k = a; k <= b; k++) { s += Math.hypot(re[k], im[k]); c++; } return c ? s / c : 0; };
+      for (let k = 0; k < half; k++) {
+        const m = Math.hypot(re[k], im[k]);
+        cen += k * binHz * m; cenW += m;
+        const d = m - prev[k]; if (d > 0) flux += d; prev[k] = m;
+      }
+      const [p, cf] = acPitch(mono, off, FFT, sr);
+      F.t.push(off / sr);
+      F.rms.push(Math.sqrt(sum2 / FFT));
+      F.bass.push(bandAvg(B.bass[0], B.bass[1]));
+      F.loMid.push(bandAvg(B.loMid[0], B.loMid[1]));
+      F.hiMid.push(bandAvg(B.hiMid[0], B.hiMid[1]));
+      F.hi.push(bandAvg(B.hi[0], B.hi[1]));
+      F.centroid.push(cenW > 0 ? cen / cenW : 0);
+      F.flux.push(flux);
+      F.pitch.push(p); F.conf.push(cf);
+      if ((f & 31) === 0) { if (onProgress) onProgress(f / nFrames); await new Promise(r => setTimeout(r)); }
+    }
+    return F;
+  }
+
+  /* score: features → smoothed deterministic parameter envelopes */
+  function buildScore(F) {
+    const nF = F.t.length;
+    const nrm = a => { let mx = 1e-9; for (const v of a) if (v > mx) mx = v; return a.map(v => v / mx); };
+    const smooth = (a, w) => a.map((_, i) => { let s = 0, c = 0; for (let j = -w; j <= w; j++) { const k = i + j; if (k >= 0 && k < a.length) { s += a[k]; c++; } } return s / c; });
+    const clamp01 = v => Math.max(0, Math.min(1, v));
+
+    const level = smooth(nrm(F.rms), 6);
+    const bass = smooth(nrm(F.bass), 6), loMid = smooth(nrm(F.loMid), 6),
+          hiMid = smooth(nrm(F.hiMid), 6), hi = smooth(nrm(F.hi), 6);
+    const cen = smooth(F.centroid.map(c => { const lo = Math.log(80), hiL = Math.log(6000); return clamp01((Math.log(Math.max(80, c)) - lo) / (hiL - lo)); }), 14);
+
+    // Fixed octave stack (X pair = osc1,3 = 1000 & 4000 Hz · Y pair = osc2,4 = 2000 & 8000 Hz).
+    // A stable figure that does NOT wander with detected pitch — the track drives movement via
+    // osc volumes, a tiny detune (slow precession) and phase, not the base frequencies.
+    const FREQ = [1000, 2000, 4000, 8000];
+    const bandForOsc = [bass, loMid, hiMid, hi];      // X pair = osc1,3 · Y pair = osc2,4
+    const S = { t: F.t, fr: [[], [], [], []], vl: [[], [], [], []], dt: [[], [], [], []], ph: [[], [], [], []],
+                ceHue: [], ceSat: [], ceBrt: [], ceGlow: [], ceSpeed: [], ceSpan: [] };
+    let drift = 0;
+    for (let i = 0; i < nF; i++) {
+      drift += level[i] * 0.012;                       // slow phase precession
+      for (let k = 0; k < 4; k++) {
+        S.fr[k].push(freqToSlider(FREQ[k]));
+        S.vl[k].push(0.04 + 0.16 * bandForOsc[k][i]);  // spectral balance sculpts the lobes
+        S.dt[k].push(0);                               // detune disabled in the visual engine
+        S.ph[k].push(((k % 2) ? 1.5708 : 0) + (k % 2 ? drift : 0));
+      }
+      S.ceHue.push(150 + cen[i] * 90);                  // gentler brightness→hue range
+      S.ceSat.push(62);                                 // less saturation
+      S.ceBrt.push(48 + level[i] * 42);
+      S.ceGlow.push(0.10 + level[i] * 0.18);
+      S.ceSpeed.push(clamp01(level[i]) * 6);            // colors drift slowly, not racing
+      S.ceSpan.push(hi[i] * 60);                        // less rainbow spread along the curve
+    }
+    return S;
+  }
+
+  /* deterministic playback: read score at audio time → write engine state */
+  let idx = 0;
+  applyTrackScore = function (pt) {
+    if (!SCORE) return;
+    const t = SCORE.t;
+    while (idx < t.length - 1 && t[idx + 1] <= pt) idx++;
+    const i = idx, j = Math.min(i + 1, t.length - 1);
+    const span = (t[j] - t[i]) || 1, a = Math.max(0, Math.min(1, (pt - t[i]) / span));
+    const L = arr => arr[i] + (arr[j] - arr[i]) * a;
+    for (let k = 0; k < 4; k++) {
+      oState[k].freq = L(SCORE.fr[k]);
+      oState[k].vol  = L(SCORE.vl[k]);
+      oState[k].det  = L(SCORE.dt[k]);
+      oState[k].phase = L(SCORE.ph[k]);
+      oState[k].on = true;
+    }
+    ceHue = L(SCORE.ceHue); ceSat = L(SCORE.ceSat); ceBrt = L(SCORE.ceBrt);
+    ceGlow = L(SCORE.ceGlow); ceSpeed = L(SCORE.ceSpeed); ceSpan = L(SCORE.ceSpan);
+  };
+
+  /* push the current oscillator + color state onto the generator panel (Hz, detune,
+     vol, phase, color) so the real end-state is visible and can be played/tweaked */
+  function syncPanelFromState() {
+    for (let i = 0; i < 4; i++) {
+      const fr = document.getElementById("fr" + i); fr.value = oState[i].freq; fr.dispatchEvent(new Event("input"));
+      const dt = document.getElementById("dt" + i); dt.value = oState[i].det;  dt.dispatchEvent(new Event("input"));
+      const vl = document.getElementById("vl" + i); vl.value = oState[i].vol;  vl.dispatchEvent(new Event("input"));
+      const ph = document.getElementById("ph" + i); ph.value = ((oState[i].phase % TAU) + TAU) % TAU; ph.dispatchEvent(new Event("input"));
+    }
+    const ce = { ceHue, ceSpan, ceSat, ceBrt, ceGlow, ceSpeed };
+    Object.keys(ce).forEach(id => { const el = document.getElementById(id); if (el) { el.value = ce[id]; el.dispatchEvent(new Event("input")); } });
+  }
+
+  /* track transport — audio is the original recording; oscillators are silent */
+  let trackBuf = null, trackSrc = null;
+  function stopTrack() {
+    if (trackSrc) { try { trackSrc.stop(); } catch (e) {} try { trackSrc.disconnect(); } catch (e) {} trackSrc = null; }
+    TRACK_MODE = false;
+  }
+  stopTrackFn = stopTrack;
+  function startTrack() {
+    playing = false;
+    const bp = document.getElementById('btnPlay'); bp.textContent = '▶ PLAY'; bp.classList.remove('playing');
+    teardownAudio();          // silence the live oscillator bank
+    stopTrack();
+    ensureActx();
+    knobDecay.set(0.11); knobThick.set(1.1);   // cleaner trails, thin line for track videos
+    const src = actx.createBufferSource(); src.buffer = trackBuf;
+    const an = actx.createAnalyser(); an.fftSize = 2048;
+    src.connect(an); an.connect(actx.destination);
+    envAnalyser = an; envBuf = new Uint8Array(an.frequencyBinCount);   // env now follows the track
+    idx = 0; TRACK_START = actx.currentTime; TRACK_MODE = true;
+    src.start(); trackSrc = src;
+    src.onended = () => {
+      TRACK_MODE = false;
+      syncPanelFromState();     // reflect the final oscillator state on the panel
+      hint('✓ done — panel shows the final frequencies · drop another track');
+    };
+  }
+  async function loadTrack(file) {
+    try {
+      ensureActx();
+      hint('decoding…');
+      const ab = await file.arrayBuffer();
+      trackBuf = await actx.decodeAudioData(ab);
+      hint('analyzing…');
+      const F = await analyze(trackBuf, p => hint('analyzing… ' + Math.round(p * 100) + '%'));
+      SCORE = buildScore(F);
+      hint('▶ ' + file.name.replace(/\.[^.]+$/, '') + ' · ' + trackBuf.duration.toFixed(1) + 's');
+      startTrack();
+    } catch (e) { hint('could not read / analyze that audio'); }
+  }
+
+  document.getElementById('btnLoadTrack').addEventListener('click', () => document.getElementById('trackFile').click());
+  document.getElementById('trackFile').addEventListener('change', e => { const f = e.target.files[0]; if (f) loadTrack(f); });
+  centerEl.addEventListener('dragover', e => { e.preventDefault(); centerEl.style.outline = '2px dashed var(--purple)'; centerEl.style.outlineOffset = '-6px'; });
+  centerEl.addEventListener('dragleave', () => { centerEl.style.outline = ''; });
+  centerEl.addEventListener('drop', e => {
+    e.preventDefault(); centerEl.style.outline = '';
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f && /audio|\.(mp3|wav|ogg|m4a|aac|flac|webm)$/i.test(f.type + ' ' + f.name)) loadTrack(f);
+    else hint('drop an audio file');
+  });
+})();
+
+/* ── OFFSCREEN RECORD (8s) ── */
+const REC_DURATION = 8000;
 let isRecording = false;
 let activeOffCtx = null;
 let activeOffscreen = null;
