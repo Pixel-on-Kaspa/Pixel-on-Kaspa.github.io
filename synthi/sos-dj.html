@@ -132,6 +132,14 @@ body{
 .step.on{background:linear-gradient(180deg,var(--accent),#1f9c86);box-shadow:0 0 6px rgba(73,234,203,.4),inset 0 1px 1px rgba(255,255,255,.4)}
 .step.play{box-shadow:inset 0 0 0 1px rgba(238,243,242,.85),0 0 7px rgba(238,243,242,.3)}
 .step.on.play{box-shadow:inset 0 0 0 1px rgba(238,243,242,.9),0 0 9px rgba(73,234,203,.6);filter:brightness(1.25)}
+/* melodic STAB lane — note label overlay + vertical drag to pitch */
+.step.mel{position:relative;touch-action:none;height:30px;
+  background:linear-gradient(180deg,#0d1520,#0a0f0d);box-shadow:inset 0 0 0 1px rgba(73,234,203,.14),inset 0 1px 2px rgba(0,0,0,.6)}
+.step.mel .nt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:9px;font-weight:700;color:var(--accent);opacity:.72;pointer-events:none;letter-spacing:-.4px}
+.step.mel.on{background:linear-gradient(180deg,var(--accent),#1f9c86)}
+.step.mel.on .nt{color:#03130f;opacity:1}
+.seq-name .pt{margin-left:3px;color:var(--accent);opacity:.9;font-weight:700}
 
 .foot{font-size:11px;color:var(--muted);text-align:center;line-height:1.6}
 .foot b{color:var(--accent);font-weight:700}
@@ -280,6 +288,13 @@ function voiceRatio(vi){return Math.pow(2,((state[vi][TUNCI].val-50)/50*24)/12);
 let STEPS=16;
 const PATA={KCK:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],BAS:[1,0,0,1,0,0,1,0,1,0,0,1,0,1,0,0],STB:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,1,0],HAT:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,1],CLP:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0]};
 const PATB={};VOICES.forEach(v=>PATB[v.id]=Array(16).fill(0));
+/* melodic step notes for the STAB lane — scale-index per step (A natural minor, ~1.5 oct) */
+const MEL_ID='STB';
+const SCALE=[0,2,3,5,7,8,10,12,14,15];
+const NOTE_NAMES=['A','A#','B','C','C#','D','D#','E','F','F#','G','G#'];
+function noteName(s){return NOTE_NAMES[((s%12)+12)%12]+(3+Math.floor(s/12));}
+PATA.notes=Array(16).fill(0);[4,12,14].forEach((i,k)=>PATA.notes[i]=[0,4,2][k]);
+PATB.notes=Array(16).fill(0);
 let patternsAB=[PATA,PATB],curAB=0,chain=false;
 let patterns=patternsAB[curAB];
 const bassSeq={0:55,3:55,6:41.2,8:55,11:55,13:49};
@@ -424,7 +439,12 @@ function trig(vi,time,step,arpFreq){
     if(e!==2){const sub=AC.createOscillator(),sg=AC.createGain();sub.type='sine';sub.frequency.setValueAtTime(f/2,time);sg.gain.setValueAtTime(0,time);sg.gain.linearRampToValueAtTime(.5,time+.012);sg.gain.exponentialRampToValueAtTime(.001,time+.24);sub.connect(sg);sg.connect(n.bus);sub.start(time);sub.stop(time+.26);}
   }else if(id==='STB'){
     if(arpFreq){ playMel(n,arpFreq*r,time,e,.8); }       // single note (arp / preview)
-    else { const root=220*r; [root,root*1.2599,root*1.4983].forEach(f=>playMel(n,f,time,e,.3)); } // minor triad
+    else {                                               // sequencer step note → minor triad rooted on it
+      const idx=(patterns.notes&&patterns.notes[step]!=null)?patterns.notes[step]:0;
+      const semi=SCALE[Math.max(0,Math.min(SCALE.length-1,idx))];
+      const root=220*Math.pow(2,semi/12)*r;
+      [root,root*1.2599,root*1.4983].forEach(f=>playMel(n,f,time,e,.3));
+    }
   }else if(id==='HAT'){
     let hpf=8000,dec=.045,amp=.5;
     if(e===1){dec=.28;hpf=7000;amp=.42;}                // OPEN
@@ -546,11 +566,17 @@ const stepEls={};
 function buildSeq(){
   seqRows.innerHTML='';
   VOICES.forEach(v=>{
-    const row=el('div','seq-row'),nm=el('div','seq-name');nm.textContent=v.name;row.appendChild(nm);
+    const row=el('div','seq-row'),nm=el('div','seq-name');
+    nm.innerHTML=v.id===MEL_ID?`${v.name}<span class="pt">↕</span>`:v.name;row.appendChild(nm);
     const steps=el('div','steps');steps.style.gridTemplateColumns=`repeat(${STEPS},1fr)`;stepEls[v.id]=[];
     for(let i=0;i<STEPS;i++){
       const st=el('div','step');if(patterns[v.id][i])st.classList.add('on');
-      st.addEventListener('click',()=>{patterns[v.id][i]^=1;st.classList.toggle('on');});
+      if(v.id===MEL_ID){
+        st.classList.add('mel');const nt=el('span','nt');st.appendChild(nt);
+        attachMelStep(st,v.id,i);updateNoteLabel(i,st);
+      }else{
+        st.addEventListener('click',()=>{patterns[v.id][i]^=1;st.classList.toggle('on');});
+      }
       steps.appendChild(st);stepEls[v.id][i]=st;
     }
     row.appendChild(steps);seqRows.appendChild(row);
@@ -561,9 +587,38 @@ let lastFlash=-1;
 function flashStep(s){clearFlash();VOICES.forEach(v=>{const e=stepEls[v.id][s];if(e)e.classList.add('play');});lastFlash=s;}
 function clearFlash(){if(lastFlash<0)return;VOICES.forEach(v=>{const e=stepEls[v.id][lastFlash];if(e)e.classList.remove('play');});lastFlash=-1;}
 
+/* melodic STAB lane: tap a step to toggle on/off, drag ↕ to pitch it along A-minor */
+function updateNoteLabel(i,st){
+  const nt=st.querySelector('.nt');if(!nt)return;
+  const idx=(patterns.notes&&patterns.notes[i]!=null)?patterns.notes[i]:0;
+  nt.textContent=STEPS>16?'':noteName(SCALE[Math.max(0,Math.min(SCALE.length-1,idx))]);
+}
+function previewMel(i){const vi=VOICES.findIndex(v=>v.id===MEL_ID);if(vi>=0&&AC)trig(vi,AC.currentTime+.01,i);}
+function attachMelStep(st,id,i){
+  let sy=0,sNote=0,moved=false,down=false;
+  st.addEventListener('pointerdown',e=>{down=true;moved=false;sy=e.clientY;
+    sNote=(patterns.notes&&patterns.notes[i])||0;try{st.setPointerCapture(e.pointerId);}catch(_){}});
+  st.addEventListener('pointermove',e=>{
+    if(!down)return;
+    if(Math.abs(e.clientY-sy)>4)moved=true;
+    if(!moved)return;
+    if(!patterns.notes)patterns.notes=Array(STEPS).fill(0);
+    const nv=Math.max(0,Math.min(SCALE.length-1,Math.round(sNote+(sy-e.clientY)/12)));
+    if(patterns.notes[i]!==nv){patterns.notes[i]=nv;updateNoteLabel(i,st);}
+    if(!patterns[id][i]){patterns[id][i]=1;st.classList.add('on');}   // drag also arms the step
+    e.preventDefault();
+  });
+  st.addEventListener('pointerup',()=>{
+    if(!down)return;down=false;
+    if(!moved){patterns[id][i]^=1;st.classList.toggle('on',!!patterns[id][i]);}
+    if(patterns[id][i]){ensureAudio();previewMel(i);}                 // audible feedback
+  });
+  st.addEventListener('pointercancel',()=>{down=false;});
+}
+
 /* instrument select + generative controls */
 function refreshEngineLabels(){VOICES.forEach((v,vi)=>{const t=rowLabEls[vi];if(t)t.textContent=ENGINES[v.id][engIdx[v.id]];});}
-function refreshSteps(){VOICES.forEach(v=>patterns[v.id].forEach((on,i)=>{const e=stepEls[v.id][i];if(e)e.classList.toggle('on',!!on);}));}
+function refreshSteps(){VOICES.forEach(v=>patterns[v.id].forEach((on,i)=>{const e=stepEls[v.id][i];if(e){e.classList.toggle('on',!!on);if(v.id===MEL_ID)updateNoteLabel(i,e);}}));}
 function cycleEngine(vi){
   const id=VOICES[vi].id;engIdx[id]=(engIdx[id]+1)%ENGINES[id].length;refreshEngineLabels();
   ensureAudio();if(!playing)trig(vi,AC.currentTime+.02,0,id==='STB'?220:undefined);   // audible preview
@@ -583,12 +638,14 @@ function randomize(){
     if(c.id==='DRV')setCell(vi,ci,Math.random()<.25?Math.random()*45:0);
   }));
   VOICES.forEach((v,vi)=>COLS.forEach((c,ci)=>{applyParam(vi,ci);refreshPin(vi,ci);}));
+  patterns.notes=patterns.notes||Array(STEPS).fill(0);              // give the STAB lane a fresh melody too
+  for(let i=0;i<STEPS;i++)patterns.notes[i]=Math.floor(Math.random()*SCALE.length);
   refreshSteps();refreshEngineLabels();
 }
 function clearSteps(){VOICES.forEach(v=>{for(let i=0;i<STEPS;i++)patterns[v.id][i]=0;});refreshSteps();}
 /* pattern A/B, loop length, delay division, master filter */
 function selectAB(i){curAB=i&1;patterns=patternsAB[curAB];refreshSteps();const b=document.getElementById('btnAB');if(b)b.textContent='PAT '+(curAB?'B':'A');}
-function setSteps(n){patternsAB.forEach(P=>VOICES.forEach(v=>{const old=P[v.id],na=Array(n).fill(0);for(let i=0;i<Math.min(old.length,n);i++)na[i]=old[i];P[v.id]=na;}));STEPS=n;curStep=0;buildSeq();const b=document.getElementById('btnLen');if(b)b.textContent='LEN '+n;}
+function setSteps(n){patternsAB.forEach(P=>{VOICES.forEach(v=>{const old=P[v.id],na=Array(n).fill(0);for(let i=0;i<Math.min(old.length,n);i++)na[i]=old[i];P[v.id]=na;});const on=P.notes||[],nn=Array(n).fill(0);for(let i=0;i<Math.min(on.length,n);i++)nn[i]=on[i];P.notes=nn;});STEPS=n;curStep=0;buildSeq();const b=document.getElementById('btnLen');if(b)b.textContent='LEN '+n;}
 function setDelayTime(){if(!dL)return;const t=delayTime(),now=AC.currentTime;dL.delayTime.setTargetAtTime(t,now,.05);dR.delayTime.setTargetAtTime(t,now,.05);}
 function cycleDelay(){delayDiv=(delayDiv+1)%DELAY_DIVS.length;const nm=DELAY_DIVS[delayDiv].n;if(delaySmallEl)delaySmallEl.textContent=nm;const b=document.getElementById('dlyTime');if(b)b.textContent=nm;setDelayTime();}
 /* route the stereo delay: ping-pong (cross-feed, hard L/R) vs centered echo */
