@@ -46,6 +46,7 @@ input[type=range]{cursor:pointer}
 .led.on{background:var(--accent);box-shadow:0 0 5px var(--accent)}
 .chan-l{font-size:9px;color:#49EACB;letter-spacing:.06em;margin-left:4px;opacity:.8}
 .chan-r{font-size:9px;color:#f060c0;letter-spacing:.06em;margin-left:4px;opacity:.8}
+.chan-z{font-size:9px;color:#f0b850;letter-spacing:.06em;margin-left:4px;opacity:.8}
 
 /* buttons */
 .btn{display:inline-flex;align-items:center;justify-content:center;
@@ -151,7 +152,6 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
         <button class="btn" data-w="triangle">TRI</button>
       </div>
       <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr0" min="0" max="1" step="0.000001" value="0.340000"><input class="v" type="number" id="fv0" min="0" max="20000" step="0.01" value="200"></div>
-      <div class="sr"><label>DET</label><input type="range" id="dt0" min="-1200" max="1200" step="0.1" value="0"><span class="v" id="dv0">0.0¢</span></div>
       <div class="sr"><label>PHS</label><input type="range" id="ph0" min="0" max="6.2832" step="0.001" value="0"><span class="v" id="phv0">0.00</span></div>
       <div class="sr"><label>VOL</label><input type="range" id="vl0" min="0" max="1" step=".01" value=".1"><span class="v" id="vv0">0.10</span></div>
       <button class="btn on" id="on0" style="margin-top:2px;width:100%">ON</button>
@@ -164,7 +164,6 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
         <button class="btn" data-w="triangle">TRI</button>
       </div>
       <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr1" min="0" max="1" step="0.000001" value="0.398110"><input class="v" type="number" id="fv1" min="0" max="20000" step="0.01" value="300"></div>
-      <div class="sr"><label>DET</label><input type="range" id="dt1" min="-1200" max="1200" step="0.1" value="0"><span class="v" id="dv1">0.0¢</span></div>
       <div class="sr"><label>PHS</label><input type="range" id="ph1" min="0" max="6.2832" step="0.001" value="1.5708"><span class="v" id="phv1">1.57</span></div>
       <div class="sr"><label>VOL</label><input type="range" id="vl1" min="0" max="1" step=".01" value=".1"><span class="v" id="vv1">0.10</span></div>
       <button class="btn on" id="on1" style="margin-top:2px;width:100%">ON</button>
@@ -177,7 +176,6 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
         <button class="btn" data-w="triangle">TRI</button>
       </div>
       <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr2" min="0" max="1" step="0.000001" value="0.439340"><input class="v" type="number" id="fv2" min="0" max="20000" step="0.01" value="400"></div>
-      <div class="sr"><label>DET</label><input type="range" id="dt2" min="-1200" max="1200" step="0.1" value="0"><span class="v" id="dv2">0.0¢</span></div>
       <div class="sr"><label>PHS</label><input type="range" id="ph2" min="0" max="6.2832" step="0.001" value="0"><span class="v" id="phv2">0.00</span></div>
       <div class="sr"><label>VOL</label><input type="range" id="vl2" min="0" max="1" step=".01" value=".1"><span class="v" id="vv2">0.10</span></div>
       <button class="btn on" id="on2" style="margin-top:2px;width:100%">ON</button>
@@ -190,7 +188,6 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
         <button class="btn" data-w="triangle">TRI</button>
       </div>
       <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr3" min="0" max="1" step="0.000001" value="0.497450"><input class="v" type="number" id="fv3" min="0" max="20000" step="0.01" value="600"></div>
-      <div class="sr"><label>DET</label><input type="range" id="dt3" min="-1200" max="1200" step="0.1" value="0"><span class="v" id="dv3">0.0¢</span></div>
       <div class="sr"><label>PHS</label><input type="range" id="ph3" min="0" max="6.2832" step="0.001" value="1.5708"><span class="v" id="phv3">1.57</span></div>
       <div class="sr"><label>VOL</label><input type="range" id="vl3" min="0" max="1" step=".01" value=".1"><span class="v" id="vv3">0.10</span></div>
       <button class="btn on" id="on3" style="margin-top:2px;width:100%">ON</button>
@@ -202,6 +199,39 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
 
   <!-- RIGHT: COLOR ENGINE -->
   <div id="panelR">
+    <div class="card">
+      <div class="cardHead">3D<div class="led" id="led3d"></div></div>
+      <button class="btn" id="btn3D" style="width:100%;margin-bottom:6px">2D FLAT</button>
+      <div class="sr"><label>ROT X</label><input type="range" id="rotX" min="-120" max="120" step="1" value="18"><span class="v" id="rotXV">18°/s</span></div>
+      <div class="sr"><label>ROT Y</label><input type="range" id="rotY" min="-120" max="120" step="1" value="24"><span class="v" id="rotYV">24°/s</span></div>
+      <div class="sr"><label>PERSP</label><input type="range" id="persp" min="0" max="1" step="0.01" value="0.5"><span class="v" id="perspV">0.50</span></div>
+      <div class="sr"><label>DEPTH</label><input type="range" id="depth3d" min="0" max="1" step="0.01" value="0.7"><span class="v" id="depth3dV">0.70</span></div>
+      <div style="font-size:9px;color:var(--muted);line-height:1.4;margin-top:2px">OSC 5+6 below drive the depth (Z) axis — only visible in 3D.</div>
+    </div>
+    <!-- OSC 5 — Z  (3D depth pair, default 500 Hz) -->
+    <div class="card" id="oscCard4">
+      <div class="cardHead">OSC 5 <span class="chan-z">Z DEPTH</span><div class="led" id="led4"></div></div>
+      <div class="btnRow" id="wave4">
+        <button class="btn active" data-w="sine">SIN</button>
+        <button class="btn" data-w="triangle">TRI</button>
+      </div>
+      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr4" min="0" max="1" step="0.000001" value="0.471320"><input class="v" type="number" id="fv4" min="0" max="20000" step="0.01" value="500"></div>
+      <div class="sr"><label>PHS</label><input type="range" id="ph4" min="0" max="6.2832" step="0.001" value="0"><span class="v" id="phv4">0.00</span></div>
+      <div class="sr"><label>VOL</label><input type="range" id="vl4" min="0" max="1" step=".01" value=".1"><span class="v" id="vv4">0.10</span></div>
+      <button class="btn" id="on4" style="margin-top:2px;width:100%">OFF</button>
+    </div>
+    <!-- OSC 6 — Z  (3D depth pair, default 800 Hz) -->
+    <div class="card" id="oscCard5">
+      <div class="cardHead">OSC 6 <span class="chan-z">Z DEPTH</span><div class="led" id="led5"></div></div>
+      <div class="btnRow" id="wave5">
+        <button class="btn active" data-w="sine">SIN</button>
+        <button class="btn" data-w="triangle">TRI</button>
+      </div>
+      <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr5" min="0" max="1" step="0.000001" value="0.538680"><input class="v" type="number" id="fv5" min="0" max="20000" step="0.01" value="800"></div>
+      <div class="sr"><label>PHS</label><input type="range" id="ph5" min="0" max="6.2832" step="0.001" value="1.5708"><span class="v" id="phv5">1.57</span></div>
+      <div class="sr"><label>VOL</label><input type="range" id="vl5" min="0" max="1" step=".01" value=".1"><span class="v" id="vv5">0.10</span></div>
+      <button class="btn" id="on5" style="margin-top:2px;width:100%">OFF</button>
+    </div>
     <div class="card">
       <div class="cardHead">COLOR ENGINE</div>
       <div class="sr"><label>HUE</label><input type="range" id="ceHue" min="0" max="360" step="1" value="165"><span class="v" id="ceHueV">165</span></div>
@@ -279,10 +309,12 @@ let actx = null, playing = false;
 let TRACK_MODE = false, TRACK_START = 0, SCORE = null, applyTrackScore = null, stopTrackFn = null;
 
 const oState = [
-  { wave:"sine", freq:0.340000, det:0, vol:.1, on:true, pan:-1, phase:0 },
-  { wave:"sine", freq:0.398110, det:0, vol:.1, on:true, pan:+1, phase:1.5708 },
-  { wave:"sine", freq:0.439340, det:0, vol:.1, on:true, pan:-1, phase:0 },
-  { wave:"sine", freq:0.497450, det:0, vol:.1, on:true, pan:+1, phase:1.5708 },
+  { wave:"sine", freq:0.340000, vol:.1, on:true, pan:-1, phase:0 },
+  { wave:"sine", freq:0.398110, vol:.1, on:true, pan:+1, phase:1.5708 },
+  { wave:"sine", freq:0.439340, vol:.1, on:true, pan:-1, phase:0 },
+  { wave:"sine", freq:0.497450, vol:.1, on:true, pan:+1, phase:1.5708 },
+  { wave:"sine", freq:0.471320, vol:.1, on:false, pan:0,  phase:0 },       // OSC5 — Z pair (default off)
+  { wave:"sine", freq:0.538680, vol:.1, on:false, pan:0,  phase:1.5708 },  // OSC6 — Z pair (default off)
 ];
 let masterVol = 0.05;
 
@@ -302,8 +334,7 @@ function buildAudio() {
     const o = actx.createOscillator();
     o.type = s.wave;
     o.frequency.value = logF(s.freq);
-    o.detune.value = s.det;
-    const g = actx.createGain(); g.gain.value = s.on ? s.vol : 0;
+      const g = actx.createGain(); g.gain.value = s.on ? s.vol : 0;
     const pan = actx.createStereoPanner(); pan.pan.value = s.pan;
     o.connect(g); g.connect(pan);
     return { o, g, pan };
@@ -357,7 +388,6 @@ function restartOsc(i) {
   const o = actx.createOscillator();
   o.type = s.wave;
   o.frequency.value = logF(s.freq);
-  o.detune.value = s.det;
   o.connect(g);
   o.start(actx.currentTime + 0.005);
   nd.oscs[i].o = o;
@@ -388,6 +418,12 @@ let thickVal  = 2.5;
 /* ── COLOR ENGINE STATE ── */
 let ceHue = 165, ceSpan = 0, ceSat = 85, ceBrt = 70;
 let ceGlow = 0.15, ceSpeed = 0, cePhase = 0;
+
+/* ── 3D STATE ── */
+// mapping: X=osc1+osc4, Y=osc2+osc5, Z=osc3+osc6 (two osc per axis). rotX/Y spin
+// over time so depth reads; persp = perspective divide; depth3d = far-part fade.
+let is3D = false, rotXSpeed = 18, rotYSpeed = 24, persp = 0.5, depth3d = 0.7;
+let rotXPhase = 0, rotYPhase = 0;
 
 /* ── RGB TUNING STATE ── */
 // split = chromatic aberration in px along `angle`; gain = per-channel multiplier (1 = 100%).
@@ -564,7 +600,7 @@ function drawViz(now) {
 
   const oscs = oState.map(s => ({
     on:    s.on,
-    hz:    logF(s.freq) * Math.pow(2, s.det / 1200),
+    hz:    logF(s.freq),
     wave:  s.wave,
     phase: s.phase,
     vol:   s.vol,
@@ -582,9 +618,12 @@ function drawViz(now) {
   const xNorm = xVol > 0 ? 1 / xVol : 0;
   const yNorm = yVol > 0 ? 1 / yVol : 0;
 
-  const xFreqs = [oscs[0], oscs[2]].filter(o => o.on && o.hz > 0).map(o => o.hz);
-  const yFreqs = [oscs[1], oscs[3]].filter(o => o.on && o.hz > 0).map(o => o.hz);
-  const allFreqs = [...xFreqs, ...yFreqs];
+  // Which oscillators actually move a point depends on the mode, so the closed
+  // render window must be computed from that set: 2D uses osc1-4, 3D adds the Z pair.
+  const axisOscs = is3D
+    ? [oscs[0], oscs[3], oscs[1], oscs[4], oscs[2], oscs[5]]   // X:1,4  Y:2,5  Z:3,6
+    : [oscs[0], oscs[2], oscs[1], oscs[3]];                    // X:1,3  Y:2,4
+  const allFreqs = axisOscs.filter(o => o.on && o.hz > 0).map(o => o.hz);
 
   function lissajousPeriod(freqs) {
     if (!freqs.length) return 0.1;
@@ -602,11 +641,38 @@ function drawViz(now) {
 
   // precompute points
   const pts = new Array(steps + 1);
-  for (let i = 0; i <= steps; i++) {
-    const t = lissT + (i / steps) * windowT;
-    const xVal = (sample(oscs[0], t) + sample(oscs[2], t)) * xNorm;
-    const yVal = (sample(oscs[1], t) + sample(oscs[3], t)) * yNorm;
-    pts[i] = { x: cx + R * xVal, y: cy + R * yVal };
+  if (!is3D) {
+    for (let i = 0; i <= steps; i++) {
+      const t = lissT + (i / steps) * windowT;
+      const xVal = (sample(oscs[0], t) + sample(oscs[2], t)) * xNorm;
+      const yVal = (sample(oscs[1], t) + sample(oscs[3], t)) * yNorm;
+      pts[i] = { x: cx + R * xVal, y: cy + R * yVal, z: 0 };
+    }
+  } else {
+    // 3D: two oscillators per axis → X=osc1+osc4, Y=osc2+osc5, Z=osc3+osc6, so
+    // depth is as rich as the plane. A flat orthographic projection of a 3D
+    // Lissajous is still a 2D figure, so depth only reads once we rotate over
+    // time + divide by depth (perspective).
+    rotXPhase += rotXSpeed * 0.016;
+    rotYPhase += rotYSpeed * 0.016;
+    const A = rotXPhase * Math.PI / 180, B = rotYPhase * Math.PI / 180;
+    const cA = Math.cos(A), sA = Math.sin(A), cB = Math.cos(B), sB = Math.sin(B);
+    const axVol = (a, b) => {
+      const v = (oscs[a].on ? oscs[a].vol : 0) + (oscs[b].on ? oscs[b].vol : 0);
+      return v > 0 ? 1 / v : 0;
+    };
+    const nX = axVol(0, 3), nY = axVol(1, 4), nZ = axVol(2, 5);
+    for (let i = 0; i <= steps; i++) {
+      const t = lissT + (i / steps) * windowT;
+      const x = (sample(oscs[0], t) + sample(oscs[3], t)) * nX;
+      const y = (sample(oscs[1], t) + sample(oscs[4], t)) * nY;
+      const z = (sample(oscs[2], t) + sample(oscs[5], t)) * nZ;
+      // rotate around Y (x,z) then around X (y,z)
+      const x2 = x * cB - z * sB, z2 = x * sB + z * cB;
+      const y2 = y * cA - z2 * sA, z3 = y * sA + z2 * cA;
+      const pp = 1 / (1 + z3 * 0.7 * persp);   // perspective divide (persp=0 → ortho)
+      pts[i] = { x: cx + R * x2 * pp, y: cy + R * y2 * pp, z: clamp(z3, -1, 1) };
+    }
   }
 
   // color engine
@@ -615,7 +681,29 @@ function drawViz(now) {
   const bright = clamp(.7 + .3*env.level, .5, 1);
   const lw = thickVal + env.bass*3;
 
-  if (ceSpan < 1) {
+  if (is3D) {
+    // Depth read comes from PER-POINT shading: the curve winds through z hundreds
+    // of times, so we bucket each tiny segment by its own depth and draw buckets
+    // back→front. Far = dark + thin (recedes), near = bright + thick (advances) →
+    // that near/far contrast is what actually reads as volume.
+    const BANDS = 16;
+    const paths = new Array(BANDS);
+    for (let b = 0; b < BANDS; b++) paths[b] = new Path2D();
+    for (let i = 0; i < steps; i++) {
+      const a = pts[i], c = pts[i + 1];
+      const near = ((a.z + c.z) * 0.5 + 1) / 2;                 // 0 back → 1 front
+      const b = near >= 1 ? BANDS - 1 : (near * BANDS) | 0;
+      paths[b].moveTo(a.x, a.y); paths[b].lineTo(c.x, c.y);
+    }
+    for (let b = 0; b < BANDS; b++) {                            // far first, near last (overdraw)
+      const near = (b + 0.5) / BANDS;
+      const dMul = 1 - depth3d * (1 - near);                    // brightness falls off with depth
+      const wMul = 0.35 + (1 - 0.35) * near;                    // and so does line width
+      const h = (baseHue + (near - 0.5) * ceSpan) % 360;        // SPAN tints front vs back
+      strokePath(paths[b], h, ceGlow * dMul, lw * 2.5 * wMul);
+      strokePath(paths[b], h, bright * dMul, lw * wMul);
+    }
+  } else if (ceSpan < 1) {
     const p = new Path2D();
     for (let i = 0; i <= steps; i++) i ? p.lineTo(pts[i].x, pts[i].y) : p.moveTo(pts[i].x, pts[i].y);
     strokePath(p, baseHue, ceGlow, lw * 2.5);   // soft glow underlay
@@ -683,8 +771,8 @@ document.getElementById("masterVol").addEventListener("input", e => {
   if (nd) nd.masterG.gain.value = masterVol;
 });
 
-/* ── OSC CONTROLS (all 4) ── */
-for (let i=0;i<4;i++) {
+/* ── OSC CONTROLS (all 6) ── */
+for (let i=0;i<6;i++) {
   (n => {
     // waveform (SIN / TRI only)
     document.getElementById("wave"+n).querySelectorAll("[data-w]").forEach(b => {
@@ -715,12 +803,6 @@ for (let i=0;i<4;i++) {
     pe.addEventListener("input", () => {
       oState[n].phase = parseFloat(pe.value);
       pv.textContent = oState[n].phase.toFixed(2);
-    });
-    // detune
-    const de=document.getElementById("dt"+n), dv=document.getElementById("dv"+n);
-    de.addEventListener("input", () => {
-      oState[n].det=parseFloat(de.value); dv.textContent=oState[n].det.toFixed(1)+"¢";
-      if (nd) nd.oscs[n].o.detune.value=oState[n].det;
     });
     // vol
     const ve=document.getElementById("vl"+n), vv=document.getElementById("vv"+n);
@@ -757,6 +839,17 @@ for (let i=0;i<4;i++) {
   bind("rgbR",   "rgbRV",   ()=>rgbGainR*100,v=>{rgbGainR=v/100;},    v=>Math.round(v)+"%");
   bind("rgbG",   "rgbGV",   ()=>rgbGainG*100,v=>{rgbGainG=v/100;},    v=>Math.round(v)+"%");
   bind("rgbB",   "rgbBV",   ()=>rgbGainB*100,v=>{rgbGainB=v/100;},    v=>Math.round(v)+"%");
+  bind("rotX",   "rotXV",   ()=>rotXSpeed,v=>{rotXSpeed=Math.round(v);}, v=>v+"°/s");
+  bind("rotY",   "rotYV",   ()=>rotYSpeed,v=>{rotYSpeed=Math.round(v);}, v=>v+"°/s");
+  bind("persp",  "perspV",  ()=>persp,   v=>{persp=v;},                v=>v.toFixed(2));
+  bind("depth3d","depth3dV",()=>depth3d, v=>{depth3d=v;},              v=>v.toFixed(2));
+  const btn3D = document.getElementById("btn3D");
+  btn3D.addEventListener("click", () => {
+    is3D = !is3D;
+    btn3D.textContent = is3D ? "3D ON" : "2D FLAT";
+    btn3D.classList.toggle("on", is3D);
+    document.getElementById("led3d").classList.toggle("on", is3D);
+  });
 })();
 
 /* ── KEYBOARD ── */
@@ -768,9 +861,11 @@ window.addEventListener("keydown", async e => {
   if (k==="2") document.getElementById("on1").click();
   if (k==="3") document.getElementById("on2").click();
   if (k==="4") document.getElementById("on3").click();
+  if (k==="5") document.getElementById("on4").click();
+  if (k==="6") document.getElementById("on5").click();
   if (k==="a"||k==="A"){ensureNd();}
   if (k==="z"||k==="Z"){
-    for(let i=0;i<4;i++){
+    for(let i=0;i<6;i++){
       const el=document.getElementById("fr"+i);
       el.value=Math.random().toFixed(3);
       el.dispatchEvent(new Event("input"));
@@ -781,7 +876,7 @@ window.addEventListener("keydown", async e => {
 /* ── UNISON ── */
 document.getElementById('btnUnison').addEventListener('click', () => {
   const baseFreq = oState[0].freq;
-  for (let i = 1; i < 4; i++) {
+  for (let i = 1; i < 6; i++) {
     oState[i].freq = baseFreq;
     const el = document.getElementById('fr' + i);
     el.value = baseFreq;
@@ -797,7 +892,6 @@ document.getElementById('btnSync').addEventListener('click', () => {
   const hz = logF(oState[0].freq);
   nd.oscs.forEach((n, i) => {
     n.o.frequency.setValueAtTime(hz, t);
-    n.o.detune.setValueAtTime(0, t);
   });
 });
 
@@ -840,23 +934,23 @@ if (window.PixelShare) {
 /* ── PixelLab interface: publish / remix / rehydrate ── */
 function captureState() {
   const osc = [];
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 6; i++) {
     const active = document.querySelector("#wave" + i + " .btn.active");
     osc.push({
       wave: active ? active.dataset.w : "sine",
       fr: document.getElementById("fr" + i).value,
       ph: document.getElementById("ph" + i).value,
-      dt: document.getElementById("dt" + i).value,
       vl: document.getElementById("vl" + i).value,
       on: document.getElementById("on" + i).classList.contains("on")
     });
   }
   const ce = {};
   ["ceHue","ceSpan","ceSat","ceBrt","ceGlow","ceSpeed",
-   "rgbSplit","rgbAngle","rgbR","rgbG","rgbB"].forEach(id => {
+   "rgbSplit","rgbAngle","rgbR","rgbG","rgbB",
+   "rotX","rotY","persp","depth3d"].forEach(id => {
     ce[id] = document.getElementById(id).value;
   });
-  return { v: 1, osc, ce, vol: document.getElementById("masterVol").value };
+  return { v: 1, osc, ce, mode3d: is3D, vol: document.getElementById("masterVol").value };
 }
 
 function restoreState(p) {
@@ -869,19 +963,19 @@ function restoreState(p) {
     el.dispatchEvent(new Event("input"));
   };
   p.osc.forEach((o, i) => {
-    if (i > 3 || !o) return;
+    if (i > 5 || !o) return;
     const wrap = document.getElementById("wave" + i);
     const tgt = wrap.querySelector('[data-w="' + o.wave + '"]');
     const cur = wrap.querySelector(".btn.active");
     if (tgt && tgt !== cur) tgt.click();
     setInput("fr" + i, o.fr);
     setInput("ph" + i, o.ph);
-    setInput("dt" + i, o.dt);
     setInput("vl" + i, o.vl);
     const onBtn = document.getElementById("on" + i);
     if (onBtn.classList.contains("on") !== !!o.on) onBtn.click();
   });
   if (p.ce) Object.keys(p.ce).forEach(id => setInput(id, p.ce[id]));
+  if (p.mode3d != null && is3D !== !!p.mode3d) document.getElementById("btn3D").click();
   if (p.vol != null) setInput("masterVol", p.vol);
 }
 
@@ -1009,10 +1103,10 @@ if (window.PixelGallery) {
 
     // Fixed octave stack (X pair = osc1,3 = 1000 & 4000 Hz · Y pair = osc2,4 = 2000 & 8000 Hz).
     // A stable figure that does NOT wander with detected pitch — the track drives movement via
-    // osc volumes, a tiny detune (slow precession) and phase, not the base frequencies.
+    // osc volumes and phase (slow precession), not the base frequencies.
     const FREQ = [1000, 2000, 4000, 8000];
     const bandForOsc = [bass, loMid, hiMid, hi];      // X pair = osc1,3 · Y pair = osc2,4
-    const S = { t: F.t, fr: [[], [], [], []], vl: [[], [], [], []], dt: [[], [], [], []], ph: [[], [], [], []],
+    const S = { t: F.t, fr: [[], [], [], []], vl: [[], [], [], []], ph: [[], [], [], []],
                 ceHue: [], ceSat: [], ceBrt: [], ceGlow: [], ceSpeed: [], ceSpan: [] };
     let drift = 0;
     for (let i = 0; i < nF; i++) {
@@ -1020,7 +1114,6 @@ if (window.PixelGallery) {
       for (let k = 0; k < 4; k++) {
         S.fr[k].push(freqToSlider(FREQ[k]));
         S.vl[k].push(0.04 + 0.16 * bandForOsc[k][i]);  // spectral balance sculpts the lobes
-        S.dt[k].push(0);                               // detune disabled in the visual engine
         S.ph[k].push(((k % 2) ? 1.5708 : 0) + (k % 2 ? drift : 0));
       }
       S.ceHue.push(150 + cen[i] * 90);                  // gentler brightness→hue range
@@ -1045,7 +1138,6 @@ if (window.PixelGallery) {
     for (let k = 0; k < 4; k++) {
       oState[k].freq = L(SCORE.fr[k]);
       oState[k].vol  = L(SCORE.vl[k]);
-      oState[k].det  = L(SCORE.dt[k]);
       oState[k].phase = L(SCORE.ph[k]);
       oState[k].on = true;
     }
@@ -1053,12 +1145,11 @@ if (window.PixelGallery) {
     ceGlow = L(SCORE.ceGlow); ceSpeed = L(SCORE.ceSpeed); ceSpan = L(SCORE.ceSpan);
   };
 
-  /* push the current oscillator + color state onto the generator panel (Hz, detune,
+  /* push the current oscillator + color state onto the generator panel (Hz,
      vol, phase, color) so the real end-state is visible and can be played/tweaked */
   function syncPanelFromState() {
     for (let i = 0; i < 4; i++) {
       const fr = document.getElementById("fr" + i); fr.value = oState[i].freq; fr.dispatchEvent(new Event("input"));
-      const dt = document.getElementById("dt" + i); dt.value = oState[i].det;  dt.dispatchEvent(new Event("input"));
       const vl = document.getElementById("vl" + i); vl.value = oState[i].vol;  vl.dispatchEvent(new Event("input"));
       const ph = document.getElementById("ph" + i); ph.value = ((oState[i].phase % TAU) + TAU) % TAU; ph.dispatchEvent(new Event("input"));
     }
