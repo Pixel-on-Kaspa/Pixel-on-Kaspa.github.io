@@ -262,8 +262,8 @@ const VOICES=[{id:'KCK',name:'KICK'},{id:'BAS',name:'BASS'},{id:'STB',name:'STAB
 /* selectable timbres per voice — tap the voice name to cycle */
 const ENGINES={
   KCK:['DEEP','PUNCH','TICK'],
-  BAS:['SAW','SQUARE','SUB'],
-  STB:['STAB','PLUCK','BELL','SAW'],
+  BAS:['SAW','SQUARE','SUB','FM','ACID','REESE'],
+  STB:['STAB','PLUCK','BELL','SAW','SUPER','ORGAN'],
   HAT:['CLOSED','OPEN','RIDE'],
   CLP:['CLAP','SNARE','RIM'],
 };
@@ -279,7 +279,7 @@ const COLS=[
 const TUNCI=COLS.findIndex(c=>c.id==='TUN');
 const state=VOICES.map(()=>COLS.map(()=>({on:false,val:0})));
 function setCell(v,c,val){const s=state[v][c];s.val=Math.max(0,Math.min(100,val));s.on=s.val>0;}
-const PRESET={KCK:{LVL:82},BAS:{LVL:74,LPF:52},STB:{LVL:58,DLY:34,RVB:42},HAT:{LVL:44,RVB:22},CLP:{LVL:64,RVB:30}};
+const PRESET={KCK:{LVL:82},BAS:{LVL:74,LPF:52},STB:{LVL:58,DLY:34,RVB:42},HAT:{LVL:44,RVB:22},CLP:{LVL:82,RVB:30}};
 VOICES.forEach((v,vi)=>COLS.forEach((c,ci)=>{const p=PRESET[v.id];if(p&&p[c.id]!=null)setCell(vi,ci,p[c.id]);}));
 VOICES.forEach((v,vi)=>setCell(vi,TUNCI,50));                 // TUNE 50 = no transpose (center)
 /* per-voice transpose ratio from the TUNE pin: ±24 semitones */
@@ -399,7 +399,7 @@ function applyParam(vi,ci){
   }
 }
 function noiseBuf(dur){const b=AC.createBuffer(1,AC.sampleRate*dur,AC.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;return b;}
-/* melodic voice engines (STAB): 0 STAB · 1 PLUCK · 2 BELL · 3 SAW */
+/* melodic voice engines (STAB): 0 STAB · 1 PLUCK · 2 BELL · 3 SAW · 4 SUPER · 5 ORGAN */
 function playMel(n,f,time,e,amp){
   if(e===2){                                            // BELL — 2-op FM, inharmonic + decaying index
     const c=AC.createOscillator(),m=AC.createOscillator(),mg=AC.createGain(),g=AC.createGain();
@@ -408,6 +408,19 @@ function playMel(n,f,time,e,amp){
     m.connect(mg);mg.connect(c.frequency);
     g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp,time+.004);g.gain.exponentialRampToValueAtTime(.001,time+.6);
     c.connect(g);g.connect(n.bus);c.start(time);m.start(time);c.stop(time+.62);m.stop(time+.62);return;
+  }
+  if(e===4){                                            // SUPER — 6-voice detuned supersaw, lush
+    const g=AC.createGain(),lp=AC.createBiquadFilter();lp.type='lowpass';lp.Q.value=1.1;
+    lp.frequency.setValueAtTime(Math.min(f*8,9000),time);lp.frequency.exponentialRampToValueAtTime(Math.min(f*3,4200),time+.4);
+    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.55,time+.008);g.gain.exponentialRampToValueAtTime(.001,time+.5);
+    [-16,-9,-3,3,9,16].forEach(det=>{const o=AC.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(f,time);o.detune.value=det;o.connect(lp);o.start(time);o.stop(time+.52);});
+    lp.connect(g);g.connect(n.bus);return;
+  }
+  if(e===5){                                            // ORGAN — additive sine partials, sustained
+    const g=AC.createGain();
+    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.55,time+.01);g.gain.exponentialRampToValueAtTime(.001,time+.5);
+    [[1,.6],[2,.32],[3,.2],[4,.12]].forEach(([h,a])=>{const o=AC.createOscillator(),og=AC.createGain();o.type='sine';o.frequency.setValueAtTime(f*h,time);og.gain.value=a;o.connect(og);og.connect(g);o.start(time);o.stop(time+.55);});
+    g.connect(n.bus);return;
   }
   const o=AC.createOscillator(),o2=AC.createOscillator(),g=AC.createGain(),lp=AC.createBiquadFilter();
   lp.type='lowpass';lp.Q.value=e===1?7:1.4;             // PLUCK resonant, others gentle
@@ -437,14 +450,33 @@ function trig(vi,time,step,arpFreq){
     const cg=AC.createGain();cg.gain.setValueAtTime(clk,time);cg.gain.exponentialRampToValueAtTime(.001,time+.02);
     c.connect(chp);chp.connect(cg);cg.connect(n.bus);c.start(time);c.stop(time+.04);   // beater click
   }else if(id==='BAS'){
+    /* engines: 0 SAW · 1 SQUARE · 2 SUB · 3 FM · 4 ACID · 5 REESE */
     const f=(arpFreq||MEL_BASE.BAS*Math.pow(2,melSemi('BAS',step)/12))*r;
     const g=AC.createGain();g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(.9,time+.012);g.gain.exponentialRampToValueAtTime(.001,time+.26);
-    const lp=AC.createBiquadFilter();lp.type='lowpass';lp.Q.value=e===0?7:1.2;         // SAW gets resonant sweep
-    lp.frequency.setValueAtTime(Math.min(f*10,6000),time);lp.frequency.exponentialRampToValueAtTime(Math.min(f*3.5,1400),time+.22);
-    if(e===0){[-9,9].forEach(det=>{const o=AC.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(f,time);o.detune.value=det;o.connect(lp);o.start(time);o.stop(time+.28);});} // unison detune
-    else{const o=AC.createOscillator();o.type=e===1?'square':'sine';o.frequency.setValueAtTime(f,time);o.connect(lp);o.start(time);o.stop(time+.28);}
+    const lp=AC.createBiquadFilter();lp.type='lowpass';
+    if(e===3){                                          // FM — sine carrier, self-tracking modulator
+      lp.Q.value=1;lp.frequency.value=6000;
+      const c=AC.createOscillator(),m=AC.createOscillator(),mg=AC.createGain();
+      c.type='sine';c.frequency.setValueAtTime(f,time);m.type='sine';m.frequency.setValueAtTime(f,time);
+      mg.gain.setValueAtTime(f*3.2,time);mg.gain.exponentialRampToValueAtTime(f*.4,time+.18);
+      m.connect(mg);mg.connect(c.frequency);c.connect(lp);c.start(time);c.stop(time+.28);m.start(time);m.stop(time+.28);
+    }else if(e===4){                                    // ACID — 303 saw, high-res env sweep
+      lp.Q.value=12;
+      lp.frequency.setValueAtTime(Math.min(f*3,900),time);
+      lp.frequency.exponentialRampToValueAtTime(Math.min(f*14,5000),time+.03);
+      lp.frequency.exponentialRampToValueAtTime(Math.max(f*1.2,180),time+.22);
+      const o=AC.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(f,time);o.connect(lp);o.start(time);o.stop(time+.28);
+    }else if(e===0||e===5){                             // SAW unison / REESE (wider, darker)
+      lp.Q.value=e===5?2:7;
+      lp.frequency.setValueAtTime(Math.min(f*(e===5?6:10),e===5?3000:6000),time);lp.frequency.exponentialRampToValueAtTime(Math.min(f*3.5,1400),time+.22);
+      (e===5?[-16,16]:[-9,9]).forEach(det=>{const o=AC.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(f,time);o.detune.value=det;o.connect(lp);o.start(time);o.stop(time+.28);});
+    }else{                                              // SQUARE / SUB
+      lp.Q.value=1.2;
+      lp.frequency.setValueAtTime(Math.min(f*10,6000),time);lp.frequency.exponentialRampToValueAtTime(Math.min(f*3.5,1400),time+.22);
+      const o=AC.createOscillator();o.type=e===1?'square':'sine';o.frequency.setValueAtTime(f,time);o.connect(lp);o.start(time);o.stop(time+.28);
+    }
     lp.connect(g);g.connect(n.bus);
-    if(e!==2){const sub=AC.createOscillator(),sg=AC.createGain();sub.type='sine';sub.frequency.setValueAtTime(f/2,time);sg.gain.setValueAtTime(0,time);sg.gain.linearRampToValueAtTime(.5,time+.012);sg.gain.exponentialRampToValueAtTime(.001,time+.24);sub.connect(sg);sg.connect(n.bus);sub.start(time);sub.stop(time+.26);}
+    if(e!==2&&e!==3){const sub=AC.createOscillator(),sg=AC.createGain();sub.type='sine';sub.frequency.setValueAtTime(f/2,time);sg.gain.setValueAtTime(0,time);sg.gain.linearRampToValueAtTime(.5,time+.012);sg.gain.exponentialRampToValueAtTime(.001,time+.24);sub.connect(sg);sg.connect(n.bus);sub.start(time);sub.stop(time+.26);}
   }else if(id==='STB'){
     if(arpFreq){ playMel(n,arpFreq*r,time,e,.8); }       // single note (arp / preview)
     else {                                               // sequencer step note → minor triad rooted on it
@@ -477,11 +509,11 @@ function trig(vi,time,step,arpFreq){
       const g=AC.createGain();g.gain.setValueAtTime(.6,time);g.gain.exponentialRampToValueAtTime(.001,time+.16);
       s.connect(hp);hp.connect(g);g.connect(n.bus);s.start(time);s.stop(time+.18);
       [190,278].forEach((bf,k)=>{const o=AC.createOscillator(),og=AC.createGain();o.type='triangle';o.frequency.setValueAtTime(bf*r,time);og.gain.setValueAtTime(.34*(1-k*.3),time);og.gain.exponentialRampToValueAtTime(.001,time+.1);o.connect(og);og.connect(n.bus);o.start(time);o.stop(time+.12);});
-    }else{                                              // CLAP — 4 bursts + reverberant tail
-      const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1200*r;bp.Q.value=1.0;bp.connect(n.bus);
-      [0,.011,.022,.034].forEach((off,k)=>{const s=AC.createBufferSource();s.buffer=noiseBuf(.05);const eg=AC.createGain();eg.gain.setValueAtTime(.5*(1-k*.18),time+off);eg.gain.exponentialRampToValueAtTime(.001,time+off+.05);s.connect(eg);eg.connect(bp);s.start(time+off);s.stop(time+off+.07);});
-      const t=AC.createBufferSource();t.buffer=noiseBuf(.2);const tbp=AC.createBiquadFilter();tbp.type='bandpass';tbp.frequency.value=1400*r;tbp.Q.value=.8;
-      const tg=AC.createGain();tg.gain.setValueAtTime(.001,time+.04);tg.gain.linearRampToValueAtTime(.18,time+.05);tg.gain.exponentialRampToValueAtTime(.001,time+.2);
+    }else{                                              // CLAP — 4 bursts + reverberant tail (louder, wider band)
+      const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1100*r;bp.Q.value=.7;bp.connect(n.bus);
+      [0,.011,.022,.034].forEach((off,k)=>{const s=AC.createBufferSource();s.buffer=noiseBuf(.05);const eg=AC.createGain();eg.gain.setValueAtTime(1.0*(1-k*.15),time+off);eg.gain.exponentialRampToValueAtTime(.001,time+off+.05);s.connect(eg);eg.connect(bp);s.start(time+off);s.stop(time+off+.07);});
+      const t=AC.createBufferSource();t.buffer=noiseBuf(.2);const tbp=AC.createBiquadFilter();tbp.type='bandpass';tbp.frequency.value=1400*r;tbp.Q.value=.7;
+      const tg=AC.createGain();tg.gain.setValueAtTime(.001,time+.04);tg.gain.linearRampToValueAtTime(.34,time+.05);tg.gain.exponentialRampToValueAtTime(.001,time+.2);
       t.connect(tbp);tbp.connect(tg);tg.connect(n.bus);t.start(time+.04);t.stop(time+.24);
     }
   }
