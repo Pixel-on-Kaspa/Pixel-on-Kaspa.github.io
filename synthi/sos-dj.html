@@ -232,8 +232,10 @@ body{
         <span class="fxLab">ARP</span>
         <button class="tbtn" id="btnArp" title="Arpeggiator — hraje na STAB kroky">OFF</button>
         <button class="tbtn" id="arpMode" title="Tvar arpeggia">UP</button>
+        <button class="tbtn" id="arpRate" title="Rychlost arpeggia">1/8</button>
         <button class="tbtn" id="arpOct" title="Rozsah oktáv">OCT 1</button>
         <button class="tbtn" id="arpDbl" title="Druhý hlas — pohyblivá harmonie">DBL</button>
+        <button class="tbtn" id="btnBasArp" title="Arpeggio pro basu — rozkládá basový tón na oktávy/kvinty">B·ARP</button>
       </div>
     </div>
   </section>
@@ -298,8 +300,9 @@ function setCell(v,c,val){const s=state[v][c];s.val=Math.max(0,Math.min(100,val)
 const PRESET={KCK:{LVL:82},BAS:{LVL:74,LPF:52},STB:{LVL:58,DLY:34,RVB:42},HAT:{LVL:44,RVB:22},CLP:{LVL:82,RVB:30}};
 VOICES.forEach((v,vi)=>COLS.forEach((c,ci)=>{const p=PRESET[v.id];if(p&&p[c.id]!=null)setCell(vi,ci,p[c.id]);}));
 VOICES.forEach((v,vi)=>setCell(vi,TUNCI,50));                 // TUNE 50 = no transpose (center)
-/* per-voice transpose ratio from the TUNE pin: ±24 semitones */
-function voiceRatio(vi){return Math.pow(2,((state[vi][TUNCI].val-50)/50*24)/12);}
+/* per-voice transpose ratio from the TUNE pin: ±24 semitones, quantized to whole
+   semitones so the knob lands in tune instead of drifting microtonally */
+function voiceRatio(vi){const semi=Math.round((state[vi][TUNCI].val-50)/50*24);return Math.pow(2,semi/12);}
 
 let STEPS=16;
 const PATA={KCK:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],BAS:[1,0,0,1,0,0,1,0,1,0,0,1,0,1,0,0],STB:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,1,0],HAT:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,1],CLP:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0]};
@@ -308,18 +311,28 @@ const PATB={};VOICES.forEach(v=>PATB[v.id]=Array(16).fill(0));
    BASS + STAB are pitchable lanes; each pattern keeps notes.{BAS,STB} arrays. */
 const MEL_IDS=['BAS','STB'];
 const isMel=id=>MEL_IDS.indexOf(id)>=0;
-/* melodic scales (semitone offsets, ~1.5 oct, 10 degrees). Styles can swap
-   the active scale so ethnic modes sit right under the pitched lanes. */
+/* melodic scales (semitone offsets, ~1.5 oct, 10 degrees). Styles can swap the
+   active scale so ethnic modes sit right under the pitched lanes. Values may be
+   fractional: .5 = a quarter-tone (used by several Arabic maqamat). */
 const SCALES={
-  minor:   [0,2,3,5,7,8,10,12,14,15],   // A natural minor (default)
-  hijaz:   [0,1,4,5,7,8,11,12,13,16],   // Arabic / Hijaz (maqam)
-  phrygdom:[0,1,4,5,7,8,10,12,13,16],   // Balkan / Phrygian dominant (freygish)
+  minor:   [0,2,3,5,7,8,10,12,14,15],       // A natural minor (default)
+  phrygdom:[0,1,4,5,7,8,10,12,13,16],       // Balkan / Phrygian dominant (freygish)
+  hijaz:   [0,1,4,5,7,8,11,12,13,16],       // maqam Hijaz
+  hijazkar:[0,1,4,5,6,9,10,12,13,16],       // maqam Hijazkar (two hijaz tetrachords)
+  rast:    [0,2,3.5,5,7,9,10.5,12,14,15.5], // maqam Rast — half-flat 3rd & 7th
+  bayati:  [0,1.5,3,5,7,8,10,12,13.5,15],   // maqam Bayati — half-flat 2nd
+  saba:    [0,1.5,3,4,7,8,10,12,13.5,15],   // maqam Saba — half-flat 2nd, low 4th
+  nahawand:[0,2,3,5,7,8,11,12,14,15],       // maqam Nahawand (harmonic-minor colour)
+  kurd:    [0,1,3,5,7,8,10,12,13,15],       // maqam Kurd (phrygian)
 };
+/* maqams the ARABIC mode draws from (VARY rotates through them, incl. quarter-tone ones) */
+const MAQAMS=['bayati','rast','hijaz','saba','nahawand','hijazkar','kurd'];
 let SCALE=SCALES.minor;
 const MEL_BASE={BAS:55,STB:220};        // root freq of scale index 0 (A1 / A3)
 const MEL_ROOT={BAS:-24,STB:0};         // semitones from A3 (220Hz), for note names
 const NOTE_NAMES=['A','A#','B','C','C#','D','D#','E','F','F#','G','G#'];
-function noteName(s){return NOTE_NAMES[((s%12)+12)%12]+(3+Math.floor(s/12));}
+/* nearest-semitone name; marks quarter-tone degrees with a small ¼ */
+function noteName(s){const r=Math.round(s),q=Math.abs(s-r)>=0.25?'¼':'';return NOTE_NAMES[((r%12)+12)%12]+(3+Math.floor(r/12))+q;}
 function newNotes(n){const o={};MEL_IDS.forEach(id=>o[id]=Array(n).fill(0));return o;}
 PATA.notes=newNotes(16);[4,12,14].forEach((i,k)=>PATA.notes.STB[i]=[0,4,2][k]);
 PATB.notes=newNotes(16);
@@ -353,18 +366,20 @@ function heat(val){
    templates; melodic lanes carry scale-index notes (A-minor). */
 const _H=(...a)=>{const r=Array(16).fill(0);a.forEach(i=>r[i]=1);return r;};
 const _M=o=>{const r=Array(16).fill(0);for(const k in o)r[k]=o[k];return r;};
+/* repeat a 16-step template out to the current loop length (16 or 32) */
+const tile=(a,n)=>{const r=Array(n).fill(0);if(a&&a.length)for(let i=0;i<n;i++)r[i]=a[i%a.length]||0;return r;};
 const STYLES=[
   {name:'HOUSE',bpm:124,tag:'4-on-floor',
    eng:{KCK:0,BAS:2,STB:5,HAT:0,CLP:0},
    pat:{KCK:_H(0,4,8,12),CLP:_H(4,12),HAT:_H(2,6,10,14),BAS:_H(2,6,10,14),STB:_H(2,6,10,14)},
    notes:{BAS:_M({6:4,14:4}),STB:_M({2:0,6:2,10:4,14:2})},
-   mix:{BAS:{LPF:0},STB:{RVB:40,DLY:22}},delayDiv:2,filter:50},
+   mix:{KCK:{LVL:94,DRV:12},BAS:{LVL:84,LPF:0},CLP:{LVL:88},HAT:{LVL:54},STB:{LVL:64,RVB:40,DLY:22}},delayDiv:2,filter:50},
 
   {name:'TECHNO',bpm:132,tag:'acid drive',
    eng:{KCK:1,BAS:4,STB:3,HAT:0,CLP:2},
    pat:{KCK:_H(0,4,8,12),CLP:_H(4,12),HAT:_H(2,6,10,14),BAS:_H(0,3,6,10,11,14),STB:_H(2,7,10,14)},
    notes:{BAS:_M({6:4,11:7,14:4}),STB:_M({2:0,7:3,10:2,14:4})},
-   mix:{KCK:{DRV:22},BAS:{DRV:30,LPF:58},STB:{RVB:22,DLY:18},HAT:{LVL:42}},delayDiv:2,filter:52},
+   mix:{KCK:{LVL:96,DRV:26},BAS:{LVL:84,DRV:34,LPF:56},CLP:{LVL:80},HAT:{LVL:52},STB:{LVL:60,RVB:22,DLY:18}},delayDiv:2,filter:52},
 
   {name:'HIP·HOP',bpm:86,tag:'boom bap',
    eng:{KCK:0,BAS:3,STB:2,HAT:0,CLP:1},
@@ -405,23 +420,48 @@ const STYLES=[
    mix:{STB:{RVB:40,DLY:22,LVL:54},BAS:{LPF:42},HAT:{LVL:40,LPF:55},KCK:{LPF:50}},
    delayDiv:3,filter:44},
 
-  {name:'BALKAN',bpm:145,tag:'brass kolo',scale:'phrygdom',
+  {name:'BALKAN',bpm:150,tag:'brass kolo',scale:'phrygdom',
    eng:{KCK:0,BAS:2,STB:6,HAT:0,CLP:1},
-   pat:{KCK:_H(0,4,8,12),CLP:_H(4,12),HAT:_H(2,6,10,14),BAS:_H(0,2,4,6,8,10,12,14),STB:_H(0,3,6,8,11,14)},
-   notes:{BAS:_M({2:7,6:7,10:7,14:7}),STB:_M({0:0,3:2,6:4,8:3,11:2,14:0})},   // tuba oom-pah + brass line
-   mix:{BAS:{LVL:74,LPF:0},STB:{LVL:60,RVB:18,DRV:20},HAT:{LVL:42}},delayDiv:2,filter:52},
+   pat:{KCK:_H(0,4,8,12),CLP:_H(4,12),HAT:_H(2,6,10,14),BAS:_H(0,2,4,6,8,10,12,14),STB:_H(0,1,3,4,6,8,9,11,12,14)},
+   notes:{BAS:_M({2:7,6:7,10:7,14:7}),STB:_M({0:0,1:1,3:2,4:3,6:2,8:4,9:3,11:2,12:1,14:0})},   // tuba oom-pah + flowing brass run
+   mix:{BAS:{LVL:78,LPF:0},STB:{LVL:66,RVB:16,DRV:24},HAT:{LVL:44},CLP:{LVL:82}},delayDiv:2,filter:52},
 
-  {name:'ARABIC',bpm:104,tag:'maqsoum',scale:'hijaz',
+  {name:'ARABIC',bpm:100,tag:'maqam',maqam:true,
    eng:{KCK:3,BAS:2,STB:7,HAT:3,CLP:4},
-   pat:{KCK:_H(0,8,11),CLP:_H(4,6,12,14),HAT:_H(2,6,10,14),BAS:_H(0,8),STB:_H(0,3,4,7,8,11,12,15)},
-   notes:{BAS:_M({8:0}),STB:_M({0:0,3:1,4:2,7:1,8:3,11:2,12:4,15:2})},        // dumbek + tek + oud snake
-   mix:{BAS:{LVL:76,LPF:44},STB:{LVL:58,RVB:30,DLY:26},CLP:{LVL:70},HAT:{LVL:40}},delayDiv:4,filter:50},
+   pat:{KCK:_H(0,3,8,11),CLP:_H(4,6,10,14),HAT:_H(2,6,10,14),BAS:_H(0,6,8,14),STB:_H(0,2,3,5,6,8,10,11,13,15)},
+   notes:{BAS:_M({0:0,6:4,8:0,14:3}),STB:_M({0:0,2:1,3:2,5:1,6:3,8:2,10:4,11:3,13:2,15:1})},   // darbuka + ornamented oud
+   mix:{BAS:{LVL:76,LPF:44},STB:{LVL:60,RVB:30,DLY:26},CLP:{LVL:72},HAT:{LVL:42}},delayDiv:4,filter:50,arpMode:1,arpDiv:2},
 
   {name:'BAILE',bpm:130,tag:'tamborzão',
    eng:{KCK:0,BAS:2,STB:3,HAT:0,CLP:3},
    pat:{KCK:_H(0,3,6,10),CLP:_H(4,7,11,14),HAT:_H(2,6,10,14),BAS:_H(0,6,10),STB:_H(8)},
    notes:{BAS:_M({6:0,10:0}),STB:_M({8:0})},                                  // tresillo kick + atabaque toms
    mix:{KCK:{DRV:12},BAS:{LVL:82,LPF:42},CLP:{LVL:78},STB:{LVL:52,RVB:20},HAT:{LVL:40}},delayDiv:2,filter:50},
+
+  {name:'PSY',bpm:145,tag:'rolling bass',
+   eng:{KCK:1,BAS:2,STB:4,HAT:1,CLP:0},
+   pat:{KCK:_H(0,4,8,12),CLP:_H(4,12),HAT:_H(2,6,10,14),BAS:_H(2,6,10,14),STB:_H(0,8)},
+   notes:{BAS:_M({}),STB:_M({0:0,8:4})},
+   mix:{KCK:{LVL:96},BAS:{LVL:80,LPF:46},STB:{LVL:50,RVB:40,DLY:24},HAT:{LVL:44}},
+   delayDiv:2,filter:54,basArp:true,arpDiv:0},                 // B·ARP rolls the offbeat bass into psy 16ths
+
+  {name:'REGGAETON',bpm:95,tag:'dembow',
+   eng:{KCK:0,BAS:2,STB:5,HAT:0,CLP:1},
+   pat:{KCK:_H(0,3,6,8,11,14),CLP:_H(3,7,11,15),HAT:_H(0,2,4,6,8,10,12,14),BAS:_H(0,8),STB:_H(4,12)},
+   notes:{BAS:_M({8:0}),STB:_M({4:0,12:4})},
+   mix:{KCK:{LVL:92},CLP:{LVL:84},BAS:{LVL:82,LPF:44},STB:{LVL:52,RVB:30},HAT:{LVL:44}},delayDiv:2,filter:50},
+
+  {name:'AFRO',bpm:112,tag:'log drum',
+   eng:{KCK:0,BAS:2,STB:1,HAT:0,CLP:2},
+   pat:{KCK:_H(0,4,8,12),CLP:_H(4,12),HAT:_H(2,6,10,14),BAS:_H(0,6,7,10,14),STB:_H(2,9)},
+   notes:{BAS:_M({0:0,6:4,7:2,10:0,14:5}),STB:_M({2:4,9:2})},
+   mix:{KCK:{LVL:90},BAS:{LVL:84,LPF:40},STB:{LVL:52,RVB:34,DLY:26},HAT:{LVL:44},CLP:{LVL:70}},delayDiv:2,filter:50},
+
+  {name:'DRILL',bpm:142,tag:'sliding 808',
+   eng:{KCK:0,BAS:3,STB:2,HAT:0,CLP:1},
+   pat:{KCK:_H(0,7,10),CLP:_H(8),HAT:_H(0,2,3,4,6,8,10,11,12,14,15),BAS:_H(0,7,10),STB:_H(0)},
+   notes:{BAS:_M({0:0,7:2,10:5}),STB:_M({0:0})},
+   mix:{BAS:{LVL:88,LPF:40},STB:{LVL:48,RVB:40,DLY:24},HAT:{LVL:42}},delayDiv:2,filter:50},
 ];
 function baseMix(){return {KCK:{LVL:84},BAS:{LVL:76,LPF:55},STB:{LVL:58,RVB:34},HAT:{LVL:46},CLP:{LVL:80}};}
 function mergeMix(base,ov){const o={};VOICES.forEach(v=>{o[v.id]=Object.assign({},base[v.id]||{},ov[v.id]||{});});return o;}
@@ -429,20 +469,25 @@ function setMatrix(mix){VOICES.forEach((v,vi)=>COLS.forEach((c,ci)=>{
   if(c.id==='TUN'){setCell(vi,ci,50);return;}
   const m=mix[v.id],val=(m&&m[c.id]!=null)?m[c.id]:0;setCell(vi,ci,val);}));}
 let curStyle=-1;
+let curMaqamIdx=0;
+function styleScale(S){                                  // ARABIC rotates real maqamat; others use their fixed mode
+  if(S.maqam){return SCALES[MAQAMS[curMaqamIdx%MAQAMS.length]];}
+  return SCALES[S.scale]||SCALES.minor;
+}
 function applyStyle(idx){
   const S=STYLES[idx];if(!S)return;
   ensureAudio();
-  SCALE=SCALES[S.scale]||SCALES.minor;                  // swap the melodic mode (Hijaz / Phrygian dom / minor)
-  if(STEPS!==16)setSteps(16);
-  VOICES.forEach(v=>{patterns[v.id]=(S.pat[v.id]||Array(16).fill(0)).slice();});
-  if(!patterns.notes)patterns.notes=newNotes(16);
-  MEL_IDS.forEach(id=>{patterns.notes[id]=((S.notes&&S.notes[id])||Array(16).fill(0)).slice();});
+  curMaqamIdx=0;
+  SCALE=styleScale(S);                                   // swap the melodic mode / maqam
+  VOICES.forEach(v=>{patterns[v.id]=tile(S.pat[v.id],STEPS);});   // tiles to 16 or 32
+  if(!patterns.notes)patterns.notes=newNotes(STEPS);
+  MEL_IDS.forEach(id=>{patterns.notes[id]=tile(S.notes&&S.notes[id],STEPS);});
   VOICES.forEach(v=>{if(S.eng&&S.eng[v.id]!=null)engIdx[v.id]=S.eng[v.id];});
   setMatrix(mergeMix(baseMix(),S.mix||{}));
   VOICES.forEach((v,vi)=>COLS.forEach((c,ci)=>{applyParam(vi,ci);refreshPin(vi,ci);}));
   bpm=S.bpm;bpmSlider.value=S.bpm;bpmValEl.textContent=S.bpm;
   delayDiv=S.delayDiv!=null?S.delayDiv:2;delayPP=!!S.delayPP;delayFbAmt=S.fb!=null?S.fb:.28;
-  arpOn=!!S.arpOn;arpMode=S.arpMode||0;arpOct=S.arpOct||1;buildArpSeq();arpIdx=0;
+  arpOn=!!S.arpOn;arpMode=S.arpMode||0;arpOct=S.arpOct||1;arpDiv=S.arpDiv!=null?S.arpDiv:3;basArp=!!S.basArp;buildArpSeq();arpIdx=0;
   fltSlider.value=S.filter!=null?S.filter:50;
   setDelayTime();applyDelayMode();applyFilter();
   refreshSteps();refreshEngineLabels();updateFxLabels();
@@ -458,7 +503,9 @@ function updateFxLabels(){
   if(dlyFb){dlyFb.value=Math.round(delayFbAmt*100);dlyFbVal.textContent=dlyFb.value;}
   if(btnArp){btnArp.classList.toggle('on',arpOn);btnArp.textContent=arpOn?'ON':'OFF';}
   if(arpModeBtn)arpModeBtn.textContent=ARP_SHAPES[arpMode].n;
+  if(arpRateBtn)arpRateBtn.textContent=ARP_DIVS[arpDiv].n;
   if(arpOctBtn)arpOctBtn.textContent='OCT '+arpOct;
+  if(btnBasArp)btnBasArp.classList.toggle('on',basArp);
 }
 
 /* ============================================================ AUDIO */
@@ -563,25 +610,32 @@ function playMel(n,f,time,e,amp,dur){
     [-18,-11,-5,0,5,11,18].forEach(det=>{const o=AC.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(f,time);o.detune.value=det;o.connect(lp);o.start(time);o.stop(time+sus+.2);});
     lp.connect(g);g.connect(dest);return;
   }
-  if(e===5){                                            // ORGAN — additive sine partials, sustained
+  if(e===5){                                            // ORGAN — drawbar sines + Leslie chorus + percussive key click
     const g=AC.createGain();
     const sus=hold!=null?hold:.5;
-    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.72,time+.012);g.gain.setValueAtTime(amp*.72,time+sus);g.gain.exponentialRampToValueAtTime(.001,time+sus+.16);
-    [[1,.6],[2,.34],[3,.22],[4,.14],[6,.08]].forEach(([h,a])=>{const o=AC.createOscillator(),og=AC.createGain();o.type='sine';o.frequency.setValueAtTime(f*h,time);og.gain.value=a;o.connect(og);og.connect(g);o.start(time);o.stop(time+sus+.18);});
+    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.82,time+.01);g.gain.setValueAtTime(amp*.82,time+sus);g.gain.exponentialRampToValueAtTime(.001,time+sus+.16);
+    const lfo=AC.createOscillator(),lg=AC.createGain();lfo.type='sine';lfo.frequency.value=6.2;lg.gain.value=7;lfo.connect(lg);   // ±7 cent Leslie
+    [[1,.6],[2,.36],[3,.22],[4,.14],[6,.09],[8,.05]].forEach(([h,a])=>{const o=AC.createOscillator(),og=AC.createGain();o.type='sine';o.frequency.setValueAtTime(f*h,time);lg.connect(o.detune);og.gain.value=a;o.connect(og);og.connect(g);o.start(time);o.stop(time+sus+.18);});
+    lfo.start(time);lfo.stop(time+sus+.18);
+    const ck=AC.createOscillator(),ckg=AC.createGain();ck.type='sine';ck.frequency.value=f*6;ckg.gain.setValueAtTime(amp*.28,time);ckg.gain.exponentialRampToValueAtTime(.001,time+.03);ck.connect(ckg);ckg.connect(dest);ck.start(time);ck.stop(time+.04);  // key click
     g.connect(dest);return;
   }
-  if(e===6){                                            // BRASS — stacked saws, bandpass formant, blooming attack + vibrato
-    const g=AC.createGain(),bp=AC.createBiquadFilter(),lp=AC.createBiquadFilter();
-    bp.type='bandpass';bp.frequency.value=Math.min(Math.max(f*2.2,700),2600);bp.Q.value=.9;
-    lp.type='lowpass';lp.Q.value=.7;
-    lp.frequency.setValueAtTime(Math.min(f*11,11000),time);lp.frequency.exponentialRampToValueAtTime(Math.min(f*5,5200),time+.14);
-    const sus=hold!=null?hold:.4,end=sus+.16;
-    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*1.25,time+.04);  // brass blooms, not instant
-    g.gain.setValueAtTime(amp*1.25,time+sus);g.gain.exponentialRampToValueAtTime(.001,time+end);
-    const lfo=AC.createOscillator(),lg=AC.createGain();lfo.type='sine';lfo.frequency.value=5.6;lg.gain.value=f*.009;lfo.connect(lg);
-    [-13,-4,4,13].forEach(det=>{const o=AC.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(f,time);o.detune.value=det;lg.connect(o.detune);o.connect(bp);o.start(time);o.stop(time+end+.02);});
+  if(e===6){                                            // BRASS — bold 6-saw section, bandpass formant, sub-octave body + drive
+    const g=AC.createGain(),bp=AC.createBiquadFilter(),lp=AC.createBiquadFilter(),ws=AC.createWaveShaper();
+    ws.curve=driveCurve(.4);                             // grit = brass rasp
+    bp.type='bandpass';bp.frequency.value=Math.min(Math.max(f*2.4,850),3200);bp.Q.value=.7;
+    lp.type='lowpass';lp.Q.value=.8;
+    lp.frequency.setValueAtTime(Math.min(f*13,13000),time);lp.frequency.exponentialRampToValueAtTime(Math.min(f*6,6500),time+.15);
+    const sus=hold!=null?hold:.42,end=sus+.18;
+    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*2.0,time+.028);  // much louder, fast bloom = bite
+    g.gain.setValueAtTime(amp*2.0,time+sus);g.gain.exponentialRampToValueAtTime(.001,time+end);
+    const lfo=AC.createOscillator(),lg=AC.createGain();lfo.type='sine';lfo.frequency.value=5.5;lg.gain.value=f*.013;lfo.connect(lg);
+    [-16,-7,-2,2,7,16].forEach(det=>{const o=AC.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(f,time);o.detune.value=det;lg.connect(o.detune);o.connect(bp);o.start(time);o.stop(time+end+.02);});
+    const so=AC.createOscillator(),sog=AC.createGain();so.type='square';so.frequency.setValueAtTime(f,time);so.detune.value=-1200;  // clean octave-down body
+    sog.gain.setValueAtTime(0,time);sog.gain.linearRampToValueAtTime(amp*.7,time+.03);sog.gain.setValueAtTime(amp*.7,time+sus);sog.gain.exponentialRampToValueAtTime(.001,time+end);
+    so.connect(sog);sog.connect(lp);so.start(time);so.stop(time+end+.02);
     lfo.start(time);lfo.stop(time+end+.02);
-    bp.connect(lp);lp.connect(g);g.connect(dest);return;
+    bp.connect(ws);ws.connect(lp);lp.connect(g);g.connect(dest);return;
   }
   if(e===7){                                            // OUD — plucked oriental string: pick transient + fast resonant decay
     const g=AC.createGain(),lp=AC.createBiquadFilter();lp.type='lowpass';lp.Q.value=4;
@@ -619,7 +673,7 @@ function playMel(n,f,time,e,amp,dur){
   }
   o.connect(lp);o2.connect(lp);lp.connect(g);g.connect(dest);o.start(time);o2.start(time);o.stop(time+end+.03);o2.stop(time+end+.03);
 }
-function trig(vi,time,step,arpFreq){
+function trig(vi,time,step,arpFreq,arpDur){
   const n=voiceNodes[vi],id=VOICES[vi].id,e=engIdx[id],r=voiceRatio(vi);
   if(id==='KCK'){
     if(e===3){                                          // DUMBEK dum — low hand-drum, pitched membrane + skin slap
@@ -632,14 +686,20 @@ function trig(vi,time,step,arpFreq){
       s.connect(bp);bp.connect(sg);sg.connect(n.bus);s.start(time);s.stop(time+.1);
       return;
     }
-    let top=150,bot=48,dec=.42,pdec=.055,clk=.22;
-    if(e===1){top=210;bot=54;dec=.22;pdec=.04;clk=.5;}  // PUNCH — snappier drop, harder click
-    if(e===2){top=300;bot=120;dec=.11;pdec=.028;clk=.4;}// TICK — tight & clicky
+    let top=155,bot=48,dec=.52,pdec=.06,clk=.22;
+    if(e===1){top=220;bot=55;dec=.24;pdec=.04;clk=.55;} // PUNCH — snappier drop, harder click
+    if(e===2){top=320;bot=130;dec=.11;pdec=.026;clk=.5;}// TICK — tight & clicky
     top*=r;bot*=r;
     const o=AC.createOscillator(),g=AC.createGain();o.type='sine';
     o.frequency.setValueAtTime(top,time);o.frequency.exponentialRampToValueAtTime(bot,time+pdec); // fast pitch drop = weight
     g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(1,time+.004);g.gain.exponentialRampToValueAtTime(.001,time+dec);
     o.connect(g);g.connect(n.bus);o.start(time);o.stop(time+dec+.02);
+    if(e!==2){                                           // DEEP/PUNCH: sustained low sine = weight & body
+      const sub=AC.createOscillator(),sg=AC.createGain();sub.type='sine';
+      sub.frequency.setValueAtTime(bot*1.15,time);sub.frequency.exponentialRampToValueAtTime(bot*.8,time+.1);
+      sg.gain.setValueAtTime(0,time);sg.gain.linearRampToValueAtTime(.7,time+.006);sg.gain.exponentialRampToValueAtTime(.001,time+dec*1.15);
+      sub.connect(sg);sg.connect(n.bus);sub.start(time);sub.stop(time+dec*1.2);
+    }
     const c=AC.createBufferSource();c.buffer=noiseBuf(.03);const chp=AC.createBiquadFilter();chp.type='highpass';chp.frequency.value=1200;
     const cg=AC.createGain();cg.gain.setValueAtTime(clk,time);cg.gain.exponentialRampToValueAtTime(.001,time+.02);
     c.connect(chp);chp.connect(cg);cg.connect(n.bus);c.start(time);c.stop(time+.04);   // beater click
@@ -647,8 +707,9 @@ function trig(vi,time,step,arpFreq){
     /* engines: 0 SAW · 1 SQUARE · 2 SUB · 3 FM · 4 ACID · 5 REESE */
     const f=(arpFreq||MEL_BASE.BAS*Math.pow(2,melSemi('BAS',step)/12))*r;
     const plucky=(e===3||e===4);                        // FM / ACID keep their short, expressive shape
-    const legato=Math.min(gateSteps('BAS',step),8)*stepDur();
-    const bd=plucky?.26:Math.max(.22,Math.min(legato-.02,1.2));   // sustained engines ring to the next note
+    const arping=arpFreq!=null;
+    const legato=arping?(arpDur||stepDur()):Math.min(gateSteps('BAS',step),8)*stepDur();
+    const bd=plucky?.26:(arping?Math.max(.1,legato-.01):Math.max(.22,Math.min(legato-.02,1.2)));   // arp notes stay short; else ring to next
     const stopT=time+bd+(plucky?.02:.08);
     const g=AC.createGain();g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(.9,time+.012);
     if(plucky)g.gain.exponentialRampToValueAtTime(.001,time+bd);
@@ -666,10 +727,12 @@ function trig(vi,time,step,arpFreq){
       lp.frequency.exponentialRampToValueAtTime(Math.min(f*14,5000),time+.03);
       lp.frequency.exponentialRampToValueAtTime(Math.max(f*1.2,180),time+.22);
       const o=AC.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(f,time);o.connect(lp);o.start(time);o.stop(stopT);
-    }else if(e===0||e===5){                             // SAW unison / REESE (wider, darker)
+    }else if(e===0||e===5){                             // SAW unison / REESE (wider, darker, phasing)
       lp.Q.value=e===5?2:7;
       lp.frequency.setValueAtTime(Math.min(f*(e===5?6:10),e===5?3000:6000),time);lp.frequency.exponentialRampToValueAtTime(Math.min(f*3.5,1400),time+.22);
-      (e===5?[-16,16]:[-9,9]).forEach(det=>{const o=AC.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(f,time);o.detune.value=det;o.connect(lp);o.start(time);o.stop(stopT);});
+      let lg=null;
+      if(e===5){const lfo=AC.createOscillator();lg=AC.createGain();lfo.type='sine';lfo.frequency.value=5.5;lg.gain.value=11;lfo.connect(lg);lfo.start(time);lfo.stop(stopT);}  // reese phase movement
+      (e===5?[-18,-6,6,18]:[-9,9]).forEach(det=>{const o=AC.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(f,time);o.detune.value=det;if(lg)lg.connect(o.detune);o.connect(lp);o.start(time);o.stop(stopT);});
     }else{                                              // SQUARE / SUB
       lp.Q.value=1.2;
       lp.frequency.setValueAtTime(Math.min(f*10,6000),time);lp.frequency.exponentialRampToValueAtTime(Math.min(f*3.5,1400),time+.22);
@@ -678,7 +741,7 @@ function trig(vi,time,step,arpFreq){
     lp.connect(g);g.connect(n.bus);
     if(e!==2&&e!==3){const sub=AC.createOscillator(),sg=AC.createGain();sub.type='sine';sub.frequency.setValueAtTime(f/2,time);sg.gain.setValueAtTime(0,time);sg.gain.linearRampToValueAtTime(.5,time+.012);if(plucky)sg.gain.exponentialRampToValueAtTime(.001,time+bd);else{sg.gain.setValueAtTime(.5,time+bd);sg.gain.exponentialRampToValueAtTime(.001,time+bd+.06);}sub.connect(sg);sg.connect(n.bus);sub.start(time);sub.stop(stopT);}
   }else if(id==='STB'){
-    if(arpFreq){ playMel(n,arpFreq*r,time,e,.8,stepDur()); }   // single arp/preview note, gated to one step
+    if(arpFreq){ playMel(n,arpFreq*r,time,e,.8,arpDur||stepDur()); }   // arp/preview note gated to its division
     else {                                               // sequencer step note → chord (or mono lead for BRASS/OUD)
       const root=MEL_BASE.STB*Math.pow(2,melSemi('STB',step)/12)*r;
       const gate=Math.min(gateSteps('STB',step),8)*stepDur();   // hold the note through following rests
@@ -744,7 +807,10 @@ function trig(vi,time,step,arpFreq){
 
 /* clock */
 let playing=false,bpm=124,curStep=0,nextTime=0,timer=null;
-let arpOn=false,arpIdx=0,arpMode=0,arpOct=1,arpDbl=false;
+let arpOn=false,arpIdx=0,arpMode=0,arpOct=1,arpDbl=false,arpDiv=3,basArp=false;
+/* arp note length as a beat fraction (b) — includes triplet divisions. 1 beat = 1/4 note */
+const ARP_DIVS=[{n:'1/16',b:.25},{n:'1/16T',b:1/6},{n:'1/8T',b:1/3},{n:'1/8',b:.5},{n:'1/8.',b:.75},{n:'1/4',b:1}];
+const BASARP_SHAPE=[0,7,0,4];   // bass arp ripple = root / octave / root / fifth (scale degrees)
 /* arp shapes as SCALE-DEGREE offsets → each drawn STAB note becomes the root of
    an arpeggio that ripples up the active scale (minor / Hijaz / Phrygian dom…).
    RAND = free in-scale pick. +7 degrees = up one octave. */
@@ -764,16 +830,28 @@ function scheduler(){
     const s=curStep;
     VOICES.forEach((v,vi)=>{
       if(v.id==='STB'&&arpOn){
-        /* each drawn STAB note = root of an arpeggio that ripples in-scale until
-           the next drawn note (fills rests at 1/16, shape+octave set the pattern) */
+        /* each drawn STAB note = root of an in-scale arpeggio that ripples until the
+           next drawn note; the ARP division sets note length (triplets included) */
         if(patterns.STB[s]){
-          const base=melDeg('STB',s),span=Math.min(gateSteps('STB',s),16);
-          for(let k=0;k<span;k++){
-            const off=arpSeq?arpSeq[k%arpSeq.length]
+          const base=melDeg('STB',s),iv=ARP_DIVS[arpDiv].b*(60/bpm);
+          const spanSec=gateSteps('STB',s)*stepDur(),nN=Math.max(1,Math.min(Math.round(spanSec/iv),48));
+          for(let j=0;j<nN;j++){
+            const off=arpSeq?arpSeq[j%arpSeq.length]
                              :RAND_DEGREES[(Math.random()*RAND_DEGREES.length)|0]+7*((Math.random()*arpOct)|0);
-            const t=nextTime+k*stepDur();
-            trig(vi,t,s,arpFreqFor(base,off));
-            if(arpDbl)trig(vi,t,s,arpFreqFor(base,off+2));   // harmony a scale-third up
+            const t=nextTime+j*iv;
+            trig(vi,t,s,arpFreqFor(base,off),iv);
+            if(arpDbl)trig(vi,t,s,arpFreqFor(base,off+2),iv);   // harmony a scale-third up
+          }
+        }
+      }
+      else if(v.id==='BAS'&&basArp){
+        /* bass arpeggiator — rolls the drawn bass note through octave/fifth */
+        if(patterns.BAS[s]){
+          const base=melDeg('BAS',s),iv=ARP_DIVS[arpDiv].b*(60/bpm);
+          const spanSec=gateSteps('BAS',s)*stepDur(),nN=Math.max(1,Math.min(Math.round(spanSec/iv),48));
+          for(let j=0;j<nN;j++){
+            const f=MEL_BASE.BAS*Math.pow(2,degSemi(base+BASARP_SHAPE[j%BASARP_SHAPE.length])/12);
+            trig(vi,nextTime+j*iv,s,f,iv);
           }
         }
       }
@@ -919,15 +997,16 @@ function randomize(){
    anchors stay, off-beats mostly survive, empty slots get style-weighted ghosts. */
 function rerollStyle(S){
   ensureAudio();
-  SCALE=SCALES[S.scale]||SCALES.minor;
-  if(STEPS!==16)setSteps(16);
+  if(S.maqam)curMaqamIdx++;                                      // ARABIC: next VARY explores another maqam
+  SCALE=styleScale(S);
+  const N=STEPS;
   VOICES.forEach(v=>{
-    const base=S.pat[v.id]||Array(16).fill(0);
-    const dens=Math.max(base.reduce((a,b)=>a+b,0)/16,.12);       // floor keeps even sparse lanes moving
+    const base=tile(S.pat[v.id],N);
+    const dens=Math.max(base.reduce((a,b)=>a+b,0)/N,.12);        // floor keeps even sparse lanes moving
     /* pitched lanes (BASS/STAB) get busy so they actually play a melody; drums stay in-genre */
     const gm={KCK:.28,HAT:.9,BAS:.85,STB:1.0,CLP:.6}[v.id]||.6;
-    const out=Array(16).fill(0);
-    for(let i=0;i<16;i++){
+    const out=Array(N).fill(0);
+    for(let i=0;i<N;i++){
       const strong=i%4===0, sub=i%2===0;
       if(base[i]) out[i]=strong?1:(Math.random()<.6?1:0);        // anchors kept, off-beats freely mutated
       else{let p=dens*gm; if(sub)p*=1.3; if(strong&&v.id!=='KCK')p*=1.3; out[i]=Math.random()<p?1:0;}
@@ -936,11 +1015,11 @@ function rerollStyle(S){
     patterns[v.id]=out;
   });
   if((S.pat.KCK||[])[0])patterns.KCK[0]=1;                       // hold the downbeat if the style has one
-  if(!patterns.notes)patterns.notes=newNotes(16);
+  if(!patterns.notes)patterns.notes=newNotes(N);
   MEL_IDS.forEach(id=>{
-    const seed=(S.notes&&S.notes[id])||Array(16).fill(0),arr=Array(16).fill(0);
+    const seed=tile(S.notes&&S.notes[id],N),arr=Array(N).fill(0);
     let last=seed.find(x=>x)||0;
-    for(let i=0;i<16;i++){
+    for(let i=0;i<N;i++){
       if(!patterns[id][i])continue;
       const b=(seed[i]!=null&&seed[i]!==0)?seed[i]:last;
       const rr=Math.random();let nv;
@@ -1081,10 +1160,14 @@ const btnArp=document.getElementById('btnArp');
 btnArp.addEventListener('click',()=>{arpOn=!arpOn;btnArp.classList.toggle('on',arpOn);btnArp.textContent=arpOn?'ON':'OFF';});
 const arpModeBtn=document.getElementById('arpMode');arpModeBtn.textContent=ARP_SHAPES[arpMode].n;
 arpModeBtn.addEventListener('click',()=>{arpMode=(arpMode+1)%ARP_SHAPES.length;buildArpSeq();arpIdx=0;arpModeBtn.textContent=ARP_SHAPES[arpMode].n;});
+const arpRateBtn=document.getElementById('arpRate');arpRateBtn.textContent=ARP_DIVS[arpDiv].n;
+arpRateBtn.addEventListener('click',()=>{arpDiv=(arpDiv+1)%ARP_DIVS.length;arpRateBtn.textContent=ARP_DIVS[arpDiv].n;});
 const arpOctBtn=document.getElementById('arpOct');
 arpOctBtn.addEventListener('click',()=>{arpOct=arpOct%3+1;buildArpSeq();arpIdx=0;arpOctBtn.textContent='OCT '+arpOct;});
 const arpDblBtn=document.getElementById('arpDbl');
 arpDblBtn.addEventListener('click',()=>{arpDbl=!arpDbl;arpDblBtn.classList.toggle('on',arpDbl);});
+const btnBasArp=document.getElementById('btnBasArp');
+btnBasArp.addEventListener('click',()=>{ensureAudio();basArp=!basArp;btnBasArp.classList.toggle('on',basArp);});
 document.getElementById('btnAB').addEventListener('click',()=>selectAB(curAB^1));
 const btnChain=document.getElementById('btnChain');
 btnChain.addEventListener('click',()=>{chain=!chain;btnChain.classList.toggle('on',chain);});
@@ -1101,7 +1184,7 @@ const sosRec=(window.SynthiRecord?SynthiRecord.mount({
   getTap:()=>recTap,
   ensureAudio:ensureAudio,
   getPatch:()=>({matrix:state,patternsAB,bpm,engines:engIdx,steps:STEPS,ab:curAB,chain,filter:+document.getElementById('fltSlider').value,
-    arp:{on:arpOn,mode:arpMode,oct:arpOct,dbl:arpDbl},delay:{div:delayDiv,fb:delayFbAmt,pp:delayPP}}),
+    arp:{on:arpOn,mode:arpMode,oct:arpOct,dbl:arpDbl,div:arpDiv,bas:basArp},delay:{div:delayDiv,fb:delayFbAmt,pp:delayPP}}),
   engineVersion:'sos-dj-2026.08',
   maxSec:20,
   share:{
