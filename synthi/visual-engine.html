@@ -18,7 +18,12 @@ input[type=range]{cursor:pointer}
 /* topbar */
 #topbar{min-height:82px;height:auto;display:flex;align-items:center;gap:10px;padding:6px 14px;
   border-bottom:1px solid var(--border);background:rgba(5,8,8,.96);flex-shrink:0;}
-.brand{font-weight:900;letter-spacing:.18em;font-size:14px;color:var(--accent);margin-right:6px;white-space:nowrap}
+.brand{display:inline-flex;align-items:center;margin-right:6px;text-decoration:none;cursor:pointer}
+.brand img{height:26px;width:auto;display:block;transition:filter .15s,transform .15s}
+.brand:hover img{filter:drop-shadow(0 0 6px rgba(73,234,203,.55));transform:scale(1.04)}
+.topnav{display:flex;align-items:center;gap:4px;margin-right:4px}
+.topnav a{font-size:10px;color:var(--muted);text-decoration:none;padding:4px 8px;border:1px solid var(--border);border-radius:3px;letter-spacing:.06em;white-space:nowrap;transition:color .15s,border-color .15s,background .15s}
+.topnav a:hover{color:var(--text);border-color:var(--accent);background:rgba(255,255,255,.04)}
 .transport{display:flex;align-items:center;gap:8px;flex:1;justify-content:center}
 #statusBar{font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap;min-width:180px;text-align:right}
 
@@ -113,7 +118,12 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
 <body>
 
 <div id="topbar">
-  <span class="brand">SYNTHI</span>
+  <a class="brand" href="../" title="← Pixel on Kaspa">
+    <img src="../assets/img/logo.png" alt="Pixel on Kaspa" />
+  </a>
+  <nav class="topnav">
+    <a href="index.html">Index</a>
+  </nav>
   <div class="transport">
     <button id="btnPlay">▶ PLAY</button>
     <button class="btn" id="btnLoadTrack" title="Load a recording — its analysis composes the oscillators">🎵 TRACK</button>
