@@ -133,6 +133,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
     <button class="btn" id="btnShareX">Share ↗</button>
     <button class="btn" id="btnRecShare">Share clip ↗</button>
     <button class="btn" id="btnPublish">✦ Publish</button>
+    <button class="btn" id="btnGallery" title="Start from one of your published patches">★ Gallery</button>
     <button class="btn" id="btnZoomIn">＋</button>
     <button class="btn" id="btnZoomOut">－</button>
     <div style="display:flex;gap:16px;align-items:center">
@@ -160,6 +161,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
       <div class="btnRow" id="wave0">
         <button class="btn active" data-w="sine">SIN</button>
         <button class="btn" data-w="triangle">TRI</button>
+        <button class="btn" data-w="square">SQR</button>
       </div>
       <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr0" min="0" max="1" step="0.000001" value="0.340000"><input class="v" type="number" id="fv0" min="0" max="20000" step="0.01" value="200"></div>
       <div class="sr"><label>PHS</label><input type="range" id="ph0" min="0" max="6.2832" step="0.001" value="0"><span class="v" id="phv0">0.00</span></div>
@@ -172,6 +174,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
       <div class="btnRow" id="wave1">
         <button class="btn active" data-w="sine">SIN</button>
         <button class="btn" data-w="triangle">TRI</button>
+        <button class="btn" data-w="square">SQR</button>
       </div>
       <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr1" min="0" max="1" step="0.000001" value="0.398110"><input class="v" type="number" id="fv1" min="0" max="20000" step="0.01" value="300"></div>
       <div class="sr"><label>PHS</label><input type="range" id="ph1" min="0" max="6.2832" step="0.001" value="1.5708"><span class="v" id="phv1">1.57</span></div>
@@ -184,6 +187,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
       <div class="btnRow" id="wave2">
         <button class="btn active" data-w="sine">SIN</button>
         <button class="btn" data-w="triangle">TRI</button>
+        <button class="btn" data-w="square">SQR</button>
       </div>
       <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr2" min="0" max="1" step="0.000001" value="0.439340"><input class="v" type="number" id="fv2" min="0" max="20000" step="0.01" value="400"></div>
       <div class="sr"><label>PHS</label><input type="range" id="ph2" min="0" max="6.2832" step="0.001" value="0"><span class="v" id="phv2">0.00</span></div>
@@ -196,6 +200,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
       <div class="btnRow" id="wave3">
         <button class="btn active" data-w="sine">SIN</button>
         <button class="btn" data-w="triangle">TRI</button>
+        <button class="btn" data-w="square">SQR</button>
       </div>
       <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr3" min="0" max="1" step="0.000001" value="0.497450"><input class="v" type="number" id="fv3" min="0" max="20000" step="0.01" value="600"></div>
       <div class="sr"><label>PHS</label><input type="range" id="ph3" min="0" max="6.2832" step="0.001" value="1.5708"><span class="v" id="phv3">1.57</span></div>
@@ -224,6 +229,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
       <div class="btnRow" id="wave4">
         <button class="btn active" data-w="sine">SIN</button>
         <button class="btn" data-w="triangle">TRI</button>
+        <button class="btn" data-w="square">SQR</button>
       </div>
       <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr4" min="0" max="1" step="0.000001" value="0.471320"><input class="v" type="number" id="fv4" min="0" max="20000" step="0.01" value="500"></div>
       <div class="sr"><label>PHS</label><input type="range" id="ph4" min="0" max="6.2832" step="0.001" value="0"><span class="v" id="phv4">0.00</span></div>
@@ -236,6 +242,7 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
       <div class="btnRow" id="wave5">
         <button class="btn active" data-w="sine">SIN</button>
         <button class="btn" data-w="triangle">TRI</button>
+        <button class="btn" data-w="square">SQR</button>
       </div>
       <div class="sr"><label>FREQ</label><input type="range" class="pur" id="fr5" min="0" max="1" step="0.000001" value="0.538680"><input class="v" type="number" id="fv5" min="0" max="20000" step="0.01" value="800"></div>
       <div class="sr"><label>PHS</label><input type="range" id="ph5" min="0" max="6.2832" step="0.001" value="1.5708"><span class="v" id="phv5">1.57</span></div>
@@ -618,6 +625,11 @@ function drawViz(now) {
   const sample = (o, t) => {
     if (!o.on) return 0;
     const arg = TAU * o.hz * t + o.phase;
+    if (o.wave === 'square')
+      // odd-harmonic (1/n) stack → sharp, boxy, harmonic-rich figure; scaled to
+      // keep the summed peak ≈ a single sine so it doesn't blow past the frame.
+      return o.vol * 0.78 * (Math.sin(arg) + 0.3333 * Math.sin(3 * arg)
+                           + 0.2 * Math.sin(5 * arg) + 0.1429 * Math.sin(7 * arg));
     return o.wave === 'triangle'
       ? o.vol * (Math.sin(arg) + 0.33 * Math.sin(3 * arg))
       : o.vol * Math.sin(arg);
@@ -960,7 +972,10 @@ function captureState() {
    "rotX","rotY","persp","depth3d"].forEach(id => {
     ce[id] = document.getElementById(id).value;
   });
-  return { v: 1, osc, ce, mode3d: is3D, vol: document.getElementById("masterVol").value };
+  // decay + thick are knobs (not sliders) but are decisive for the "volume"/
+  // fine-trace look, so they travel with the patch.
+  return { v: 1, osc, ce, mode3d: is3D, vol: document.getElementById("masterVol").value,
+           decay: decayVal, thick: thickVal };
 }
 
 function restoreState(p) {
@@ -987,6 +1002,10 @@ function restoreState(p) {
   if (p.ce) Object.keys(p.ce).forEach(id => setInput(id, p.ce[id]));
   if (p.mode3d != null && is3D !== !!p.mode3d) document.getElementById("btn3D").click();
   if (p.vol != null) setInput("masterVol", p.vol);
+  try {
+    if (p.decay != null) knobDecay.set(+p.decay);
+    if (p.thick != null) knobThick.set(+p.thick);
+  } catch (e) {}
 }
 
 if (window.PixelGallery) {
@@ -1000,6 +1019,82 @@ if (window.PixelGallery) {
     restoreState: restoreState,
     renderThumbnail: () => canvas.toDataURL("image/png")
   });
+}
+
+/* ══════════ START FROM GALLERY ═════════════════════════════════════════════
+   The "grab onto" starting points come from YOUR published patches — not from
+   hardcoded shapes. Tweak a figure you like (incl. its DECAY / THICK for that
+   layered, fine-trace look), hit ✦ Publish, and it shows up here to load and
+   remix live. Talks to whatever backend gallery.js uses (local stub today,
+   Worker later — identical call). ──────────────────────────────────────────── */
+{
+  const LAB_ID = "synthi-visual-engine";
+  const btn = document.getElementById("btnGallery");
+  let overlay = null;
+
+  const close = () => { if (overlay) { overlay.remove(); overlay = null; document.removeEventListener("keydown", onKey); } };
+  function onKey(e) { if (e.key === "Escape") close(); }
+
+  function tile(item) {
+    const t = document.createElement("button");
+    t.type = "button";
+    t.style.cssText = "all:unset;cursor:pointer;display:flex;flex-direction:column;gap:5px;width:134px";
+    const img = document.createElement("img");
+    img.src = item.thumb || "";
+    img.style.cssText = "width:134px;height:134px;object-fit:cover;border-radius:8px;border:1px solid var(--border);background:#050d09;display:block";
+    const cap = document.createElement("div");
+    cap.textContent = item.title || "Untitled";
+    cap.style.cssText = "font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:134px";
+    t.appendChild(img); t.appendChild(cap);
+    t.addEventListener("mouseenter", () => { img.style.borderColor = "var(--accent)"; });
+    t.addEventListener("mouseleave", () => { img.style.borderColor = "var(--border)"; });
+    t.addEventListener("click", () => {
+      if (item.patch) { try { restoreState(item.patch); } catch (e) { console.warn("[gallery] restore failed", e); } }
+      close();
+    });
+    return t;
+  }
+
+  function open() {
+    close();
+    overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed;inset:0;z-index:99998;background:rgba(3,7,5,.82);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center";
+    overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
+
+    const panel = document.createElement("div");
+    panel.style.cssText = "width:min(780px,92vw);max-height:82vh;overflow:auto;background:#0a1410;border:1px solid var(--border);border-radius:14px;padding:18px 20px;box-shadow:0 20px 60px rgba(0,0,0,.6)";
+    panel.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">' +
+      '<div style="font-size:14px;font-weight:600;color:var(--accent)">★ Start from a published patch</div>' +
+      '<button id="pxgpClose" style="all:unset;cursor:pointer;color:var(--muted);font-size:20px;line-height:1;padding:0 4px">×</button>' +
+      '</div>';
+    const grid = document.createElement("div");
+    grid.style.cssText = "display:flex;flex-wrap:wrap;gap:14px";
+    panel.appendChild(grid);
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+    panel.querySelector("#pxgpClose").addEventListener("click", close);
+    document.addEventListener("keydown", onKey);
+
+    const msg = html => { grid.innerHTML = '<div style="font-size:12px;color:var(--muted);line-height:1.7;padding:6px 2px;max-width:520px">' + html + '</div>'; };
+    msg("Loading…");
+
+    if (!window.PixelGallery) {
+      msg("Gallery script isn't loaded. Open this page through a local server or the live site (not a <code>file://</code> path) so <code>/js/gallery.js</code> can load.");
+      return;
+    }
+    Promise.resolve(PixelGallery.list()).then(items => {
+      const mine = (items || []).filter(x => !x.labId || x.labId === LAB_ID);
+      if (!mine.length) {
+        msg("No saved patches yet.<br><br>Dial in a figure you like — including its <b>DECAY</b> and <b>THICK</b> for that layered, fine-trace volume — then hit <b>✦ Publish</b>. It'll appear here to start from and remix.");
+        return;
+      }
+      grid.innerHTML = "";
+      mine.forEach(it => grid.appendChild(tile(it)));
+    }).catch(() => msg("Could not load the gallery."));
+  }
+
+  if (btn) btn.addEventListener("click", open);
 }
 
 /* ══════════ TRACK → VIDEO (core) ══════════════════════════════════════════
@@ -1111,27 +1206,58 @@ if (window.PixelGallery) {
           hiMid = smooth(nrm(F.hiMid), 6), hi = smooth(nrm(F.hi), 6);
     const cen = smooth(F.centroid.map(c => { const lo = Math.log(80), hiL = Math.log(6000); return clamp01((Math.log(Math.max(80, c)) - lo) / (hiL - lo)); }), 14);
 
-    // Fixed octave stack (X pair = osc1,3 = 1000 & 4000 Hz · Y pair = osc2,4 = 2000 & 8000 Hz).
-    // A stable figure that does NOT wander with detected pitch — the track drives movement via
-    // osc volumes and phase (slow precession), not the base frequencies.
-    const FREQ = [1000, 2000, 4000, 8000];
-    const bandForOsc = [bass, loMid, hiMid, hi];      // X pair = osc1,3 · Y pair = osc2,4
+    // ── MELODY → figure shape ──────────────────────────────────────────────
+    // The detected pitch picks a small-integer Lissajous ratio (p:q) from a
+    // curated ladder. Because the ratio is always small integers, the render
+    // window (GCD of freqs) still closes → the figure stays CLEAN while its
+    // FORM morphs with the tune. Low pitch-confidence → hold the current shape,
+    // so percussive / broadband material doesn't scribble. Onsets (spectral
+    // flux) add rhythm: a phase dart + a brightness / glow pop.
+    const pitch = F.pitch, conf = F.conf;
+    const fluxN = smooth(nrm(F.flux), 1);
+    const LADDER = [[1,1],[1,2],[2,3],[3,2],[3,4],[4,3],[3,5],[5,4],[4,5],[5,3]];
+    let pmin = Infinity, pmax = 0;
+    for (let i = 0; i < nF; i++) if (conf[i] > 0.5 && pitch[i] > 0) { if (pitch[i] < pmin) pmin = pitch[i]; if (pitch[i] > pmax) pmax = pitch[i]; }
+    if (!isFinite(pmin) || pmax <= pmin) { pmin = 110; pmax = 440; }
+    const pspan = Math.max(1, 12 * Math.log2(pmax / pmin));   // pitch spread in semitones
+    const ratP = new Array(nF), ratQ = new Array(nF);
+    let cur = 2, hold = 0;                                    // start at 2:3
+    for (let i = 0; i < nF; i++) {
+      if (hold <= 0 && conf[i] > 0.55 && pitch[i] > 0) {
+        const st  = 12 * Math.log2(Math.max(pmin, pitch[i]) / pmin);
+        const idx = Math.max(0, Math.min(LADDER.length - 1, Math.round(st / pspan * (LADDER.length - 1))));
+        if (idx !== cur) { cur = idx; hold = 6; }             // min ~140ms hold → no strobing
+      }
+      if (hold > 0) hold--;
+      ratP[i] = LADDER[cur][0]; ratQ[i] = LADDER[cur][1];
+    }
+
+    const BASE = 220;                                         // Hz, X-axis fundamental
     const S = { t: F.t, fr: [[], [], [], []], vl: [[], [], [], []], ph: [[], [], [], []],
                 ceHue: [], ceSat: [], ceBrt: [], ceGlow: [], ceSpeed: [], ceSpan: [] };
-    let drift = 0;
+    let drift = 0, kick = 0;
     for (let i = 0; i < nF; i++) {
-      drift += level[i] * 0.012;                       // slow phase precession
+      kick = Math.max(kick * 0.85, fluxN[i]);                 // onset accent envelope
+      drift += level[i] * 0.006 + kick * 0.06;                // gentle precession + onset dart
+      const fx = BASE * ratP[i], fy = BASE * ratQ[i];
+      // 2D wiring: X = osc0 + osc2, Y = osc1 + osc3. Fundamentals on osc0/osc1,
+      // octaves on osc2/osc3 (harmonic shimmer, driven by the high band).
+      const freqs = [fx, fy, fx * 2, fy * 2];
+      const shimmer = 0.02 + 0.06 * hi[i];
+      const body = 0.16 * (0.55 + 0.45 * level[i]);
+      const vols = [body, body, shimmer, shimmer];
+      const phs  = [0, 1.5708 + drift, drift * 0.5, 1.5708 + drift * 0.5];
       for (let k = 0; k < 4; k++) {
-        S.fr[k].push(freqToSlider(FREQ[k]));
-        S.vl[k].push(0.04 + 0.16 * bandForOsc[k][i]);  // spectral balance sculpts the lobes
-        S.ph[k].push(((k % 2) ? 1.5708 : 0) + (k % 2 ? drift : 0));
+        S.fr[k].push(freqToSlider(freqs[k]));
+        S.vl[k].push(vols[k]);
+        S.ph[k].push(phs[k]);
       }
-      S.ceHue.push(150 + cen[i] * 90);                  // gentler brightness→hue range
-      S.ceSat.push(62);                                 // less saturation
-      S.ceBrt.push(48 + level[i] * 42);
-      S.ceGlow.push(0.10 + level[i] * 0.18);
-      S.ceSpeed.push(clamp01(level[i]) * 6);            // colors drift slowly, not racing
-      S.ceSpan.push(hi[i] * 60);                        // less rainbow spread along the curve
+      S.ceHue.push(150 + cen[i] * 120);
+      S.ceSat.push(70);
+      S.ceBrt.push(46 + level[i] * 38 + kick * 22);           // onset brightness pop
+      S.ceGlow.push(0.10 + level[i] * 0.16 + kick * 0.16);
+      S.ceSpeed.push(clamp01(level[i]) * 4);
+      S.ceSpan.push(30 + hi[i] * 70);
     }
     return S;
   }
