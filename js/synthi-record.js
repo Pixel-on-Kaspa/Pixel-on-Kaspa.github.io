@@ -19,7 +19,8 @@
        ensureAudio: () => {},               // optional: start audio on REC
        getPatch:    () => string|null,      // optional: provenance snapshot
        engineVersion: 'aks-2026.07',
-       maxSec: 15,
+       maxSec: 15,                          // number OR () => seconds (re-read per take)
+       syncStart: () => Promise,            // optional: resolve when it's time to roll
        share: { text, url, hashtags, filenamePrefix }
      });
      rec.enable(true|false);   // toggle the REC button with audio on/off
@@ -82,14 +83,25 @@
     var container = elById(cfg.container);
     if (!container) return { enable: function () {} };
 
-    var maxSec = cfg.maxSec || 15;                // TODO: unlimited behind membership
+    // maxSec may be a NUMBER or a FUNCTION — a function is re-read on every REC,
+    // so a synth can make the clip length follow its own loop (see SOS·DJ).
+    var maxSecCfg = cfg.maxSec != null ? cfg.maxSec : 15;   // TODO: unlimited behind membership
+    function maxSecNow() {
+      var v = typeof maxSecCfg === "function" ? maxSecCfg() : maxSecCfg;
+      v = +v;
+      if (!isFinite(v) || v <= 0) v = 15;
+      return Math.min(120, Math.max(1, v));
+    }
+    function fmtSec(v) { return (v >= 10 ? Math.round(v) : Math.round(v * 10) / 10) + "s"; }
+    function syncTitle() { btn.title = "Record a " + fmtSec(maxSecNow()) + " clip of what you play"; }
     var engineVersion = cfg.engineVersion || "unknown";
     var share = cfg.share || {};
 
     // ── inline control (REC + countdown) ──
     var wrap = mk("span", "srec");
-    var btn = mk("button", "srec-btn", "● REC"); btn.type = "button"; btn.title = "Record a " + maxSec + "s clip of what you play"; btn.disabled = true;
-    var timeEl = mk("span", "srec-time", maxSec + "s");
+    var btn = mk("button", "srec-btn", "● REC"); btn.type = "button"; btn.disabled = true;
+    var timeEl = mk("span", "srec-time", fmtSec(maxSecNow()));
+    syncTitle();
     wrap.appendChild(btn); wrap.appendChild(timeEl);
     container.appendChild(wrap);
 
@@ -103,7 +115,7 @@
     result.appendChild(audio); result.appendChild(saveBtn); result.appendChild(wavBtn); result.appendChild(shareBtn);
     document.body.appendChild(result);
 
-    var mediaRecorder = null, chunks = [], countdown = null, timeout = null, msDest = null, tapNode = null;
+    var mediaRecorder = null, chunks = [], countdown = null, timeout = null, msDest = null, tapNode = null, arming = false;
     var lastBlob = null, lastUrl = null, lastTs = 0, lastPatch = null;
     var workletNode = null, silentGain = null, pcmBuffers = [], pcmRate = 44100, recToken = 0;
 
@@ -118,7 +130,7 @@
     }
     function setRecording(on) {
       if (on) { btn.textContent = "■ STOP"; btn.classList.add("rec"); result.classList.remove("on"); }
-      else { btn.textContent = "● REC"; btn.classList.remove("rec"); timeEl.textContent = maxSec + "s"; }
+      else { btn.textContent = "● REC"; btn.classList.remove("rec"); timeEl.textContent = fmtSec(maxSecNow()); syncTitle(); }
     }
     function clearTimers() {
       if (countdown) { clearInterval(countdown); countdown = null; }
@@ -179,19 +191,36 @@
         audio.src = lastUrl;
         result.classList.add("on");
       };
+      // ARM: hold until the host says it is musically time to roll (loop downbeat),
+      // so the clip starts on beat 1 and can loop seamlessly.
+      if (cfg.syncStart) {
+        arming = true;
+        btn.textContent = "◌ ARM"; btn.classList.add("rec"); timeEl.textContent = "…";
+        try { await cfg.syncStart(); } catch (e) {}
+        arming = false;
+        if (recToken !== myToken) { cleanupTap(); setRecording(false); return; }
+        pcmBuffers = [];                       // drop the pre-roll from the WAV master
+      }
+      var limit = maxSecNow();
       var started = Date.now();
       mediaRecorder.start();
       setRecording(true);
       countdown = setInterval(function () {
-        var left = Math.max(0, maxSec - Math.floor((Date.now() - started) / 1000));
-        timeEl.textContent = left + "s";
+        var left = Math.max(0, limit - (Date.now() - started) / 1000);
+        timeEl.textContent = (left >= 10 ? Math.ceil(left) : Math.ceil(left * 10) / 10) + "s";
       }, 250);
-      timeout = setTimeout(stop, maxSec * 1000);
+      timeout = setTimeout(stop, limit * 1000);
     }
-    function stop() { if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop(); clearTimers(); }
+    function stop() {
+      recToken++;                              // invalidates an in-flight ARM / worklet load
+      arming = false;
+      if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
+      else { cleanupTap(); setRecording(false); }
+      clearTimers();
+    }
     function isRecording() { return mediaRecorder && mediaRecorder.state === "recording"; }
 
-    btn.addEventListener("click", function () { isRecording() ? stop() : start(); });
+    btn.addEventListener("click", function () { (isRecording() || arming) ? stop() : start(); });
     saveBtn.addEventListener("click", function () {
       if (!lastBlob) return;
       var u = lastUrl || URL.createObjectURL(lastBlob);
@@ -252,7 +281,9 @@
         if (!on) { setRecording(false); return; }
         try { var c = cfg.getContext && cfg.getContext(); if (c) ensureWorklet(c).catch(function () {}); } catch (e) {}  // pre-warm the worklet module
       },
-      getLast: function () { return lastBlob ? { blob: lastBlob, patch: lastPatch, engineVersion: engineVersion, ts: lastTs } : null; }
+      getLast: function () { return lastBlob ? { blob: lastBlob, patch: lastPatch, engineVersion: engineVersion, ts: lastTs } : null; },
+      // redraw the idle length readout — call when the host's loop length / tempo changes
+      refresh: function () { if (!isRecording() && !arming) { timeEl.textContent = fmtSec(maxSecNow()); syncTitle(); } }
     };
   }
 
