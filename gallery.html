@@ -230,8 +230,9 @@
       var it = r[0], all = r[1];
       if (!it) {
         view.innerHTML = '<a class="back" href="/gallery.html">← Gallery</a>' +
-          '<div class="empty"><h2>Not found</h2><p>This creation is not on this device. ' +
-          '(The stub gallery is local to your browser; the live version will be shared for everyone.)</p></div>';
+          '<div class="empty"><h2>Not found</h2><p>This piece is not in the Gallery — ' +
+          'the link may be wrong, or it has been removed.</p>' +
+          '<p style="margin-top:16px"><a href="/gallery.html">Browse the Gallery \u2192</a></p></div>';
         return;
       }
       var openHref = PixelGallery.labLink(it);
