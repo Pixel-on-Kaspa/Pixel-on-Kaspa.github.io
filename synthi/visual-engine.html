@@ -324,6 +324,10 @@ let actx = null, playing = false;
 // Analysis of the track builds a deterministic SCORE that "composes" the
 // oscillators frame-by-frame; the render below reads it via applyTrackScore().
 let TRACK_MODE = false, TRACK_START = 0, SCORE = null, applyTrackScore = null, stopTrackFn = null;
+// The video's identity comes from the gallery: PICKED_MODEL is a patch chosen
+// by hand from ★ Gallery, startTrackRenderFn hands the recorder a fresh run of
+// the loaded track plus its audio.
+let PICKED_MODEL = null, startTrackRenderFn = null;
 
 const oState = [
   { wave:"sine", freq:0.340000, vol:.1, on:true, pan:-1, phase:0 },
@@ -757,7 +761,7 @@ function drawViz(now) {
     : `— stopped — ${fb}`;
 
   if (activeOffCtx && activeOffscreen) {
-    activeOffCtx.drawImage(canvas, 0, 0, 1440, 1440);
+    activeOffCtx.drawImage(canvas, 0, 0, activeOffscreen.width, activeOffscreen.height);
   }
 }
 
@@ -1049,7 +1053,10 @@ if (window.PixelGallery) {
     t.addEventListener("mouseenter", () => { img.style.borderColor = "var(--accent)"; });
     t.addEventListener("mouseleave", () => { img.style.borderColor = "var(--border)"; });
     t.addEventListener("click", () => {
-      if (item.patch) { try { restoreState(item.patch); } catch (e) { console.warn("[gallery] restore failed", e); } }
+      if (item.patch) {
+        PICKED_MODEL = item.patch;   // this is now the model a rendered track varies from
+        try { restoreState(item.patch); } catch (e) { console.warn("[gallery] restore failed", e); }
+      }
       close();
     });
     return t;
@@ -1257,8 +1264,21 @@ if (window.PixelGallery) {
      climbs the lobe count — the tune literally draws a more intricate figure */
   const LADDER = [[1,1],[8,7],[7,6],[6,5],[5,4],[4,3],[7,5],[3,2],[8,5],[5,3],[7,4],[9,5]];
 
-  function buildScore(F) {
+  /* The MODEL (a published patch) is the identity — register, palette, trace
+     character. The track is the motion. Everything below is expressed as a
+     move away from the model's own numbers, so a render reads as a variation
+     of the published piece instead of an unrelated figure. */
+  function buildScore(F, M) {
     const nF = F.t.length;
+    const num = (v, d) => { const n = parseFloat(v); return isFinite(n) ? n : d; };
+    const MO = (M && Array.isArray(M.osc)) ? M.osc : null;
+    const mce = (M && M.ce) ? M.ce : {};
+    const mVol = k => (MO && MO[k]) ? num(MO[k].vl, 0.16) : 0.16;
+    const mPh  = k => (MO && MO[k]) ? num(MO[k].ph, k % 2 ? 1.5708 : 0) : (k % 2 ? 1.5708 : 0);
+    const mHue = num(mce.ceHue, 165),  mSpan  = num(mce.ceSpan, 0);
+    const mSat = num(mce.ceSat, 85),   mBrt   = num(mce.ceBrt, 70);
+    const mGlow = num(mce.ceGlow, .15), mSpeed = num(mce.ceSpeed, 0);
+    const mDecay = num(M && M.decay, .08), mThick = num(M && M.thick, 2.5);
     const clamp01 = v => Math.max(0, Math.min(1, v));
     const smooth = (a, w) => a.map((_, i) => { let s = 0, c = 0; for (let j = -w; j <= w; j++) { const k = i + j; if (k >= 0 && k < a.length) { s += a[k]; c++; } } return s / c; });
 
@@ -1317,7 +1337,12 @@ if (window.PixelGallery) {
                           : b > 0.20 ? 1      // PETAL — warm
                           : 0;                // LISSA — dark
 
-    const BASE = 220;                                         // Hz; every multiple is an integer → window closes
+    /* Hz; every multiple is an integer → window closes. The model's OSC 1 sets
+       the register, so a low patch renders low and a bright one renders bright —
+       but it is ROUNDED first: lissajousPeriod() takes the GCD of the freqs, so a
+       fractional base leaves them coprime, the window blows out to its 2s cap and
+       the figure draws as an open scribble instead of a closed curve. */
+    const BASE = MO ? Math.max(20, Math.round(logF(num(MO[0].fr, 0.34)))) : 220;
     const S = { t: F.t, fr: [[], [], [], []], vl: [[], [], [], []], ph: [[], [], [], []],
                 wv: [[], [], [], []], fam: [], decay: [], thick: [],
                 ceHue: [], ceSat: [], ceBrt: [], ceGlow: [], ceSpeed: [], ceSpan: [] };
@@ -1340,10 +1365,11 @@ if (window.PixelGallery) {
       turn += 0.003 + level[i] * 0.010 + accM[i] * 0.10;      // precession + a dart on every mid hit
       hueDrift += 0.06 + level[i] * 0.22;                     // slow travel so a long take never sits on one colour
 
-      const body = 0.16;                                      // X/Y are volume-normalised: the RATIO is the expressive part
-      const shim = body * FAM.sh * (0.30 + 1.1 * hi[i] + 0.5 * accH[i]);
-      const vols = [body, body, shim, shim];
-      const phs  = [0, 1.5708 + turn, turn * 0.6 + accB[i] * 0.9, 1.5708 + turn * 0.35];
+      /* the model sets each oscillator's weight — the track only breathes it.
+         OSC 3/4 are the detail partners, so they carry the shimmer swing. */
+      const shim = clampR((FAM.sh / 0.5) * (0.55 + 0.9 * hi[i] + 0.45 * accH[i]), 0.25, 1.8);
+      const vols = [mVol(0), mVol(1), mVol(2) * shim, mVol(3) * shim];
+      const phs  = [mPh(0), mPh(1) + turn, mPh(2) + turn * 0.6 + accB[i] * 0.9, mPh(3) + turn * 0.35];
 
       for (let k = 0; k < 4; k++) {
         S.fr[k].push(freqToSlider(BASE * m[k]));
@@ -1352,16 +1378,28 @@ if (window.PixelGallery) {
         S.wv[k].push(FAM.wv[k]);
       }
       S.fam.push(FAM.n);
-      S.ceHue.push((hueDrift + bright[i] * 150 + accH[i] * 45) % 360);
-      S.ceSat.push(60 + 34 * hi[i]);
-      S.ceBrt.push(Math.min(100, 32 + 46 * level[i] + 24 * accB[i]));
-      S.ceGlow.push(Math.min(1, 0.05 + 0.30 * level[i] + 0.26 * accB[i]));
-      S.ceSpeed.push(Math.min(120, 3 + 34 * level[i] + 45 * accM[i]));
-      S.ceSpan.push(Math.min(360, 8 + 190 * hi[i] + 70 * accH[i]));
+      /* hue ORBITS the model's colour rather than travelling the whole wheel:
+         a bounded swing keeps the published palette recognisable over a long take */
+      const hueSwing = 60 * Math.sin(hueDrift * 0.05) * (0.45 + 0.55 * bright[i]) + 26 * accH[i];
+      S.ceHue.push((((mHue + hueSwing) % 360) + 360) % 360);
+      // sat/brt/glow scale the model's level; speed/span add to it, because a
+      // model sitting at 0 would otherwise stay dead however loud the track is
+      S.ceSat.push(clampR(mSat * (0.82 + 0.36 * hi[i]), 0, 100));
+      S.ceBrt.push(clampR(mBrt * (0.70 + 0.55 * level[i] + 0.30 * accB[i]), 0, 100));
+      S.ceGlow.push(clampR(mGlow * (0.55 + 1.6 * level[i] + 1.4 * accB[i]), 0, 1));
+      S.ceSpeed.push(clampR(mSpeed + 3 + 30 * level[i] + 45 * accM[i], 0, 120));
+      S.ceSpan.push(clampR(mSpan + 8 + 150 * hi[i] + 60 * accH[i], 0, 360));
       // low decay = long luminous trail. Busy + loud tightens the figure up;
       // a bass hit briefly DROPS it so the kick blooms a tail behind the curve.
-      S.decay.push(clampR(0.035 + 0.24 * dense[i] + 0.10 * level[i] - 0.13 * accB[i], 0.006, 0.5));
-      S.thick.push(clampR(0.65 + 2.1 * level[i] + 2.0 * accB[i], 0.4, 6));
+      /* clamped around the MODEL rather than a fixed floor: a patch living at
+         decay 0.001 (the long luminous trail) was pinned to 0.006 and rendered a
+         shorter tail than the piece it varies. The 0.0025 floor still stands,
+         though — decay is an alpha per frame, and below it a MOVING figure never
+         clears within a clip and smears into a solid block. */
+      S.decay.push(clampR(mDecay * (0.55 + 1.9 * dense[i] + 0.8 * level[i] - 1.0 * accB[i]),
+                          Math.max(0.0025, mDecay * 0.4), Math.min(0.5, mDecay * 3.2)));
+      S.thick.push(clampR(mThick * (0.45 + 1.0 * level[i] + 0.95 * accB[i]),
+                          Math.max(0.2, mThick * 0.45), Math.min(6, mThick * 2.8)));
     }
     return S;
   }
@@ -1413,16 +1451,17 @@ if (window.PixelGallery) {
     TRACK_MODE = false;
   }
   stopTrackFn = stopTrack;
-  function startTrack() {
+  function startTrack(recDest) {
     playing = false;
     const bp = document.getElementById('btnPlay'); bp.textContent = '▶ PLAY'; bp.classList.remove('playing');
     teardownAudio();          // silence the live oscillator bank
     stopTrack();
     ensureActx();
-    knobDecay.set(0.11); knobThick.set(1.1);   // starting point — the score drives both from here
+    // no knob reset here — the model is the starting point, the score moves it
     const src = actx.createBufferSource(); src.buffer = trackBuf;
     const an = actx.createAnalyser(); an.fftSize = 2048;
     src.connect(an); an.connect(actx.destination);
+    if (recDest) an.connect(recDest);   // parallel fan-out: the MP4's audio track
     envAnalyser = an; envBuf = new Uint8Array(an.frequencyBinCount);   // env now follows the track
     idx = 0; TRACK_START = actx.currentTime; TRACK_MODE = true;
     src.start(); trackSrc = src;
@@ -1432,17 +1471,60 @@ if (window.PixelGallery) {
       hint('✓ done — panel shows the final frequencies · drop another track');
     };
   }
+  /* ══════════ BASE MODEL ══════════════════════════════════════════════════
+     A rendered video is a variation of a PUBLISHED piece, not of whatever the
+     panel happened to be showing. The newest Lissajous in the gallery is the
+     model; the track is what moves it. Resolution order: a model picked by hand
+     from ★ Gallery this session → the newest gallery item for this Lab → the
+     panel as it stands (offline, empty gallery, or Worker down). ── */
+  const MODEL_LABS = ['synthi-visual-engine'];   // widen to pull models from the other generators
+  let cachedModel = null, modelSource = '';
+  async function resolveModel() {
+    if (PICKED_MODEL) { modelSource = 'gallery pick'; return PICKED_MODEL; }
+    if (cachedModel)  { modelSource = 'gallery';      return cachedModel; }
+    try {
+      if (window.PixelGallery) {
+        const items = await Promise.resolve(PixelGallery.list());
+        const hit = (items || []).find(x => x && x.patch && MODEL_LABS.indexOf(x.labId) >= 0);
+        if (hit) { cachedModel = hit.patch; modelSource = 'gallery'; return cachedModel; }
+      }
+    } catch (e) { /* offline / Worker down — never block the track on the network */ }
+    modelSource = 'panel';
+    return captureState();
+  }
+
+  /* hand the recorder a fresh run of the track plus its audio. `go()` is split
+     off so the recorder can be fully built before a single sample plays — the
+     video and the audio then start on the same instant. */
+  startTrackRenderFn = function () {
+    if (!trackBuf) return null;
+    ensureActx();
+    const dest = actx.createMediaStreamDestination();
+    return {
+      duration: trackBuf.duration,
+      audioTrack: dest.stream.getAudioTracks()[0],
+      go: () => startTrack(dest)
+    };
+  };
+
   async function loadTrack(file) {
     try {
       ensureActx();
       hint('decoding…');
       const ab = await file.arrayBuffer();
       trackBuf = await actx.decodeAudioData(ab);
+      hint('loading model…');
+      const M = await resolveModel();
+      restoreState(M);                  // put the model on screen: what you see is what you render
       hint('analyzing…');
       const F = await analyze(trackBuf, p => hint('analyzing… ' + Math.round(p * 100) + '%'));
-      SCORE = buildScore(F);
-      trackLabel = '▶ ' + file.name.replace(/\.[^.]+$/, '') + ' · ' + trackBuf.duration.toFixed(1) + 's';
+      SCORE = buildScore(F, M);
+      // the model source rides in the label itself — applyTrackScore rewrites the
+      // hint with the current shape family, and would otherwise wipe it after a frame
+      trackLabel = '▶ ' + file.name.replace(/\.[^.]+$/, '') + ' · ' + trackBuf.duration.toFixed(1) + 's · ' + modelSource;
       hint(trackLabel);
+      const rb = document.getElementById('btnRec');
+      if (rb) rb.title = 'Render the whole track to MP4, with its audio';
       startTrack();
     } catch (e) { hint('could not read / analyze that audio'); }
   }
@@ -1459,8 +1541,18 @@ if (window.PixelGallery) {
   });
 })();
 
-/* ── OFFSCREEN RECORD (8s) ── */
-const REC_DURATION = 8000;
+/* ── OFFSCREEN RECORD ──────────────────────────────────────────────────────
+   Free play records a short loop of the live figure. With a track loaded the
+   clip IS the track: it runs from 0:00 for the recording's full length and
+   carries the original audio (the oscillators stay silent — they are the
+   visual translation, not the sound).
+   1080 at 30 fps because that is what X and Instagram re-encode to anyway, and
+   a minute at 1440/60 is a ~190 MB blob held in memory. The bitrate stays high
+   for its size: a dense Lissajous line-field is the worst case for H.264. ── */
+const REC_DURATION = 8000;        // free-play clip length
+const REC_SIZE = 1080;
+const REC_FPS = 30;
+const REC_VBPS = 12_000_000;
 let isRecording = false;
 let activeOffCtx = null;
 let activeOffscreen = null;
@@ -1482,25 +1574,41 @@ function beginRec() {
 
   const chunks = [];
   const off = document.createElement('canvas');
-  off.width = 1440; off.height = 1440;
+  off.width = REC_SIZE; off.height = REC_SIZE;
   activeOffscreen = off;
   activeOffCtx = off.getContext('2d');
 
-  const stream = off.captureStream(60);
+  const stream = off.captureStream(REC_FPS);
 
-  const FORMATS = [
+  /* a loaded track makes the clip — full length, original audio, from the top */
+  const run = startTrackRenderFn ? startTrackRenderFn() : null;
+  let duration = REC_DURATION;
+  if (run) {
+    duration = Math.ceil(run.duration * 1000) + 120;   // let the last frame land
+    if (run.audioTrack) stream.addTrack(run.audioTrack);
+  }
+
+  // a container that carries video only will silently drop the audio track
+  const FORMATS = run ? [
+    'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+    'video/mp4;codecs=h264,aac',
+    'video/mp4',
+    'video/webm;codecs=vp9,opus',
+    'video/webm',
+  ] : [
     'video/mp4;codecs=avc1.42E01E',
     'video/mp4;codecs=h264',
     'video/webm;codecs=vp9',
     'video/webm',
   ];
+  const RECOPT = { videoBitsPerSecond: REC_VBPS, audioBitsPerSecond: 192_000 };
   let rec;
   for (const mime of FORMATS) {
     if (!MediaRecorder.isTypeSupported(mime)) continue;
-    try { rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 25_000_000 }); break; }
+    try { rec = new MediaRecorder(stream, Object.assign({ mimeType: mime }, RECOPT)); break; }
     catch(e) {}
   }
-  if (!rec) rec = new MediaRecorder(stream, { videoBitsPerSecond: 25_000_000 });
+  if (!rec) rec = new MediaRecorder(stream, RECOPT);
 
   const actualMime = rec.mimeType || 'video/webm';
   const actualExt  = actualMime.includes('mp4') ? 'mp4' : 'webm';
@@ -1527,13 +1635,14 @@ function beginRec() {
     endRec();
   };
 
+  if (run) run.go();          // audio starts with the recorder, not before it
   rec.start(100);
 
   const start = performance.now();
   function updateOverlay() {
     const elapsed = performance.now() - start;
-    const remaining = Math.ceil((REC_DURATION - elapsed) / 1000);
-    if (elapsed >= REC_DURATION) {
+    const remaining = Math.ceil((duration - elapsed) / 1000);
+    if (elapsed >= duration) {
       recOverlay.classList.remove('show');
       recOverlay.textContent = '';
       rec.stop();
