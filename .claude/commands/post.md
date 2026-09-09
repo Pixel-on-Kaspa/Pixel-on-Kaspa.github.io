@@ -39,7 +39,7 @@ Post a visual (PNG or MP4) from a local artist export folder to X profiles.
 
 ## Step 1 — Find media files
 
-Pick a separate random file per profile from `~/Desktop/pixel-exports/$ARTIST/`. Each of the three X profiles gets a different file. Instagram @marekozor reuses the @marekozor X file.
+Pick a separate random file per profile from `~/Desktop/pixel-exports/$ARTIST/`. Each of the three X profiles gets a different file. The Instagram draft reuses the @marekozor X file.
 
 ### NEVER reuse a media file — check `.claude/posted-media.json` FIRST
 
@@ -392,12 +392,13 @@ Display all generated posts clearly, each with:
 - Post text
 - Media file attached
 
-When `--artist deep-memory`, also show Instagram @marekozor as fourth option.
+When `--artist deep-memory`, also draft the Instagram @marekozor caption. **Instagram is draft-only** —
+there is no publisher for it any more, so hand the caption + media path over and marek posts it himself.
 
 Then ask:
 ```
 Which profiles do you want to post to?
-Options: @PixelonKas / @marekozor / @synthicoin / Instagram @marekozor
+Options: @PixelonKas / @marekozor / @synthicoin   (Instagram caption is handed over as text, not posted)
 ```
 
 ---
@@ -440,41 +441,6 @@ Never log or display credential values.
 
 ---
 
-## Step 5b — Instagram post (deep-memory only)
-
-Credentials from `.env`:
-```
-INSTAGRAM_USERNAME_MAREKOZOR
-INSTAGRAM_PASSWORD_MAREKOZOR
-```
-If missing, skip Instagram silently.
-
-Library: `instagrapi`. Install if needed: `pip install instagrapi`
-
-Session: load from `/tmp/ig_session_marekozor.json` if exists; save after login.
-
-```python
-from instagrapi import Client
-
-cl = Client()
-cl.delay_range = [1, 3]
-if is_video:
-    cl.video_upload(mp4_path, caption=caption)
-else:
-    cl.photo_upload(png_path, caption=caption)
-```
-
-Wrap in try/except — Instagram failure never blocks X posts.
-
-Confirm on success:
-```
-✓ Posted to Instagram (@marekozor)
-  Media: filename.ext
-  URL: https://www.instagram.com/p/{code}/
-```
-
----
-
 ## Step 6 — Confirm
 
 ```
@@ -486,7 +452,6 @@ Confirm on success:
 
 ## Checklist před každým postem
 
-- [ ] Instagram caption obsahuje hashtag blok (10–15 tagů, prázdný řádek před ním)
 - [ ] @marekozor X post — OpenSea link jen pro deep-memory, jen pokud ≤ 280 znaků
 - [ ] @synthicoin — experimental lens vždy, **EN only**, 2–3 hashtags, nikdy #NFT, nikdy přímé promo/CTA
 - [ ] PIXELONKAS a SYKORA mint linky → `kaspa.com` (ne OpenSea)
