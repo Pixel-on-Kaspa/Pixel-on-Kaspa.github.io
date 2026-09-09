@@ -599,7 +599,7 @@ function applyStyle(idx){
   arpOn=!!S.arpOn;arpMode=S.arpMode||0;arpOct=S.arpOct||1;arpDiv=S.arpDiv!=null?S.arpDiv:3;basArp=!!S.basArp;arpGate=S.arpGate!=null?S.arpGate:1;buildArpSeq();arpIdx=0;
   fltSlider.value=S.filter!=null?S.filter:50;
   setDelayTime();applyDelayMode();applyFilter();
-  refreshSteps();refreshEngineLabels();updateFxLabels();
+  refreshSteps();refreshEngineLabels();updateFxLabels();syncChainB();
   if(recUI&&recUI.refresh)recUI.refresh();
   curStyle=idx;document.querySelectorAll('.sty').forEach((b,i)=>b.classList.toggle('on',i===idx));
   const rb=document.getElementById('btnRnd');if(rb){rb.textContent='🎲 VARY';rb.title='Variace v rámci stylu '+S.name;}
@@ -1379,7 +1379,7 @@ function attachStep(st,id,i){
     if(!down||!mode)return;
     if(Math.abs(e.clientY-sy)>4)moved=true;
     if(!moved)return;
-    if(!patterns[id][i]){patterns[id][i]=1;st.classList.add('on');}   // dragging also arms the step
+    if(!patterns[id][i]){patterns[id][i]=1;st.classList.add('on');if(curAB===1)bAuto=false;}   // dragging also arms the step
     if(mode==='vel'){
       setVel(id,i,Math.max(.2,Math.min(1.4,sVal+(sy-e.clientY)/120)));
     }else{
@@ -1392,7 +1392,7 @@ function attachStep(st,id,i){
   });
   st.addEventListener('pointerup',()=>{
     if(!down)return;down=false;
-    if(!moved){patterns[id][i]^=1;st.classList.toggle('on',!!patterns[id][i]);applyVel(st,id,i);}
+    if(!moved){patterns[id][i]^=1;st.classList.toggle('on',!!patterns[id][i]);applyVel(st,id,i);if(curAB===1)bAuto=false;}
     if(patterns[id][i]&&mel&&!accMode){ensureAudio();previewMel(id,i);}
   });
   st.addEventListener('pointercancel',()=>{down=false;});
@@ -1425,7 +1425,7 @@ function randomize(){
   MEL_IDS.forEach(id=>{if(!patterns.notes[id])patterns.notes[id]=Array(STEPS).fill(0);
     for(let i=0;i<STEPS;i++)patterns.notes[id][i]=Math.floor(Math.random()*SCALE.length);});
   patterns.vel=newVels(STEPS);VOICES.forEach(v=>{patterns.vel[v.id]=accentLoose(STEPS);});
-  refreshSteps();refreshEngineLabels();
+  refreshSteps();refreshEngineLabels();syncChainB();
 }
 /* 🎲 while a style is active → a fresh variation *in that style*: keeps the
    genre's engines, scale, tempo, mix + FX, and mutates only the groove.
@@ -1467,9 +1467,64 @@ function rerollStyle(S){
     }
     patterns.notes[id]=arr;
   });
-  refreshSteps();refreshEngineLabels();
+  refreshSteps();refreshEngineLabels();syncChainB();
 }
-function clearSteps(){VOICES.forEach(v=>{for(let i=0;i<STEPS;i++)patterns[v.id][i]=0;});refreshSteps();}
+/* ── CHAIN needs a second bar to chain TO ─────────────────────────────────
+   CHAIN swaps A↔B every loop and a take is two loops long, so an empty B gave
+   one bar of groove followed by one bar of silence. Deriving B from A keeps the
+   kit, the key and the strong-beat anchors and moves the off-beats + the last
+   quarter, so A→B reads as one 2-bar phrase. A B written by hand is never
+   overwritten. */
+function patEmpty(P){return !VOICES.some(v=>(P[v.id]||[]).some(Boolean));}
+function variationOf(src){
+  const out={};
+  /* how freely a lane may invent a hit that A doesn't have — a kick that wanders
+     reads as a mistake, a hat that wanders reads as a groove */
+  const GHOST={KCK:.04,BAS:.12,STB:.16,HAT:.24,CLP:.06};
+  VOICES.forEach(v=>{
+    const a=src[v.id]||[],L=a.length,o=Array(STEPS).fill(0),g=GHOST[v.id]||.10;
+    for(let i=0;i<STEPS;i++){
+      const strong=i%4===0;
+      if(L&&a[i%L]) o[i]=strong?1:(Math.random()<.75?1:0);        // anchors kept, off-beats thinned
+      else if(!strong&&Math.random()<g) o[i]=1;                   // a few new ghosts
+    }
+    if(!o.some(Boolean)&&L&&a.some(Boolean))o[Math.max(0,a.indexOf(1))%STEPS]=1;   // never let a lane die
+    out[v.id]=o;
+  });
+  if((src.KCK||[])[0])out.KCK[0]=1;                               // hold the downbeat
+  const q=Math.max(1,STEPS/4|0);                                  // last quarter = the fill back into A
+  for(let i=STEPS-q;i<STEPS;i++){
+    if(Math.random()<.45)out.HAT[i]=1;
+    if(Math.random()<.22)out.CLP[i]=1;
+  }
+  out.notes=newNotes(STEPS);
+  MEL_IDS.forEach(id=>{
+    const sn=(src.notes&&src.notes[id])||[],L=sn.length,arr=Array(STEPS).fill(0);
+    let last=sn.find(x=>x)||0;
+    for(let i=0;i<STEPS;i++){
+      if(!out[id][i])continue;
+      const seed=L?sn[i%L]:0,b=(seed!=null&&seed!==0)?seed:last;
+      arr[i]=Math.max(0,Math.min(SCALE.length-1,Math.random()<.55?b:b+(Math.floor(Math.random()*5)-2)));
+      last=arr[i];
+    }
+    out.notes[id]=arr;
+  });
+  out.vel=newVels(STEPS);VOICES.forEach(v=>{out.vel[v.id]=accentLoose(STEPS);});
+  return out;
+}
+/* B counts as "auto" until you touch it — after that styles / VARY leave it alone */
+let bAuto=false;
+function seedChainB(force){
+  const A=patternsAB[0],B=patternsAB[1];
+  if(patEmpty(A))return;
+  if(!force&&!patEmpty(B))return;
+  const nb=variationOf(A);Object.keys(nb).forEach(k=>{B[k]=nb[k];});   // in place — `patterns` may alias B
+  bAuto=true;
+  if(curAB===1)refreshSteps();
+}
+/* a style / RND / VARY rewrote A → keep an auto-derived B in step with it */
+function syncChainB(){if(chain&&bAuto&&curAB===0)seedChainB(true);}
+function clearSteps(){VOICES.forEach(v=>{for(let i=0;i<STEPS;i++)patterns[v.id][i]=0;});if(curAB===1)bAuto=false;refreshSteps();}
 /* pattern A/B, loop length, delay division, master filter */
 function selectAB(i){curAB=i&1;patterns=patternsAB[curAB];refreshSteps();const b=document.getElementById('btnAB');if(b)b.textContent='PAT '+(curAB?'B':'A');}
 /* growing the loop REPEATS what's there (4 bars of the groove, not 1 bar + silence);
@@ -1622,7 +1677,9 @@ const btnBasArp=document.getElementById('btnBasArp');
 btnBasArp.addEventListener('click',()=>{ensureAudio();basArp=!basArp;btnBasArp.classList.toggle('on',basArp);});
 document.getElementById('btnAB').addEventListener('click',()=>selectAB(curAB^1));
 const btnChain=document.getElementById('btnChain');
-btnChain.addEventListener('click',()=>{chain=!chain;btnChain.classList.toggle('on',chain);if(recUI&&recUI.refresh)recUI.refresh();});
+btnChain.addEventListener('click',()=>{chain=!chain;btnChain.classList.toggle('on',chain);
+  if(chain)seedChainB(false);            // an empty B would record as a bar of silence
+  if(recUI&&recUI.refresh)recUI.refresh();});
 document.getElementById('btnLen').addEventListener('click',()=>{
   const seq=[8,16,32,64],ni=(seq.indexOf(STEPS)+1)%seq.length;
   groupMarks=null;groupKey='';                           // a manual length leaves the style's metre behind
@@ -1633,12 +1690,46 @@ document.getElementById('btnLen').addEventListener('click',()=>{
    parallel MediaStreamDestination for a WebM/Opus clip + AudioWorklet WAV
    master, and hands the clip to PixelShare for one-tap Share on X.
    Snapshots the full patch so a remix layer can be turned on later. */
-/* Clip length IS the loop: one full pass of the current pattern at the current
-   tempo — two when CHAIN is on, because then A→B is the musical unit. Armed so
+/* Clip length is a WHOLE number of loops — as many as it takes to clear the
+   minimum, so a 16-step bar at 124 BPM ships as 8s of groove instead of a 2s
+   stub. CHAIN rounds that count up to an even number, because then A→B is the
+   musical unit and a take must never stop halfway through the pair. Armed so
    the take starts on step 1 (and on pattern A), so the clip loops seamlessly. */
+const REC_MIN_SEC=8, REC_LONG_SEC=60;
+let recLong=false;
 function loopSec(){return STEPS*stepDur();}
-function recLoops(){return chain?2:1;}
+function recLoops(){
+  const want=recLong?REC_LONG_SEC:REC_MIN_SEC;
+  let n=Math.max(chain?2:1,Math.ceil(want/loopSec()));
+  if(chain&&n%2)n++;                                  // always end on a complete A→B
+  return n;
+}
 function recSec(){return loopSec()*recLoops();}
+/* Long takes are mine, not a shipped feature: /synthi/sos-dj.html?rec=long
+   unlocks a 1 MIN toggle next to REC on this device (?rec=loop locks it again).
+   Everyone else keeps the loop-length clip. */
+(function longTakeUnlock(){
+  const KEY='sosdj.recLong', ST='sosdj.recLongOn';
+  let ls=null; try{ls=localStorage;}catch(e){}
+  const q=new URLSearchParams(location.search).get('rec');
+  if(q==='long'&&ls) ls.setItem(KEY,'1');
+  if(q==='loop'&&ls){ ls.removeItem(KEY); ls.removeItem(ST); }
+  let unlocked=false; try{unlocked=ls&&ls.getItem(KEY)==='1';}catch(e){}
+  if(!unlocked)return;
+  try{recLong=ls.getItem(ST)==='1';}catch(e){}
+  const b=document.createElement('button');
+  b.className='tbtn';b.id='btnLong';b.type='button';b.textContent='1 MIN';
+  b.title='Long take — at least 1 min, rounded up to whole loops';
+  b.style.marginRight='6px';
+  b.classList.toggle('on',recLong);
+  b.addEventListener('click',()=>{
+    recLong=!recLong;b.classList.toggle('on',recLong);
+    try{ls.setItem(ST,recLong?'1':'0');}catch(e){}
+    if(recUI&&recUI.refresh)recUI.refresh();
+  });
+  const mount=document.getElementById('srecMount');
+  mount.parentNode.insertBefore(b,mount);
+})();
 const sosRec=(window.SynthiRecord?SynthiRecord.mount({
   container:'srecMount',
   getContext:()=>AC,
