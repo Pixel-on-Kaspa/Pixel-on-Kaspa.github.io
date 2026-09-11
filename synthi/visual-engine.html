@@ -126,7 +126,8 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
   </nav>
   <div class="transport">
     <button id="btnPlay">▶ PLAY</button>
-    <button class="btn" id="btnLoadTrack" title="Load a recording — its analysis composes the oscillators">🎵 TRACK</button>
+    <button class="btn" id="btnLoadTrack" title="Load a recording — it plays under the figure and the video carries it">🎵 TRACK</button>
+    <button class="btn" id="btnVary" title="Step sideways from the image you have tuned">🎲 VARY</button>
     <input type="file" id="trackFile" accept="audio/*" style="display:none">
     <button class="btn" id="btnPng">📷 PNG</button>
     <button class="btn" id="btnRec">⏺ MP4</button>
@@ -1268,169 +1269,26 @@ if (window.PixelGallery) {
      character. The track is the motion. Everything below is expressed as a
      move away from the model's own numbers, so a render reads as a variation
      of the published piece instead of an unrelated figure. */
-  function buildScore(F, M) {
-    const nF = F.t.length;
-    const num = (v, d) => { const n = parseFloat(v); return isFinite(n) ? n : d; };
-    const MO = (M && Array.isArray(M.osc)) ? M.osc : null;
-    const mce = (M && M.ce) ? M.ce : {};
-    const mVol = k => (MO && MO[k]) ? num(MO[k].vl, 0.16) : 0.16;
-    const mPh  = k => (MO && MO[k]) ? num(MO[k].ph, k % 2 ? 1.5708 : 0) : (k % 2 ? 1.5708 : 0);
-    const mHue = num(mce.ceHue, 165),  mSpan  = num(mce.ceSpan, 0);
-    const mSat = num(mce.ceSat, 85),   mBrt   = num(mce.ceBrt, 70);
-    const mGlow = num(mce.ceGlow, .15), mSpeed = num(mce.ceSpeed, 0);
-    const mDecay = num(M && M.decay, .08), mThick = num(M && M.thick, 2.5);
-    const clamp01 = v => Math.max(0, Math.min(1, v));
-    const smooth = (a, w) => a.map((_, i) => { let s = 0, c = 0; for (let j = -w; j <= w; j++) { const k = i + j; if (k >= 0 && k < a.length) { s += a[k]; c++; } } return s / c; });
+  /* ── WHY THERE IS NO SCORE ANY MORE ────────────────────────────────────────
+     This used to compose the oscillators and the colour engine frame by frame
+     from the track's analysis. Two things were wrong with it. It overrode every
+     parameter you can tune — turn the HUE slider during a take and nothing
+     happened, because the next frame wrote it back — and it manufactured motion
+     by nudging parameters a six-hundredth of a turn per frame, which with a long
+     trail stacks near-identical curves into a brighter blob rather than drawing
+     a form.
 
-    /* percentile stretch — the fix for "everything hugs its own mean" */
-    const expand = (a, lo = 0.10, hi = 0.90) => {
-      const srt = a.slice().sort((x, y) => x - y);
-      const q = t => srt[Math.min(srt.length - 1, Math.max(0, Math.round(t * (srt.length - 1))))];
-      const a0 = q(lo), d = (q(hi) - a0) || 1e-9;
-      return a.map(v => clamp01((v - a0) / d));
-    };
-    /* fast attack, slow release — a hit punches, then falls away */
-    const env = (a, atk = 0.55, rel = 0.12) => { let e = 0; return a.map(v => { e += (v - e) * (v > e ? atk : rel); return e; }); };
-    /* onset = flux rising well above its own local average */
-    const onsets = (flux, sens = 1.45) => {
-      const n = expand(flux), loc = smooth(n, 8), out = new Array(nF).fill(0);
-      let wait = 0;
-      for (let i = 0; i < nF; i++) {
-        if (wait > 0) { wait--; continue; }
-        if (n[i] > loc[i] * sens + 0.05) { out[i] = 1; wait = 2; }
-      }
-      return out;
-    };
-    const accent = (on, dec = 0.80) => { let v = 0; return on.map(x => (v = Math.max(v * dec, x))); };
+     What the engine already does on its own is better than either: drawViz
+     scales the radius by env.level, the line width by env.bass and the
+     brightness by env.level, straight off the analyser — so the figure breathes
+     with the music with nothing written per frame. A take is now exactly the
+     image on screen plus its music, and every control stays yours.
 
-    const level = env(expand(F.rms));
-    const bass  = env(expand(F.bass));
-    const hi    = env(expand(F.hi));
-    const bright = smooth(expand(F.centroid.map(c => Math.log(Math.max(80, c)))), 8);
-    /* airiness: the high band's SHARE of the spectrum, not its level. Measured
-       across material it separates where brightness alone does not (a hat-led
-       passage and a bright lead read very differently), so it is the second axis
-       the family grid needs — not just a hotter version of the first. */
-    const air = smooth(expand(F.hi.map((v, i) => v / (F.bass[i] + F.loMid[i] + F.hiMid[i] + v + 1e-9))), 6);
+     The offline analysis below (fft / acPitch / analyze) is left in place but is
+     no longer called. It is the "composed, not live-reactive" path, and if that
+     comes back it starts from there rather than being written again. ── */
+  applyTrackScore = null;
 
-    const onB = onsets(F.fluxB), onM = onsets(F.fluxM), onH = onsets(F.fluxH);
-    const accB = accent(onB, 0.78), accM = accent(onM, 0.84), accH = accent(onH, 0.72);
-
-    // ── MELODY → ratio ────────────────────────────────────────────────────
-    // Against the track's own tonic, not against its absolute pitch span: the
-    // semitone class picks the ratio, so a melody walking the scale walks the
-    // whole ladder instead of collapsing onto two or three entries.
-    const pitch = F.pitch, conf = F.conf;
-    const hist = new Array(12).fill(0);
-    for (let i = 0; i < nF; i++) if (conf[i] > 0.5 && pitch[i] > 0) hist[((Math.round(12 * Math.log2(pitch[i] / 55)) % 12) + 12) % 12] += conf[i];
-    let tonic = 0; for (let k = 1; k < 12; k++) if (hist[k] > hist[tonic]) tonic = k;
-    const degreeOf = hz => ((Math.round(12 * Math.log2(hz / 55)) - tonic) % 12 + 12) % 12;
-
-    // ── TIMBRE → family ───────────────────────────────────────────────────
-    // Air first (a cymbal-led passage is its own thing at any brightness), then
-    // the brightness ladder. Measured on a 4-section test track this lands one
-    // family per section instead of parking on one.
-    const famOf = (b, a) => a > 0.70 ? 5      // MOIRE — shimmering, cymbal wash
-                          : a > 0.45 ? 4      // HALO  — airy, hats on top
-                          : b > 0.60 ? 3      // BOX   — bright and hard
-                          : b > 0.40 ? 2      // BRAID — mid
-                          : b > 0.20 ? 1      // PETAL — warm
-                          : 0;                // LISSA — dark
-
-    /* Hz; every multiple is an integer → window closes. The model's OSC 1 sets
-       the register, so a low patch renders low and a bright one renders bright —
-       but it is ROUNDED first: lissajousPeriod() takes the GCD of the freqs, so a
-       fractional base leaves them coprime, the window blows out to its 2s cap and
-       the figure draws as an open scribble instead of a closed curve. */
-    const BASE = MO ? Math.max(20, Math.round(logF(num(MO[0].fr, 0.34)))) : 220;
-    const S = { t: F.t, fr: [[], [], [], []], vl: [[], [], [], []], ph: [[], [], [], []],
-                wv: [[], [], [], []], fam: [], decay: [], thick: [],
-                ceHue: [], ceSat: [], ceBrt: [], ceGlow: [], ceSpeed: [], ceSpan: [] };
-    /* event density — busy passages want a crisp figure, sparse ones want trails */
-    const dense = smooth(expand(F.flux), 10);
-    const clampR = (v, a, b) => Math.max(a, Math.min(b, v));
-
-    let idx = 0, fam = 0, holdShape = 0, holdFam = 0, turn = 0, hueDrift = 0;
-    for (let i = 0; i < nF; i++) {
-      const hit = onB[i] || onM[i];
-      // the shape moves on a HIT, never mid-note — that is what reads as intent
-      if (holdShape <= 0 && hit && conf[i] > 0.50 && pitch[i] > 0) { idx = degreeOf(pitch[i]); holdShape = 8; }
-      else if (holdShape <= 0 && onB[i]) { idx = (idx + 5) % 12; holdShape = 8; }   // percussive material still moves
-      if (holdShape > 0) holdShape--;
-      if (holdFam <= 0 && (onH[i] || onB[i])) { fam = famOf(bright[i], air[i]); holdFam = 24; }   // ~0.55 s minimum
-      if (holdFam > 0) holdFam--;
-
-      const P = LADDER[idx], FAM = FAMILIES[fam];
-      const m = FAM.mul(P[0], P[1]);
-      turn += 0.003 + level[i] * 0.010 + accM[i] * 0.10;      // precession + a dart on every mid hit
-      hueDrift += 0.06 + level[i] * 0.22;                     // slow travel so a long take never sits on one colour
-
-      /* the model sets each oscillator's weight — the track only breathes it.
-         OSC 3/4 are the detail partners, so they carry the shimmer swing. */
-      const shim = clampR((FAM.sh / 0.5) * (0.55 + 0.9 * hi[i] + 0.45 * accH[i]), 0.25, 1.8);
-      const vols = [mVol(0), mVol(1), mVol(2) * shim, mVol(3) * shim];
-      const phs  = [mPh(0), mPh(1) + turn, mPh(2) + turn * 0.6 + accB[i] * 0.9, mPh(3) + turn * 0.35];
-
-      for (let k = 0; k < 4; k++) {
-        S.fr[k].push(freqToSlider(BASE * m[k]));
-        S.vl[k].push(vols[k]);
-        S.ph[k].push(phs[k]);
-        S.wv[k].push(FAM.wv[k]);
-      }
-      S.fam.push(FAM.n);
-      /* hue ORBITS the model's colour rather than travelling the whole wheel:
-         a bounded swing keeps the published palette recognisable over a long take */
-      const hueSwing = 60 * Math.sin(hueDrift * 0.05) * (0.45 + 0.55 * bright[i]) + 26 * accH[i];
-      S.ceHue.push((((mHue + hueSwing) % 360) + 360) % 360);
-      // sat/brt/glow scale the model's level; speed/span add to it, because a
-      // model sitting at 0 would otherwise stay dead however loud the track is
-      S.ceSat.push(clampR(mSat * (0.82 + 0.36 * hi[i]), 0, 100));
-      S.ceBrt.push(clampR(mBrt * (0.70 + 0.55 * level[i] + 0.30 * accB[i]), 0, 100));
-      S.ceGlow.push(clampR(mGlow * (0.55 + 1.6 * level[i] + 1.4 * accB[i]), 0, 1));
-      S.ceSpeed.push(clampR(mSpeed + 3 + 30 * level[i] + 45 * accM[i], 0, 120));
-      S.ceSpan.push(clampR(mSpan + 8 + 150 * hi[i] + 60 * accH[i], 0, 360));
-      // low decay = long luminous trail. Busy + loud tightens the figure up;
-      // a bass hit briefly DROPS it so the kick blooms a tail behind the curve.
-      /* clamped around the MODEL rather than a fixed floor: a patch living at
-         decay 0.001 (the long luminous trail) was pinned to 0.006 and rendered a
-         shorter tail than the piece it varies. The 0.0025 floor still stands,
-         though — decay is an alpha per frame, and below it a MOVING figure never
-         clears within a clip and smears into a solid block. */
-      S.decay.push(clampR(mDecay * (0.55 + 1.9 * dense[i] + 0.8 * level[i] - 1.0 * accB[i]),
-                          Math.max(0.0025, mDecay * 0.4), Math.min(0.5, mDecay * 3.2)));
-      S.thick.push(clampR(mThick * (0.45 + 1.0 * level[i] + 0.95 * accB[i]),
-                          Math.max(0.2, mThick * 0.45), Math.min(6, mThick * 2.8)));
-    }
-    return S;
-  }
-
-  /* deterministic playback: read score at audio time → write engine state */
-  let idx = 0, lastFam = '';
-  applyTrackScore = function (pt) {
-    if (!SCORE) return;
-    const t = SCORE.t;
-    while (idx < t.length - 1 && t[idx + 1] <= pt) idx++;
-    const i = idx, j = Math.min(i + 1, t.length - 1);
-    const span = (t[j] - t[i]) || 1, a = Math.max(0, Math.min(1, (pt - t[i]) / span));
-    const L = arr => arr[i] + (arr[j] - arr[i]) * a;
-    /* hue travels the shortest way round the circle — a plain lerp across the
-       360→0 wrap would sweep the whole spectrum backwards in one frame */
-    const Lhue = arr => { const d = ((arr[j] - arr[i] + 540) % 360) - 180; return (arr[i] + d * a + 360) % 360; };
-    for (let k = 0; k < 4; k++) {
-      oState[k].freq = SCORE.fr[k][i];        // SNAP: interpolating a ratio opens the figure into a scribble
-      oState[k].wave = SCORE.wv[k][i];
-      oState[k].vol  = L(SCORE.vl[k]);
-      oState[k].phase = L(SCORE.ph[k]);
-      oState[k].on = true;
-    }
-    ceHue = Lhue(SCORE.ceHue); ceSat = L(SCORE.ceSat); ceBrt = L(SCORE.ceBrt);
-    ceGlow = L(SCORE.ceGlow); ceSpeed = L(SCORE.ceSpeed); ceSpan = L(SCORE.ceSpan);
-    if (SCORE.decay) { decayVal = L(SCORE.decay); thickVal = L(SCORE.thick); }
-    if (SCORE.fam[i] !== lastFam) { lastFam = SCORE.fam[i]; hint(trackLabel + ' · ' + lastFam); }
-  };
-
-  /* push the current oscillator + color state onto the generator panel (Hz,
-     vol, phase, color) so the real end-state is visible and can be played/tweaked */
   function syncPanelFromState() {
     knobDecay.set(decayVal); knobThick.set(thickVal);   // leave the knobs where the score left them
     for (let i = 0; i < 4; i++) {
@@ -1463,7 +1321,7 @@ if (window.PixelGallery) {
     src.connect(an); an.connect(actx.destination);
     if (recDest) an.connect(recDest);   // parallel fan-out: the MP4's audio track
     envAnalyser = an; envBuf = new Uint8Array(an.frequencyBinCount);   // env now follows the track
-    idx = 0; TRACK_START = actx.currentTime; TRACK_MODE = true;
+    TRACK_START = actx.currentTime; TRACK_MODE = true;   // no score index any more
     src.start(); trackSrc = src;
     src.onended = () => {
       TRACK_MODE = false;
@@ -1484,7 +1342,14 @@ if (window.PixelGallery) {
     if (cachedModel)  { modelSource = 'gallery';      return cachedModel; }
     try {
       if (window.PixelGallery) {
-        const items = await Promise.resolve(PixelGallery.list());
+        /* the Worker cold-starts: measured 36s once. Anything that waits on it
+           unconditionally stalls the instrument, so the fetch has a deadline and
+           the panel is the fallback. */
+        const items = await Promise.race([
+          Promise.resolve(PixelGallery.list()),
+          new Promise(res => setTimeout(() => res(null), 5000))
+        ]);
+        if (!items) { modelSource = 'panel (gallery slow)'; return captureState(); }
         const hit = (items || []).find(x => x && x.patch && MODEL_LABS.indexOf(x.labId) >= 0);
         if (hit) { cachedModel = hit.patch; modelSource = 'gallery'; return cachedModel; }
       }
@@ -1507,26 +1372,115 @@ if (window.PixelGallery) {
     };
   };
 
+  /* ── VARY — a STEP SIDEWAYS, not a new image ───────────────────────────────
+     Generating a variation from scratch threw away whatever had just been tuned
+     by hand, which is why it was no use. A step keeps the image and moves one
+     frequency and one shaping parameter, so tuning by hand and pressing VARY are
+     the same activity at two step sizes, and the count is a plain whole number
+     you can get back to.
+
+     Frequencies move RELATIVELY, so decimals survive — and that matters, because
+     detune is the control that crosses between the two drawing regimes. A few
+     tenths of a Hz collapses the GCD, the render window opens to its 2s cap, and
+     the single closed curve becomes thousands of passes: the woven field. Whole
+     intervals (x2, x3/2) keep it a closed curve. Both are on the menu. ── */
+  let baseState = null, varyN = 0;
+  function rng(seed) {                        // hashed + warmed: raw small seeds
+    let x = Math.imul((seed >>> 0) || 1, 2654435761) >>> 0;   // return near-zero draws
+    const step = () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; };
+    for (let i = 0; i < 8; i++) step();
+    return step;
+  }
+  const WAVES = ['sine', 'triangle', 'square'];
+  const SHAPE = [
+    { id: 'ceSpan', lo: 0, hi: 360, step: 60, name: 'span' },
+    { id: 'ceGlow', lo: 0, hi: 1, step: 0.18, name: 'glow' },
+    { id: 'persp', lo: 0, hi: 1, step: 0.2, name: 'persp' },
+    { id: 'depth3d', lo: 0, hi: 1, step: 0.2, name: 'depth' },
+    { id: 'rgbSplit', lo: 0, hi: 20, step: 2.5, name: 'split' },
+    { id: 'rgbAngle', lo: 0, hi: 360, step: 70, name: 'angle' },
+    { id: 'ceSat', lo: 0, hi: 100, step: 14, name: 'sat' }
+  ];
+
+  function varyStep(seed) {
+    const r = rng(seed), cur = captureState(), what = [];
+    /* one oscillator's frequency moves — either a detune (opens the weave) or a
+       whole interval (keeps the curve closed) */
+    const k = (r() * 6) | 0;
+    let hz = logF(parseFloat(cur.osc[k].fr));
+    /* a lane parked at 0 Hz can never be moved by a relative step, so it would
+       stay dead forever — give it a whole multiple of the lowest live lane */
+    if (hz <= 20) {
+      let low = 0;
+      for (let j = 0; j < 6; j++) {
+        const f = logF(parseFloat(cur.osc[j].fr));
+        if (f > 20 && (!low || f < low)) low = f;
+      }
+      hz = (low || 220) * (1 + ((r() * 3) | 0));
+      cur.osc[k].fr = freqToSlider(Math.min(20000, hz));
+      what.push('osc' + (k + 1) + ' → ' + Math.round(hz) + ' Hz');
+    } else {
+      if (r() < 0.55) {
+        const d = (r() < 0.5 ? -1 : 1) * 0.0002 * Math.pow(50, r());   // 0.02% .. 1%
+        cur.osc[k].fr = freqToSlider(hz * (1 + d));
+        what.push('osc' + (k + 1) + ' detune ' + (d > 0 ? '+' : '') + (d * 100).toFixed(3) + '%');
+      } else {
+        const iv = [2, 1.5, 4 / 3, 2 / 3, 0.5][(r() * 5) | 0];
+        cur.osc[k].fr = freqToSlider(Math.max(20, Math.min(20000, hz * iv)));
+        what.push('osc' + (k + 1) + ' x' + iv.toFixed(2).replace(/\.?0+$/, ''));
+      }
+    }
+    if (r() < 0.35) {                          // bring a lane in or out
+      const j = 2 + ((r() * 4) | 0);
+      cur.osc[j].on = !cur.osc[j].on;
+      what.push('osc' + (j + 1) + (cur.osc[j].on ? ' on' : ' off'));
+    }
+    if (r() < 0.25) {                          // a different waveform on one lane
+      const j = (r() * 6) | 0;
+      cur.osc[j].wave = WAVES[(r() * WAVES.length) | 0];
+      what.push('osc' + (j + 1) + ' ' + cur.osc[j].wave.slice(0, 3));
+    }
+    const sh = SHAPE[(r() * SHAPE.length) | 0];   // and one shaping parameter
+    const was = parseFloat(cur.ce[sh.id]) || 0;
+    const now = clamp(was + (r() - 0.5) * 2 * sh.step, sh.lo, sh.hi);
+    cur.ce[sh.id] = +now.toFixed(2);
+    what.push(sh.name + ' ' + (sh.hi > 5 ? Math.round(now) : now.toFixed(2)));
+    return { patch: cur, what: what.join(' · ') };
+  }
+
+  document.getElementById('btnVary').addEventListener('click', async () => {
+    if (!baseState) {                     // first press with nothing loaded:
+      hint('loading model…');             // start from the published patch
+      restoreState(await resolveModel());
+      baseState = captureState();
+    }
+    const v = varyStep(++varyN);
+    restoreState(v.patch);
+    hint((trackBuf ? trackLabel + ' · ' : '') + 'VARY ' + varyN + ' · ' + v.what);
+  });
+
   async function loadTrack(file) {
     try {
       ensureActx();
       hint('decoding…');
       const ab = await file.arrayBuffer();
       trackBuf = await actx.decodeAudioData(ab);
-      hint('loading model…');
-      const M = await resolveModel();
-      restoreState(M);                  // put the model on screen: what you see is what you render
-      hint('analyzing…');
-      const F = await analyze(trackBuf, p => hint('analyzing… ' + Math.round(p * 100) + '%'));
-      SCORE = buildScore(F, M);
-      // the model source rides in the label itself — applyTrackScore rewrites the
-      // hint with the current shape family, and would otherwise wipe it after a frame
-      trackLabel = '▶ ' + file.name.replace(/\.[^.]+$/, '') + ' · ' + trackBuf.duration.toFixed(1) + 's · ' + modelSource;
+      /* the track does NOT wait for the gallery. The image on screen is the
+         starting position — hit ★ Gallery to pull the published patch in, or
+         VARY to step away from it. */
+      SCORE = null;               // nothing is written per frame — tune it by hand
+      baseState = captureState();
+      varyN = 0;
+      trackLabel = '▶ ' + file.name.replace(/\.[^.]+$/, '') + ' · ' + trackBuf.duration.toFixed(1) + 's';
       hint(trackLabel);
       const rb = document.getElementById('btnRec');
       if (rb) rb.title = 'Render the whole track to MP4, with its audio';
       startTrack();
-    } catch (e) { hint('could not read / analyze that audio'); }
+    } catch (e) {
+      // say WHAT failed: a blanket message hid a real bug for an hour
+      console.error('[track]', e);
+      hint('could not load that audio — ' + (e && e.message ? e.message : e));
+    }
   }
 
   document.getElementById('btnLoadTrack').addEventListener('click', () => document.getElementById('trackFile').click());
@@ -1637,6 +1591,12 @@ function beginRec() {
 
   if (run) run.go();          // audio starts with the recorder, not before it
   rec.start(100);
+  /* the countdown below rides requestAnimationFrame, which the browser stops in
+     a background tab — a render left running while you switch away would never
+     reach its own stop, and you would never get the file. This backstop is on a
+     timer, so it lands regardless. */
+  const backstop = setTimeout(() => { if (rec.state !== 'inactive') rec.stop(); }, duration + 400);
+  rec.addEventListener('stop', () => clearTimeout(backstop));
 
   const start = performance.now();
   function updateOverlay() {
