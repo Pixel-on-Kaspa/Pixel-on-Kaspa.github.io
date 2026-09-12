@@ -88,6 +88,7 @@ body{
 .fxSlide span{font-size:8px;letter-spacing:1px;color:var(--muted);flex:0 0 auto}
 .fxSlide input[type=range]{flex:1;width:100%;height:22px;accent-color:var(--accent);cursor:pointer;margin:0}
 .fxSlide b{font-family:var(--mono);font-size:11px;color:var(--amber);min-width:24px;text-align:right}
+.gtSlide{flex:1 1 150px}   /* the one continuous control in the ARP row — give it real travel */
 
 /* ── matrix ── */
 .grid{display:grid;grid-template-columns:44px repeat(6,1fr)}
@@ -242,10 +243,10 @@ body{
         <button class="tbtn" id="btnArp" title="Arpeggiator — hraje na STAB kroky">OFF</button>
         <button class="tbtn" id="arpMode" title="Tvar arpeggia">UP</button>
         <button class="tbtn" id="arpRate" title="Rychlost arpeggia">1/8</button>
-        <button class="tbtn" id="arpGate" title="Gate — jak dlouho zní každý tón arpeggia">GT 100</button>
         <button class="tbtn" id="arpOct" title="Rozsah oktáv">OCT 1</button>
         <button class="tbtn" id="arpDbl" title="Druhý hlas — pohyblivá harmonie">DBL</button>
         <button class="tbtn" id="btnBasArp" title="Arpeggio pro basu — rozkládá basový tón na oktávy/kvinty">B·ARP</button>
+        <label class="fxSlide gtSlide"><span>GT</span><input id="arpGate" type="range" min="5" max="100" step="1" value="100" aria-label="Arp gate — délka každého tónu"><b id="arpGateVal">100</b></label>
       </div>
     </div>
   </section>
@@ -294,12 +295,19 @@ const VOICES=[{id:'KCK',name:'KICK'},{id:'BAS',name:'BASS'},{id:'STB',name:'STAB
 const ENGINES={
   KCK:['DEEP','PUNCH','TICK','DUMBEK','NGOMA'],
   BAS:['SAW','SQUARE','SUB','FM','ACID','REESE','LOG','UPRIGHT'],
-  /* VOX·M / VOX·F (13, 14) are built but NOT listed — the formant voices are not
-     good enough to ship yet. Adding them back is this line, nothing else. */
-  STB:['STAB','PLUCK','BELL','SAW','SUPER','ORGAN','BRASS','OUD','GUITAR','MBIRA','VIOLIN','KORA','SYNTH'],
+  /* VOX·M / VOX·F (13, 14) are built but NOT selectable — the formant voices are
+     not good enough to ship yet. What you can pick is ENG_ORDER, below. */
+  STB:['STAB','PLUCK','BELL','SAW','SUPER','ORGAN','BRASS','OUD','GUITAR','MBIRA','VIOLIN','KORA','SYNTH','VOX·M','VOX·F','ACORDEON'],
   HAT:['CLOSED','OPEN','RIDE','TAMB','SHAKER'],
   CLP:['CLAP','SNARE','RIM','TOM','TABLA','CONGA','CLAVE'],
 };
+/* Which engines you can actually cycle to, in order. The engine NUMBER stays the
+   index into ENGINES — every style references it — so hiding a voice (the VOX
+   pair) or appending one past the shelf (ACORDEON at 15) is a change to this
+   list alone, never a renumbering. */
+const ENG_ORDER={};
+for(const k in ENGINES)ENG_ORDER[k]=ENGINES[k].map((_,i)=>i);
+ENG_ORDER.STB=[0,1,2,3,4,5,6,7,8,9,10,11,12,15];
 const engIdx={KCK:0,BAS:0,STB:0,HAT:0,CLP:0};
 const COLS=[
   {id:'LVL',name:'LEVEL',sub:'vol'},
@@ -331,6 +339,8 @@ const isMel=id=>MEL_IDS.indexOf(id)>=0;
    fractional: .5 = a quarter-tone (used by several Arabic maqamat). */
 const SCALES={
   minor:   [0,2,3,5,7,8,10,12,14,15],       // A natural minor (default)
+  major:   [0,2,4,5,7,9,11,12,14,16],       // Ionian — merengue, cha-cha, most cumbia sonidera
+  dorian:  [0,2,3,5,7,9,10,12,14,15],       // minor with a raised 6th — salsa montunos live here
   phrygdom:[0,1,4,5,7,8,10,12,13,16],       // Balkan / Phrygian dominant (freygish)
   hijaz:   [0,1,4,5,7,8,11,12,13,16],       // maqam Hijaz
   hijazkar:[0,1,4,5,6,9,10,12,13,16],       // maqam Hijazkar (two hijaz tetrachords)
@@ -550,6 +560,46 @@ const STYLES=[
    notes:{BAS:_M({0:0,3:2,6:4,10:0,11:2,14:5}),STB:_M({0:4,3:5,6:4,8:2,11:4,14:5})},  // Tony Allen hat shuffle + conga bed
    mix:{KCK:{LVL:86},BAS:{LVL:78,LPF:44},STB:{LVL:56,RVB:30,DLY:20},HAT:{LVL:44},CLP:{LVL:70}},delayDiv:2,filter:50},
 
+  /* ── Latin America: the clave family. What holds these together is not the kick
+        pattern but the scraper and the anticipated bass — the bass lands BEFORE
+        the beat it belongs to, which is why a tumbao pushes and a rock bass sits.
+        Two of them are accordion music (cumbia, merengue típico), one is guitar
+        music (bachata), and salsa is a brass section over a clave. ── */
+  {name:'CUMBIA',bpm:95,tag:'acordeón · guacharaca',scale:'minor',
+   eng:{KCK:4,BAS:7,STB:15,HAT:4,CLP:5},
+   pat:{KCK:_H(0,6,8,14),CLP:_H(2,6,10,14),HAT:_H(0,2,3,4,6,7,8,10,11,12,14,15),
+        BAS:_H(0,6,8,14),STB:_H(0,2,4,6,8,10,12,14)},
+   notes:{BAS:_M({0:0,6:4,8:0,14:4}),STB:_M({0:0,2:1,4:2,6:1,8:4,10:2,12:1,14:0})},   // bombo-locked bass + accordion line
+   mix:{KCK:{LVL:86},BAS:{LVL:80,LPF:40},STB:{LVL:60,RVB:24,DLY:14},HAT:{LVL:50},CLP:{LVL:74}},delayDiv:2,filter:50},
+
+  {name:'SALSA',bpm:98,tag:'son clave 3·2',scale:'dorian',
+   eng:{KCK:4,BAS:7,STB:6,HAT:2,CLP:6},
+   pat:{KCK:_H(4,12),CLP:_H(0,3,6,10,12),HAT:_H(0,2,3,6,8,10,11,14),
+        BAS:_H(3,6,12,14),STB:_H(2,3,7,10,11,15)},
+   notes:{BAS:_M({3:0,6:4,12:0,14:4}),STB:_M({2:4,3:2,7:0,10:4,11:2,15:0})},          // clave + tumbao under mambo brass
+   mix:{KCK:{LVL:80},BAS:{LVL:78,LPF:42},STB:{LVL:62,RVB:22,DRV:16},HAT:{LVL:44},CLP:{LVL:70}},delayDiv:2,filter:52},
+
+  {name:'CHA·CHA',bpm:120,tag:'charanga',scale:'major',
+   eng:{KCK:0,BAS:7,STB:5,HAT:0,CLP:5},
+   pat:{KCK:_H(0,8,12,14),CLP:_H(4,12,14),HAT:_H(0,2,4,6,8,10,12,14),
+        BAS:_H(0,6,8,14),STB:_H(2,6,10,12,14)},
+   notes:{BAS:_M({0:0,6:4,8:0,14:4}),STB:_M({2:2,6:4,10:2,12:1,14:0})},               // the cha-cha-cha lands on 4 · 4& · 1
+   mix:{KCK:{LVL:82},BAS:{LVL:76,LPF:44},STB:{LVL:58,RVB:26,DLY:16},HAT:{LVL:42},CLP:{LVL:72}},delayDiv:2,filter:50},
+
+  {name:'MERENGUE',bpm:144,tag:'güira · tambora',scale:'major',
+   eng:{KCK:0,BAS:7,STB:15,HAT:4,CLP:3},
+   pat:{KCK:_H(0,4,8,12),CLP:_H(2,3,6,10,11,14),HAT:_H(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15),
+        BAS:_H(0,3,6,8,11,14),STB:_H(0,2,4,6,8,10,12,14)},
+   notes:{BAS:_M({0:0,3:4,6:2,8:0,11:4,14:2}),STB:_M({0:0,2:2,4:4,6:2,8:0,10:2,12:4,14:2})},
+   mix:{KCK:{LVL:88},BAS:{LVL:80,LPF:44},STB:{LVL:58,RVB:20,DLY:12},HAT:{LVL:46},CLP:{LVL:76}},delayDiv:2,filter:52},
+
+  {name:'BACHATA',bpm:128,tag:'requinto · bongó',scale:'minor',
+   eng:{KCK:0,BAS:7,STB:8,HAT:4,CLP:5},
+   pat:{KCK:_H(0,7,8),CLP:_H(2,4,6,10,12,14),HAT:_H(0,2,4,6,8,10,12,13,14,15),
+        BAS:_H(0,6,8,14),STB:_H(0,2,3,5,6,8,10,11,13,15)},
+   notes:{BAS:_M({0:0,6:4,8:0,14:4}),STB:_M({0:0,2:2,3:4,5:2,6:0,8:4,10:2,11:4,13:2,15:0})},  // requinto arpeggio over the güira
+   mix:{KCK:{LVL:82},BAS:{LVL:78,LPF:42},STB:{LVL:58,RVB:26,DLY:20},HAT:{LVL:48},CLP:{LVL:70}},delayDiv:2,filter:52},
+
   {name:'DRILL',bpm:142,tag:'sliding 808',
    eng:{KCK:0,BAS:3,STB:2,HAT:0,CLP:1},
    pat:{KCK:_H(0,7,10),CLP:_H(8),HAT:_H(0,2,3,4,6,8,10,11,12,14,15),BAS:_H(0,7,10),STB:_H(0)},
@@ -615,7 +665,7 @@ function updateFxLabels(){
   if(arpModeBtn)arpModeBtn.textContent=ARP_SHAPES[arpMode].n;
   if(arpRateBtn)arpRateBtn.textContent=ARP_DIVS[arpDiv].n;
   if(btnSwing)btnSwing.textContent='SWG '+swing;
-  if(arpGateBtn)arpGateBtn.textContent='GT '+Math.round(arpGate*100);
+  if(arpGateBtn){arpGateBtn.value=Math.round(arpGate*100);arpGateVal.textContent=arpGateBtn.value;}
   if(arpOctBtn)arpOctBtn.textContent='OCT '+arpOct;
   if(btnBasArp)btnBasArp.classList.toggle('on',basArp);
 }
@@ -725,10 +775,17 @@ function noiseBuf(dur){const b=AC.createBuffer(1,AC.sampleRate*dur,AC.sampleRate
    where a guitar actually plays. Rendering the recurrence by hand has no such
    floor and costs one short buffer per pitch. */
 const _ks=new Map();
-function ksBuf(f,dur,damp,tone,pick){
+function ksBuf(f,dur,damp,tone,pick,lf){
   tone=tone==null?.5:tone;                                            // excitation brightness: steel ≈ .5, gut ≈ .28
   pick=pick||0;                                                       // pluck point as a fraction of the string, 0 = off
-  const sr=AC.sampleRate,key=Math.round(f)+'|'+Math.round(dur*100)+'|'+Math.round(damp*1000)+'|'+Math.round(tone*100)+'|'+Math.round(pick*100)+'|'+sr;
+  /* loop filter: how much of each pass is the one-sample average. .5 is the classic
+     Karplus-Strong and kills the upper partials within a few periods — which is
+     why a long ring came out almost a pure sine. Lower = the string keeps its
+     harmonics as it decays, which is what a wound or a gut string actually does. */
+  lf=lf==null?.5:lf;
+  /* key f to a quarter-hertz: the double-course and doubled-track voices detune by
+     a few cents, and rounding to whole Hz collapsed both strings onto one buffer */
+  const sr=AC.sampleRate,key=Math.round(f*4)+'|'+Math.round(dur*100)+'|'+Math.round(damp*1000)+'|'+Math.round(tone*100)+'|'+Math.round(pick*100)+'|'+Math.round(lf*100)+'|'+sr;
   let b=_ks.get(key);if(b)return b;
   const N=Math.max(2,Math.round(sr/f)),len=Math.max(2,Math.round(sr*dur));
   b=AC.createBuffer(1,len,sr);const d=b.getChannelData(0),ring=new Float32Array(N);
@@ -741,7 +798,7 @@ function ksBuf(f,dur,damp,tone,pick){
   let idx=0,prev=0;
   for(let i=0;i<len;i++){
     const cur=ring[idx];d[i]=cur;
-    ring[idx]=(cur+prev)*.5*damp;                                     // string loses its highs first
+    ring[idx]=(cur*(1-lf)+prev*lf)*damp;                              // string loses its highs first
     prev=cur;idx=(idx+1)%N;
   }
   if(_ks.size>24)_ks.clear();                                         // buffers are longer now — keep the cache smaller
@@ -775,7 +832,22 @@ function voxVoice(dest,f,time,amp,dur,F,vibHz,vibCents){
   const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=5600;lp.Q.value=.6;
   g.connect(lp);lp.connect(dest);
 }
-/* melodic voice engines (STAB): 0 STAB · 1 PLUCK · 2 BELL · 3 SAW · 4 SUPER · 5 ORGAN */
+/* melodic voice engines (STAB): 0 STAB · 1 PLUCK · 2 BELL · 3 SAW · 4 SUPER ·
+   5 ORGAN · 6 BRASS · 7 OUD · 8 GUITAR · 9 MBIRA · 10 VIOLIN · 11 KORA ·
+   12 SYNTH · 13/14 VOX (shelved) · 15 ACORDEON */
+/* engines that play a LINE, not a chord — one string, one horn, one throat. The
+   rest get the drawn note voiced as an in-scale triad. */
+const MONO_MEL=new Set([6,7,8,9,10,11,13,14]);
+/* A struck or plucked voice rings for as long as its body lets it — but the
+   sequencer and the ARP both hand playMel a note length, and the decaying engines
+   were throwing it away. At a 1/16 roll that left thirteen ouds sounding at once:
+   GT did nothing, and the pile-up was most of the clipping. Natural decay stays
+   the ceiling; the gate can only cut it shorter. */
+/* The release has to scale WITH the gate, not sit on top of it: a fixed +.18 s and
+   a .2 s floor swallowed the whole GT range at a 1/16 roll (GT 25 and GT 100 came
+   out 0.26 s and 0.31 s — indistinguishable). Proportional, and the knob bites. */
+function plucked(dur,natural,rel){
+  return dur!=null?Math.max(.05,Math.min(natural,dur+Math.min(rel||.15,dur*.8))):natural;}
 function playMel(n,f,time,e,amp,dur){
   const dest=n.bus;
   const hold=dur!=null?Math.max(.04,dur*.92):null;      // gate length: proportional, so ARP GATE actually bites
@@ -784,14 +856,17 @@ function playMel(n,f,time,e,amp,dur){
     c.type='sine';c.frequency.value=f;m.type='sine';m.frequency.value=f*2.01;
     mg.gain.setValueAtTime(f*2.4,time);mg.gain.exponentialRampToValueAtTime(f*.25,time+.5);
     m.connect(mg);mg.connect(c.frequency);
-    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*1.2,time+.004);g.gain.exponentialRampToValueAtTime(.001,time+.6);
-    c.connect(g);g.connect(dest);c.start(time);m.start(time);c.stop(time+.62);m.stop(time+.62);return;
+    const bd=plucked(dur,.6,.12);
+    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*1.2,time+.004);g.gain.exponentialRampToValueAtTime(.001,time+bd);
+    c.connect(g);g.connect(dest);c.start(time);m.start(time);c.stop(time+bd+.02);m.stop(time+bd+.02);return;
   }
   if(e===4){                                            // SUPER — 7-voice detuned supersaw, lush + wide
     const g=AC.createGain(),lp=AC.createBiquadFilter();lp.type='lowpass';lp.Q.value=1.3;
     lp.frequency.setValueAtTime(Math.min(f*9,10000),time);lp.frequency.exponentialRampToValueAtTime(Math.min(f*3.2,4400),time+.42);
     const sus=hold!=null?hold:.55;
-    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*1.05,time+.012);g.gain.setValueAtTime(amp*1.05,time+sus);g.gain.exponentialRampToValueAtTime(.001,time+sus+.18);
+    /* the 1/√7 below matches an INCOHERENT sum; seven saws start in phase, so the
+       attack arrives √7 times louder than intended. Trim it at the envelope. */
+    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.41,time+.012);g.gain.setValueAtTime(amp*.41,time+sus);g.gain.exponentialRampToValueAtTime(.001,time+sus+.18);
     const dets=[-18,-11,-5,0,5,11,18];
     const un=AC.createGain();un.gain.value=1/Math.sqrt(dets.length);un.connect(lp);   // 7-voice sum, level-matched
     dets.forEach(det=>{const o=AC.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(f,time);o.detune.value=det;o.connect(un);o.start(time);o.stop(time+sus+.2);});
@@ -800,11 +875,11 @@ function playMel(n,f,time,e,amp,dur){
   if(e===5){                                            // ORGAN — drawbar sines + Leslie chorus + percussive key click
     const g=AC.createGain();
     const sus=hold!=null?hold:.5;
-    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.82,time+.01);g.gain.setValueAtTime(amp*.82,time+sus);g.gain.exponentialRampToValueAtTime(.001,time+sus+.16);
+    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.5,time+.01);g.gain.setValueAtTime(amp*.5,time+sus);   // .82 was the loudest sustained voice in the box by 5.5 dBg.gain.exponentialRampToValueAtTime(.001,time+sus+.16);
     const lfo=AC.createOscillator(),lg=AC.createGain();lfo.type='sine';lfo.frequency.value=6.2;lg.gain.value=7;lfo.connect(lg);   // ±7 cent Leslie
     [[1,.6],[2,.36],[3,.22],[4,.14],[6,.09],[8,.05]].forEach(([h,a])=>{const o=AC.createOscillator(),og=AC.createGain();o.type='sine';o.frequency.setValueAtTime(f*h,time);lg.connect(o.detune);og.gain.value=a;o.connect(og);og.connect(g);o.start(time);o.stop(time+sus+.18);});
     lfo.start(time);lfo.stop(time+sus+.18);
-    const ck=AC.createOscillator(),ckg=AC.createGain();ck.type='sine';ck.frequency.value=f*6;ckg.gain.setValueAtTime(amp*.28,time);ckg.gain.exponentialRampToValueAtTime(.001,time+.03);ck.connect(ckg);ckg.connect(dest);ck.start(time);ck.stop(time+.04);  // key click
+    const ck=AC.createOscillator(),ckg=AC.createGain();ck.type='sine';ck.frequency.value=f*6;ckg.gain.setValueAtTime(amp*.17,time);ckg.gain.exponentialRampToValueAtTime(.001,time+.03);ck.connect(ckg);ckg.connect(dest);ck.start(time);ck.stop(time+.04);  // key click
     g.connect(dest);return;
   }
   if(e===6){                                            // BRASS — horn, not a saw pad
@@ -822,8 +897,8 @@ function playMel(n,f,time,e,amp,dur){
     lp.frequency.exponentialRampToValueAtTime(Math.min(f*4.5,4200),time+Math.min(.3,sus)); // …then settles back
     bell.type='peaking';bell.frequency.value=1200;bell.Q.value=1.1;bell.gain.value=5;      // the bell
     cab.type='lowpass';cab.frequency.value=5200;cab.Q.value=.7;
-    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.54,time+.05);        // lips take a moment
-    g.gain.setValueAtTime(amp*.54,time+sus);g.gain.exponentialRampToValueAtTime(.001,time+end);
+    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.29,time+.05);        // lips take a moment
+    g.gain.setValueAtTime(amp*.29,time+sus);g.gain.exponentialRampToValueAtTime(.001,time+end);
     const lfo=AC.createOscillator(),lg=AC.createGain();lfo.type='sine';lfo.frequency.value=5.1;
     lg.gain.setValueAtTime(0,time);lg.gain.setValueAtTime(0,time+Math.min(.16,sus*.45));
     lg.gain.linearRampToValueAtTime(12,time+Math.min(.45,sus*.95));                        // vibrato arrives late
@@ -839,72 +914,140 @@ function playMel(n,f,time,e,amp,dur){
     br.connect(bbp);bbp.connect(bg);bg.connect(dest);br.start(time);br.stop(time+.08);     // air through the mouthpiece
     ws.connect(lp);lp.connect(bell);bell.connect(cab);cab.connect(g);g.connect(dest);return;
   }
-  if(e===7){                                            // OUD — gut-strung lute over a deep wooden bowl
-    /* A body resonance belongs to the INSTRUMENT, not to the note: the old
-       version moved the bowl peak with the pitch, which is why it had no
-       consistent body. Fixed resonances + a ring that the string ends. */
-    const dec=1.35;
-    const src=AC.createBufferSource();src.buffer=ksBuf(f,dec+.1,.9905,.28,.12);   // risha strikes near the bridge
-    const hp=AC.createBiquadFilter();hp.type='highpass';hp.frequency.value=65;
-    const bowl=AC.createBiquadFilter();bowl.type='peaking';bowl.frequency.value=120;bowl.Q.value=1.0;bowl.gain.value=8;
-    const wood=AC.createBiquadFilter();wood.type='peaking';wood.frequency.value=260;wood.Q.value=1.3;wood.gain.value=5;
-    const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=4200;lp.Q.value=.7;
+  if(e===7){                                            // OUD — gut double-courses over a deep wooden bowl
+    /* Why it sounded gutted: one thin string, its excitation dulled to .28, a comb
+       notch sitting right where the fundamental lives — and a bowl peak at 120 Hz
+       under a lane that starts at 220, so the resonator never got touched at all.
+       The oud is a LOW instrument with DOUBLE courses. Drop it an octave into its
+       own register, strike two strings a few cents and a few milliseconds apart,
+       and let the bowl ring: the beating between the pair IS the body. */
+    const f0=f*.5, NAT=1.6, dec=plucked(dur,NAT);   // NAT = the buffer length, so the cache stays warm
+    const courses=AC.createGain();courses.gain.value=.62;              // the pair, summed before the box
+    const hp=AC.createBiquadFilter();hp.type='highpass';hp.frequency.value=46;
+    const bowl=AC.createBiquadFilter();bowl.type='peaking';bowl.frequency.value=116;bowl.Q.value=1.3;bowl.gain.value=7;   // air cavity
+    const back=AC.createBiquadFilter();back.type='peaking';back.frequency.value=228;back.Q.value=1.6;back.gain.value=4;   // ribbed back
+    const face=AC.createBiquadFilter();face.type='peaking';face.frequency.value=430;face.Q.value=1.4;face.gain.value=4;   // soundboard
+    const bite=AC.createBiquadFilter();bite.type='peaking';bite.frequency.value=1250;bite.Q.value=.9;bite.gain.value=6;   // gut still has an edge
+    const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=5000;lp.Q.value=.8;
     const g=AC.createGain();
-    g.gain.setValueAtTime(amp*2.2,time);g.gain.setValueAtTime(amp*2.2,time+dec-.32);
-    g.gain.exponentialRampToValueAtTime(.001,time+dec);
-    src.connect(hp);hp.connect(bowl);bowl.connect(wood);wood.connect(lp);lp.connect(g);g.connect(dest);
-    src.start(time);src.stop(time+dec+.05);
+    const orel=Math.min(.45,dec*.4);
+    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.85,time+.006);   // ramped, so the buffer doesn't click in
+    g.gain.setValueAtTime(amp*.85,time+dec-orel);g.gain.exponentialRampToValueAtTime(.001,time+dec);
+    /* two strings per course: the period quantizes to whole samples, so a 10-cent
+       offset really lands on a different N — that is where the shimmer comes from */
+    const bright=AC.createGain();                                       // parallel tap, see below
+    [[1,0,.9972,1],[1.006,.005,.9962,.82]].forEach(([mul,off,damp,a])=>{
+      const src=AC.createBufferSource();src.buffer=ksBuf(f0*mul,NAT+.1,damp,.66,.22,.3);   // risha over the soundhole
+      const sg=AC.createGain();sg.gain.value=a;
+      src.connect(sg);sg.connect(courses);sg.connect(bright);src.start(time+off);src.stop(time+off+dec+.05);
+    });
+    courses.connect(hp);hp.connect(bowl);bowl.connect(back);back.connect(face);face.connect(bite);bite.connect(lp);lp.connect(g);g.connect(dest);
+    /* The KS loop filters its own highs away within a few periods, so the sustain
+       alone came out almost pure fundamental — dark, not warm. This tap keeps the
+       first quarter-second of upper partials, which is where a plucked gut string
+       actually speaks. */
+    const bhp=AC.createBiquadFilter();bhp.type='highpass';bhp.frequency.value=620;bhp.Q.value=.7;
+    const bg=AC.createGain();bg.gain.setValueAtTime(amp*.7,time);bg.gain.exponentialRampToValueAtTime(.001,time+Math.min(.9,dec));
+    bright.connect(bhp);bhp.connect(bg);bg.connect(dest);
+    /* the bowl thumps when it is struck — this is the chest the old voice had none of */
+    const th=AC.createOscillator(),tg=AC.createGain();th.type='sine';
+    th.frequency.setValueAtTime(150,time);th.frequency.exponentialRampToValueAtTime(112,time+.05);
+    tg.gain.setValueAtTime(0,time);tg.gain.linearRampToValueAtTime(amp*.32,time+.006);
+    tg.gain.exponentialRampToValueAtTime(.001,time+Math.min(.16,Math.max(.05,dec)));   // the bowl stops when you damp it too
+    th.connect(tg);tg.connect(dest);th.start(time);th.stop(time+Math.min(.18,Math.max(.07,dec))+.02);
     const s2=AC.createBufferSource();s2.buffer=noiseBuf(.02);
-    const nhp=AC.createBiquadFilter();nhp.type='highpass';nhp.frequency.value=1800;
-    const ng=AC.createGain();ng.gain.setValueAtTime(amp*.4,time);ng.gain.exponentialRampToValueAtTime(.001,time+.025);
-    s2.connect(nhp);nhp.connect(ng);ng.connect(dest);s2.start(time);s2.stop(time+.035);   // plectrum click
+    const nbp=AC.createBiquadFilter();nbp.type='bandpass';nbp.frequency.value=2400;nbp.Q.value=.8;
+    const ng=AC.createGain();ng.gain.setValueAtTime(amp*.3,time);ng.gain.exponentialRampToValueAtTime(.001,time+.028);
+    s2.connect(nbp);nbp.connect(ng);ng.connect(dest);s2.start(time);s2.stop(time+.04);   // plectrum on the string
     return;
   }
-  if(e===8){                                            // GUITAR — electric through an amp
-    /* Pushed further than the first pass: a plucked string alone still reads
-       acoustic. What says "electric" is the chain after it — a peaky pickup, a
-       speaker cabinet that stops dead above ~4 kHz, valve grit, long sustain,
-       and the amp compression that holds the note up instead of letting it fall
-       away. That last one is the swell in the gain below. */
-    const dec=1.9;
-    [[1,amp],[1.2599,amp*.58]].forEach(([mul,a],k)=>{
-      const t0=time+k*.02,fr=f*mul;                     // 20ms stagger = two players, not one chord
-      const src=AC.createBufferSource();src.buffer=ksBuf(fr,dec+.1,.997,.5,.13);   // picked near the bridge, long sustain
-      const hp=AC.createBiquadFilter();hp.type='highpass';hp.frequency.value=95;
-      const body=AC.createBiquadFilter();body.type='peaking';body.frequency.value=150;body.Q.value=.9;body.gain.value=3;  // cab thump
-      const pu=AC.createBiquadFilter();pu.type='peaking';pu.frequency.value=2600;pu.Q.value=2.0;pu.gain.value=9;          // pickup resonance
-      const ws=AC.createWaveShaper();ws.curve=driveCurve(.38);                                                            // valve grit
-      const cab=AC.createBiquadFilter();cab.type='lowpass';cab.frequency.value=4000;cab.Q.value=1.6;                      // speaker, stops dead up top
-      const g=AC.createGain();
-      g.gain.setValueAtTime(a*.42,t0);
-      g.gain.linearRampToValueAtTime(a*.62,t0+.6);       // amp compression holding the note up
-      g.gain.setValueAtTime(a*.62,t0+dec-.4);
-      g.gain.exponentialRampToValueAtTime(.001,t0+dec);
-      src.connect(hp);hp.connect(body);body.connect(pu);pu.connect(ws);ws.connect(cab);cab.connect(g);g.connect(dest);
-      src.start(t0);src.stop(t0+dec+.05);
+  if(e===8){                                            // GUITAR — electric single-coil into a small valve amp
+    /* The weirdness was harmonic, not timbral: the engine stacked a fixed minor
+       third on top of EVERY note, so it fought whatever mode the lane was in —
+       a semitone out in Hijaz, a semitone out in major. A lead guitar plays one
+       string. What sells "electric" is everything after the string: a peaky
+       pickup, valve grit, a speaker that rolls off hard both ends, and the amp
+       compression that holds a note up instead of letting it fall away. Width
+       comes from a doubled track a few cents off, not from an interval. */
+    const NAT=2.2, dec=plucked(dur,NAT,.25);
+    const amp_in=AC.createGain();amp_in.gain.value=.8;   // both string copies share one amp
+    [[1,0,1],[1.004,.016,.5]].forEach(([mul,off,a])=>{   // second take: 7 cents up, 16 ms late
+      const src=AC.createBufferSource();src.buffer=ksBuf(f*mul,NAT+.1,.9978,.62,.14,.28);  // picked near the bridge, long sustain
+      const sg=AC.createGain();sg.gain.value=a;
+      src.connect(sg);sg.connect(amp_in);src.start(time+off);src.stop(time+off+dec+.05);
     });
+    const pu=AC.createBiquadFilter();pu.type='peaking';pu.frequency.value=2400;pu.Q.value=2.6;pu.gain.value=8;   // pickup resonance
+    const ws=AC.createWaveShaper();ws.curve=driveCurve(.5);                                                       // valve grit
+    const scoop=AC.createBiquadFilter();scoop.type='peaking';scoop.frequency.value=420;scoop.Q.value=1.1;scoop.gain.value=-2;  // the amp's mid dip
+    const pres=AC.createBiquadFilter();pres.type='peaking';pres.frequency.value=1900;pres.Q.value=.9;pres.gain.value=4;
+    const cab=AC.createBiquadFilter();cab.type='lowpass';cab.frequency.value=4500;cab.Q.value=1.8;                // 12" speaker, dead up top
+    const chp=AC.createBiquadFilter();chp.type='highpass';chp.frequency.value=88;chp.Q.value=.8;                 // …and no deep bass either
+    const g=AC.createGain();
+    /* the compression swell only belongs to a note long enough to have one */
+    const grel=Math.min(.45,dec*.4), swell=Math.min(.7,Math.max(0,dec-grel-.02));
+    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.49,time+.004);
+    if(swell>.05)g.gain.linearRampToValueAtTime(amp*.66,time+swell);   // amp compression holding the note up
+    g.gain.setValueAtTime(swell>.05?amp*.66:amp*.49,time+dec-grel);
+    g.gain.exponentialRampToValueAtTime(.001,time+dec);
+    amp_in.connect(pu);pu.connect(ws);ws.connect(scoop);scoop.connect(pres);pres.connect(cab);cab.connect(chp);chp.connect(g);g.connect(dest);
+    const pk=AC.createBufferSource();pk.buffer=noiseBuf(.02);
+    const pbp=AC.createBiquadFilter();pbp.type='bandpass';pbp.frequency.value=3000;pbp.Q.value=1.1;
+    const pg=AC.createGain();pg.gain.setValueAtTime(amp*.14,time);pg.gain.exponentialRampToValueAtTime(.001,time+.022);
+    pk.connect(pbp);pbp.connect(pg);pg.connect(dest);pk.start(time);pk.stop(time+.03);   // plectrum on the wound string
     return;
   }
   if(e===9){                                            // MBIRA / likembe — metal tine: inharmonic partials + buzz
     const g=AC.createGain();
-    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*1.1,time+.004);g.gain.exponentialRampToValueAtTime(.001,time+.7);
-    [[1,1],[2.76,.34],[5.4,.16]].forEach(([mul,a])=>{const o=AC.createOscillator(),og=AC.createGain();o.type='sine';o.frequency.value=f*mul;og.gain.value=a;o.connect(og);og.connect(g);o.start(time);o.stop(time+.72);});
+    const md=plucked(dur,.7,.14);
+    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.85,time+.004);g.gain.exponentialRampToValueAtTime(.001,time+md);
+    [[1,1],[2.76,.34],[5.4,.16]].forEach(([mul,a])=>{const o=AC.createOscillator(),og=AC.createGain();o.type='sine';o.frequency.value=f*mul;og.gain.value=a;o.connect(og);og.connect(g);o.start(time);o.stop(time+md+.02);});
     const s=AC.createBufferSource();s.buffer=noiseBuf(.06);const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=3200;bp.Q.value=1.6;
     const ng=AC.createGain();ng.gain.setValueAtTime(amp*.5,time);ng.gain.exponentialRampToValueAtTime(.001,time+.07);
     s.connect(bp);bp.connect(ng);ng.connect(dest);s.start(time);s.stop(time+.08);      // the buzzing tine
     g.connect(dest);return;
   }
   if(e===11){                                           // KORA — West African harp-lute over a calabash
-    const dec=1.3;
-    const src=AC.createBufferSource();src.buffer=ksBuf(f,dec+.1,.9962,.42,.28);   // thumb pluck, near the middle
+    const NAT=1.3, dec=plucked(dur,NAT);
+    const src=AC.createBufferSource();src.buffer=ksBuf(f,NAT+.1,.9962,.42,.28);   // thumb pluck, near the middle
     const cal=AC.createBiquadFilter();cal.type='peaking';cal.frequency.value=150;cal.Q.value=1.1;cal.gain.value=6;  // calabash
     const skin=AC.createBiquadFilter();skin.type='peaking';skin.frequency.value=520;skin.Q.value=1.4;skin.gain.value=4;
     const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=6800;lp.Q.value=.6;
     const g=AC.createGain();
-    g.gain.setValueAtTime(amp*1.5,time);g.gain.setValueAtTime(amp*1.5,time+dec-.3);
+    g.gain.setValueAtTime(amp*1.5,time);g.gain.setValueAtTime(amp*1.5,time+dec-Math.min(.3,dec*.4));
     g.gain.exponentialRampToValueAtTime(.001,time+dec);
     src.connect(cal);cal.connect(skin);skin.connect(lp);lp.connect(g);g.connect(dest);
     src.start(time);src.stop(time+dec+.05);return;
+  }
+  if(e===15){                                           // ACORDEON — free reeds, musette-tuned
+    /* A reed is not an oscillator with an envelope: the bellows take up, the tongue
+       starts buzzing, and it holds dead steady until the air stops. Two things do
+       the work — the MUSETTE pair (two reeds a dozen cents apart, whose beating is
+       the whole sound of a cumbia or a valse) and the couplers stacked an octave
+       either side, which is where the box gets its size. */
+    const sus=hold!=null?hold:.5,end=sus+.1;
+    const g=AC.createGain();
+    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.72,time+.032);   // the bellows take up
+    g.gain.setValueAtTime(amp*.72,time+sus);g.gain.exponentialRampToValueAtTime(.001,time+end);
+    const reed=AC.createBiquadFilter();reed.type='peaking';reed.frequency.value=620;reed.Q.value=1.1;reed.gain.value=7;   // reed-block formant
+    const nasal=AC.createBiquadFilter();nasal.type='peaking';nasal.frequency.value=1100;nasal.Q.value=1.2;nasal.gain.value=4;  // a reed is a nasal thing
+    const box=AC.createBiquadFilter();box.type='peaking';box.frequency.value=1500;box.Q.value=.9;box.gain.value=3;        // the wooden case
+    const grille=AC.createBiquadFilter();grille.type='lowpass';grille.frequency.value=5200;grille.Q.value=.7;
+    const hp=AC.createBiquadFilter();hp.type='highpass';hp.frequency.value=95;
+    /* mul, detune (cents), wave, level — 8' musette pair + 4' and 16' couplers */
+    const reeds=[[1,-13,'sawtooth',1],[1,14,'sawtooth',.92],[2,-5,'square',.22],[.5,4,'square',.26]];
+    const un=AC.createGain();un.gain.value=.42/Math.sqrt(reeds.length);
+    reeds.forEach(([mul,det,wave,a])=>{
+      const o=AC.createOscillator(),og=AC.createGain();
+      o.type=wave;o.frequency.setValueAtTime(f*mul,time);o.detune.value=det;og.gain.value=a;
+      o.connect(og);og.connect(un);o.start(time);o.stop(time+end+.02);
+    });
+    un.connect(reed);reed.connect(nasal);nasal.connect(box);box.connect(grille);grille.connect(hp);hp.connect(g);g.connect(dest);
+    const ch=AC.createBufferSource();ch.buffer=noiseBuf(.05);                           // valve chuff as the air arrives
+    const cbp=AC.createBiquadFilter();cbp.type='bandpass';cbp.frequency.value=1700;cbp.Q.value=.7;
+    const cg=AC.createGain();cg.gain.setValueAtTime(0,time);cg.gain.linearRampToValueAtTime(amp*.12,time+.01);
+    cg.gain.exponentialRampToValueAtTime(.001,time+.06);
+    ch.connect(cbp);cbp.connect(cg);cg.connect(dest);ch.start(time);ch.stop(time+.07);
+    return;
   }
   if(e===13){                                           // VOX·M — shelved — male "ah"
     voxVoice(dest,f/2,time,amp*5.3,hold,[[730,1,9],[1090,.5,11],[2440,.22,13],[3400,.10,14]],5.2,18);return;
@@ -915,8 +1058,8 @@ function playMel(n,f,time,e,amp,dur){
   if(e===12){                                           // SYNTH — PWM lead: a saw minus a delayed copy IS a pulse,
     const sus=hold!=null?hold:.5,end=sus+.16;           //   and modulating the delay sweeps the pulse width
     const g=AC.createGain();
-    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.53,time+.01);
-    g.gain.setValueAtTime(amp*.53,time+sus);g.gain.exponentialRampToValueAtTime(.001,time+end);
+    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.22,time+.01);
+    g.gain.setValueAtTime(amp*.22,time+sus);g.gain.exponentialRampToValueAtTime(.001,time+end);
     const lp=AC.createBiquadFilter();lp.type='lowpass';lp.Q.value=5;
     lp.frequency.setValueAtTime(Math.min(f*11,9000),time);
     lp.frequency.exponentialRampToValueAtTime(Math.min(f*3.4,3000),time+Math.min(.35,sus));
@@ -928,16 +1071,16 @@ function playMel(n,f,time,e,amp,dur){
     o.connect(lp);o.connect(dly);dly.connect(inv);inv.connect(lp);
     o.start(time);o.stop(time+end+.02);
     const sub=AC.createOscillator(),sg=AC.createGain();sub.type='sine';sub.frequency.setValueAtTime(f/2,time);
-    sg.gain.setValueAtTime(0,time);sg.gain.linearRampToValueAtTime(amp*.22,time+.012);
-    sg.gain.setValueAtTime(amp*.22,time+sus);sg.gain.exponentialRampToValueAtTime(.001,time+end);
+    sg.gain.setValueAtTime(0,time);sg.gain.linearRampToValueAtTime(amp*.09,time+.012);
+    sg.gain.setValueAtTime(amp*.09,time+sus);sg.gain.exponentialRampToValueAtTime(.001,time+end);
     sub.connect(sg);sg.connect(dest);sub.start(time);sub.stop(time+end+.02);
     lp.connect(g);g.connect(dest);return;
   }
   if(e===10){                                           // VIOLIN — bowed string: Helmholtz saw, body resonances, late vibrato
     const sus=hold!=null?hold:.6,end=sus+.14;
     const g=AC.createGain();
-    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.40,time+.075);   // the bow takes hold, it does not click
-    g.gain.setValueAtTime(amp*.40,time+sus);g.gain.exponentialRampToValueAtTime(.001,time+end);
+    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.22,time+.075);   // the bow takes hold, it does not click
+    g.gain.setValueAtTime(amp*.22,time+sus);g.gain.exponentialRampToValueAtTime(.001,time+end);
     /* vibrato arrives AFTER the entry — a player does not vibrate on the attack */
     const vib=AC.createOscillator(),vg=AC.createGain();vib.type='sine';vib.frequency.value=5.4;
     vg.gain.setValueAtTime(0,time);vg.gain.setValueAtTime(0,time+Math.min(.14,sus*.4));
@@ -957,11 +1100,19 @@ function playMel(n,f,time,e,amp,dur){
     lp.connect(b1);b1.connect(b2);b2.connect(b3);b3.connect(g);g.connect(dest);return;
   }
   /* STAB(0) · PLUCK(1) · SAW(3) — richer default voices through a resonant filter env */
+  /* These were the hottest voices in the box: two saws summed straight into a
+     filter resonant at Q 6–8, so a stab left here at 3.2 where the same note on
+     ORGAN left at 0.57. The arp is what made it audible — it drives any engine at
+     amp .8, so a TRANCE or PSY roll pinned the master compressor on every note.
+     Same cure as REESE further down: sum the unison rather than stack it, then
+     trim for the resonance the filter adds back. Only the level moves — the
+     envelopes, the filter sweeps and the detune are untouched. */
   const o=AC.createOscillator(),o2=AC.createOscillator(),g=AC.createGain(),lp=AC.createBiquadFilter();
-  let type='sawtooth',dec=.24,att=.005,q=1.4,peak=amp,sustains=false;
-  if(e===0){dec=.3;q=6;peak=amp*1.15;sustains=true;}    // STAB — resonant saw stab, holds the note
+  const un=AC.createGain();un.gain.value=1/Math.SQRT2;   // two saws, incoherent sum
+  let type='sawtooth',dec=.24,att=.005,q=1.4,peak=amp*.46,sustains=false;
+  if(e===0){dec=.3;q=6;peak=amp*.475;sustains=true;}     // STAB — resonant saw stab, holds the note
   if(e===1){dec=.26;att=.002;q=8;}                      // PLUCK — sharp resonant, always plucks
-  if(e===3){dec=.5;q=2;peak=amp*1.05;sustains=true;}    // SAW — pad-ish, holds
+  if(e===3){dec=.5;q=2;peak=amp*.65;sustains=true;}     // SAW — pad-ish, holds
   const sus=(sustains&&hold!=null)?hold:dec, end=sus+(sustains?.16:.03);
   lp.type='lowpass';lp.Q.value=q;
   o.type=type;o.frequency.setValueAtTime(f,time);o.detune.value=-8+Math.random()*3;
@@ -979,7 +1130,7 @@ function playMel(n,f,time,e,amp,dur){
     sg.gain.setValueAtTime(peak*.4,time);sg.gain.exponentialRampToValueAtTime(.001,time+end);
     sq.connect(sg);sg.connect(dest);sq.start(time);sq.stop(time+end+.03);
   }
-  o.connect(lp);o2.connect(lp);lp.connect(g);g.connect(dest);o.start(time);o2.start(time);o.stop(time+end+.03);o2.stop(time+end+.03);
+  o.connect(un);o2.connect(un);un.connect(lp);lp.connect(g);g.connect(dest);o.start(time);o2.start(time);o.stop(time+end+.03);o2.stop(time+end+.03);
 }
 function trig(vi,time,step,arpFreq,arpDur,vel){
   let n=voiceNodes[vi];
@@ -1100,12 +1251,19 @@ function trig(vi,time,step,arpFreq,arpDur,vel){
     lp.connect(g);g.connect(n.bus);
     if(e!==2&&e!==3){const sub=AC.createOscillator(),sg=AC.createGain();sub.type='sine';sub.frequency.setValueAtTime(f/2,time);sg.gain.setValueAtTime(0,time);sg.gain.linearRampToValueAtTime(.5,time+.012);if(plucky)sg.gain.exponentialRampToValueAtTime(.001,time+bd);else{sg.gain.setValueAtTime(.5,time+bd);sg.gain.exponentialRampToValueAtTime(.001,time+bd+.06);}sub.connect(sg);sg.connect(n.bus);sub.start(time);sub.stop(stopT);}
   }else if(id==='STB'){
-    if(arpFreq){ playMel(n,arpFreq*r,time,e,.8,arpDur||stepDur()); }   // arp/preview note gated to its division
-    else {                                               // sequencer step note → chord (or mono lead for BRASS/OUD)
-      const root=MEL_BASE.STB*Math.pow(2,melSemi('STB',step)/12)*r;
+    /* .8 was a single-note level on a path that plays a STREAM: at a 1/16 roll two
+       or three tails overlap, and with an accent on top (velocity reaches 1.3) that
+       clipped on ten of the fourteen engines. .45 keeps the worst of them at .75. */
+    if(arpFreq){ playMel(n,arpFreq*r,time,e,.45,arpDur||stepDur()); }   // arp/preview note gated to its division
+    else {                                               // sequencer step note → chord (or mono lead for BRASS/OUD/GUITAR…)
+      const deg=melDeg('STB',step);
       const gate=Math.min(gateSteps('STB',step),8)*stepDur();   // hold the note through following rests
-      if(e>=6&&e!==12){ playMel(n,root,time,e,.75,gate); }   // BRASS / OUD / GUITAR / VOX… — monophonic lead line
-      else [root,root*1.2599,root*1.4983].forEach(f=>playMel(n,f,time,e,.32,gate));
+      const at=o=>MEL_BASE.STB*Math.pow(2,degSemi(deg+o)/12)*r;
+      if(MONO_MEL.has(e)){ playMel(n,at(0),time,e,.75,gate); }
+      /* the triad is built from SCALE DEGREES, not a fixed minor third: a canned
+         1–♭3–5 was wrong in every mode but minor, and audibly wrong in Hijaz
+         and in the Latin styles. Stacking degrees keeps it in key everywhere. */
+      else [0,2,4].forEach(o=>playMel(n,at(o),time,e,.32,gate));
     }
   }else if(id==='HAT'){
     if(e===3){                                          // TAMB / riq — bright jingle: airy noise + metallic pings
@@ -1202,7 +1360,8 @@ let playing=false,bpm=124,curStep=0,nextTime=0,timer=null;
 let arpOn=false,arpIdx=0,arpMode=0,arpOct=1,arpDbl=false,arpDiv=3,basArp=false,arpGate=1;
 /* GATE — how much of each arp step the note actually sounds for. This is what
    turns a wash into a groove: short = staccato stabs, long = legato lines. */
-const ARP_GATES=[1,.75,.5,.25];
+/* GT used to cycle four fixed steps. It is the difference between a staccato
+   pulse and a legato wash, so it wants a sweep, not four stops. */
 /* SWING as the MPC states it: 50 = straight, 66.7 ≈ triplet shuffle. Only the
    off-16ths move, and only within their pair, so STEPS*stepDur still measures
    the loop exactly (the recorder depends on that). */
@@ -1403,7 +1562,8 @@ function refreshEngineLabels(){VOICES.forEach((v,vi)=>{const t=rowLabEls[vi];if(
 function refreshSteps(){VOICES.forEach(v=>patterns[v.id].forEach((on,i)=>{const e=stepEls[v.id][i];
   if(e){e.classList.toggle('on',!!on);if(isMel(v.id))updateNoteLabel(v.id,i,e);applyVel(e,v.id,i);}}));}
 function cycleEngine(vi){
-  const id=VOICES[vi].id;engIdx[id]=(engIdx[id]+1)%ENGINES[id].length;refreshEngineLabels();
+  const id=VOICES[vi].id,ord=ENG_ORDER[id],at=ord.indexOf(engIdx[id]);
+  engIdx[id]=ord[(at+1)%ord.length];refreshEngineLabels();
   ensureAudio();if(!playing)trig(vi,AC.currentTime+.02,0,id==='STB'?220:undefined);   // audible preview
 }
 function randomize(){
@@ -1412,7 +1572,7 @@ function randomize(){
     const a=patterns[v.id];for(let i=0;i<STEPS;i++)a[i]=Math.random()<dens[v.id]?1:0;
     a[0]=v.id==='KCK'?1:a[0];                            // keep a downbeat on kick
     if(v.id==='CLP'){const q=STEPS/4|0;if(q){a[q]=1;a[q*3]=1;}}  // keep the backbeat
-    engIdx[v.id]=Math.floor(Math.random()*ENGINES[v.id].length);
+    const ord=ENG_ORDER[v.id];engIdx[v.id]=ord[Math.floor(Math.random()*ord.length)];
   });
   VOICES.forEach((v,vi)=>COLS.forEach((c,ci)=>{
     if(c.id==='LPF')setCell(vi,ci,Math.random()<.4?45+Math.random()*55:0);
@@ -1664,10 +1824,10 @@ const arpModeBtn=document.getElementById('arpMode');arpModeBtn.textContent=ARP_S
 arpModeBtn.addEventListener('click',()=>{arpMode=(arpMode+1)%ARP_SHAPES.length;buildArpSeq();arpIdx=0;arpModeBtn.textContent=ARP_SHAPES[arpMode].n;});
 const arpRateBtn=document.getElementById('arpRate');arpRateBtn.textContent=ARP_DIVS[arpDiv].n;
 arpRateBtn.addEventListener('click',()=>{arpDiv=(arpDiv+1)%ARP_DIVS.length;arpRateBtn.textContent=ARP_DIVS[arpDiv].n;});
-const arpGateBtn=document.getElementById('arpGate');
-arpGateBtn.addEventListener('click',()=>{
-  arpGate=ARP_GATES[(ARP_GATES.indexOf(arpGate)+1)%ARP_GATES.length];
-  arpGateBtn.textContent='GT '+Math.round(arpGate*100);
+const arpGateBtn=document.getElementById('arpGate'),arpGateVal=document.getElementById('arpGateVal');
+arpGateBtn.addEventListener('input',()=>{
+  arpGate=(+arpGateBtn.value)/100;
+  arpGateVal.textContent=arpGateBtn.value;
 });
 const arpOctBtn=document.getElementById('arpOct');
 arpOctBtn.addEventListener('click',()=>{arpOct=arpOct%3+1;buildArpSeq();arpIdx=0;arpOctBtn.textContent='OCT '+arpOct;});
