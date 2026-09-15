@@ -21,9 +21,9 @@ input[type=range]{cursor:pointer}
 .brand{display:inline-flex;align-items:center;margin-right:6px;text-decoration:none;cursor:pointer}
 .brand img{height:26px;width:auto;display:block;transition:filter .15s,transform .15s}
 .brand:hover img{filter:drop-shadow(0 0 6px rgba(73,234,203,.55));transform:scale(1.04)}
-.topnav{display:flex;align-items:center;gap:4px;margin-right:4px}
-.topnav a{font-size:10px;color:var(--muted);text-decoration:none;padding:4px 8px;border:1px solid var(--border);border-radius:3px;letter-spacing:.06em;white-space:nowrap;transition:color .15s,border-color .15s,background .15s}
-.topnav a:hover{color:var(--text);border-color:var(--accent);background:rgba(255,255,255,.04)}
+.pixelMark{display:inline-flex;align-items:center;margin-right:8px;opacity:.55;transition:opacity .15s,transform .15s}
+.pixelMark img{height:18px;width:auto;display:block}
+.pixelMark:hover{opacity:1;transform:scale(1.08)}
 .transport{display:flex;align-items:center;gap:8px;flex:1;justify-content:center}
 #statusBar{font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap;min-width:180px;text-align:right}
 
@@ -118,12 +118,12 @@ input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;bac
 <body>
 
 <div id="topbar">
-  <a class="brand" href="../" title="← Pixel on Kaspa">
+  <a class="brand" href="index.html" title="← SYNTHI">
+    <img src="img/synthi-mark.svg" alt="SYNTHI" />
+  </a>
+  <a class="pixelMark" href="../" title="Pixel on Kaspa">
     <img src="../assets/img/logo.png" alt="Pixel on Kaspa" />
   </a>
-  <nav class="topnav">
-    <a href="index.html">Index</a>
-  </nav>
   <div class="transport">
     <button id="btnPlay">▶ PLAY</button>
     <button class="btn" id="btnLoadTrack" title="Load a recording — it plays under the figure and the video carries it">🎵 TRACK</button>
@@ -567,7 +567,7 @@ const knobDecay = makeKnob({ canvasId:"knobDecay",  wrapId:"knobDecayWrap",  val
   min:0.001, max:0.60, defaultVal:0.05, decimals:3, unit:"",
   onChange: v => { decayVal = v; } });
 
-makeKnob({ canvasId:"knobBright", wrapId:"knobBrightWrap", valId:"knobBrightVal",
+const knobBrightK = makeKnob({ canvasId:"knobBright", wrapId:"knobBrightWrap", valId:"knobBrightVal",
   min:10,   max:100,  defaultVal:70,   decimals:0, unit:"%",
   onChange: v => { brightVal = Math.round(v); } });
 
@@ -612,11 +612,16 @@ function drawViz(now) {
   if (now-fpsT > 500) { fpsAvg = fpsAvg*.7+(fpsFrames*1000/(now-fpsT))*.3; fpsFrames=0; fpsT=now; }
 
   const W = canvas.width, H = canvas.height, cx=W/2, cy=H/2;
+  /* env is the VU METER ONLY. Nothing the track does may touch the figure:
+     a hand-tuned image whose radius, decay, width and brightness pumped with
+     the audio read as the tuning drifting, and the moire field (which stacks
+     near-identical curves) is exactly what that smears. The video is the clean
+     engine plus its sound — the image stays where it was tuned. */
   const env = readEnv();
 
   ctx2d.globalCompositeOperation = "source-over";
   ctx2d.globalAlpha = 1;
-  const decayAlpha = decayVal * (1 + .75*env.bass);
+  const decayAlpha = decayVal;
   ctx2d.fillStyle = `rgba(5,13,9,${decayAlpha})`;
   ctx2d.fillRect(0, 0, W, H);
 
@@ -663,7 +668,7 @@ function drawViz(now) {
   const windowT = lissajousPeriod(allFreqs);
   lissT += 0.016;
 
-  const R = Math.min(W,H) * (0.36 + .12*env.level) * vizZoom;
+  const R = Math.min(W,H) * 0.42 * vizZoom;
   const steps = 8000;
 
   // precompute points
@@ -705,8 +710,8 @@ function drawViz(now) {
   // color engine
   cePhase = (cePhase + ceSpeed * 0.016) % 360;
   const baseHue = (ceHue + cePhase) % 360;
-  const bright = clamp(.7 + .3*env.level, .5, 1);
-  const lw = thickVal + env.bass*3;
+  const bright = clamp(brightVal/100, 0, 1);   // the BRIGHT knob, which until now drove nothing
+  const lw = thickVal;
 
   if (is3D) {
     // Depth read comes from PER-POINT shading: the curve winds through z hundreds
@@ -977,10 +982,10 @@ function captureState() {
    "rotX","rotY","persp","depth3d"].forEach(id => {
     ce[id] = document.getElementById(id).value;
   });
-  // decay + thick are knobs (not sliders) but are decisive for the "volume"/
-  // fine-trace look, so they travel with the patch.
+  // decay + thick + bright are knobs (not sliders) but are decisive for the
+  // "volume"/fine-trace look, so they travel with the patch.
   return { v: 1, osc, ce, mode3d: is3D, vol: document.getElementById("masterVol").value,
-           decay: decayVal, thick: thickVal };
+           decay: decayVal, thick: thickVal, bright: brightVal };
 }
 
 function restoreState(p) {
@@ -1010,6 +1015,7 @@ function restoreState(p) {
   try {
     if (p.decay != null) knobDecay.set(+p.decay);
     if (p.thick != null) knobThick.set(+p.thick);
+    if (p.bright != null) knobBrightK.set(+p.bright);   // older patches have none: knob stays put
   } catch (e) {}
 }
 
@@ -1278,11 +1284,14 @@ if (window.PixelGallery) {
      trail stacks near-identical curves into a brighter blob rather than drawing
      a form.
 
-     What the engine already does on its own is better than either: drawViz
-     scales the radius by env.level, the line width by env.bass and the
-     brightness by env.level, straight off the analyser — so the figure breathes
-     with the music with nothing written per frame. A take is now exactly the
-     image on screen plus its music, and every control stays yours.
+     The live-reactive version that replaced it is gone too (2026-09-14). drawViz
+     used to scale the radius by env.level, the line width by env.bass and the
+     brightness by env.level straight off the analyser. On a thin closed curve
+     that "breathes"; on the woven moire field — which is thousands of passes of
+     nearly the same curve stacked in one frame — every pump smears the weave and
+     reads as the hand tuning slipping. So NOTHING the track does touches the
+     figure: a take is the image exactly as tuned, plus its music. env survives
+     only as the VU meter.
 
      The offline analysis below (fft / acPitch / analyze) is left in place but is
      no longer called. It is the "composed, not live-reactive" path, and if that
@@ -1290,7 +1299,7 @@ if (window.PixelGallery) {
   applyTrackScore = null;
 
   function syncPanelFromState() {
-    knobDecay.set(decayVal); knobThick.set(thickVal);   // leave the knobs where the score left them
+    knobDecay.set(decayVal); knobThick.set(thickVal); knobBrightK.set(brightVal);
     for (let i = 0; i < 4; i++) {
       const wrow = document.getElementById('wave' + i);
       if (wrow) wrow.querySelectorAll('[data-w]').forEach(b => b.classList.toggle('active', b.dataset.w === oState[i].wave));
