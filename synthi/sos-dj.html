@@ -78,6 +78,30 @@ body{
 .flt{flex:1 1 130px;background:linear-gradient(180deg,var(--socket),#02080e);border-color:rgba(0,196,255,.22)}
 .flt input[type=range]{flex:1;width:100%!important;min-width:104px;height:26px;accent-color:var(--accent2)}
 .flt span{color:var(--accent2);font-weight:700}
+/* tempo — a 48px track put every BPM inside ~0.5px of travel, unhittable on a
+   phone. Same treatment as FLT: real travel, and the number stays readable. */
+.tempo{flex:1 1 168px}
+.tempo input[type=range]{flex:1;width:100%!important;min-width:132px;height:28px}
+.tempo b{font-size:16px;min-width:32px}
+
+/* ── master meter ──────────────────────────────────────────────────────────
+   Two different questions, two different taps. The BAR is the output you hear
+   (post-limiter, post-ceiling) and its red zone is "pinned at full scale". The
+   OVER lamp is the mix BEFORE the limiter — that is the one that tells you the
+   master is actually over, because after the ceiling nothing ever reads over. */
+.meter{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:9px;
+  background:var(--socket);box-shadow:inset 0 2px 5px rgba(0,0,0,.6);border:1px solid var(--border)}
+.mBar{position:relative;width:84px;height:9px;border-radius:3px;overflow:hidden;
+  background:#070b09;box-shadow:inset 0 1px 2px rgba(0,0,0,.8)}
+.mBar i{position:absolute;top:0;bottom:0;left:0;display:block}
+#mFill{width:0;background:linear-gradient(90deg,#1f9c86 0%,var(--accent) 62%,var(--amber) 80%,#ff3b30 93%);
+  background-size:84px 100%;background-repeat:no-repeat;transition:width .05s linear}
+#mPeak{width:2px;background:rgba(238,243,242,.9);opacity:0}
+.meter .mLab{font-size:8px;letter-spacing:1px;color:var(--muted)}
+.over{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.5px;line-height:1;
+  color:rgba(255,59,48,.30);border:1px solid rgba(255,59,48,.22);border-radius:4px;padding:3px 4px;
+  transition:color .08s,background .08s,box-shadow .08s}
+.over.on{color:#fff;background:#ff3b30;border-color:#ff3b30;box-shadow:0 0 9px rgba(255,59,48,.65)}
 
 /* ── fx rack ── */
 .fxBody{display:flex;flex-direction:column;gap:8px}
@@ -102,6 +126,16 @@ body{
 .row-lab .vn{font-weight:700;font-size:12px;font-family:var(--mono);letter-spacing:.5px}
 .row-lab .ve{font-size:7px;line-height:1;letter-spacing:.4px;color:var(--accent);font-family:var(--mono);text-transform:uppercase;opacity:.85}
 .row-lab:active .vn{color:var(--accent)}
+/* per-voice live controls: MUTE + the clip lamp, in the 44px name column */
+.vctl{display:flex;align-items:center;gap:3px;margin-top:2px}
+.mute{font-family:var(--mono);font-size:7px;font-weight:700;line-height:1;color:var(--muted);
+  background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:3px;
+  padding:2px 3px;cursor:pointer;-webkit-user-select:none;user-select:none}
+.mute.on{color:#fff;background:#b3261e;border-color:#ff3b30;box-shadow:0 0 6px rgba(255,59,48,.45)}
+.clip{width:6px;height:6px;border-radius:50%;background:#240e0c;flex:0 0 auto;
+  box-shadow:inset 0 0 0 1px rgba(255,59,48,.20);transition:background .06s,box-shadow .06s}
+.clip.hot{background:var(--amber);box-shadow:0 0 6px rgba(232,163,61,.6)}
+.clip.on{background:#ff3b30;box-shadow:0 0 7px rgba(255,59,48,.85)}
 .tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .tbtn{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--text);
   background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:8px;padding:6px 9px;cursor:pointer;line-height:1}
@@ -219,9 +253,14 @@ body{
     <div class="panelHead">
       <div class="phLeft"><button class="play" id="play" data-on="0" aria-label="Play"><span class="ico"></span></button><b>Patch Matrix</b></div>
       <div class="transport">
+        <div class="meter" id="meter" title="Master — sloupec je výstup, OVER je mix PŘED limiterem">
+          <div class="mBar" role="meter" aria-label="Master level"><i id="mFill"></i><i id="mPeak"></i></div>
+          <b class="over" id="mOver">OVER</b>
+        </div>
         <label class="bpm"><input id="masterSlider" type="range" min="0" max="100" value="85" aria-label="Master volume"><b id="masterVal">85</b><span>VOL</span></label>
         <label class="bpm flt"><input id="fltSlider" type="range" min="0" max="100" value="50" aria-label="Master filter"><span>FLT</span></label>
-        <label class="bpm"><input id="bpmSlider" type="range" min="70" max="160" value="124" aria-label="Tempo"><b id="bpmVal">124</b><span>BPM</span></label>
+        <button class="tbtn" id="btnTap" title="Ťukej do rytmu — nastaví tempo">TAP</button>
+        <label class="bpm tempo"><input id="bpmSlider" type="range" min="70" max="180" value="124" aria-label="Tempo"><b id="bpmVal">124</b><span>BPM</span></label>
       </div>
     </div>
     <div class="panelBody">
@@ -255,8 +294,11 @@ body{
     <div class="panelHead">
       <b>Sequencer</b>
       <div class="tools">
-        <button class="tbtn" id="btnAB" title="Pattern A / B">PAT A</button>
-        <button class="tbtn" id="btnChain" title="Řetězit A↔B každou smyčku">CHAIN</button>
+        <button class="tbtn" id="btnAB" title="Pattern A / B / C / D">PAT A</button>
+        <button class="tbtn" id="btnChain" title="Řetězit patterny podle SONG">CHAIN</button>
+        <button class="tbtn" id="btnSong" title="Pořadí patternů v řetězu">A·B</button>
+        <button class="tbtn" id="btnMut" title="Zmutuj tenhle pattern — krok stranou, ne nový groove">MUT</button>
+        <button class="tbtn" id="btnUndo" title="Zpět (RND / styl / MUT / CLR)">↶</button>
         <button class="tbtn" id="btnLen" title="Počet kroků 8/16/32/64">LEN 16</button>
         <button class="tbtn" id="btnAcc" title="Akcenty — táhni ↕ po kroku a nastav jeho důraz">ACC</button>
         <button class="tbtn" id="btnSwing" title="Swing — 50 rovně, 66 triolový shuffle">SWG 50</button>
@@ -318,6 +360,12 @@ const COLS=[
   {id:'TUN',name:'TUNE',sub:'note'},
 ];
 const TUNCI=COLS.findIndex(c=>c.id==='TUN');
+const LVLCI=COLS.findIndex(c=>c.id==='LVL');
+/* MUTE lives here rather than on the LVL knob so that killing a lane and
+   bringing it back does not cost you the level you had dialled in. It closes
+   the `level` node, which is also where the delay + reverb sends tap off — so a
+   muted lane really is gone, tails included. */
+const muted=VOICES.map(()=>false);
 const state=VOICES.map(()=>COLS.map(()=>({on:false,val:0})));
 function setCell(v,c,val){const s=state[v][c];s.val=Math.max(0,Math.min(100,val));s.on=s.val>0;}
 const PRESET={KCK:{LVL:82},BAS:{LVL:74,LPF:52},STB:{LVL:58,DLY:34,RVB:42},HAT:{LVL:44,RVB:22},CLP:{LVL:82,RVB:30}};
@@ -329,7 +377,7 @@ function voiceRatio(vi){const semi=Math.round((state[vi][TUNCI].val-50)/50*24);r
 
 let STEPS=16;
 const PATA={KCK:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],BAS:[1,0,0,1,0,0,1,0,1,0,0,1,0,1,0,0],STB:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,1,0],HAT:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,1],CLP:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0]};
-const PATB={};VOICES.forEach(v=>PATB[v.id]=Array(16).fill(0));
+function emptyPat(){const P={};VOICES.forEach(v=>P[v.id]=Array(16).fill(0));P.notes=newNotes(16);P.vel=newVels(16);return P;}
 /* melodic step notes — scale-index per step (A natural minor, ~1.5 oct).
    BASS + STAB are pitchable lanes; each pattern keeps notes.{BAS,STB} arrays. */
 const MEL_IDS=['BAS','STB'];
@@ -374,9 +422,12 @@ function accentLoose(n){const a=Array(n).fill(1);
     a[i]=Math.max(.35,Math.min(1.3,b+(Math.random()-.5)*.22));}return a;}
 PATA.notes=newNotes(16);[4,12,14].forEach((i,k)=>PATA.notes.STB[i]=[0,4,2][k]);
 PATA.vel=newVels(16);
-PATB.notes=newNotes(16);PATB.vel=newVels(16);
-let patternsAB=[PATA,PATB],curAB=0,chain=false,accMode=false;
-let patterns=patternsAB[curAB];
+/* Four patterns, not two. B/C/D start empty; CHAIN fills whichever ones the
+   SONG order actually visits, so a chained take never plays a bar of silence. */
+const PATS=[PATA,emptyPat(),emptyPat(),emptyPat()];
+const PAT_NAMES=['A','B','C','D'];
+let curPat=0,chain=false,accMode=false;
+let patterns=PATS[curPat];
 /* scale-degree → semitone for a melodic voice's step (0 if unset) */
 function melSemi(id,step){const arr=patterns.notes&&patterns.notes[id];
   const idx=(arr&&arr[step]!=null)?arr[step]:0;
@@ -649,7 +700,7 @@ function applyStyle(idx){
   arpOn=!!S.arpOn;arpMode=S.arpMode||0;arpOct=S.arpOct||1;arpDiv=S.arpDiv!=null?S.arpDiv:3;basArp=!!S.basArp;arpGate=S.arpGate!=null?S.arpGate:1;buildArpSeq();arpIdx=0;
   fltSlider.value=S.filter!=null?S.filter:50;
   setDelayTime();applyDelayMode();applyFilter();
-  refreshSteps();refreshEngineLabels();updateFxLabels();syncChainB();
+  refreshSteps();refreshEngineLabels();updateFxLabels();syncAutoPats();
   if(recUI&&recUI.refresh)recUI.refresh();
   curStyle=idx;document.querySelectorAll('.sty').forEach((b,i)=>b.classList.toggle('on',i===idx));
   const rb=document.getElementById('btnRnd');if(rb){rb.textContent='🎲 VARY';rb.title='Variace v rámci stylu '+S.name;}
@@ -672,6 +723,7 @@ function updateFxLabels(){
 
 /* ============================================================ AUDIO */
 let AC=null,master,comp,lim,ceil,recTap,mLP,mHP,reverbIn,conv,reverbOut;
+let mAnaPre=null,mAnaOut=null;
 let delayIn,dL,dR,dampL,dampR,gInL,gInR,fbLL,fbRR,fbLR,fbRL,panL,panR,delayOut;
 const voiceNodes=[];
 function ensureAudio(){
@@ -693,6 +745,13 @@ function ensureAudio(){
   mHP=AC.createBiquadFilter(); mHP.type='highpass'; mHP.frequency.value=20; mHP.Q.value=.7;
   master.connect(mLP); mLP.connect(mHP); mHP.connect(comp);
   comp.connect(lim); lim.connect(ceil); ceil.connect(recTap); recTap.connect(AC.destination);
+  /* Two taps because they answer two different questions. recTap is the output
+     you hear and record. mHP is the mix BEFORE the compressor — and that is the
+     only place "is the master over?" can be measured, because ceilCurve() holds
+     everything past it under 0.95, so nothing downstream ever reads over. An
+     analyser with nothing connected to its output adds nothing to the mix. */
+  mAnaPre=AC.createAnalyser(); mAnaPre.fftSize=1024; mHP.connect(mAnaPre);
+  mAnaOut=AC.createAnalyser(); mAnaOut.fftSize=1024; recTap.connect(mAnaOut);
   applyFilter();
 
   /* stereo delay: two lines with damped feedback. Cross-feed = ping-pong,
@@ -728,12 +787,14 @@ function ensureAudio(){
     const level=AC.createGain(); level.gain.value=0;
     const dly=AC.createGain(); dly.gain.value=0;
     const rvb=AC.createGain(); rvb.gain.value=0;
+    const ana=AC.createAnalyser(); ana.fftSize=512;      // this lane's clip lamp
     bus.connect(shaper); shaper.connect(lpf); lpf.connect(level);
     level.connect(master); level.connect(dly); dly.connect(delayIn);
-    level.connect(rvb); rvb.connect(reverbIn);
-    voiceNodes.push({bus,shaper,lpf,level,dly,rvb});
+    level.connect(rvb); rvb.connect(reverbIn); level.connect(ana);
+    voiceNodes.push({bus,shaper,lpf,level,dly,rvb,ana});
   });
   VOICES.forEach((v,vi)=>COLS.forEach((c,ci)=>applyParam(vi,ci)));
+  startMeters();
 }
 /* unity below 0.7, then a soft knee to a 0.95 ceiling — transparent for
    ordinary levels, rounds only what would otherwise square off */
@@ -761,7 +822,7 @@ function applyParam(vi,ci){
   if(!AC)return;
   const {on,val}=state[vi][ci],n=voiceNodes[vi],t=val/100,now=AC.currentTime;
   switch(COLS[ci].id){
-    case 'LVL': n.level.gain.setTargetAtTime(on?t:0,now,.02); break;
+    case 'LVL': n.level.gain.setTargetAtTime(on&&!muted[vi]?t:0,now,.02); break;
     case 'LPF': n.lpf.frequency.setTargetAtTime(on?180*Math.pow(16000/180,t):16000,now,.02); break;
     case 'DLY': n.dly.gain.setTargetAtTime(on?t*.9:0,now,.02); break;
     case 'RVB': n.rvb.gain.setTargetAtTime(on?t*.9:0,now,.02); break;
@@ -1422,7 +1483,7 @@ function scheduler(){
     setTimeout(()=>flashStep(s),Math.max(0,(at-AC.currentTime)*1000));
     nextTime+=stepDur();
     const ns=(s+1)%STEPS;
-    if(ns===0&&chain)selectAB(curAB^1);   // chain: swap A/B every loop
+    if(ns===0&&chain){const o=songOrder();songPos=(songPos+1)%o.length;selectPat(o[songPos],true);}   // chain: next bar of the SONG
     curStep=ns;
   }
   timer=setTimeout(scheduler,TICK);
@@ -1438,7 +1499,7 @@ function stop(){playing=false;clearTimeout(timer);playBtn.dataset.on='0';clearFl
 
 /* ============================================================ UI */
 const grid=document.getElementById('grid');
-const pinEls=[],rowLabEls=[];
+const pinEls=[],rowLabEls=[],muteEls=[],clipEls=[];
 function el(t,c){const e=document.createElement(t);if(c)e.className=c;return e;}
 (function buildGrid(){
   grid.appendChild(el('div'));
@@ -1447,9 +1508,16 @@ function el(t,c){const e=document.createElement(t);if(c)e.className=c;return e;}
     grid.appendChild(d);});
   VOICES.forEach((v,vi)=>{
     const rl=el('div','row-lab');rl.setAttribute('role','button');rl.tabIndex=0;rl.title='Změň nástroj';
-    rl.innerHTML=`<span class="vn">${v.name}</span><span class="ve"></span>`;
+    rl.innerHTML=`<span class="vn">${v.name}</span><span class="ve"></span>`+
+      `<span class="vctl"><b class="mute" role="button" tabindex="0" title="Mute ${v.name}">M</b>`+
+      `<i class="clip" title="Clip — tahle dráha přebuzuje"></i></span>`;
     rl.addEventListener('click',()=>cycleEngine(vi));
     rl.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();cycleEngine(vi);}});
+    const mb=rl.querySelector('.mute');
+    /* the row label itself cycles the engine — a mute tap must not reach it */
+    mb.addEventListener('click',e=>{e.stopPropagation();ensureAudio();setMute(vi,!muted[vi]);});
+    mb.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();ensureAudio();setMute(vi,!muted[vi]);}});
+    muteEls[vi]=mb;clipEls[vi]=rl.querySelector('.clip');
     grid.appendChild(rl);rowLabEls[vi]=rl.querySelector('.ve');
     pinEls[vi]=[];
     COLS.forEach((c,ci)=>{
@@ -1468,6 +1536,69 @@ function refreshPin(vi,ci){
   pin.classList.toggle('on',s.on);
   if(s.on)head.style.background=`radial-gradient(60% 60% at 50% 30%, #ffffffaa, ${heat(s.val)})`;
 }
+function setMute(vi,on){
+  muted[vi]=!!on;
+  applyParam(vi,LVLCI);
+  if(muteEls[vi])muteEls[vi].classList.toggle('on',muted[vi]);
+}
+
+/* ── METERING ────────────────────────────────────────────────────────────────
+   One rAF loop for all seven analysers, throttled to ~30fps — the lamps are a
+   read of the signal, not an animation, and this runs on phones. Peak, not RMS:
+   what matters here is whether anything touched the ceiling. */
+const METER_BUF=new Float32Array(1024);
+function peakOf(an){
+  an.getFloatTimeDomainData(METER_BUF);
+  let p=0;const n=an.fftSize;
+  for(let i=0;i<n;i++){const a=Math.abs(METER_BUF[i]);if(a>p)p=a;}
+  return p;
+}
+/* −48 dB … 0 dB across the bar: linear width would spend most of the meter on
+   the top 6 dB and leave a working mix as a stub */
+function meterNorm(p){if(p<=0.0004)return 0;return Math.max(0,Math.min(1,(20*Math.log10(p)+48)/48));}
+/* Thresholds measured on the factory HOUSE preset rather than guessed. Over four
+   seconds of it the mix sits past unity 27% of the time, peaks at 1.75 and the
+   limiter rides 1–6.7 dB down continuously — that is the chain working as
+   designed (the compressor's threshold is −8 dB). A lamp at "over unity" would
+   therefore be lit permanently and mean nothing, and one at +3 dB would still
+   blink every couple of bars. OVER is set above everything the factory mix
+   does, so it means you have pushed the master past what the limiter hides. */
+const OVER_RED=-9, OVER_PEAK=2.0;      // limiter hauling >9 dB, or ≈+6 dB over
+const LANE_CLIP=.99, LANE_HOT=.6;      // measured at master scale, see below
+let meterRaf=0,meterLast=0,peakHold=0,peakAt=0,overAt=-1e9;
+const clipAt=VOICES.map(()=>-1e9),hotAt=VOICES.map(()=>-1e9);
+const mFillEl=document.getElementById('mFill'),mPeakEl=document.getElementById('mPeak'),mOverEl=document.getElementById('mOver');
+function meterTick(ts){
+  meterRaf=requestAnimationFrame(meterTick);
+  if(!AC||!mAnaOut||ts-meterLast<33)return;
+  meterLast=ts;
+  const out=meterNorm(peakOf(mAnaOut));
+  mFillEl.style.width=(out*100).toFixed(1)+'%';
+  if(out>=peakHold){peakHold=out;peakAt=ts;}
+  else if(ts-peakAt>1200)peakHold=Math.max(out,peakHold-.02);
+  mPeakEl.style.left='calc('+(peakHold*100).toFixed(1)+'% - 2px)';
+  mPeakEl.style.opacity=peakHold>.02?'1':'0';
+  /* `reduction` is a plain float in Chrome and missing elsewhere, so the peak
+     is the one that always works and reduction is the second opinion. */
+  const red=(lim&&typeof lim.reduction==='number')?lim.reduction:0;
+  if(peakOf(mAnaPre)>=OVER_PEAK||red<=OVER_RED)overAt=ts;
+  mOverEl.classList.toggle('on',ts-overAt<900);
+  /* A lane is measured at MASTER scale (its peak times the master gain), because
+     that is the same yardstick as OVER: the question a lamp answers when OVER
+     lights is "which of these is pushing it there". Red = this lane on its own
+     is over; amber = it is one of the big contributors. */
+  const mg=master?master.gain.value:1;
+  voiceNodes.forEach((n,vi)=>{
+    if(!n.ana)return;
+    const c=peakOf(n.ana)*mg;
+    if(c>=LANE_CLIP)clipAt[vi]=ts; else if(c>=LANE_HOT)hotAt[vi]=ts;
+    const e=clipEls[vi];if(!e)return;
+    const isClip=ts-clipAt[vi]<500;
+    e.classList.toggle('on',isClip);
+    e.classList.toggle('hot',!isClip&&ts-hotAt[vi]<500);
+  });
+}
+function startMeters(){if(!meterRaf)meterRaf=requestAnimationFrame(meterTick);}
 
 const seqRows=document.getElementById('seqRows');
 const stepEls={};
@@ -1538,7 +1669,7 @@ function attachStep(st,id,i){
     if(!down||!mode)return;
     if(Math.abs(e.clientY-sy)>4)moved=true;
     if(!moved)return;
-    if(!patterns[id][i]){patterns[id][i]=1;st.classList.add('on');if(curAB===1)bAuto=false;}   // dragging also arms the step
+    if(!patterns[id][i]){patterns[id][i]=1;st.classList.add('on');patAuto[curPat]=false;}   // dragging also arms the step
     if(mode==='vel'){
       setVel(id,i,Math.max(.2,Math.min(1.4,sVal+(sy-e.clientY)/120)));
     }else{
@@ -1551,7 +1682,7 @@ function attachStep(st,id,i){
   });
   st.addEventListener('pointerup',()=>{
     if(!down)return;down=false;
-    if(!moved){patterns[id][i]^=1;st.classList.toggle('on',!!patterns[id][i]);applyVel(st,id,i);if(curAB===1)bAuto=false;}
+    if(!moved){patterns[id][i]^=1;st.classList.toggle('on',!!patterns[id][i]);applyVel(st,id,i);patAuto[curPat]=false;}
     if(patterns[id][i]&&mel&&!accMode){ensureAudio();previewMel(id,i);}
   });
   st.addEventListener('pointercancel',()=>{down=false;});
@@ -1585,7 +1716,7 @@ function randomize(){
   MEL_IDS.forEach(id=>{if(!patterns.notes[id])patterns.notes[id]=Array(STEPS).fill(0);
     for(let i=0;i<STEPS;i++)patterns.notes[id][i]=Math.floor(Math.random()*SCALE.length);});
   patterns.vel=newVels(STEPS);VOICES.forEach(v=>{patterns.vel[v.id]=accentLoose(STEPS);});
-  refreshSteps();refreshEngineLabels();syncChainB();
+  refreshSteps();refreshEngineLabels();syncAutoPats();
 }
 /* 🎲 while a style is active → a fresh variation *in that style*: keeps the
    genre's engines, scale, tempo, mix + FX, and mutates only the groove.
@@ -1627,7 +1758,7 @@ function rerollStyle(S){
     }
     patterns.notes[id]=arr;
   });
-  refreshSteps();refreshEngineLabels();syncChainB();
+  refreshSteps();refreshEngineLabels();syncAutoPats();
 }
 /* ── CHAIN needs a second bar to chain TO ─────────────────────────────────
    CHAIN swaps A↔B every loop and a take is two loops long, so an empty B gave
@@ -1672,24 +1803,93 @@ function variationOf(src){
   out.vel=newVels(STEPS);VOICES.forEach(v=>{out.vel[v.id]=accentLoose(STEPS);});
   return out;
 }
-/* B counts as "auto" until you touch it — after that styles / VARY leave it alone */
-let bAuto=false;
-function seedChainB(force){
-  const A=patternsAB[0],B=patternsAB[1];
-  if(patEmpty(A))return;
-  if(!force&&!patEmpty(B))return;
-  const nb=variationOf(A);Object.keys(nb).forEach(k=>{B[k]=nb[k];});   // in place — `patterns` may alias B
-  bAuto=true;
-  if(curAB===1)refreshSteps();
+/* A derived pattern counts as "auto" until you touch it — after that styles /
+   VARY / MUT leave it alone. One flag per pattern, so a hand-written C survives
+   a style change that rewrites A and re-derives B. */
+let patAuto=[false,false,false,false];
+function seedPat(i,force){
+  const A=PATS[0],P=PATS[i];
+  if(!i||patEmpty(A))return;
+  if(!force&&!patEmpty(P))return;
+  const nb=variationOf(A);Object.keys(nb).forEach(k=>{P[k]=nb[k];});   // in place — `patterns` may alias P
+  patAuto[i]=true;
+  if(curPat===i)refreshSteps();
 }
-/* a style / RND / VARY rewrote A → keep an auto-derived B in step with it */
-function syncChainB(){if(chain&&bAuto&&curAB===0)seedChainB(true);}
-function clearSteps(){VOICES.forEach(v=>{for(let i=0;i<STEPS;i++)patterns[v.id][i]=0;});if(curAB===1)bAuto=false;refreshSteps();}
-/* pattern A/B, loop length, delay division, master filter */
-function selectAB(i){curAB=i&1;patterns=patternsAB[curAB];refreshSteps();const b=document.getElementById('btnAB');if(b)b.textContent='PAT '+(curAB?'B':'A');}
+/* a style / RND / VARY rewrote A → keep the auto-derived patterns in step with it */
+function syncAutoPats(){if(!chain||curPat!==0)return;songOrder().forEach(i=>{if(i&&patAuto[i])seedPat(i,true);});}
+
+/* ── SONG — the order the chain plays ─────────────────────────────────────────
+   CHAIN used to mean one thing: swap A↔B every loop. With four patterns the
+   interesting part is the ORDER, so it is a preset you cycle. A·A·B·C is a
+   16-bar shape, not four bars of round-robin. */
+const SONGS=[{n:'A·B',s:[0,1]},{n:'A·B·C',s:[0,1,2]},{n:'A·A·B·C',s:[0,0,1,2]},
+             {n:'A·B·A·C',s:[0,1,0,2]},{n:'A·B·C·D',s:[0,1,2,3]}];
+let songIdx=0,songPos=0;
+function songOrder(){return SONGS[songIdx].s;}
+function seedSong(){songOrder().forEach(i=>{if(i)seedPat(i,false);});}   // never chain into silence
+function setSong(i){
+  songIdx=((i%SONGS.length)+SONGS.length)%SONGS.length;songPos=0;
+  const b=document.getElementById('btnSong');if(b)b.textContent=SONGS[songIdx].n;
+  if(chain)seedSong();
+  if(recUI&&recUI.refresh)recUI.refresh();            // the clip length follows the phrase
+}
+
+/* ── UNDO ─────────────────────────────────────────────────────────────────────
+   RND, a style, MUT and CLR all overwrite the bar you are looking at, and RND
+   rolls the engines and the mix too — so a snapshot that kept only the steps
+   would be half an undo. Keep the three together. */
+const UNDO_MAX=8,undoStack=[];
+function clonePat(P){
+  const o={};VOICES.forEach(v=>o[v.id]=(P[v.id]||[]).slice());
+  o.notes={};MEL_IDS.forEach(id=>o.notes[id]=((P.notes&&P.notes[id])||[]).slice());
+  o.vel={};VOICES.forEach(v=>o.vel[v.id]=((P.vel&&P.vel[v.id])||[]).slice());
+  return o;
+}
+function pushUndo(){
+  undoStack.push({i:curPat,data:clonePat(PATS[curPat]),
+                  mix:state.map(r=>r.map(c=>({on:c.on,val:c.val}))),
+                  eng:Object.assign({},engIdx)});
+  if(undoStack.length>UNDO_MAX)undoStack.shift();
+  refreshUndo();
+}
+function refreshUndo(){const b=document.getElementById('btnUndo');if(b)b.style.opacity=undoStack.length?'':'.32';}
+function undoLast(){
+  const u=undoStack.pop();if(!u)return;
+  const P=PATS[u.i];
+  VOICES.forEach(v=>{P[v.id]=u.data[v.id].slice();});
+  P.notes=P.notes||newNotes(STEPS);MEL_IDS.forEach(id=>{P.notes[id]=u.data.notes[id].slice();});
+  P.vel=P.vel||newVels(STEPS);VOICES.forEach(v=>{P.vel[v.id]=u.data.vel[v.id].slice();});
+  u.mix.forEach((r,vi)=>r.forEach((c,ci)=>{state[vi][ci].on=c.on;state[vi][ci].val=c.val;}));
+  Object.keys(u.eng).forEach(k=>engIdx[k]=u.eng[k]);
+  VOICES.forEach((v,vi)=>COLS.forEach((c,ci)=>{applyParam(vi,ci);refreshPin(vi,ci);}));
+  if(curPat!==u.i)selectPat(u.i);else refreshSteps();
+  refreshEngineLabels();refreshUndo();
+}
+/* MUT — a step SIDEWAYS from this bar, the same idea as VARY on the visual
+   engine: keep what is there, move the off-beats. On an empty pattern there is
+   nothing to step away from, so it derives from A instead. */
+function mutatePat(){
+  pushUndo();
+  const src=patEmpty(patterns)?PATS[0]:patterns;
+  const nb=variationOf(src);Object.keys(nb).forEach(k=>{patterns[k]=nb[k];});
+  patAuto[curPat]=false;                               // mutated by hand — styles keep off it now
+  refreshSteps();
+}
+function clearSteps(){pushUndo();VOICES.forEach(v=>{for(let i=0;i<STEPS;i++)patterns[v.id][i]=0;});patAuto[curPat]=false;refreshSteps();}
+/* pattern A–D, loop length, delay division, master filter.
+   `keepPos` is for the chain itself: the scheduler has already moved songPos, and
+   re-deriving it from the pattern index would break any order that repeats one
+   (A·A·B·C would stick on the first A forever). */
+function selectPat(i,keepPos){
+  curPat=((i%PATS.length)+PATS.length)%PATS.length;
+  patterns=PATS[curPat];
+  if(chain&&!keepPos){const at=songOrder().indexOf(curPat);if(at>=0)songPos=at;}
+  refreshSteps();
+  const b=document.getElementById('btnAB');if(b)b.textContent='PAT '+PAT_NAMES[curPat];
+}
 /* growing the loop REPEATS what's there (4 bars of the groove, not 1 bar + silence);
    shrinking truncates. Then VARY can mutate the long form. */
-function setSteps(n){patternsAB.forEach(P=>{VOICES.forEach(v=>{const old=P[v.id],na=Array(n).fill(0);for(let i=0;i<n;i++)na[i]=old.length?old[i%old.length]:0;P[v.id]=na;});if(!P.notes)P.notes=newNotes(n);MEL_IDS.forEach(id=>{const on=P.notes[id]||[],nn=Array(n).fill(0);for(let i=0;i<n;i++)nn[i]=on.length?on[i%on.length]:0;P.notes[id]=nn;});
+function setSteps(n){PATS.forEach(P=>{VOICES.forEach(v=>{const old=P[v.id],na=Array(n).fill(0);for(let i=0;i<n;i++)na[i]=old.length?old[i%old.length]:0;P[v.id]=na;});if(!P.notes)P.notes=newNotes(n);MEL_IDS.forEach(id=>{const on=P.notes[id]||[],nn=Array(n).fill(0);for(let i=0;i<n;i++)nn[i]=on.length?on[i%on.length]:0;P.notes[id]=nn;});
   if(!P.vel)P.vel=newVels(n);VOICES.forEach(v=>{const ov=P.vel[v.id]||[],nv=Array(n).fill(1);for(let i=0;i<n;i++)nv[i]=ov.length?ov[i%ov.length]:1;P.vel[v.id]=nv;});});STEPS=n;curStep=0;buildSeq();const b=document.getElementById('btnLen');if(b)b.textContent='LEN '+n;if(recUI&&recUI.refresh)recUI.refresh();}
 function setDelayTime(){if(!dL)return;const t=delayTime(),now=AC.currentTime;dL.delayTime.setTargetAtTime(t,now,.05);dR.delayTime.setTargetAtTime(t,now,.05);}
 function cycleDelay(){delayDiv=(delayDiv+1)%DELAY_DIVS.length;const nm=DELAY_DIVS[delayDiv].n;if(delaySmallEl)delaySmallEl.textContent=nm;const b=document.getElementById('dlyTime');if(b)b.textContent=nm;setDelayTime();}
@@ -1782,6 +1982,22 @@ bpmSlider.addEventListener('input',()=>{
   setDelayTime();
   if(recUI&&recUI.refresh)recUI.refresh();
 });
+/* TAP — four taps beats guessing on a slider when you are matching something
+   you can hear. A gap over 2s starts a new count, so a stale tap never drags
+   the average down. */
+let tapT=[];
+const btnTap=document.getElementById('btnTap');
+btnTap.addEventListener('click',()=>{
+  const now=performance.now();
+  if(tapT.length&&now-tapT[tapT.length-1]>2000)tapT=[];
+  tapT.push(now);if(tapT.length>5)tapT.shift();
+  if(tapT.length<2){btnTap.textContent='···';return;}
+  let sum=0;for(let i=1;i<tapT.length;i++)sum+=tapT[i]-tapT[i-1];
+  const v=Math.round(Math.max(+bpmSlider.min,Math.min(+bpmSlider.max,60000/(sum/(tapT.length-1)))));
+  bpm=v;bpmSlider.value=v;bpmValEl.textContent=v;btnTap.textContent=v;
+  setDelayTime();
+  if(recUI&&recUI.refresh)recUI.refresh();
+});
 const masterSlider=document.getElementById('masterSlider'),masterValEl=document.getElementById('masterVal');
 masterSlider.addEventListener('input',()=>{
   masterValEl.textContent=masterSlider.value;
@@ -1835,10 +2051,14 @@ const arpDblBtn=document.getElementById('arpDbl');
 arpDblBtn.addEventListener('click',()=>{arpDbl=!arpDbl;arpDblBtn.classList.toggle('on',arpDbl);});
 const btnBasArp=document.getElementById('btnBasArp');
 btnBasArp.addEventListener('click',()=>{ensureAudio();basArp=!basArp;btnBasArp.classList.toggle('on',basArp);});
-document.getElementById('btnAB').addEventListener('click',()=>selectAB(curAB^1));
+document.getElementById('btnAB').addEventListener('click',()=>selectPat(curPat+1));
+document.getElementById('btnSong').addEventListener('click',()=>setSong(songIdx+1));
+document.getElementById('btnMut').addEventListener('click',mutatePat);
+document.getElementById('btnUndo').addEventListener('click',undoLast);
+refreshUndo();
 const btnChain=document.getElementById('btnChain');
 btnChain.addEventListener('click',()=>{chain=!chain;btnChain.classList.toggle('on',chain);
-  if(chain)seedChainB(false);            // an empty B would record as a bar of silence
+  if(chain){seedSong();songPos=Math.max(0,songOrder().indexOf(curPat));}   // an empty bar would record as silence
   if(recUI&&recUI.refresh)recUI.refresh();});
 document.getElementById('btnLen').addEventListener('click',()=>{
   const seq=[8,16,32,64],ni=(seq.indexOf(STEPS)+1)%seq.length;
@@ -1860,8 +2080,9 @@ let recLong=false;
 function loopSec(){return STEPS*stepDur();}
 function recLoops(){
   const want=recLong?REC_LONG_SEC:REC_MIN_SEC;
-  let n=Math.max(chain?2:1,Math.ceil(want/loopSec()));
-  if(chain&&n%2)n++;                                  // always end on a complete A→B
+  const len=chain?songOrder().length:1;
+  let n=Math.max(len,Math.ceil(want/loopSec()));
+  if(n%len)n+=len-(n%len);                            // always end on a complete phrase
   return n;
 }
 function recSec(){return loopSec()*recLoops();}
@@ -1895,16 +2116,16 @@ const sosRec=(window.SynthiRecord?SynthiRecord.mount({
   getContext:()=>AC,
   getTap:()=>recTap,
   ensureAudio:ensureAudio,
-  getPatch:()=>({matrix:state,patternsAB,bpm,engines:engIdx,steps:STEPS,ab:curAB,chain,swing,filter:+document.getElementById('fltSlider').value,
+  getPatch:()=>({matrix:state,pats:PATS,bpm,engines:engIdx,steps:STEPS,pat:curPat,chain,song:SONGS[songIdx].n,muted,swing,filter:+document.getElementById('fltSlider').value,
     arp:{on:arpOn,mode:arpMode,oct:arpOct,dbl:arpDbl,div:arpDiv,bas:basArp,gate:arpGate},delay:{div:delayDiv,fb:delayFbAmt,pp:delayPP}}),
-  engineVersion:'sos-dj-2026.09',
+  engineVersion:'sos-dj-2026.09.2',
   maxSec:()=>recSec()+.05,                          // +50ms so the last hit's tail survives
   /* hold REC until the loop wraps to step 1 (or start the transport there) */
   syncStart:()=>new Promise(res=>{
-    if(!playing){if(chain)selectAB(0);play();setTimeout(res,35);return;}
+    if(!playing){if(chain){songPos=0;selectPat(songOrder()[0],true);}play();setTimeout(res,35);return;}
     let target=nextTime+((STEPS-curStep)%STEPS)*stepDur();
-    // chained: the wrap flips A↔B, so start on the wrap that lands on A
-    if(chain&&curAB===0)target+=STEPS*stepDur();
+    // chained: each wrap advances the SONG, so wait for the one that lands on its first bar
+    if(chain){const len=songOrder().length;target+=((len-1-songPos+len)%len)*STEPS*stepDur();}
     setTimeout(res,Math.max(0,(target-AC.currentTime)*1000-25));   // 25ms lead-in, never clip the downbeat
   }),
   share:{
