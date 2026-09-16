@@ -257,9 +257,8 @@ body{
           <div class="mBar" role="meter" aria-label="Master level"><i id="mFill"></i><i id="mPeak"></i></div>
           <b class="over" id="mOver">OVER</b>
         </div>
-        <label class="bpm"><input id="masterSlider" type="range" min="0" max="100" value="85" aria-label="Master volume"><b id="masterVal">85</b><span>VOL</span></label>
+        <label class="bpm"><input id="masterSlider" type="range" min="0" max="100" value="72" aria-label="Master volume"><b id="masterVal">72</b><span>VOL</span></label>
         <label class="bpm flt"><input id="fltSlider" type="range" min="0" max="100" value="50" aria-label="Master filter"><span>FLT</span></label>
-        <button class="tbtn" id="btnTap" title="Ťukej do rytmu — nastaví tempo">TAP</button>
         <label class="bpm tempo"><input id="bpmSlider" type="range" min="70" max="180" value="124" aria-label="Tempo"><b id="bpmVal">124</b><span>BPM</span></label>
       </div>
     </div>
@@ -1979,22 +1978,6 @@ playBtn.addEventListener('click',()=>{playing?stop():play();});
 const bpmSlider=document.getElementById('bpmSlider'),bpmValEl=document.getElementById('bpmVal');
 bpmSlider.addEventListener('input',()=>{
   bpm=+bpmSlider.value;bpmValEl.textContent=bpm;
-  setDelayTime();
-  if(recUI&&recUI.refresh)recUI.refresh();
-});
-/* TAP — four taps beats guessing on a slider when you are matching something
-   you can hear. A gap over 2s starts a new count, so a stale tap never drags
-   the average down. */
-let tapT=[];
-const btnTap=document.getElementById('btnTap');
-btnTap.addEventListener('click',()=>{
-  const now=performance.now();
-  if(tapT.length&&now-tapT[tapT.length-1]>2000)tapT=[];
-  tapT.push(now);if(tapT.length>5)tapT.shift();
-  if(tapT.length<2){btnTap.textContent='···';return;}
-  let sum=0;for(let i=1;i<tapT.length;i++)sum+=tapT[i]-tapT[i-1];
-  const v=Math.round(Math.max(+bpmSlider.min,Math.min(+bpmSlider.max,60000/(sum/(tapT.length-1)))));
-  bpm=v;bpmSlider.value=v;bpmValEl.textContent=v;btnTap.textContent=v;
   setDelayTime();
   if(recUI&&recUI.refresh)recUI.refresh();
 });
