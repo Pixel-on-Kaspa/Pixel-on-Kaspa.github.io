@@ -237,6 +237,26 @@
       padding:6px 12px;
       font-size:13px;
     }
+    /* ── REWARDS MODAL ── */
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;padding:18px;z-index:9999;}
+    .modal.open{display:flex;}
+    .modalPanel{width:min(980px,96vw);max-height:92vh;overflow:auto;border:1px solid rgba(255,255,255,.1);background:#080e0e;box-shadow:0 30px 80px rgba(0,0,0,.85);}
+    .modalTop{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#080e0e;z-index:1;}
+    .modalTitle{display:flex;flex-direction:column;gap:2px;}
+    .modalTitle b{letter-spacing:.10em;text-transform:uppercase;font-weight:900;}
+    .modalTitle span{color:var(--muted);font-size:12px;}
+    .modalBody{padding:20px;}
+    .modalTabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+    .tabBtn{border:1px solid var(--border);background:transparent;color:var(--muted);padding:8px 14px;cursor:pointer;font-family:inherit;font-weight:800;font-size:12px;letter-spacing:.06em;text-transform:uppercase;transition:color .15s,border-color .15s,background .15s;}
+    .tabBtn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+    .rewardBlock{border:1px solid var(--border);background:rgba(255,255,255,.02);padding:16px;margin-bottom:12px;}
+    .rewardBlock h3{margin:0 0 12px;letter-spacing:.10em;text-transform:uppercase;font-size:11px;color:var(--muted);font-weight:800;}
+    .rewardBlock p{margin:0 0 10px;color:var(--muted);line-height:1.55;font-size:14px;}
+    .rewardList{margin:0;padding-left:18px;color:var(--muted);font-size:14px;}
+    .rewardList li{margin:6px 0;line-height:1.5;}
+    .rewardList b{color:var(--text);}
+    .miniNote{color:var(--muted);font-size:12px;margin-top:10px;opacity:.7;}
+
     @media(max-width:860px){
       .lbBody{grid-template-columns:1fr;}
       .lbImgWrap{min-height:240px;}
@@ -253,6 +273,7 @@
   <a class="brand" href="index.html">PIXEL ON <span>KASPA</span></a>
   <nav class="topNav">
     <a class="btn" href="index.html">Home</a>
+    <button class="btn" type="button" id="topRewardsBtn">Rewards</button>
     <a class="btn btnPrimary" id="topMintBtn" href="#" target="_blank" rel="noreferrer">Mint</a>
   </nav>
 </div>
@@ -272,6 +293,7 @@
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center;">
         <div id="metaMinted" class="pill">Minted: —</div>
         <div id="metaMax" class="pill">Max: —</div>
+        <button id="rewardsBtn" class="btn" type="button">Rewards</button>
         <a id="mintBtn" class="btn btnPrimary" href="#" target="_blank" rel="noreferrer">Mint on kaspa.com</a>
       </div>
     </div>
@@ -286,6 +308,76 @@
     </div>
   </section>
 
+</div>
+
+<!-- Rewards modal (same reward tables as the homepage) -->
+<div class="modal" id="rewardsModal" aria-hidden="true">
+  <div class="modalPanel" role="dialog" aria-modal="true">
+    <div class="modalTop">
+      <div class="modalTitle">
+        <b>Rewards</b>
+        <span>$PIXEL perks for collectors</span>
+      </div>
+      <button class="btn" type="button" id="rewardsClose">Close</button>
+    </div>
+
+    <div class="modalBody">
+      <div class="modalTabs">
+        <button class="tabBtn active" type="button" data-tab="PIXELONKAS">PIXELONKAS</button>
+        <button class="tabBtn" type="button" data-tab="SYKORA">SYKORA</button>
+      </div>
+
+      <div id="tabPIXELONKAS" class="tabPanel">
+        <div class="rewardBlock">
+          <h3>PIXELONKAS Rewards</h3>
+          <p>
+            Limited collection of 342 unique sound-generated NFTs on Kaspa.
+            Each mint comes with a <b>$PIXEL</b> reward — the rarer the color, the bigger the prize.
+          </p>
+          <ul class="rewardList">
+            <li>Mint price: <b>287 KAS</b></li>
+            <li>Total rewards: <b>10B $PIXEL</b></li>
+          </ul>
+        </div>
+
+        <div class="rewardBlock">
+          <h3>Top Rewards</h3>
+          <ul class="rewardList">
+            <li>🔥 Super Broken (1 NFT) → <b>1B $PIXEL</b></li>
+            <li>⚡ Broken (24 NFTs) → <b>100M $PIXEL</b></li>
+            <li>⚫ Grey (10 NFTs) → <b>80M $PIXEL</b></li>
+            <li>🟠 Orange (15 NFTs) → <b>50M $PIXEL</b></li>
+            <li>🟡 Yellow (17 NFTs) → <b>30M $PIXEL</b></li>
+            <li>🌸 Pink (22 NFTs) → <b>26M $PIXEL</b></li>
+            <li>🔴 Red (25 NFTs) → <b>24M $PIXEL</b></li>
+            <li>🟣 Purple (27 NFTs) → <b>22M $PIXEL</b></li>
+            <li>⚪ White (28 NFTs) → <b>20M $PIXEL</b></li>
+            <li>🟩 Green (46 NFTs) → <b>15M $PIXEL</b></li>
+            <li>⚫ Black (63 NFTs) → <b>12M $PIXEL</b></li>
+            <li>🔵 Blue (64 NFTs) → <b>12M $PIXEL</b></li>
+          </ul>
+          <div class="miniNote">Rewards are paid to the original minter of each NFT, not the current holder.</div>
+        </div>
+      </div>
+
+      <div id="tabSYKORA" class="tabPanel" style="display:none">
+        <div class="rewardBlock">
+          <h3>SYKORA Instant Perks</h3>
+          <p><b>$PIXEL</b> SYKORA NFT Instant Perks for Collectors.</p>
+          <ul class="rewardList">
+            <li>❄️ Ice NFTs (23) – instant <b>100M $PIXEL</b> + Free airdrop from future $PIXEL NFT collections</li>
+            <li>⚫ Black style NFTs (9) – instant <b>80M $PIXEL</b> + 1 bonus SYKORA NFT</li>
+            <li>💖 Pink style NFTs (58) – instant <b>40M $PIXEL</b></li>
+          </ul>
+          <p class="miniNote">
+            🔑 Own 5 different styles? Unlock a special bonus with a larger $PIXEL reward. ⏳ Only 2,518 NFTs.
+          </p>
+          <div class="miniNote">Rewards are paid to the original minter of each NFT, not the current holder.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
 </div>
 
 <!-- Lightbox -->
@@ -327,6 +419,9 @@
     "https://dweb.link/ipfs/",
     "https://ipfs.io/ipfs/",
     "https://cloudflare-ipfs.com/ipfs/",
+    // Our own Pinata gateway — last resort, so it only serves traffic the
+    // public gateways dropped (they rate-limit and return 429/timeouts).
+    "https://fuchsia-genuine-stingray-776.mypinata.cloud/ipfs/",
   ];
 
   // Per-token metadata: kaspa.com cache first (fast, always up), IPFS gateways as fallback.
@@ -342,6 +437,54 @@
   // Optimized (CDN-cached) image straight from kaspa.com — no IPFS round-trip.
   function optimizedImg(tick, tokenId){
     return `${CACHE_BASE}/optimized/${encodeURIComponent(tick)}/${tokenId}`;
+  }
+
+  // The source images are full-resolution PNGs (2–5 MB each), so a dropped
+  // request is common when a whole page of them is in flight. Retry the CDN
+  // once with a cache-buster, then walk the IPFS gateways, and only give up
+  // after every source has failed.
+  const OPTIMIZED_RETRIES = 1;
+
+  function attachImgFallback(imgEl, optimizedUrl, ipfs, onFail){
+    let optTries = 0;
+    let gwIndex  = -1;
+    imgEl.onerror = () => {
+      if(optTries < OPTIMIZED_RETRIES){
+        optTries++;
+        imgEl.src = `${optimizedUrl}?retry=${optTries}`;
+        return;
+      }
+      gwIndex++;
+      if(ipfs && gwIndex < IPFS_GATEWAYS.length){
+        imgEl.src = IPFS_GATEWAYS[gwIndex] + ipfs;
+        return;
+      }
+      onFail();
+    };
+  }
+
+  // Only start downloading a thumbnail once its card is near the viewport.
+  // Without this the whole page (31 PIXELONKAS ≈ 140 MB) is requested at once
+  // and the CDN drops a handful of them.
+  // The <img> itself is 0×0 until it has a source, so we observe its .thumb
+  // container (which is always a square) and keep the loader in a WeakMap.
+  const pendingImgLoads = new WeakMap();
+  const imgObserver = ("IntersectionObserver" in window)
+    ? new IntersectionObserver((entries, obs) => {
+        for(const e of entries){
+          if(!e.isIntersecting) continue;
+          obs.unobserve(e.target);
+          const load = pendingImgLoads.get(e.target);
+          if(load){ pendingImgLoads.delete(e.target); load(); }
+        }
+      }, { rootMargin: "600px 0px" })
+    : null;
+
+  function lazyLoadImg(imgEl, url, observeEl){
+    const target = observeEl || imgEl;
+    if(!imgObserver || !target){ imgEl.src = url; return; }
+    pendingImgLoads.set(target, () => { imgEl.src = url; });
+    imgObserver.observe(target);
   }
 
   // Collection stats from kaspa.com (works regardless of KSPR).
@@ -600,15 +743,7 @@
 
     const imgEl = lb.imgWrap.querySelector("img");
     if(imgEl){
-      let gwIndex = -1; // -1 = optimized CDN; on error advance into IPFS gateways
-      imgEl.onerror = () => {
-        gwIndex++;
-        if(imgIpfs && gwIndex < IPFS_GATEWAYS.length){
-          imgEl.src = IPFS_GATEWAYS[gwIndex] + imgIpfs;
-        }else{
-          lb.imgWrap.textContent = "Image error";
-        }
-      };
+      attachImgFallback(imgEl, imgUrl, imgIpfs, () => { lb.imgWrap.textContent = "Image error"; });
       imgEl.onclick = () => closeLightbox();
     }
     lb.fsBtn.onclick = () => requestFs(imgEl || lb.imgWrap);
@@ -834,18 +969,11 @@
           const { ipfs } = extractImageFromMeta(meta);
           const optimized = optimizedImg(tick, tokenId);
           if(thumb){
-            thumb.innerHTML = `<img src="${optimized}" alt="" loading="lazy">`;
+            thumb.innerHTML = `<img alt="" loading="lazy">`;
             const imgEl = thumb.querySelector("img");
             if(imgEl){
-              let gwIndex = -1; // -1 = optimized CDN; on error advance into IPFS gateways
-              imgEl.onerror = () => {
-                gwIndex++;
-                if(ipfs && gwIndex < IPFS_GATEWAYS.length){
-                  imgEl.src = IPFS_GATEWAYS[gwIndex] + ipfs;
-                }else{
-                  thumb.textContent = "Image error";
-                }
-              };
+              attachImgFallback(imgEl, optimized, ipfs, () => { thumb.textContent = "Image error"; });
+              lazyLoadImg(imgEl, optimized, thumb);
             }
             thumb.onclick = () => {
               openLightbox({ tick, tokenId, meta, imgUrl: optimized, imgIpfs: ipfs, mintUrl: kaspaCollectionUrl(tick) });
@@ -875,6 +1003,36 @@
   });
 
   qs("#loadMoreBtn").addEventListener("click", () => renderNextPage());
+
+  // ── Rewards modal ──
+  (function(){
+    const modal = qs("#rewardsModal");
+    if(!modal) return;
+
+    function setTab(tab){
+      const t = (tab === "SYKORA") ? "SYKORA" : "PIXELONKAS";
+      qsa(".tabBtn").forEach(b => b.classList.toggle("active", b.dataset.tab === t));
+      qs("#tabPIXELONKAS").style.display = (t === "PIXELONKAS") ? "block" : "none";
+      qs("#tabSYKORA").style.display     = (t === "SYKORA")     ? "block" : "none";
+    }
+    function openModal(){
+      setTab(currentTick || "PIXELONKAS");   // follow the collection being viewed
+      modal.classList.add("open");
+      modal.setAttribute("aria-hidden","false");
+    }
+    function closeModal(){
+      modal.classList.remove("open");
+      modal.setAttribute("aria-hidden","true");
+    }
+
+    qsa("#rewardsBtn, #topRewardsBtn").forEach(b => b.addEventListener("click", openModal));
+    qsa(".tabBtn").forEach(b => b.addEventListener("click", () => setTab(b.dataset.tab)));
+    qs("#rewardsClose").addEventListener("click", closeModal);
+    modal.addEventListener("click", (e) => { if(e.target === modal) closeModal(); });
+    document.addEventListener("keydown", (e) => {
+      if(e.key === "Escape" && modal.classList.contains("open")) closeModal();
+    });
+  })();
 
   loadCollection("PIXELONKAS");
 })();
