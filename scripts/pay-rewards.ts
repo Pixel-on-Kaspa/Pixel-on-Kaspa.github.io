@@ -33,11 +33,24 @@ function loadEnv(): Record<string, string> {
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
 
-const API_BASE = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
+/** kaspa.com's KRC-721 indexer mirrors. mainnet.krc721.stream, the original
+ *  host, now 404s — these are the ones kaspa.com itself runs against. */
+const API_BASES = [
+  "https://krc721-indexer.kaspa.com/api/v1/krc721/mainnet",
+  "https://krc721-indexer-2.kaspa.com/api/v1/krc721/mainnet",
+];
+/** kaspa.com's metadata cache. The public IPFS gateways rate-limit a run of
+ *  ~100 tokens into failing, which would read as "no traits, no reward" and
+ *  silently skip people, so ask the cache first and keep IPFS as fallback. */
+const META_CACHE = "https://krc721-cache.kaspa.com/krc721/mainnet/metadata";
+/** Kasplex indexes KRC-20 operations — the record of what was actually paid. */
+const KASPLEX_API = process.env.KASPLEX_API ?? "https://api.kasplex.org/v1/krc20";
 const IPFS_GW = [
   "https://ipfs.io/ipfs/",
   "https://dweb.link/ipfs/",
   "https://cloudflare-ipfs.com/ipfs/",
+  // Our own Pinata gateway — last resort, for what the public ones drop.
+  "https://fuchsia-genuine-stingray-776.mypinata.cloud/ipfs/",
 ];
 const CONCURRENCY = 5;
 const NETWORK = "mainnet";
@@ -85,6 +98,8 @@ interface TokenInfo {
   color: string | null;
   edition: string | null;
   reward: number;
+  /** Metadata could not be read — traits unknown, so the reward is unknown. */
+  metaFailed?: boolean;
 }
 
 interface RewardRow {
@@ -114,7 +129,37 @@ async function fetchJson(url: string): Promise<any> {
   return res.json();
 }
 
-async function fetchIpfs(cid: string, tokenId: number): Promise<any> {
+/** KRC-721 indexer call with failover to the second mirror. */
+async function fetchIndexer(suffix: string): Promise<any> {
+  let lastErr: unknown = null;
+  for (const base of API_BASES) {
+    try {
+      return await fetchJson(`${base}${suffix}`);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr ?? new Error("KRC-721 indexer unavailable");
+}
+
+/** Token metadata: kaspa.com's cache first, IPFS gateways as fallback.
+ *  Returns null only when every source failed — the caller treats that as
+ *  fatal rather than as "no traits", which would silently skip a reward. */
+async function fetchTokenMeta(tick: string, cid: string, tokenId: number): Promise<any> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(`${META_CACHE}/${encodeURIComponent(tick)}/${tokenId}`, {
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (res.ok) {
+        const j = await res.json();
+        if (j && (j.attributes || j.name)) return j;
+      }
+    } catch {
+      // fall through to a retry, then to IPFS
+    }
+    await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+  }
   for (const gw of IPFS_GW) {
     for (const path of [`${cid}/${tokenId}`, `${cid}/${tokenId}.json`]) {
       try {
@@ -163,7 +208,7 @@ function parseMintedIds(rangesStr: string, max: number): number[] {
 }
 
 async function getMintedIds(tick: string): Promise<number[]> {
-  const raw = await fetchJson(`${API_BASE}/ranges/${encodeURIComponent(tick)}`);
+  const raw = await fetchIndexer(`/ranges/${encodeURIComponent(tick)}`);
   const res = raw?.result ?? raw;
   const rangesStr = typeof res === "string" ? res : (res?.ranges ?? "");
   return parseMintedIds(rangesStr, COLLECTIONS[tick].max);
@@ -173,8 +218,8 @@ async function getMintedIds(tick: string): Promise<number[]> {
 
 async function getMinter(tick: string, tokenId: number): Promise<string | null> {
   try {
-    const raw = await fetchJson(
-      `${API_BASE}/history/${encodeURIComponent(tick)}/${tokenId}?direction=forward&limit=1`
+    const raw = await fetchIndexer(
+      `/history/${encodeURIComponent(tick)}/${tokenId}?direction=forward&limit=1`
     );
     const entries = Array.isArray(raw?.result) ? raw.result : raw;
     return entries?.[0]?.owner ?? null;
@@ -215,25 +260,116 @@ function getReward(tick: string, color: string | null): number {
  *  "imported-from-x:..." or "manual-import:..." are NOT real transactions. */
 const RE_REAL_TX = /^[0-9a-f]{60,64}$/i;
 
-/** Returns Map<minterAddress_lower, totalPaidAmount>.
- *  Only counts entries backed by a real on-chain tx hash — skips FAILED:,
- *  UNCONFIRMED:, and any other pseudo-ID that isn't a hex transaction hash. */
-function loadPaidAmounts(): Map<string, number> {
-  const paid = new Map<string, number>();
-  if (!existsSync(LOGS_DIR)) return paid;
-  for (const file of readdirSync(LOGS_DIR)) {
-    if (!file.startsWith("rewards-") || !file.endsWith(".json")) continue;
-    try {
-      const entries: LogEntry[] = JSON.parse(readFileSync(join(LOGS_DIR, file), "utf-8"));
-      for (const e of entries) {
-        if (!RE_REAL_TX.test(e.txHash)) continue; // skip FAILED:, UNCONFIRMED:, pseudo-IDs
-        const key = e.minterAddress.toLowerCase();
-        paid.set(key, (paid.get(key) ?? 0) + (e.amount ?? 0));
+/** Every wallet rewards have ever been paid from. The chain is the record
+ *  that cannot be lost, so this is what idempotence really rests on — the
+ *  logs/ files are a convenience, not the safety net.
+ *  The legacy wallet paid the 2025 rewards, before the treasury existed;
+ *  it is also the wallet that funded the treasury. */
+const LEGACY_PAYER = "kaspa:qqxpsvl25l2cf0zrx2wvpnulgthla5ckq9ae4rttw5mupm9e6hc0ujt8ugtre";
+
+/** Accepted $PIXEL transfers out of one wallet, minus anything sent back to
+ *  it (the April 2026 decimal-bug dust was refunded that way).
+ *  Throws if the indexer cannot be reached — see loadPaidAmounts(). */
+async function fetchOutgoingFromChain(wallet: string): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  const w = wallet.toLowerCase();
+  let cursor: string | null = null;
+  let page = 0;
+
+  while (true) {
+    let url = `${KASPLEX_API}/oplist?address=${wallet}&tick=${TICK}&limit=50`;
+    if (cursor) url += `&next=${cursor}`;
+
+    let data: any = null;
+    let lastErr: unknown = null;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        data = await fetchJson(url);
+        break;
+      } catch (e) {
+        lastErr = e;
+        await new Promise((r) => setTimeout(r, 1_000 * (attempt + 1)));
       }
-    } catch {
-      // corrupt log file — skip
+    }
+    if (!data) {
+      throw new Error(
+        `cannot read $PIXEL history of ${wallet} from ${KASPLEX_API}: ${lastErr}`
+      );
+    }
+
+    const results: any[] = data?.result ?? [];
+    page++;
+    for (const r of results) {
+      if (r.op !== "transfer" || r.opAccept !== "1" || r.opError || !r.amt) continue;
+      const amount = Number(BigInt(r.amt) / 100_000_000n);
+      if (r.from?.toLowerCase() === w) {
+        const to = r.to.toLowerCase();
+        out.set(to, (out.get(to) ?? 0) + amount);
+      } else if (r.to?.toLowerCase() === w) {
+        const from = r.from.toLowerCase();
+        out.set(from, (out.get(from) ?? 0) - amount);
+      }
+    }
+
+    const next = data?.next;
+    if (!next || next === "0" || results.length === 0 || page > 200) break;
+    cursor = next;
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  return out;
+}
+
+/** Returns Map<minterAddress_lower, totalPaidAmount>, taking the LARGER of
+ *  what the chain reports and what logs/ records for each address.
+ *
+ *  Neither source alone is trustworthy: logs/ is gitignored and lives on one
+ *  machine, and the indexer prunes old operations. Taking the larger means a
+ *  lost logs/ directory cannot cause a second payout, and a pruned indexer
+ *  cannot either.
+ *
+ *  Throws if the chain cannot be read at all. That is deliberate: treating an
+ *  unreachable indexer as "nothing was ever paid" would re-send every reward. */
+async function loadPaidAmounts(treasury: string): Promise<Map<string, number>> {
+  const paid = new Map<string, number>();
+  const bump = (addr: string, amount: number) => {
+    const key = addr.toLowerCase();
+    paid.set(key, Math.max(paid.get(key) ?? 0, amount));
+  };
+
+  const wallets = [treasury, LEGACY_PAYER].filter(Boolean);
+  const seen = new Set<string>();
+  for (const wallet of wallets) {
+    if (seen.has(wallet.toLowerCase())) continue;
+    seen.add(wallet.toLowerCase());
+    console.log(`  reading $PIXEL history of ${wallet.slice(0, 24)}…`);
+    const onchain = await fetchOutgoingFromChain(wallet);
+    for (const [addr, amount] of onchain) {
+      if (amount > 0) bump(addr, (paid.get(addr) ?? 0) + amount);
     }
   }
+
+  // logs/ as a second opinion — only ever raises a figure, never lowers it.
+  // Totals accumulate across every file first: one address is commonly paid
+  // in several runs (and from several wallets), and comparing one file at a
+  // time against the chain would lose all but the largest of them.
+  if (existsSync(LOGS_DIR)) {
+    const fromLogs = new Map<string, number>();
+    for (const file of readdirSync(LOGS_DIR)) {
+      if (!file.startsWith("rewards-") || !file.endsWith(".json")) continue;
+      try {
+        const entries: LogEntry[] = JSON.parse(readFileSync(join(LOGS_DIR, file), "utf-8"));
+        for (const e of entries) {
+          if (!RE_REAL_TX.test(e.txHash)) continue; // skip FAILED:, pseudo-IDs
+          const key = e.minterAddress.toLowerCase();
+          fromLogs.set(key, (fromLogs.get(key) ?? 0) + (e.amount ?? 0));
+        }
+      } catch {
+        continue; // corrupt log file — the chain still covers us
+      }
+    }
+    for (const [addr, amount] of fromLogs) bump(addr, amount);
+  }
+
   return paid;
 }
 
@@ -259,7 +395,7 @@ function saveLog(entries: LogEntry[]): void {
 function writeLogManifest(): void {
   if (!existsSync(LOGS_DIR)) return;
   const files = readdirSync(LOGS_DIR)
-    .filter((f) => f.startsWith("rewards-") && f.endsWith(".json"))
+    .filter((f: string) => f.startsWith("rewards-") && f.endsWith(".json"))
     .sort();
   writeFileSync(
     join(LOGS_DIR, "index.json"),
@@ -438,16 +574,29 @@ async function main() {
   const privateKeyHex = env.PIXEL_PRIVATE_KEY ?? "";
   const treasuryAddress = env.TREASURY_ADDRESS ?? "";
 
-  if (!dryRun) {
-    if (!privateKeyHex) throw new Error("PIXEL_PRIVATE_KEY missing in .env");
-    if (!treasuryAddress) throw new Error("TREASURY_ADDRESS missing in .env");
-  }
+  // Needed even for a dry run — the treasury's own history is what tells us
+  // who has already been paid.
+  if (!treasuryAddress) throw new Error("TREASURY_ADDRESS missing in .env");
+  if (!dryRun && !privateKeyHex) throw new Error("PIXEL_PRIVATE_KEY missing in .env");
 
-  // Load idempotence state — Map<address, amountAlreadyPaid>
-  const paidAmounts = loadPaidAmounts();
-  if (paidAmounts.size > 0) {
-    console.log(`Idempotence: ${paidAmounts.size} minters with prior payments loaded from logs/\n`);
+  // Load idempotence state — Map<address, amountAlreadyPaid>.
+  // Read from the chain first; a failure here aborts the run rather than
+  // letting an unreachable indexer look like "nobody has been paid".
+  console.log("\nChecking what has already been paid…");
+  let paidAmounts = new Map<string, number>();
+  try {
+    paidAmounts = await loadPaidAmounts(treasuryAddress);
+  } catch (e: any) {
+    console.error(
+      `\nABORTED: could not verify prior payments.\n` +
+      `  ${e.message}\n\n` +
+      `Refusing to continue — paying without this check would re-send every\n` +
+      `reward that has already gone out. Try again when the indexer is back,\n` +
+      `or point KASPLEX_API at a working mirror.\n`
+    );
+    process.exit(1);
   }
+  console.log(`  ${paidAmounts.size} address(es) with prior payments\n`);
 
   // Which collections to process
   const ticks = collectionArg && COLLECTIONS[collectionArg]
@@ -478,7 +627,7 @@ async function main() {
       async (token) => {
         const [minter, meta] = await Promise.allSettled([
           getMinter(tick, token.tokenId),
-          fetchIpfs(COLLECTIONS[tick].buri, token.tokenId),
+          fetchTokenMeta(tick, COLLECTIONS[tick].buri, token.tokenId),
         ]);
 
         token.minter = minter.status === "fulfilled" ? (minter.value ?? "unknown") : "unknown";
@@ -490,6 +639,8 @@ async function main() {
             [];
           token.color = resolveColor(tick, attrs);
           token.edition = tick === "SYKORA" ? getAttr(attrs, "Edition") : null;
+        } else {
+          token.metaFailed = true;
         }
 
         // #1–30 premint — no reward (Pixel on Telegram)
@@ -506,6 +657,29 @@ async function main() {
     );
     console.log(`\r  ${tokens.length}/${tokens.length} done.          `);
     allTokens.push(...tokens);
+  }
+
+  // Unknown traits mean an unknown reward. Paying around that would quietly
+  // skip whoever it happened to, so stop instead.
+  const unreadable = allTokens.filter((t) => t.metaFailed);
+  if (unreadable.length > 0) {
+    console.error(
+      `\nABORTED: metadata unreadable for ${unreadable.length} token(s):\n` +
+      `  ${unreadable.map((t) => `${t.tick} #${t.tokenId}`).join(", ")}\n\n` +
+      `Their traits, and so their rewards, are unknown. Re-run when the\n` +
+      `metadata cache and IPFS gateways are reachable.\n`
+    );
+    process.exit(1);
+  }
+
+  const unknownMinters = allTokens.filter((t) => !t.minter || t.minter === "unknown");
+  if (unknownMinters.length > 0) {
+    console.error(
+      `\nABORTED: no mint history for ${unknownMinters.length} token(s):\n` +
+      `  ${unknownMinters.map((t) => `${t.tick} #${t.tokenId}`).join(", ")}\n\n` +
+      `Cannot tell who minted them. Re-run when the indexer is healthy.\n`
+    );
+    process.exit(1);
   }
 
   // ── Phase 2: Aggregate per minter ─────────────────────────────────────────

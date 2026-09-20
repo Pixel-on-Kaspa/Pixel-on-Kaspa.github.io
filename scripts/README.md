@@ -130,16 +130,48 @@ bun run scripts/pay-rewards.ts --dry-run --collection SYKORA
 
 ---
 
-## Idempotence
+## Idempotence — the chain is the record
 
-Before sending, the script reads all files matching `logs/rewards-*.json` and builds
-a set of already-paid minter addresses. Any address found in the logs is skipped with
-a warning — it will never be paid twice, even if you re-run the script.
+Before paying anything, the script asks the indexer how much $PIXEL each of the
+payer wallets has already sent to each address, and subtracts that from what is
+owed. Two wallets are checked:
 
-If a transfer fails mid-run (network error, insufficient KAS for gas, etc.), the failed
-address is NOT added to the paid set. Re-running the script will retry it.
+| Wallet | Role |
+|---|---|
+| `TREASURY_ADDRESS` (from `.env`) | pays rewards today |
+| `kaspa:qqxpsvl25l2cf0zrx2wvpnulgthla5ckq9ae4rttw5mupm9e6hc0ujt8ugtre` | paid the 2025 rewards, before the treasury existed |
 
-Log format per entry:
+Anything sent back to a payer wallet is subtracted — that is how the April 2026
+decimal-bug dust, which recipients returned, nets out to zero.
+
+`logs/*.json` is still read, and an address's logged total is used when it is
+*larger* than what the chain reports. It can only raise a figure, never lower
+one. Neither source is trusted alone: `logs/` is gitignored and lives on one
+machine, and the indexer prunes old operations, so whichever remembers more
+wins.
+
+**Losing `logs/` cannot cause a double payment.** Verified by deleting the
+directory and re-running — the payout table was identical.
+
+### It fails closed
+
+If the indexer cannot be reached, the run **aborts**. It does not fall back to
+"nothing has been paid", because that would re-send every reward already out.
+The same applies to unreadable token metadata (unknown traits mean an unknown
+reward) and to missing mint history (unknown minter). All three stop the run and
+name the tokens or wallet involved.
+
+Point `KASPLEX_API` at a mirror if the default host is down:
+
+```bash
+KASPLEX_API=https://your-mirror/v1/krc20 bun run scripts/pay-rewards.ts --dry-run
+```
+
+### Log format
+
+`logs/` keeps an audit trail, and `logs/index.json` — a manifest of the log
+files — is rewritten on every run so `admin/rewards-tracker.html` can find logs
+of any age.
 
 ```json
 {
@@ -152,9 +184,8 @@ Log format per entry:
 }
 ```
 
-Logs are gitignored (`logs/` in .gitignore). Keep them locally as your audit trail.
-
----
+Entries whose `txHash` is not a real hex transaction hash (`FAILED:…`,
+`manual-import:…`) are ignored when totalling what was paid.
 
 ## KRC-20 transfer mechanics
 
@@ -173,6 +204,11 @@ The $PIXEL amount comes from the treasury wallet's KRC-20 balance.
 ---
 
 ## Troubleshooting
+
+**`ABORTED: could not verify prior payments`**
+The KRC-20 indexer is unreachable, so the script cannot tell who has already
+been paid. This is intentional — wait for it to come back, or set `KASPLEX_API`
+to a working mirror. Never work around it by deleting the check.
 
 **`PIXEL_PRIVATE_KEY missing in .env`**
 Add `PIXEL_PRIVATE_KEY=<hex>` to your `.env` file.
