@@ -250,6 +250,21 @@ function saveLog(entries: LogEntry[]): void {
   }
   writeFileSync(file, JSON.stringify([...existing, ...entries], null, 2));
   console.log(`\nLog saved: ${file}`);
+  writeLogManifest();
+}
+
+/** logs/index.json — the list admin/rewards-tracker.html reads so it can find
+ *  every log file, however old. Without it the tracker falls back to probing
+ *  the last 90 days by filename date and silently misses older payouts. */
+function writeLogManifest(): void {
+  if (!existsSync(LOGS_DIR)) return;
+  const files = readdirSync(LOGS_DIR)
+    .filter((f) => f.startsWith("rewards-") && f.endsWith(".json"))
+    .sort();
+  writeFileSync(
+    join(LOGS_DIR, "index.json"),
+    JSON.stringify({ generated: new Date().toISOString(), files }, null, 2)
+  );
 }
 
 // ─── TABLE ────────────────────────────────────────────────────────────────────

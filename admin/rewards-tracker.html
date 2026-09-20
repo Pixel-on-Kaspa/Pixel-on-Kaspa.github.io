@@ -346,7 +346,13 @@
     "https://dweb.link/ipfs/",
     "https://ipfs.io/ipfs/",
     "https://cloudflare-ipfs.com/ipfs/",
+    // Our own Pinata gateway — last resort, for what the public ones drop.
+    "https://fuchsia-genuine-stingray-776.mypinata.cloud/ipfs/",
   ];
+  // kaspa.com's metadata cache. The public IPFS gateways rate-limit a run of
+  // ~100 tokens into failing, which left every Color/Rarity (and so every
+  // reward) blank, so try the cache first and keep IPFS as the fallback.
+  const META_CACHE = "https://krc721-cache.kaspa.com/krc721/mainnet/metadata";
   const CONCURRENCY = 14;
 
   const COLLECTIONS = {
@@ -384,7 +390,13 @@
     }
   };
 
-  function getReward(tick, color) {
+  // SYKORA #1-30 is the Pixel on Telegram premint and carries no reward.
+  // Same rule as scripts/pay-rewards.ts — keep the two in sync, or this page
+  // will show a payout the script will never make.
+  const SYKORA_PREMINT_MAX = 30;
+
+  function getReward(tick, color, tokenId) {
+    if (tick === "SYKORA" && tokenId <= SYKORA_PREMINT_MAX) return 0;
     if (!color) return 0;
     const tbl = REWARDS[tick];
     if (!tbl) return 0;
@@ -471,6 +483,19 @@
     const m = uri.match(/\/ipfs\/(.+)$/);
     return m ? m[1] : "";
   }
+  async function fetchTokenMeta(tick, tokenId, buri, signal) {
+    try {
+      const r = await fetch(`${META_CACHE}/${encodeURIComponent(tick)}/${tokenId}`, { cache: "no-store", signal });
+      if (r.ok) {
+        const j = await r.json();
+        if (j && (j.attributes || j.name)) return j;
+      }
+    } catch (e) {
+      if (e.name === "AbortError") throw e;
+    }
+    return fetchJsonFromGateways(metaCandidatePaths(buri, tick, tokenId), signal);
+  }
+
   async function fetchJsonFromGateways(paths, signal) {
     let lastErr = null;
     for (const p of paths) {
@@ -905,14 +930,35 @@
 
     const map = new Map();
     const base = "../logs/";
-    const prefixes = ["rewards-", "rewards-manual-"];
-    const today = new Date();
-    const urls = [];
-    for (let d = 0; d < 90; d++) {
-      const dt = new Date(today);
-      dt.setDate(today.getDate() - d);
-      const ds = dt.toISOString().slice(0, 10);
-      for (const p of prefixes) urls.push(`${base}${p}${ds}.json`);
+
+    // logs/index.json lists every log file, so old payouts stay visible no
+    // matter how long ago they ran. pay-rewards.ts rewrites it on each run.
+    // Without it, fall back to probing the last 90 days by date.
+    let urls = [];
+    try {
+      const text = isFile ? await xhrGet(`${base}index.json`)
+                          : await fetch(`${base}index.json`, { cache: "no-store" })
+                              .then(r => r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`)));
+      const files = JSON.parse(text)?.files;
+      if (Array.isArray(files) && files.length) {
+        urls = files
+          .filter(f => typeof f === "string" && /^[\w.-]+\.json$/.test(f))
+          .map(f => base + f);
+        console.log(`[loadLogs] manifest lists ${urls.length} log file(s)`);
+      }
+    } catch (err) {
+      console.warn(`[loadLogs] no logs/index.json (${err.message}) — probing the last 90 days by date`);
+    }
+
+    if (urls.length === 0) {
+      const prefixes = ["rewards-", "rewards-manual-"];
+      const today = new Date();
+      for (let d = 0; d < 90; d++) {
+        const dt = new Date(today);
+        dt.setDate(today.getDate() - d);
+        const ds = dt.toISOString().slice(0, 10);
+        for (const p of prefixes) urls.push(`${base}${p}${ds}.json`);
+      }
     }
 
     let loaded = 0, tried = 0;
@@ -1019,7 +1065,7 @@
 
           try {
             const [meta, nftInfo, histData] = await Promise.all([
-              fetchJsonFromGateways(metaCandidatePaths(cfg.buri, tick, tokenId), signal)
+              fetchTokenMeta(tick, tokenId, cfg.buri, signal)
                 .catch(() => null),
               fetchIndexer(`/nfts/${encodeURIComponent(tick)}/${tokenId}`, signal)
                 .then(r => unwrapResult(r)).catch(() => null),
@@ -1054,7 +1100,7 @@
               row.color    = color;
               row.edition  = edition;
               row.opScore  = nftInfo?.opScoreMod || nftInfo?.opScore || null;
-              row.reward   = getReward(tick, color);
+              row.reward   = getReward(tick, color, tokenId);
               row.mintDate = histData?.mintDate  || null;
               row.loaded   = true;
             }
