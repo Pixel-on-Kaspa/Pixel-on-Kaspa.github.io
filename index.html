@@ -175,6 +175,18 @@
       background:var(--border);
       border:1px solid var(--border);
     }
+    /* SOUND SYSTEMS is four surfaces, not three — a fourth column keeps them on
+       one row instead of leaving SOS·DJ stranded next to an empty gap. Narrower
+       than full width they pair off 2×2 rather than getting cramped; under 900px
+       the shared single-column rule below takes over. */
+    .cards4{grid-template-columns:repeat(4,minmax(0,1fr));}
+    /* at a quarter of the row the generator card's two actions no longer sit on
+       one line, and a wrapped list must not leave its separator dangling */
+    .cards4 .nft-card-actions{row-gap:8px;}
+    .cards4 .nft-card-sep{display:none;}
+    @media(max-width:1080px){
+      .cards4{grid-template-columns:repeat(2,minmax(0,1fr));}
+    }
     .card{
       background:var(--card);
       padding:24px;
@@ -436,7 +448,7 @@
       <span>Synth surfaces — pick one and start patching.</span>
     </div>
 
-    <section class="cards">
+    <section class="cards cards4">
       <article class="nft-card">
         <div class="nft-card-visual synthiThumb">
           <img class="synthiLogo" src="assets/img/logo.png" alt="SYNTHI logo" loading="lazy">
