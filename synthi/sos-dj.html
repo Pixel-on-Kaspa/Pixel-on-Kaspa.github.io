@@ -113,6 +113,27 @@ body{
 .fxSlide input[type=range]{flex:1;width:100%;height:22px;accent-color:var(--accent);cursor:pointer;margin:0}
 .fxSlide b{font-family:var(--mono);font-size:11px;color:var(--amber);min-width:24px;text-align:right}
 .gtSlide{flex:1 1 150px}   /* the one continuous control in the ARP row — give it real travel */
+/* ── pick sheet ──
+   CHORD / SHAPE / RATE are long lists now, and a button needing nineteen taps to
+   come back round is not a control. Those three open a sheet of chips instead. */
+.pickLayer{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center;
+  background:rgba(4,7,10,.62);backdrop-filter:blur(3px)}
+.pickLayer[hidden]{display:none}
+.pickSheet{width:100%;max-width:480px;max-height:78dvh;overflow:auto;background:var(--bg2);
+  border:1px solid var(--border2);border-radius:14px 14px 0 0;
+  padding:12px 12px calc(env(safe-area-inset-bottom) + 14px);box-shadow:0 -10px 40px rgba(0,0,0,.6)}
+.pickHead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:9px}
+.pickHead b{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--accent)}
+.pickHead i{font-size:9px;font-style:normal;color:var(--muted)}
+.pickBox{display:grid;grid-template-columns:repeat(auto-fill,minmax(102px,1fr));gap:7px}
+.pchip{display:flex;flex-direction:column;gap:2px;text-align:left;padding:8px 9px;border-radius:10px;
+  cursor:pointer;background:rgba(255,255,255,.05);border:1px solid var(--border2);color:var(--text)}
+.pchip b{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.5px}
+.pchip small{font-size:8px;line-height:1.3;color:var(--muted)}
+.pchip.on{background:var(--accent);border-color:var(--accent);color:#031014}
+.pchip.on small{color:rgba(3,16,20,.72)}
+.pchip.x b::after{content:" ×";color:var(--amber)}          /* the deliberately odd ones */
+.pchip.on.x b::after{color:#031014}
 
 /* ── matrix ── */
 .grid{display:grid;grid-template-columns:44px repeat(6,1fr)}
@@ -279,10 +300,14 @@ body{
       <div class="fxRow">
         <span class="fxLab">ARP</span>
         <button class="tbtn" id="btnArp" title="Arpeggiator — hraje na STAB kroky">OFF</button>
-        <button class="tbtn" id="arpMode" title="Tvar arpeggia">UP</button>
-        <button class="tbtn" id="arpRate" title="Rychlost arpeggia">1/8</button>
+        <button class="tbtn" id="arpChord" title="Akord — které tóny arpeggio rozkládá (MIN7, MAJ9, SUS4…)">TRIAD</button>
+        <button class="tbtn" id="arpDir" title="Tvar — v jakém pořadí ty tóny jdou">UP</button>
+        <button class="tbtn" id="arpRate" title="Rytmus arpeggia — 1/12 je triola, 1/20 kvintola">1/8</button>
         <button class="tbtn" id="arpOct" title="Rozsah oktáv">OCT 1</button>
-        <button class="tbtn" id="arpDbl" title="Druhý hlas — pohyblivá harmonie">DBL</button>
+      </div>
+      <div class="fxRow">
+        <span class="fxLab"></span>
+        <button class="tbtn" id="arpDbl" title="Druhý hlas — harmonie z téhož akordu">DBL</button>
         <button class="tbtn" id="btnBasArp" title="Arpeggio pro basu — rozkládá basový tón na oktávy/kvinty">B·ARP</button>
         <label class="fxSlide gtSlide"><span>GT</span><input id="arpGate" type="range" min="5" max="100" step="1" value="100" aria-label="Arp gate — délka každého tónu"><b id="arpGateVal">100</b></label>
       </div>
@@ -312,6 +337,12 @@ body{
 </div>
 
 <div class="scrim" id="scrim"></div>
+<div class="pickLayer" id="pickLayer" hidden>
+  <div class="pickSheet">
+    <div class="pickHead"><b id="pickTitle">CHORD</b><i>ťukni pro výběr · vedle pro zavření</i></div>
+    <div class="pickBox" id="pickBox"></div>
+  </div>
+</div>
 <div class="knobLayer" id="knobLayer" style="display:none">
   <div class="stem" id="stem"></div>
   <div class="knob" id="knob">
@@ -498,7 +529,7 @@ const STYLES=[
    pat:{KCK:_H(0,4,8,12),CLP:_H(4,12),HAT:_H(2,6,10,14),BAS:_H(2,6,10,14),STB:_H(0,4,8,12)},
    notes:{BAS:_M({}),STB:_M({})},
    mix:{STB:{RVB:46,DLY:30,LVL:56},HAT:{LVL:42}},delayDiv:2,filter:55,
-   arpOn:true,arpMode:0,arpOct:2},
+   arpOn:true,arpChord:'triad',arpDir:'up',arpOct:2},
 
   {name:'DUB',bpm:140,tag:'echo skank',
    eng:{KCK:0,BAS:2,STB:1,HAT:2,CLP:2},
@@ -558,7 +589,7 @@ const STYLES=[
    eng:{KCK:3,BAS:2,STB:7,HAT:3,CLP:4},
    pat:{KCK:_H(0,3,8,11),CLP:_H(4,6,10,14),HAT:_H(2,6,10,14),BAS:_H(0,6,8,14),STB:_H(0,2,3,5,6,8,10,11,13,15)},
    notes:{BAS:_M({0:0,6:4,8:0,14:3}),STB:_M({0:0,2:1,3:2,5:1,6:3,8:2,10:4,11:3,13:2,15:1})},   // darbuka + ornamented oud
-   mix:{BAS:{LVL:76,LPF:44},STB:{LVL:60,RVB:30,DLY:26},CLP:{LVL:72},HAT:{LVL:42}},delayDiv:4,filter:50,arpMode:1,arpDiv:2},
+   mix:{BAS:{LVL:76,LPF:44},STB:{LVL:60,RVB:30,DLY:26},CLP:{LVL:72},HAT:{LVL:42}},delayDiv:4,filter:50,arpChord:'triad',arpDir:'updn',arpDiv:'1/12'},
 
   {name:'BAILE',bpm:130,tag:'tamborzão',
    eng:{KCK:0,BAS:2,STB:3,HAT:0,CLP:3},
@@ -571,7 +602,7 @@ const STYLES=[
    pat:{KCK:_H(0,4,8,12),CLP:_H(4,12),HAT:_H(2,6,10,14),BAS:_H(2,6,10,14),STB:_H(0,8)},
    notes:{BAS:_M({}),STB:_M({0:0,8:4})},
    mix:{KCK:{LVL:96},BAS:{LVL:80,LPF:46},STB:{LVL:50,RVB:40,DLY:24},HAT:{LVL:44}},
-   delayDiv:2,filter:54,basArp:true,arpDiv:0},                 // B·ARP rolls the offbeat bass into psy 16ths
+   delayDiv:2,filter:54,basArp:true,arpDiv:'1/16'},                 // B·ARP rolls the offbeat bass into psy 16ths
 
   {name:'REGGAETON',bpm:95,tag:'dembow',
    eng:{KCK:0,BAS:2,STB:5,HAT:0,CLP:1},
@@ -696,7 +727,8 @@ function applyStyle(idx){
   bpm=S.bpm;bpmSlider.value=S.bpm;bpmValEl.textContent=S.bpm;
   delayDiv=S.delayDiv!=null?S.delayDiv:2;delayPP=!!S.delayPP;delayFbAmt=S.fb!=null?S.fb:.28;
   swing=S.swing!=null?S.swing:50;
-  arpOn=!!S.arpOn;arpMode=S.arpMode||0;arpOct=S.arpOct||1;arpDiv=S.arpDiv!=null?S.arpDiv:3;basArp=!!S.basArp;arpGate=S.arpGate!=null?S.arpGate:1;buildArpSeq();arpIdx=0;
+  arpOn=!!S.arpOn;arpOct=S.arpOct||1;basArp=!!S.basArp;arpGate=S.arpGate!=null?S.arpGate:1;
+  const am=arpModeOf(S);arpChord=am.c;arpDir=am.d;arpDiv=arpDivOf(S.arpDiv);buildArpSeq();arpIdx=0;
   fltSlider.value=S.filter!=null?S.filter:50;
   setDelayTime();applyDelayMode();applyFilter();
   refreshSteps();refreshEngineLabels();updateFxLabels();syncAutoPats();
@@ -712,7 +744,8 @@ function updateFxLabels(){
   if(dlyPP)dlyPP.classList.toggle('on',delayPP);
   if(dlyFb){dlyFb.value=Math.round(delayFbAmt*100);dlyFbVal.textContent=dlyFb.value;}
   if(btnArp){btnArp.classList.toggle('on',arpOn);btnArp.textContent=arpOn?'ON':'OFF';}
-  if(arpModeBtn)arpModeBtn.textContent=ARP_SHAPES[arpMode].n;
+  if(arpChordBtn)arpChordBtn.textContent=ARP_CHORDS[arpChord].n;
+  if(arpDirBtn)arpDirBtn.textContent=ARP_DIRS[arpDir].n;
   if(arpRateBtn)arpRateBtn.textContent=ARP_DIVS[arpDiv].n;
   if(btnSwing)btnSwing.textContent='SWG '+swing;
   if(arpGateBtn){arpGateBtn.value=Math.round(arpGate*100);arpGateVal.textContent=arpGateBtn.value;}
@@ -1417,7 +1450,7 @@ function trig(vi,time,step,arpFreq,arpDur,vel){
 
 /* clock */
 let playing=false,bpm=124,curStep=0,nextTime=0,timer=null;
-let arpOn=false,arpIdx=0,arpMode=0,arpOct=1,arpDbl=false,arpDiv=3,basArp=false,arpGate=1;
+let arpOn=false,arpIdx=0,arpChord=0,arpDir=0,arpOct=1,arpDbl=false,arpDiv=7,basArp=false,arpGate=1;
 /* GATE — how much of each arp step the note actually sounds for. This is what
    turns a wash into a groove: short = staccato stabs, long = legato lines. */
 /* GT used to cycle four fixed steps. It is the difference between a staccato
@@ -1428,20 +1461,116 @@ let arpOn=false,arpIdx=0,arpMode=0,arpOct=1,arpDbl=false,arpDiv=3,basArp=false,a
 const SWINGS=[50,54,58,62,66,70];
 let swing=50;
 function swingOff(step){return (step%2)?stepDur()*(2*swing/100-1):0;}
-/* arp note length as a beat fraction (b) — includes triplet divisions. 1 beat = 1/4 note */
-const ARP_DIVS=[{n:'1/16',b:.25},{n:'1/16T',b:1/6},{n:'1/8T',b:1/3},{n:'1/8',b:.5},{n:'1/8.',b:.75},{n:'1/4',b:1}];
+/* ── ARPEGGIATOR ─────────────────────────────────────────────────────────────
+   Two choices, not one list. CHORD says WHICH notes a drawn STAB step opens up
+   into; SHAPE says in what ORDER they come out. The old five "shapes" were five
+   useful pairs of those baked together, which is exactly why "min7, but
+   descending" was unreachable. Split, they multiply.
+   A pool comes in one of two flavours:
+     s = SCALE DEGREES  — follows whatever mode/maqam the style set (7 = octave)
+     c = SEMITONES      — a real chord quality, identical in every mode (12 = octave)
+   Pools marked x are the deliberately odd ones — they do not want to resolve. */
+const ARP_CHORDS=[
+  {id:'triad',n:'TRIAD', d:'1·3·5 v dané stupnici',      s:[0,2,4]},
+  {id:'sev',  n:'7th',   d:'1·3·5·7 v dané stupnici',    s:[0,2,4,6]},
+  {id:'oct',  n:'OCT·5', d:'základ · kvinta · oktáva',   s:[0,4,7]},
+  {id:'scale',n:'SCALE', d:'běh celým módem',            s:[0,1,2,3,4,5,6]},
+  {id:'min7', n:'MIN7',  d:'1·♭3·5·♭7 — mollová sedmička', c:[0,3,7,10]},
+  {id:'min9', n:'MIN9',  d:'1·♭3·5·♭7·9',                c:[0,3,7,10,14]},
+  {id:'maj7', n:'MAJ7',  d:'1·3·5·7 — velká sedmička',   c:[0,4,7,11]},
+  {id:'maj9', n:'MAJ9',  d:'1·3·5·7·9',                  c:[0,4,7,11,14]},
+  {id:'dom7', n:'DOM7',  d:'1·3·5·♭7 — dominanta',       c:[0,4,7,10]},
+  {id:'six9', n:'6/9',   d:'1·3·5·6·9 — otevřený',       c:[0,4,7,9,14]},
+  {id:'sus4', n:'SUS4',  d:'1·4·5·♭7 — bez terce',       c:[0,5,7,10]},
+  {id:'hdim', n:'ø7',    d:'1·♭3·♭5·♭7 — polozmenšený',  c:[0,3,6,10]},
+  {id:'dim7', n:'DIM7',  d:'malé terce na sobě',         c:[0,3,6,9]},
+  {id:'aug',  n:'AUG',   d:'velké terce na sobě',        c:[0,4,8]},
+  {id:'penta',n:'PENTA', d:'mollová pentatonika',        c:[0,3,5,7,10]},
+  {id:'quart',n:'QUART', d:'kvarty na sobě',             c:[0,5,10,15],x:1},
+  {id:'whole',n:'WHOLE', d:'celotónový — bez domova',    c:[0,2,4,6,8,10],x:1},
+  {id:'chrom',n:'CHROM', d:'chromatický klastr',         c:[0,1,2,3,4],x:1},
+  {id:'harm', n:'HARM',  d:'harmonická řada',            c:[0,12,19,24,28,31],x:1},
+];
+const ARP_DIRS=[
+  {id:'up',   n:'UP',    d:'zdola nahoru'},
+  {id:'dn',   n:'DN',    d:'shora dolů'},
+  {id:'updn', n:'UP·DN', d:'nahoru a zpět'},
+  {id:'dnup', n:'DN·UP', d:'dolů a zpět'},
+  {id:'inout',n:'IN·OUT',d:'od krajů ke středu'},
+  {id:'thumb',n:'THUMB', d:'základ mezi každým tónem'},
+  {id:'rand', n:'RAND',  d:'volně z akordu'},
+  {id:'walk', n:'WALK',  d:'náhodná chůze po akordu',x:1},
+];
+/* RHYTHM as a beat fraction (b); 1 beat = a 1/4 note. Named by note value, so
+   1/12 is an 8th triplet and 1/20 a 16th quintuplet — the odd divisions are what
+   stop an arp sounding like a metronome. Ordered fastest → slowest. */
+const ARP_DIVS=[
+  {id:'1/32',n:'1/32',d:'dvaatřicetiny',    b:.125},
+  {id:'1/24',n:'1/24',d:'šestnáctinová triola', b:1/6},
+  {id:'1/20',n:'1/20',d:'šestnáctinová kvintola', b:.2},
+  {id:'1/16',n:'1/16',d:'šestnáctiny',      b:.25},
+  {id:'1/12',n:'1/12',d:'osminová triola',  b:1/3},
+  {id:'3/32',n:'3/32',d:'tečkovaná šestnáctina', b:.375},
+  {id:'1/10',n:'1/10',d:'osminová kvintola',b:.4},
+  {id:'1/8', n:'1/8', d:'osminy',           b:.5},
+  {id:'1/6', n:'1/6', d:'čtvrťová triola',  b:2/3},
+  {id:'3/16',n:'3/16',d:'tečkovaná osmina', b:.75},
+  {id:'1/4', n:'1/4', d:'čtvrťky',          b:1},
+];
 const BASARP_SHAPE=[0,7,0,4];   // bass arp ripple = root / octave / root / fifth (scale degrees)
-/* arp shapes as SCALE-DEGREE offsets → each drawn STAB note becomes the root of
-   an arpeggio that ripples up the active scale (minor / Hijaz / Phrygian dom…).
-   RAND = free in-scale pick. +7 degrees = up one octave. */
-const ARP_SHAPES=[{n:'UP',s:[0,2,4,7]},{n:'UP·DN',s:[0,2,4,7,4,2]},{n:'OCT',s:[0,7,4,7]},{n:'MIN7',s:[0,2,4,6]},{n:'RAND',s:null}];
-const RAND_DEGREES=[0,2,3,4,6,7,9];
-let arpSeq=[0,2,4,7];
-function buildArpSeq(){const sh=ARP_SHAPES[arpMode].s;if(!sh){arpSeq=null;return;}
-  const out=[];for(let o=0;o<arpOct;o++)sh.forEach(x=>out.push(x+7*o));arpSeq=out;}
+/* Styles — and patch snapshots taken before the split — name an arp by the index
+   it had when there were five shapes and six rates. Both spellings still resolve. */
+const LEGACY_ARP_MODE=[{c:0,d:0},{c:0,d:2},{c:2,d:0},{c:4,d:0},{c:0,d:6}];
+const LEGACY_ARP_DIV=[3,1,4,7,9,10];
+function idxById(list,v,dflt){const i=list.findIndex(o=>o.id===v);return i<0?dflt:i;}
+function arpDivOf(v){
+  if(typeof v==='string')return idxById(ARP_DIVS,v,7);
+  if(typeof v==='number')return LEGACY_ARP_DIV[v]!=null?LEGACY_ARP_DIV[v]:7;
+  return 7;}
+function arpModeOf(S){
+  if(S.arpChord!=null||S.arpDir!=null)return {c:idxById(ARP_CHORDS,S.arpChord,0),d:idxById(ARP_DIRS,S.arpDir,0)};
+  const L=LEGACY_ARP_MODE[S.arpMode||0];return L?{c:L.c,d:L.d}:{c:0,d:0};}
+let arpSeq=[0,2,4],arpChromatic=false,arpWalk=0;
+/* the pool, stacked out over the octave range in its own unit */
+function poolOf(ci,oct){
+  const ch=ARP_CHORDS[ci],base=ch.c||ch.s,step=ch.c?12:7,out=[];
+  for(let o=0;o<oct;o++)base.forEach(x=>out.push(x+step*o));
+  return out;}
+/* SHAPE = the read order over that pool. RAND / WALK are resolved per note at
+   play time, so here they keep the pool in its natural order. */
+function orderPool(p,dir){
+  const L=p.length,last=L-1;
+  switch(dir){
+    case 'dn':   return p.slice().reverse();
+    case 'updn': return L<3?p.slice():p.concat(p.slice(1,last).reverse());
+    case 'dnup': {const r=p.slice().reverse();return L<3?r:r.concat(r.slice(1,last).reverse());}
+    case 'inout':{const o=[];for(let i=0,j=last;i<=j;i++,j--){o.push(p[i]);if(j!==i)o.push(p[j]);}return o;}
+    case 'thumb':{const o=[];for(let i=1;i<L;i++){o.push(p[0]);o.push(p[i]);}return o.length?o:p.slice();}
+    default:     return p.slice();
+  }
+}
+function buildArpSeq(){
+  arpChromatic=!!ARP_CHORDS[arpChord].c;
+  arpSeq=orderPool(poolOf(arpChord,arpOct),ARP_DIRS[arpDir].id);
+  arpWalk=0;}
 buildArpSeq();
-/* arp note freq = drawn step degree + shape offset, resolved in the active scale */
-function arpFreqFor(baseDeg,off){return MEL_BASE.STB*Math.pow(2,degSemi(baseDeg+off)/12);}
+/* which slot of the pool this note takes. RAND jumps freely, WALK strolls one or
+   two slots — both stay INSIDE the chosen chord, so the random modes are still
+   harmony rather than noise. */
+function arpSlot(j,L){
+  const d=ARP_DIRS[arpDir].id;
+  if(d==='rand')return (Math.random()*L)|0;
+  if(d==='walk'){arpWalk=((arpWalk+(Math.random()<.5?-1:1)*(1+((Math.random()*2)|0)))%L+L)%L;return arpWalk;}
+  return j%L;}
+/* arp note freq: a SEMITONE pool transposes the drawn degree chromatically, a
+   DEGREE pool walks the active scale. */
+function arpFreqFor(baseDeg,off,chro){
+  const semi=(chro==null?arpChromatic:chro)?degSemi(baseDeg)+off:degSemi(baseDeg+off);
+  return MEL_BASE.STB*Math.pow(2,semi/12);}
+/* DBL's second voice is the slot two above in the SAME pool — so it harmonises
+   whatever chord is loaded instead of always adding a scale third */
+function arpHarm(seq,slot,chro){const L=seq.length,i=slot+2;
+  return seq[i%L]+(i>=L?(chro?12:7):0);}
 const LOOKAHEAD=.1,TICK=25;
 function stepDur(){return 60/bpm/4;}
 function scheduler(){
@@ -1452,17 +1581,16 @@ function scheduler(){
     VOICES.forEach((v,vi)=>{
       const vel=velOf(v.id,s);
       if(v.id==='STB'&&arpOn){
-        /* each drawn STAB note = root of an in-scale arpeggio that ripples until the
-           next drawn note; the ARP division sets note length (triplets included) */
+        /* each drawn STAB note = the root of an arpeggio over the chosen CHORD,
+           read in the chosen SHAPE, rippling until the next drawn note. RATE sets
+           the note length — triplets, quintuplets and dotted values included. */
         if(patterns.STB[s]){
-          const base=melDeg('STB',s),iv=ARP_DIVS[arpDiv].b*(60/bpm);
-          const spanSec=gateSteps('STB',s)*stepDur(),nN=Math.max(1,Math.min(Math.round(spanSec/iv),48));
+          const base=melDeg('STB',s),L=arpSeq.length,iv=ARP_DIVS[arpDiv].b*(60/bpm);
+          const spanSec=gateSteps('STB',s)*stepDur(),nN=Math.max(1,Math.min(Math.round(spanSec/iv),96));
           for(let j=0;j<nN;j++){
-            const off=arpSeq?arpSeq[j%arpSeq.length]
-                             :RAND_DEGREES[(Math.random()*RAND_DEGREES.length)|0]+7*((Math.random()*arpOct)|0);
-            const t=at+j*iv;
-            trig(vi,t,s,arpFreqFor(base,off),iv*arpGate,vel);
-            if(arpDbl)trig(vi,t,s,arpFreqFor(base,off+2),iv*arpGate,vel);   // harmony a scale-third up
+            const slot=arpSlot(j,L),t=at+j*iv;
+            trig(vi,t,s,arpFreqFor(base,arpSeq[slot]),iv*arpGate,vel);
+            if(arpDbl)trig(vi,t,s,arpFreqFor(base,arpHarm(arpSeq,slot,arpChromatic)),iv*arpGate,vel);
           }
         }
       }
@@ -1470,7 +1598,7 @@ function scheduler(){
         /* bass arpeggiator — rolls the drawn bass note through octave/fifth */
         if(patterns.BAS[s]){
           const base=melDeg('BAS',s),iv=ARP_DIVS[arpDiv].b*(60/bpm);
-          const spanSec=gateSteps('BAS',s)*stepDur(),nN=Math.max(1,Math.min(Math.round(spanSec/iv),48));
+          const spanSec=gateSteps('BAS',s)*stepDur(),nN=Math.max(1,Math.min(Math.round(spanSec/iv),96));
           for(let j=0;j<nN;j++){
             const f=MEL_BASE.BAS*Math.pow(2,degSemi(base+BASARP_SHAPE[j%BASARP_SHAPE.length])/12);
             trig(vi,at+j*iv,s,f,iv*arpGate,vel);
@@ -2019,21 +2147,46 @@ dlyFb.addEventListener('input',()=>{delayFbAmt=+dlyFb.value/100;dlyFbVal.textCon
 /* FX rack — arpeggiator */
 const btnArp=document.getElementById('btnArp');
 btnArp.addEventListener('click',()=>{arpOn=!arpOn;btnArp.classList.toggle('on',arpOn);btnArp.textContent=arpOn?'ON':'OFF';});
-const arpModeBtn=document.getElementById('arpMode');arpModeBtn.textContent=ARP_SHAPES[arpMode].n;
-arpModeBtn.addEventListener('click',()=>{arpMode=(arpMode+1)%ARP_SHAPES.length;buildArpSeq();arpIdx=0;arpModeBtn.textContent=ARP_SHAPES[arpMode].n;});
-const arpRateBtn=document.getElementById('arpRate');arpRateBtn.textContent=ARP_DIVS[arpDiv].n;
-arpRateBtn.addEventListener('click',()=>{arpDiv=(arpDiv+1)%ARP_DIVS.length;arpRateBtn.textContent=ARP_DIVS[arpDiv].n;});
+/* PICK SHEET — one tap opens the whole list, with each entry saying what it is.
+   Cycling was fine for five shapes; it is not fine for nineteen chords. */
+const pickLayer=document.getElementById('pickLayer'),pickBox=document.getElementById('pickBox'),
+      pickTitle=document.getElementById('pickTitle');
+function closePick(){pickLayer.hidden=true;pickBox.innerHTML='';}
+function openPick(title,list,cur,cb){
+  pickTitle.textContent=title;pickBox.innerHTML='';
+  list.forEach((o,i)=>{
+    const b=el('button','pchip');b.type='button';
+    if(o.x)b.classList.add('x');
+    if(i===cur)b.classList.add('on');
+    b.innerHTML=`<b>${o.n}</b>`+(o.d?`<small>${o.d}</small>`:'');
+    b.addEventListener('click',()=>{ensureAudio();closePick();cb(i);});
+    pickBox.appendChild(b);
+  });
+  pickLayer.hidden=false;
+}
+pickLayer.addEventListener('click',e=>{if(e.target===pickLayer)closePick();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pickLayer.hidden)closePick();});
+const arpChordBtn=document.getElementById('arpChord');
+arpChordBtn.addEventListener('click',()=>openPick('ARP · AKORD',ARP_CHORDS,arpChord,i=>{
+  arpChord=i;buildArpSeq();arpIdx=0;updateFxLabels();}));
+const arpDirBtn=document.getElementById('arpDir');
+arpDirBtn.addEventListener('click',()=>openPick('ARP · TVAR',ARP_DIRS,arpDir,i=>{
+  arpDir=i;buildArpSeq();arpIdx=0;updateFxLabels();}));
+const arpRateBtn=document.getElementById('arpRate');
+arpRateBtn.addEventListener('click',()=>openPick('ARP · RYTMUS',ARP_DIVS,arpDiv,i=>{
+  arpDiv=i;updateFxLabels();}));
 const arpGateBtn=document.getElementById('arpGate'),arpGateVal=document.getElementById('arpGateVal');
 arpGateBtn.addEventListener('input',()=>{
   arpGate=(+arpGateBtn.value)/100;
   arpGateVal.textContent=arpGateBtn.value;
 });
 const arpOctBtn=document.getElementById('arpOct');
-arpOctBtn.addEventListener('click',()=>{arpOct=arpOct%3+1;buildArpSeq();arpIdx=0;arpOctBtn.textContent='OCT '+arpOct;});
+arpOctBtn.addEventListener('click',()=>{arpOct=arpOct%4+1;buildArpSeq();arpIdx=0;arpOctBtn.textContent='OCT '+arpOct;});
 const arpDblBtn=document.getElementById('arpDbl');
 arpDblBtn.addEventListener('click',()=>{arpDbl=!arpDbl;arpDblBtn.classList.toggle('on',arpDbl);});
 const btnBasArp=document.getElementById('btnBasArp');
 btnBasArp.addEventListener('click',()=>{ensureAudio();basArp=!basArp;btnBasArp.classList.toggle('on',basArp);});
+updateFxLabels();                                       // one pass so every label starts in sync
 document.getElementById('btnAB').addEventListener('click',()=>selectPat(curPat+1));
 document.getElementById('btnSong').addEventListener('click',()=>setSong(songIdx+1));
 document.getElementById('btnMut').addEventListener('click',mutatePat);
@@ -2100,8 +2253,10 @@ const sosRec=(window.SynthiRecord?SynthiRecord.mount({
   getTap:()=>recTap,
   ensureAudio:ensureAudio,
   getPatch:()=>({matrix:state,pats:PATS,bpm,engines:engIdx,steps:STEPS,pat:curPat,chain,song:SONGS[songIdx].n,muted,swing,filter:+document.getElementById('fltSlider').value,
-    arp:{on:arpOn,mode:arpMode,oct:arpOct,dbl:arpDbl,div:arpDiv,bas:basArp,gate:arpGate},delay:{div:delayDiv,fb:delayFbAmt,pp:delayPP}}),
-  engineVersion:'sos-dj-2026.09.2',
+    arp:{on:arpOn,chord:ARP_CHORDS[arpChord].id,shape:ARP_DIRS[arpDir].id,oct:arpOct,dbl:arpDbl,
+         div:ARP_DIVS[arpDiv].id,bas:basArp,gate:arpGate},
+    delay:{div:delayDiv,fb:delayFbAmt,pp:delayPP}}),
+  engineVersion:'sos-dj-2026.09.3',
   maxSec:()=>recSec()+.05,                          // +50ms so the last hit's tail survives
   /* hold REC until the loop wraps to step 1 (or start the transport there) */
   syncStart:()=>new Promise(res=>{
