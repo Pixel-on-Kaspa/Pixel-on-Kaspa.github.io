@@ -175,18 +175,33 @@
       background:var(--border);
       border:1px solid var(--border);
     }
-    /* SOUND SYSTEMS is four surfaces, not three — a fourth column keeps them on
-       one row instead of leaving SOS·DJ stranded next to an empty gap. Narrower
-       than full width they pair off 2×2 rather than getting cramped; under 900px
-       the shared single-column rule below takes over. */
-    .cards4{grid-template-columns:repeat(4,minmax(0,1fr));}
-    /* at a quarter of the row the generator card's two actions no longer sit on
-       one line, and a wrapped list must not leave its separator dangling */
-    .cards4 .nft-card-actions{row-gap:8px;}
-    .cards4 .nft-card-sep{display:none;}
-    @media(max-width:1080px){
-      .cards4{grid-template-columns:repeat(2,minmax(0,1fr));}
+    /* SOUND SYSTEMS is four surfaces against a three-wide grid. Squeezing a
+       fourth column in shrank every card, so the row keeps the standard card
+       size and scrolls sideways instead — three in view, the fourth one arrow
+       away. Under 900px the shared single-column rule takes over and the rail
+       goes back to stacking. */
+    .cardsRail{position:relative;}
+    .cardsScroll{
+      grid-template-columns:none;
+      grid-auto-flow:column;
+      grid-auto-columns:calc((100% - 2px)/3);
+      overflow-x:auto;
+      scroll-behavior:smooth;   /* the arrow sets scrollLeft; the browser slides it */
+      scrollbar-width:none;
+      -webkit-overflow-scrolling:touch;
     }
+    .cardsScroll::-webkit-scrollbar{display:none;}
+    .railBtn{
+      position:absolute;top:50%;transform:translateY(-50%);z-index:4;
+      width:38px;height:38px;border-radius:50%;display:grid;place-items:center;cursor:pointer;
+      background:rgba(5,10,10,.85);border:1px solid var(--border);color:var(--text);
+      font-size:18px;line-height:1;padding:0 0 2px;
+      backdrop-filter:blur(6px);transition:background .2s,border-color .2s,color .2s;
+    }
+    .railBtn:hover{background:var(--bg2);border-color:var(--border-hover);color:var(--accent);}
+    .railBtn[hidden]{display:none;}
+    .railPrev{left:-10px;}
+    .railNext{right:-10px;}
     .card{
       background:var(--card);
       padding:24px;
@@ -356,6 +371,8 @@
       .wrap{padding:0 16px 60px;}
       h1{font-size:clamp(44px,10vw,72px);}
       .cards{grid-template-columns:1fr;}
+      .cardsScroll{grid-auto-flow:row;grid-auto-columns:auto;overflow-x:visible;}
+      .railBtn{display:none;}
       .brand small{display:none;}
       .heroSlideshow{display:none;}
       .navSecondary{display:none;}
@@ -444,11 +461,82 @@
     <div class="divider"></div>
 
     <div class="sectionTitle" id="lab">
+      ARTIST GENERATORS
+      <span>Quick entry → dedicated pages.</span>
+    </div>
+
+    <section class="cards">
+      <article class="nft-card">
+        <div class="nft-card-visual artistThumb" id="komaThumb">
+          <div id="komaSlideshow"></div>
+          <span class="nft-card-category">@KomaTebe</span>
+        </div>
+        <div class="nft-card-body">
+          <header class="nft-card-header">
+            <h3 class="nft-card-title">KOMA · P5</h3>
+            <span class="nft-card-meta">artist</span>
+          </header>
+          <p class="nft-card-tagline">p5 generator inspired by @KomaTebe</p>
+          <nav class="nft-card-actions">
+            <a href="pixel-p5.html" class="nft-card-action-primary">Generator →</a>
+            <span class="nft-card-sep">·</span>
+            <a href="artists.html" class="nft-card-action">Artists page</a>
+          </nav>
+        </div>
+      </article>
+
+      <article class="nft-card">
+        <div class="nft-card-visual artistThumb" id="yoheiThumb">
+          <div id="yoheiSlideshow"></div>
+          <span class="nft-card-category">@YoheiNishitsuji</span>
+        </div>
+        <div class="nft-card-body">
+          <header class="nft-card-header">
+            <h3 class="nft-card-title">YOHEI · GLSL</h3>
+            <span class="nft-card-meta">artist</span>
+          </header>
+          <p class="nft-card-tagline">GLSL fragment shader by @YoheiNishitsuji</p>
+          <nav class="nft-card-actions">
+            <a href="yohei-glsl.html" class="nft-card-action-primary">Shader →</a>
+            <span class="nft-card-sep">·</span>
+            <a href="artists.html" class="nft-card-action">Artists page</a>
+          </nav>
+        </div>
+      </article>
+
+      <article class="nft-card">
+        <div class="nft-card-visual artistThumb" id="marekozorThumb">
+          <div id="marekozorSlideshow"></div>
+          <span class="nft-card-category">@marekozor</span>
+        </div>
+        <div class="nft-card-body">
+          <header class="nft-card-header">
+            <h3 class="nft-card-title">VISUAL ENGINE</h3>
+            <span class="nft-card-meta">marekozor</span>
+          </header>
+          <p class="nft-card-tagline">4-oscillator Lissajous engine — X/Y frequency ratios draw the curve.</p>
+          <nav class="nft-card-actions">
+            <a href="synthi/visual-engine.html" class="nft-card-action-primary">Engine →</a>
+            <span class="nft-card-sep">·</span>
+            <a href="https://opensea.io/collection/deepmemory" target="_blank" rel="noreferrer" class="nft-card-action">Deep Memory ↗</a>
+            <span class="nft-card-sep">·</span>
+            <a href="https://opensea.io/collection/sphericalharmony" target="_blank" rel="noreferrer" class="nft-card-action">Spherical ↗</a>
+            <span class="nft-card-sep">·</span>
+            <a href="https://opensea.io/collection/angryheadsv2" target="_blank" rel="noreferrer" class="nft-card-action">Angry Heads ↗</a>
+          </nav>
+        </div>
+      </article>
+    </section>
+
+    <div class="divider"></div>
+
+    <div class="sectionTitle">
       SOUND SYSTEMS
       <span>Synth surfaces — pick one and start patching.</span>
     </div>
 
-    <section class="cards cards4">
+    <div class="cardsRail">
+      <section class="cards cardsScroll" id="soundRail">
       <article class="nft-card">
         <div class="nft-card-visual synthiThumb">
           <img class="synthiLogo" src="assets/img/logo.png" alt="SYNTHI logo" loading="lazy">
@@ -518,77 +606,10 @@
           </nav>
         </div>
       </article>
-    </section>
-
-    <div class="divider"></div>
-
-    <div class="sectionTitle">
-      ARTIST GENERATORS
-      <span>Quick entry → dedicated pages.</span>
+      </section>
+      <button class="railBtn railPrev" type="button" aria-label="Předchozí karta" hidden>‹</button>
+      <button class="railBtn railNext" type="button" aria-label="Další karta">›</button>
     </div>
-
-    <section class="cards">
-      <article class="nft-card">
-        <div class="nft-card-visual artistThumb" id="komaThumb">
-          <div id="komaSlideshow"></div>
-          <span class="nft-card-category">@KomaTebe</span>
-        </div>
-        <div class="nft-card-body">
-          <header class="nft-card-header">
-            <h3 class="nft-card-title">KOMA · P5</h3>
-            <span class="nft-card-meta">artist</span>
-          </header>
-          <p class="nft-card-tagline">p5 generator inspired by @KomaTebe</p>
-          <nav class="nft-card-actions">
-            <a href="pixel-p5.html" class="nft-card-action-primary">Generator →</a>
-            <span class="nft-card-sep">·</span>
-            <a href="artists.html" class="nft-card-action">Artists page</a>
-          </nav>
-        </div>
-      </article>
-
-      <article class="nft-card">
-        <div class="nft-card-visual artistThumb" id="yoheiThumb">
-          <div id="yoheiSlideshow"></div>
-          <span class="nft-card-category">@YoheiNishitsuji</span>
-        </div>
-        <div class="nft-card-body">
-          <header class="nft-card-header">
-            <h3 class="nft-card-title">YOHEI · GLSL</h3>
-            <span class="nft-card-meta">artist</span>
-          </header>
-          <p class="nft-card-tagline">GLSL fragment shader by @YoheiNishitsuji</p>
-          <nav class="nft-card-actions">
-            <a href="yohei-glsl.html" class="nft-card-action-primary">Shader →</a>
-            <span class="nft-card-sep">·</span>
-            <a href="artists.html" class="nft-card-action">Artists page</a>
-          </nav>
-        </div>
-      </article>
-
-      <article class="nft-card">
-        <div class="nft-card-visual artistThumb" id="marekozorThumb">
-          <div id="marekozorSlideshow"></div>
-          <span class="nft-card-category">@marekozor</span>
-        </div>
-        <div class="nft-card-body">
-          <header class="nft-card-header">
-            <h3 class="nft-card-title">VISUAL ENGINE</h3>
-            <span class="nft-card-meta">marekozor</span>
-          </header>
-          <p class="nft-card-tagline">4-oscillator Lissajous engine — X/Y frequency ratios draw the curve.</p>
-          <nav class="nft-card-actions">
-            <a href="synthi/visual-engine.html" class="nft-card-action-primary">Engine →</a>
-            <span class="nft-card-sep">·</span>
-            <a href="https://opensea.io/collection/deepmemory" target="_blank" rel="noreferrer" class="nft-card-action">Deep Memory ↗</a>
-            <span class="nft-card-sep">·</span>
-            <a href="https://opensea.io/collection/sphericalharmony" target="_blank" rel="noreferrer" class="nft-card-action">Spherical ↗</a>
-            <span class="nft-card-sep">·</span>
-            <a href="https://opensea.io/collection/angryheadsv2" target="_blank" rel="noreferrer" class="nft-card-action">Angry Heads ↗</a>
-          </nav>
-        </div>
-      </article>
-    </section>
 
     <div class="divider"></div>
 
@@ -1147,9 +1168,9 @@
   const wrap = document.getElementById("marekozorSlideshow");
   if(!wrap) return;
   const srcs = [
-    "assets/img/visual-engine_1780070064420.jpg",
-    "assets/img/visual-engine_1780070173311.jpg",
-    "assets/img/visual-engine_1780009902472.jpg"
+    "assets/img/visual-engine_1790536563278.jpg",
+    "assets/img/visual-engine_1790534872591.jpg",
+    "assets/img/visual-engine_1790166796813.jpg"
   ];
   wrap.style.cssText = "position:absolute;inset:0;";
   const imgs = srcs.map((src, i) => {
@@ -1165,6 +1186,43 @@
     cur = (cur + 1) % imgs.length;
     imgs[cur].style.opacity = "1";
   }, 15000);
+})();
+</script>
+
+<script>
+// ── SOUND SYSTEMS RAIL — three cards in view, the fourth an arrow away ──
+(function(){
+  const rail = document.getElementById("soundRail");
+  if(!rail) return;
+  const prev = document.querySelector(".railPrev"), next = document.querySelector(".railNext");
+  const card = () => rail.clientWidth/3 + 1;              // one card plus its hairline
+  const end  = () => rail.scrollWidth - rail.clientWidth;
+  const sync = () => {
+    const off = end() < 1;                                // stacked (mobile), nothing to scroll
+    prev.hidden = off || rail.scrollLeft <= 1;
+    next.hidden = off || rail.scrollLeft >= end() - 1;
+  };
+  /* CSS scroll-behavior does the sliding. Where the browser runs no scroll
+     animation at all — a throttled tab, an odd embedding — the slide can stall
+     part-way, so a late check drops the rail onto the card it was aiming for. */
+  const slide = dir => {
+    const to = Math.max(0, Math.min(end(), rail.scrollLeft + dir*card()));
+    rail.scrollLeft = to;
+    setTimeout(() => {
+      if(Math.abs(rail.scrollLeft - to) > 1){
+        rail.style.scrollBehavior = "auto";
+        rail.scrollLeft = to;
+        rail.style.scrollBehavior = "";
+      }
+      sync();
+    }, 450);
+    sync();
+  };
+  prev.addEventListener("click", () => slide(-1));
+  next.addEventListener("click", () => slide(1));
+  rail.addEventListener("scroll", sync, {passive:true});
+  addEventListener("resize", sync);
+  sync();
 })();
 </script>
 
