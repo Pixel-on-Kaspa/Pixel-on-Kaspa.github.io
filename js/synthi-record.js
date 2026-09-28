@@ -50,7 +50,9 @@
         "box-shadow:0 12px 40px rgba(0,0,0,.6);font:600 11px/1 system-ui,-apple-system,sans-serif;max-width:92vw}" +
       ".srec-result.on{display:flex}" +
       ".srec-result audio{height:32px;max-width:300px}" +
-      ".srec-lbl{letter-spacing:.14em;text-transform:uppercase;font-weight:800;opacity:.8}";
+      ".srec-lbl{letter-spacing:.14em;text-transform:uppercase;font-weight:800;opacity:.8}" +
+      ".srec-x{padding:6px 9px;opacity:.7}" +
+      ".srec-x:hover{opacity:1}";
     document.head.appendChild(s);
   }
 
@@ -111,8 +113,13 @@
     var saveBtn = mk("button", "srec-btn", "↓ Save"); saveBtn.type = "button"; saveBtn.title = "Save the WebM/Opus clip";
     var wavBtn = mk("button", "srec-btn", "↓ WAV"); wavBtn.type = "button"; wavBtn.title = "Save a lossless WAV master";
     var shareBtn = mk("button", "srec-btn", "Share ↗"); shareBtn.type = "button";
+    /* The bar floats over the bottom of the instrument and used to stay there
+       until the next take, covering whatever is under it. It needs a way out. */
+    var closeBtn = mk("button", "srec-btn srec-x", "✕"); closeBtn.type = "button";
+    closeBtn.title = "Close the clip bar"; closeBtn.setAttribute("aria-label", "Close the clip bar");
     result.appendChild(mk("span", "srec-lbl", "Clip"));
     result.appendChild(audio); result.appendChild(saveBtn); result.appendChild(wavBtn); result.appendChild(shareBtn);
+    result.appendChild(closeBtn);
     document.body.appendChild(result);
 
     var mediaRecorder = null, chunks = [], countdown = null, timeout = null, msDest = null, tapNode = null, arming = false;
@@ -128,8 +135,12 @@
       return (share.filenamePrefix || "synthi") + "-" + (lastTs || Date.now()) +
              (lastBlob && /ogg/.test(lastBlob.type) ? ".ogg" : ".webm");
     }
+    function hideResult() {
+      result.classList.remove("on");
+      try { audio.pause(); } catch (e) {}          // closing must also stop the playback
+    }
     function setRecording(on) {
-      if (on) { btn.textContent = "■ STOP"; btn.classList.add("rec"); result.classList.remove("on"); }
+      if (on) { btn.textContent = "■ STOP"; btn.classList.add("rec"); hideResult(); }
       else { btn.textContent = "● REC"; btn.classList.remove("rec"); timeEl.textContent = fmtSec(maxSecNow()); syncTitle(); }
     }
     function clearTimers() {
@@ -221,6 +232,10 @@
     function isRecording() { return mediaRecorder && mediaRecorder.state === "recording"; }
 
     btn.addEventListener("click", function () { (isRecording() || arming) ? stop() : start(); });
+    closeBtn.addEventListener("click", hideResult);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && result.classList.contains("on")) hideResult();
+    });
     saveBtn.addEventListener("click", function () {
       if (!lastBlob) return;
       var u = lastUrl || URL.createObjectURL(lastBlob);
