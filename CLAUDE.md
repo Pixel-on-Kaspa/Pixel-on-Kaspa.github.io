@@ -45,7 +45,8 @@ Pixel-on-Kaspa.github.io/
 ├── index.html           # Homepage (2348 lines)
 ├── viewer.html          # NFT collection viewer
 ├── pixel-p5.html        # Interactive p5.js sketch generator
-├── yohei-glsl.html      # WebGL GLSL shader visualizer
+├── yohei-glsl.html      # WebGL GLSL shader visualizer (fixed motifs)
+├── glsl-lab.html        # Modular GLSL shader lab (build your own motif)
 ├── artists.html         # Artist/creator gallery
 ├── about.md             # About the PIXEL project
 ├── collections.md       # NFT collections listing
@@ -108,7 +109,7 @@ tags: [kaspa, nft]
 ### Pages
 
 - `about.md`, `collections.md` — Markdown pages rendered by Jekyll
-- `viewer.html`, `pixel-p5.html`, `yohei-glsl.html`, `artists.html` — standalone HTML pages with embedded JS/CSS
+- `viewer.html`, `pixel-p5.html`, `yohei-glsl.html`, `glsl-lab.html`, `artists.html` — standalone HTML pages with embedded JS/CSS
 
 ### NFT Collections
 
@@ -138,7 +139,90 @@ Interactive sketch generator with user-controllable speed and quality parameters
 
 ### WebGL / GLSL Visualizer (`yohei-glsl.html`)
 
-Real-time GLSL shader-based visual renderer. Source in `js/yohei-glsl.js`.
+Real-time GLSL shader-based visual renderer. Two fixed shaders (a raymarcher and
+the "Yohei Tweet" fold), parameterized by sliders — the motif itself is fixed.
+
+### GLSL Lab (`glsl-lab.html`)
+
+Modular shader lab: **one** fragment shader assembled from swappable modules, so
+the motif is chosen by the user rather than baked in.
+
+```
+scene   coords → DOMAIN → WARP → FIELD (2D) / SDF + MARCH (3D) → SHADE → PALETTE
+        → exposure, written LINEAR and UNCLAMPED into an RGBA16F texture
+bright  scene → threshold on luminance, downsampled to ¼
+blur    separable 9-tap gaussian, horizontal then vertical
+post    scene + bloom → RGB split → GRADE (tone map, gamma, contrast, sat,
+        vignette, grain, posterize+dither) → scanlines → trails
+```
+
+The grade lives in `GRADE`, a string shared by the scene shader (when it is the
+only pass) and the post shader (when effects are on). **Tone mapping must come
+after bloom** — the first version graded inside the scene shader, so bloom read
+an already-clamped image and did visibly nothing. The chain only runs when an
+effect is switched on; otherwise it is a single pass as before. Without
+`EXT_color_buffer_float` the targets fall back to RGBA8 and bloom is weaker.
+
+Trails are the one effect that does not loop: they carry state across frames,
+so a clip with trails on will not close seamlessly.
+
+- `js/glsl-lab-shader.js` — the module library and the source builder.
+  Structural choices (which module, iteration counts) are `#define`-injected;
+  `GLSLLabShader.build(cfg)` returns the fragment source, `key(cfg)` is the
+  program-cache key. Module name tables (`DOMAINS`, `FIELDS`, `SDFS`, …) are
+  exported and drive the UI.
+- `js/glsl-lab.js` — engine and UI. A single `SCHEMA` array is the one source of
+  truth for every control: default, range, visibility (`when`), whether it is
+  structural (`struct` → recompile, cached) and what goes in the URL. Presets,
+  the dice roller and the exports live here too.
+- **WebGL2 required** (no WebGL1 fallback).
+
+Design notes worth keeping:
+- **Panel contrast.** The control panel has its own lighter colour scale
+  (`--panelBg`, `--grpBg`, `--grpHead`, `--label`) — the first version reused
+  the page's dark tokens and the rows were unreadable dark-on-dark.
+- **The fold family is the form engine.** `Fold engine` (2D field) and
+  `Kleinian fold` (3D SDF) implement the shape of Yohei Nishitsuji's tweet
+  shader — `e = intensity/dot(p,p)`, `p = offset - abs(abs(p)*e - params)` —
+  with the same control names as the Yohei page (Fold X/Y/Z, Param A/B/C,
+  Intensity, Scale). `params.y` feeds back on `e`, and **Morph drive** walks the
+  params around a circle over one loop, so the geometry itself animates rather
+  than just rotating. `foldRot` adds a rotation between iterations, which is
+  also what rescues Menger / Mandelbox / Apollonian from looking regular.
+  Its DE is steep: keep Step scale ≈ 0.2–0.35 and Glow falloff in the hundreds
+  to low thousands, or the volume washes out to fog.
+- **Angularity.** Round, regular output was the first complaint. The levers
+  against it: `noiseShape` (smooth / ridged / billow octave folding) with
+  `roughness` + `lacunarity`, the `Angular fold` 2D warp (abs-fold + rotate, no
+  inversion → straight edges), the **Mandelbox** SDF, and a bounding *box*
+  rather than only a sphere. Kaleidoscope/polar domains impose the regularity —
+  `Plane` is the way out.
+- **Palette input is squashed** through `palIn(v) = v/(1+|v|)` before the ramp,
+  but only where the input is a raw field value (TINT 1 and 2) — shading masks
+  are already 0..1 and stay linear. Without this, `Ramp spread` did nothing on
+  one motif and strobed on the next, since every field has its own range.
+- **Frame budget is held by the render scale, not by the parameters.** These
+  shaders cost whatever the user asks; `scale: auto` shrinks the buffer when
+  frames pass ~42 ms and grows it back below ~19 ms, capped at the display's
+  own pixel ratio. A `webglcontextlost` handler recovers (and explains) a GPU
+  reset instead of freezing silently.
+- **Never write the URL on every input event.** `persist()` is debounced 300 ms:
+  `history.replaceState` at slider rate trips Chrome's navigation throttle and
+  stalls the tab. Slider drags also skip the full panel re-sync — visibility
+  only ever keys off selects and toggles.
+
+Notes:
+- **Seamless loops.** All animation is driven by `PH = TAU*(uTime/uPeriod + phase)`
+  and every time-dependent term advances by a whole number of turns per loop, so
+  frame 0 and frame N are identical. Rates are rounded to integers while
+  `loop` is on. Verified: a full phase turn leaves every preset pixel-identical.
+- **Exports.** PNG up to 4K, and a clip: WebCodecs H.264 → MP4 via `mp4-muxer`
+  (CDN, optional) with a MediaRecorder fallback. Frames are rendered at a fixed
+  dt, so a clip is frame-exact rather than dependent on real-time frame rate.
+  Downloads go through blobs — Chrome refuses multi-megabyte data-URL downloads.
+- `window.GLSLLabApp` exposes `render(size)`, `patch(obj)`, `preset(i)` for
+  headless/automated checks; `window.__glslLabSweep()` compiles every module
+  variant and reports failures.
 
 ### NFT Viewer (`viewer.html`)
 

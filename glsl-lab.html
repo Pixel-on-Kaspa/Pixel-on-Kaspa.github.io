@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>GLSL Lab • Pixel on Kaspa</title>
+  <meta name="description" content="A modular GLSL shader lab: build your own motif from swappable modules — domain, warp, field, shading, palette, post — and export PNG or a seamless clip."/>
+  <style>
+    :root{
+      --bg:#050a0a; --card:#0d1117;
+      --border:rgba(255,255,255,.08);
+      --muted:rgba(255,255,255,.52);
+      --accent:#49EACB; --accent-dim:rgba(73,234,203,.10);
+      --text:#f0f0f0;
+      --panel:308px;
+      /* panel needs its own, lighter scale — dark-on-dark was unreadable */
+      --panelBg:#080d0d;
+      --grpBg:#0c1313;
+      --grpHead:#131d1d;
+      --grpBorder:rgba(255,255,255,.14);
+      --label:rgba(255,255,255,.74);
+      --headLabel:rgba(73,234,203,.82);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;overflow:hidden}
+    body{
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
+      background:var(--bg);color:var(--text);display:flex;flex-direction:column;
+    }
+    a{color:inherit;text-decoration:none}
+
+    /* ── navbar ── */
+    .topbar{
+      flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:14px;
+      background:rgba(5,10,10,.97);border-bottom:1px solid var(--border);padding:0 24px;height:48px;
+    }
+    .brand{display:flex;align-items:baseline;gap:10px;letter-spacing:.14em;text-transform:uppercase;
+      font-weight:900;font-size:14px;white-space:nowrap}
+    .brand small{color:var(--muted);font-weight:600;letter-spacing:.06em;text-transform:none;font-size:11px}
+    .nav{display:flex;gap:6px;align-items:center}
+
+    .btn{
+      display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:4px;
+      border:1px solid var(--border);background:transparent;color:var(--muted);
+      font-weight:700;font-size:12px;letter-spacing:.04em;line-height:1;
+      white-space:nowrap;cursor:pointer;user-select:none;
+      transition:color .15s,border-color .15s,background .15s;
+      font-family:inherit;
+    }
+    .btn:hover{color:var(--text);border-color:rgba(255,255,255,.22)}
+    .btnPrimary{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);font-weight:800}
+    .btnPrimary:hover{background:var(--accent);color:#020a08}
+    .btn:disabled{opacity:.45;cursor:default}
+    .btnRec.recording{border-color:#e03535;color:#e03535;background:rgba(224,53,53,.12)}
+
+    /* ── toolbar ── */
+    .toolbar{
+      flex-shrink:0;min-height:44px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+      padding:6px 12px;border-bottom:1px solid var(--border);background:var(--bg);
+    }
+    .toolbar .sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+    .toolbar .status{margin-left:auto;font-size:11px;color:var(--muted);letter-spacing:.06em;
+      font-variant-numeric:tabular-nums}
+    .cxWrap{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:800;
+      letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+    .cxWrap input[type=range]{width:88px}
+
+    select.btn{
+      appearance:none;-webkit-appearance:none;padding-right:24px;
+      background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),
+                       linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+      background-position:calc(100% - 13px) 11px, calc(100% - 9px) 11px;
+      background-size:4px 4px,4px 4px;background-repeat:no-repeat;
+    }
+    select.btn option{background:#0a1010;color:var(--text)}
+
+    /* ── main ── */
+    .main{flex:1;min-height:0;display:flex;overflow:hidden}
+    .canvasSide{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;
+      overflow:hidden;padding:10px;background:
+      radial-gradient(circle at 50% 40%,rgba(73,234,203,.045),transparent 60%),#040707}
+    .canvasWrap{position:relative;overflow:hidden;background:#000;flex-shrink:0;
+      box-shadow:0 0 0 1px rgba(255,255,255,.07),0 18px 60px rgba(0,0,0,.6)}
+    .canvasWrap.isFull{width:100vw !important;height:100vh !important;box-shadow:none;
+      display:flex;align-items:center;justify-content:center}
+    canvas{display:block;width:100%;height:100%}
+    #recOverlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+      pointer-events:none;font-size:clamp(20px,3.4vw,42px);font-weight:900;letter-spacing:.08em;
+      color:#fff;text-shadow:0 0 30px rgba(0,0,0,.95);opacity:0;transition:opacity .2s}
+    #recOverlay.show{opacity:1}
+    #errEl{display:none;position:absolute;bottom:0;left:0;right:0;background:rgba(180,30,30,.92);
+      color:#fff;font:12px/1.45 ui-monospace,monospace;padding:10px 14px;white-space:pre-wrap;
+      max-height:45%;overflow:auto}
+
+    /* ── panel ── */
+    .controlsSide{width:var(--panel);flex:0 0 var(--panel);display:flex;flex-direction:column;
+      overflow:hidden;border-left:1px solid var(--grpBorder);background:var(--panelBg)}
+    .controlsHeader{flex-shrink:0;padding:10px 16px;border-bottom:1px solid var(--grpBorder);
+      font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--label);
+      background:var(--grpHead)}
+    .controlsHeader span{font-weight:500;text-transform:none;letter-spacing:.03em;opacity:.65}
+    #panel{flex:1;overflow-y:auto;overflow-x:hidden;padding:10px 12px 40px}
+    #panel::-webkit-scrollbar{width:5px}
+    #panel::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:3px}
+
+    .grp{border:1px solid var(--grpBorder);border-radius:4px;margin-bottom:10px;overflow:hidden;
+      background:var(--grpBg)}
+    .grpHead{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;
+      cursor:pointer;user-select:none;background:var(--grpHead);
+      border-bottom:1px solid var(--grpBorder)}
+    .grpHead:hover{background:#182424}
+    .grpHead b{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
+      color:var(--headLabel)}
+    .grpHead .arrow{font-size:10px;color:var(--label);transition:transform .15s}
+    .grpHead.collapsed .arrow{transform:rotate(-90deg)}
+    .grpBody{padding:11px 11px 13px;display:flex;flex-direction:column;gap:13px}
+    .grpBody.hidden{display:none}
+
+    .ctrl{min-width:0}
+    .ctrl + .ctrl{border-top:1px solid rgba(255,255,255,.055);padding-top:12px}
+    .ctrlHead{display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:6px}
+    .ctrlTitle{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--label);font-weight:700}
+    .ctrlVal{font-size:11.5px;color:var(--accent);font-weight:800;white-space:nowrap;
+      font-variant-numeric:tabular-nums;flex-shrink:0}
+    input[type=range]{width:100%;height:3px;-webkit-appearance:none;appearance:none;
+      background:rgba(255,255,255,.22);border-radius:3px;outline:none;cursor:pointer}
+    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;
+      border-radius:3px;background:var(--accent);cursor:pointer;
+      box-shadow:0 0 0 3px rgba(73,234,203,.16)}
+    input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:3px;
+      background:var(--accent);border:none;cursor:pointer}
+    .ctrl select{width:100%;appearance:none;-webkit-appearance:none;background:#162020;
+      color:var(--text);border:1px solid var(--grpBorder);border-radius:3px;padding:7px 9px;
+      font:700 11.5px/1 inherit;letter-spacing:.04em;cursor:pointer;font-family:inherit}
+    .ctrl select:hover{border-color:rgba(73,234,203,.4)}
+    .ctrl select:focus{outline:none;border-color:var(--accent)}
+    .ctrl input[type=color]{width:100%;height:26px;background:transparent;border:1px solid var(--grpBorder);
+      border-radius:3px;padding:2px;cursor:pointer}
+    .ctrlToggle .tgl{display:flex;align-items:center;gap:9px;cursor:pointer}
+    .ctrlToggle .ctrlTitle{color:var(--text);opacity:.85}
+    .ctrlToggle input[type=checkbox]{appearance:none;-webkit-appearance:none;width:28px;height:16px;
+      border-radius:9px;background:rgba(255,255,255,.2);position:relative;cursor:pointer;flex-shrink:0;
+      transition:background .15s}
+    .ctrlToggle input[type=checkbox]::after{content:"";position:absolute;top:3px;left:3px;width:10px;
+      height:10px;border-radius:50%;background:rgba(255,255,255,.7);transition:transform .15s,background .15s}
+    .ctrlToggle input[type=checkbox]:checked{background:rgba(73,234,203,.3)}
+    .ctrlToggle input[type=checkbox]:checked::after{transform:translateX(12px);background:var(--accent)}
+
+    @media(max-width:920px){
+      html,body{height:auto;overflow:auto}
+      .main{flex-direction:column}
+      .canvasSide{width:100%;padding:8px}
+      .canvasWrap{max-width:100%}
+      .controlsSide{width:100%;flex:1 1 auto;border-left:none;border-top:1px solid var(--border)}
+      #panel{max-height:none}
+    }
+  </style>
+  <script defer src="https://cloud.umami.is/script.js" data-website-id="6ee0e9a9-7066-4115-b91d-5667d8042abe"></script>
+  <script src="/js/share.js"></script>
+  <meta name="pixel-gallery-api" content="https://pixel-gallery.pixelonkaspa.workers.dev">
+  <script src="/js/gallery.js"></script>
+  <!-- optional: frame-exact MP4 export (WebCodecs). Falls back to MediaRecorder. -->
+  <script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.2/build/mp4-muxer.min.js"></script>
+</head>
+<body>
+
+  <nav class="topbar">
+    <a class="brand" href="index.html">PIXEL ON KASPA <small>GLSL LAB • build your own motif</small></a>
+    <div class="nav">
+      <a class="btn" href="index.html">Home</a>
+      <a class="btn" href="yohei-glsl.html">Yohei</a>
+      <a class="btn" href="sykora-lab.html">Sýkora</a>
+      <a class="btn" href="gallery.html">Gallery</a>
+    </div>
+  </nav>
+
+  <div class="toolbar">
+    <select class="btn" id="presets" title="Preset stacks, simple → complex">
+      <option value="">Presets…</option>
+    </select>
+    <button class="btn btnPrimary" id="btnDice" type="button" title="Random module stack (R)">⚄ Dice</button>
+    <span class="cxWrap">complexity
+      <input id="complexity" type="range" min="0" max="100" step="1" value="45"/>
+    </span>
+    <span class="sep"></span>
+    <button class="btn btnPrimary" id="btnPause" type="button" title="Space">Pause</button>
+    <button class="btn" id="btnPng" type="button" title="Save a still (P)">PNG</button>
+    <button class="btn btnRec" id="btnRec" type="button" title="Export an animation">Clip</button>
+    <span class="sep"></span>
+    <button class="btn btnPrimary" id="btnShareX" type="button">Share on X ↗</button>
+    <button class="btn btnPrimary" id="btnPublish" type="button">✦ Publish</button>
+    <span class="sep"></span>
+    <button class="btn" id="btnReset" type="button">Reset</button>
+    <button class="btn" id="btnCopy" type="button">Copy URL</button>
+    <button class="btn" id="btnCode" type="button" title="Show the compiled GLSL">GLSL</button>
+    <button class="btn" id="btnFull" type="button">[ FULL ]</button>
+    <span class="status" id="status">boot…</span>
+  </div>
+
+  <div class="main">
+    <div class="canvasSide">
+      <div class="canvasWrap">
+        <canvas id="c"></canvas>
+        <div id="recOverlay"></div>
+        <pre id="errEl"></pre>
+      </div>
+    </div>
+
+    <div class="controlsSide">
+      <div class="controlsHeader">Controls <span id="hint">— state lives in the URL</span></div>
+      <div id="panel"></div>
+    </div>
+  </div>
+
+  <script src="/js/glsl-lab-shader.js?v=9"></script>
+  <script src="/js/glsl-lab.js?v=9"></script>
+</body>
+</html>
