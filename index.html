@@ -267,6 +267,34 @@
     .synthiThumb{
       background:radial-gradient(circle at center,rgba(73,234,203,.07) 0,#070c0c 65%);
     }
+    .glslLabThumb{
+      background:#050a0a;
+      position:relative;
+      overflow:hidden;
+    }
+    .glslLabThumb::before{
+      /* kaleidoscopic bloom, in the spirit of the lab's default stack */
+      content:"";
+      position:absolute;
+      inset:-25%;
+      background:
+        conic-gradient(from 0deg at 50% 50%,
+          rgba(73,234,203,.85) 0deg, transparent 22deg, rgba(255,92,122,.7) 45deg,
+          transparent 67deg, rgba(73,234,203,.85) 90deg, transparent 112deg,
+          rgba(255,209,102,.6) 135deg, transparent 157deg, rgba(73,234,203,.85) 180deg,
+          transparent 202deg, rgba(255,92,122,.7) 225deg, transparent 247deg,
+          rgba(73,234,203,.85) 270deg, transparent 292deg, rgba(255,209,102,.6) 315deg,
+          transparent 337deg, rgba(73,234,203,.85) 360deg),
+        radial-gradient(circle at 50% 50%, #0b1414 18%, transparent 60%);
+      -webkit-mask-image:repeating-radial-gradient(circle at 50% 50%, #000 0 6px, transparent 6px 14px);
+      mask-image:repeating-radial-gradient(circle at 50% 50%, #000 0 6px, transparent 6px 14px);
+      opacity:.9;
+    }
+    .glslLabThumb::after{
+      content:"";
+      position:absolute;inset:0;
+      background:radial-gradient(circle at 50% 50%, transparent 35%, rgba(5,10,10,.85) 100%);
+    }
     .sykoraLabThumb{
       background:#070c0c;
       position:relative;
@@ -675,6 +703,24 @@
           <p class="nft-card-tagline">Algorithmic compositions in Sýkora's element vocabulary.</p>
           <nav class="nft-card-actions">
             <a href="sykora-lab.html" class="nft-card-action-primary">Open Lab →</a>
+          </nav>
+        </div>
+      </article>
+
+      <article class="nft-card">
+        <div class="nft-card-visual glslLabThumb">
+          <span class="nft-card-category">Shader</span>
+        </div>
+        <div class="nft-card-body">
+          <header class="nft-card-header">
+            <h3 class="nft-card-title">GLSL LAB</h3>
+            <span class="nft-card-meta">modular shader</span>
+          </header>
+          <p class="nft-card-tagline">Build your own motif — swap space, warp, field, shading, palette. PNG + looping clip.</p>
+          <nav class="nft-card-actions">
+            <a href="glsl-lab.html" class="nft-card-action-primary">Open Lab →</a>
+            <span class="nft-card-sep">·</span>
+            <a href="yohei-glsl.html" class="nft-card-action">Yohei shader</a>
           </nav>
         </div>
       </article>
