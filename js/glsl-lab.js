@@ -207,10 +207,11 @@
     ]},
 
     { group: "Post", items: [
-      { id: "exposure", type: "range", label: "Exposure", min: 0, max: 8, step: 0.01, def: 1 },
+      { id: "exposure", type: "range", label: "Exposure", min: 0, max: 16, step: 0.01, def: 1 },
       { id: "tonemap", type: "toggle", label: "Tone map (Reinhard)", struct: true, def: true },
       { id: "gamma", type: "range", label: "Gamma", min: 0.4, max: 2.6, step: 0.01, def: 1 },
       { id: "contrast", type: "range", label: "Contrast", min: 0.2, max: 2.5, step: 0.01, def: 1 },
+      { id: "blackPoint", type: "range", label: "Black point", min: 0, max: 0.6, step: 0.005, def: 0 },
       { id: "satPost", type: "range", label: "Saturation", min: 0, max: 2, step: 0.01, def: 1 },
       { id: "pixelate", type: "toggle", label: "Pixelate", struct: true, def: false },
       { id: "cells", type: "range", label: "Pixel cells", min: 8, max: 512, step: 1, def: 96,
@@ -582,7 +583,7 @@
   }
 
   var UNIFORMS = ["uRes", "uTime", "uPeriod", "uSeed", "uView", "uSym", "uWarp", "uField",
-    "uShade", "uPal", "uPost", "uFx", "uMarch", "uCam", "uAnim", "uNoise",
+    "uShade", "uPal", "uPost", "uGrade", "uFx", "uMarch", "uCam", "uAnim", "uNoise",
     "uFold1", "uFold2", "uFold3", "uColA", "uColB", "uColBg"];
 
   var cache = {}, cur = null, needRebuild = true, vao = gl.createVertexArray();
@@ -703,6 +704,7 @@
       is3dVol(P) ? +P.falloff : +P.shSoft, +P.shSteps);
     gl.uniform4f(L.uPal, +P.palHue, +P.palSat, +P.palSpread, +P.palOff);
     gl.uniform4f(L.uPost, +P.exposure, +P.gamma, +P.contrast, +P.satPost);
+    gl.uniform4f(L.uGrade, +P.blackPoint, 0, 0, 0);
     gl.uniform4f(L.uFx, +P.cells, +P.levels, +P.vigAmt, +P.grainAmt);
     gl.uniform4f(L.uMarch, +P.fov, +P.density, +P.stepScale, +P.far);
     gl.uniform4f(L.uCam, +P.camDist, +P.camYaw, +P.camPitch, +P.absorb);
@@ -802,7 +804,7 @@
   }
 
   var POST_UNIFORMS = ["uScene", "uBloomTex", "uPrev", "uRes", "uTime", "uPeriod",
-    "uBloom", "uFx2", "uPost", "uFx"];
+    "uBloom", "uFx2", "uPost", "uGrade", "uFx"];
 
   function postProgram() {
     var cfg = postCfg(), k = S.postKey(cfg);
@@ -891,6 +893,7 @@
     gl.uniform4f(curPost.locs.uBloom, +P.bloomAmt, +P.bloomThresh, +P.bloomRadius, 0);
     gl.uniform4f(curPost.locs.uFx2, +P.rgbAmt, +P.trailAmt, +P.scanAmt, +P.scanSpacing);
     gl.uniform4f(curPost.locs.uPost, +P.exposure, +P.gamma, +P.contrast, +P.satPost);
+    gl.uniform4f(curPost.locs.uGrade, +P.blackPoint, 0, 0, 0);
     gl.uniform4f(curPost.locs.uFx, +P.cells, +P.levels, +P.vigAmt, +P.grainAmt);
     fullscreen();
 
