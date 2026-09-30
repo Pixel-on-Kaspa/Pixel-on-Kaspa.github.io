@@ -139,8 +139,8 @@
       { id: "far", type: "range", label: "Far distance", min: 2, max: 40, step: 0.1, def: 12 },
       { id: "fov", type: "range", label: "FOV", min: 0.2, max: 2.5, step: 0.01, def: 1.0 },
       { id: "camDist", type: "range", label: "Camera distance", min: 0.2, max: 10, step: 0.01, def: 2.6 },
-      { id: "camYaw", type: "range", label: "Yaw", min: -0.5, max: 0.5, step: 0.001, def: 0 },
-      { id: "camPitch", type: "range", label: "Pitch", min: -0.24, max: 0.24, step: 0.001, def: 0.06 },
+      { id: "camYaw", type: "range", label: "Yaw", min: -1.5, max: 1.5, step: 0.001, def: 0 },
+      { id: "camPitch", type: "range", label: "Pitch", min: -0.6, max: 0.6, step: 0.001, def: 0.06 },
       { id: "rateCam", type: "range", label: "Orbit rate", min: 0, max: 4, step: 0.25, def: 1 }
     ]},
 
