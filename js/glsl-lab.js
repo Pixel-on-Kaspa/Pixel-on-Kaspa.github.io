@@ -282,6 +282,10 @@
       if (!(it.id in DEF)) DEF[it.id] = it.def;
     });
   });
+  /* The dice seed is state, not a control: it never shows up in the panel, but
+     it rides along in the URL and in every export so a roll can be replayed. */
+  DEF.diceSeed = 0;
+  DEF.diceCx = 45;                             // matches the complexity slider
   var IDS = Object.keys(DEF);
   var P = Object.assign({}, DEF);
 
@@ -427,6 +431,10 @@
         }
 
         inp.addEventListener("input", function () {
+          // Hand-editing a control means the piece is no longer the seed's
+          // roll, so the seed stops claiming it. The exported parameters and
+          // the permalink still carry the full provenance.
+          P.diceSeed = 0;
           if (it.type === "range") {
             P[it.id] = parseFloat(inp.value);
             if (it.struct) needRebuild = true;
@@ -490,9 +498,7 @@
     persistTimer = setTimeout(persistNow, 300);
   }
 
-  function persistNow() {
-    clearTimeout(persistTimer);
-    try { localStorage.setItem(KEY, JSON.stringify(P)); } catch (e) {}
+  function stateURL() {
     var u = new URL(location.href);
     IDS.forEach(function (id) { u.searchParams.delete(id); });
     IDS.forEach(function (id) {
@@ -501,7 +507,13 @@
       if (typeof v === "boolean") v = v ? 1 : 0;
       u.searchParams.set(id, String(v));
     });
-    history.replaceState(null, "", u.toString());
+    return u.toString();
+  }
+
+  function persistNow() {
+    clearTimeout(persistTimer);
+    try { localStorage.setItem(KEY, JSON.stringify(P)); } catch (e) {}
+    history.replaceState(null, "", stateURL());
   }
 
   function coerce(it, raw) {
@@ -526,6 +538,10 @@
       if (it.id in store) P[it.id] = coerce(it, store[it.id]);
       if (q.has(it.id)) P[it.id] = coerce(it, q.get(it.id));
     });
+    var ds = q.has("diceSeed") ? q.get("diceSeed") : store.diceSeed;
+    if (ds !== undefined && isFinite(+ds)) P.diceSeed = (+ds) >>> 0;
+    var dc = q.has("diceCx") ? q.get("diceCx") : store.diceCx;
+    if (dc !== undefined && isFinite(+dc)) P.diceCx = Math.max(0, Math.min(100, +dc));
   }
 
   function applyPatch(patch) {
@@ -948,6 +964,62 @@
     }
   }
 
+  /* ── PNG provenance ──────────────────────────────────────────
+     A still that cannot be traced back to its parameters is an orphan, so
+     every export carries them in tEXt chunks next to a replay link. */
+  var CRC_TABLE = (function () {
+    var t = new Uint32Array(256);
+    for (var n = 0; n < 256; n++) {
+      var c = n;
+      for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+
+  function crc32(bytes) {
+    var c = 0xFFFFFFFF;
+    for (var i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  /* tEXt payload is keyword \0 latin-1 text; anything outside latin-1 would
+     corrupt the chunk, so callers pass text that is already escaped. */
+  function textChunk(keyword, text) {
+    var head = keyword + "\u0000" + text;
+    var typed = new Uint8Array(4 + head.length);
+    "tEXt".split("").forEach(function (ch, i) { typed[i] = ch.charCodeAt(0); });
+    for (var i = 0; i < head.length; i++) typed[4 + i] = head.charCodeAt(i) & 0xFF;
+    var out = new Uint8Array(4 + typed.length + 4);
+    var dv = new DataView(out.buffer);
+    dv.setUint32(0, head.length);
+    out.set(typed, 4);
+    dv.setUint32(4 + typed.length, crc32(typed));
+    return out;
+  }
+
+  function latin1(str) {
+    return String(str).replace(/[^\x20-\x7E]/g, function (ch) {
+      return "\\u" + ("000" + ch.charCodeAt(0).toString(16)).slice(-4);
+    });
+  }
+
+  /* Chunks go straight after IHDR: 8-byte signature + 25-byte IHDR. */
+  function stampPNG(blob, fields) {
+    return blob.arrayBuffer().then(function (buf) {
+      var src = new Uint8Array(buf), at = 8 + 25;
+      var chunks = Object.keys(fields).map(function (k) {
+        return textChunk(k, latin1(fields[k]));
+      });
+      var extra = chunks.reduce(function (n, c) { return n + c.length; }, 0);
+      var out = new Uint8Array(src.length + extra), off = at;
+      out.set(src.subarray(0, at), 0);
+      chunks.forEach(function (c) { out.set(c, off); off += c.length; });
+      out.set(src.subarray(at), off);
+      return new Blob([out], { type: "image/png" });
+    });
+  }
+
   /* ── PNG ───────────────────────────────────────────────────── */
   function renderStill(size) {
     var ar = aspectRatio();
@@ -972,8 +1044,19 @@
       busy = false;
       lastNow = performance.now();
       if (!blob) { status.textContent = "PNG export failed"; return; }
-      download(blob, "glsl-lab-" + Date.now() + ".png");
-      status.textContent = "PNG " + w + "×" + h;
+      var name = "glsl-lab-s" + (P.diceSeed >>> 0) + "-" + Date.now() + ".png";
+      stampPNG(blob, {
+        Software: "Pixel on Kaspa · GLSL Lab",
+        Source: stateURL(),
+        Comment: "diceSeed=" + (P.diceSeed >>> 0),
+        Parameters: JSON.stringify(P)
+      }).then(function (stamped) {
+        download(stamped, name);
+        status.textContent = "PNG " + w + "×" + h + " · seed " + (P.diceSeed >>> 0);
+      })["catch"](function () {
+        download(blob, name);                    // metadata are a bonus, not the export
+        status.textContent = "PNG " + w + "×" + h + " (bez metadat)";
+      });
     }, "image/png");
   }
 
@@ -1049,7 +1132,7 @@
 
     if (!blob) return;
     var ext = /mp4/.test(blob.type) ? "mp4" : "webm";
-    download(blob, "glsl-lab-" + Date.now() + "." + ext);
+    download(blob, "glsl-lab-s" + (P.diceSeed >>> 0) + "-" + Date.now() + "." + ext);
     status.textContent = note + " " + w + "×" + h + " · " + frames + " frames";
 
     if (P.recShare && window.PixelShare) {
@@ -1156,18 +1239,43 @@
     return s / (64 * 64 * 3);
   }
 
-  /* ── dice: random module stack, biased by complexity ───────── */
-  function rnd(a, b) { return a + Math.random() * (b - a); }
-  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  /* ── dice: random module stack, biased by complexity ─────────
+     Every draw in a roll goes through `rng`. A roll points it at a seeded
+     stream, so one integer replays the entire stack. */
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  var rng = Math.random;
+  var rollCx = null;                           // set while replaying a seed
+  function rnd(a, b) { return a + rng() * (b - a); }
+  function pick(arr) { return arr[Math.floor(rng() * arr.length)]; }
   function snap(it, v) { return Math.max(it.min, Math.min(it.max, Math.round(v / it.step) * it.step)); }
   function item(id) { return ITEMS.filter(function (i) { return i.id === id; })[0]; }
   function setR(id, v) { var it = item(id); if (it) P[id] = snap(it, v); }
 
-  function dice() {
+  function dice(seed, cx) {
     // A stack can easily land on black or blown-out white; look at the result
     // and re-roll rather than handing the user an empty canvas.
+    seed = (seed === undefined || seed === null || !isFinite(+seed))
+      ? (Math.random() * 4294967296) >>> 0
+      : (+seed) >>> 0;
+    // The complexity slider steers the roll, so it is part of the piece's
+    // identity: pin it while replaying, and record it alongside the seed.
+    var cxUsed = (cx === undefined || cx === null || !isFinite(+cx))
+      ? +$("complexity").value
+      : Math.max(0, Math.min(100, +cx));
+    rollCx = cxUsed;
+    // Probe on a fixed point of the timeline: the reject test has to read the
+    // same frame on every replay, or a different attempt could win.
+    animT = 0;
     var best = null, bestScore = -1;
     for (var attempt = 0; attempt < 6; attempt++) {
+      rng = mulberry32((seed + attempt * 0x9E3779B1) | 0);
       roll();
       var l = probeLuma();
       var score = (l < 4 || l > 248) ? 0 : Math.min(l, 120) / 120;
@@ -1175,17 +1283,22 @@
       if (score > 0.25) break;
     }
     if (bestScore <= 0.25 && best) { P = best; needRebuild = true; }
+    rng = Math.random;
+    rollCx = null;
+    P.diceSeed = seed;
+    P.diceCx = cxUsed;
     animT = 0;
     persistNow(); syncUI();
+    return seed;
   }
 
   function roll() {
-    var cx = (+$("complexity").value) / 100;          // 0 = simple, 1 = dense
+    var cx = (rollCx !== null ? rollCx : +$("complexity").value) / 100;  // 0 = simple, 1 = dense
     var keep = { aspect: P.aspect, pngSize: P.pngSize, recSize: P.recSize,
                  recFps: P.recFps, recSec: P.recSec, recShare: P.recShare, loop: P.loop };
     P = Object.assign({}, DEF, keep);                  // format/export stay the user's choice
     P.seed = Math.floor(rnd(0, 1000));
-    P.mode = Math.random() < 0.25 + 0.35 * cx ? "3d" : "2d";
+    P.mode = rng() < 0.25 + 0.35 * cx ? "3d" : "2d";
     P.pal = pick([1, 1, 1, 2, 3, 0]);
     P.tint = pick([0, 2, 2, 1]);
     P.noiseShape = pick([0, 0, 1, 1, 2]);
@@ -1199,10 +1312,10 @@
     setR("foldParZ", rnd(0.4, 4.5));
     setR("foldInt", rnd(1.5, 9));
     setR("foldScale", rnd(0.6, 3.2));
-    P.foldRot = Math.random() < 0.5;
+    P.foldRot = rng() < 0.5;
     setR("foldRotA", rnd(-1.6, 1.6));
     setR("foldRotB", rnd(-1.6, 1.6));
-    P.foldDrive = Math.random() < 0.4 ? +rnd(0.05, 0.6).toFixed(3) : 0;
+    P.foldDrive = rng() < 0.4 ? +rnd(0.05, 0.6).toFixed(3) : 0;
     setR("roughness", rnd(0.3, 0.75));
     setR("lacunarity", rnd(1.6, 3.2));
     P.palHue = +rnd(-1, 1).toFixed(3);
@@ -1213,7 +1326,7 @@
     P.colB = pick(["#0b0d12", "#12203a", "#2b1055", "#e8e4d8", "#003b46"]);
     P.colBg = pick(["#05070a", "#030407", "#0a0512", "#000000"]);
     P.exposure = +rnd(0.8, 2.2).toFixed(2);
-    P.tonemap = Math.random() < 0.8;
+    P.tonemap = rng() < 0.8;
     P.contrast = +rnd(0.9, 1.4).toFixed(2);
     P.period = pick([4, 6, 8, 8, 12, 16]);
     P.rateWarp = pick([0, 1, 1, 2]);
@@ -1227,7 +1340,7 @@
       P.twist = +rnd(-2.5, 2.5).toFixed(2);
       P.zoom = +rnd(0.6, 1.8).toFixed(2);
       P.rot = +rnd(-0.5, 0.5).toFixed(3);
-      P.warp = Math.random() < 0.25 + 0.6 * cx ? pick([1, 2, 3, 4, 5, 6, 7, 7]) : 0;
+      P.warp = rng() < 0.25 + 0.6 * cx ? pick([1, 2, 3, 4, 5, 6, 7, 7]) : 0;
       P.warpIt = Math.max(1, Math.round(rnd(1, 1 + 4 * cx)));
       setR("warpAmt", rnd(0.1, 0.3 + 0.9 * cx));
       setR("warpFreq", rnd(0.4, 1.5 + 3 * cx));
@@ -1245,13 +1358,13 @@
       setR("shThick", rnd(0.08, 0.45));
       setR("shSoft", rnd(0.003, 0.08));
       P.shSteps = Math.round(rnd(2, 12));
-      P.mirrorX = Math.random() < 0.15;
-      P.mirrorY = Math.random() < 0.12;
+      P.mirrorX = rng() < 0.15;
+      P.mirrorY = rng() < 0.12;
     } else {
       P.sdf = cx < 0.3 ? pick([0, 1, 2, 3]) : pick([0, 1, 2, 3, 4, 5, 6, 7, 8, 8]);
-      P.march = Math.random() < 0.55 ? 1 : 0;
+      P.march = rng() < 0.55 ? 1 : 0;
       P.marchSteps = Math.round(rnd(60, 80 + 90 * cx) / 5) * 5;
-      P.warp3 = Math.random() < 0.3 + 0.5 * cx ? pick([1, 2, 3, 4, 5]) : 0;
+      P.warp3 = rng() < 0.3 + 0.5 * cx ? pick([1, 2, 3, 4, 5]) : 0;
       P.warpIt = Math.max(1, Math.round(rnd(1, 1 + 3 * cx)));
       setR("warpAmt", rnd(0.1, 0.25 + 0.7 * cx));
       setR("warpFreq", rnd(0.3, 1.2 + 2 * cx));
@@ -1262,9 +1375,9 @@
       setR("sFreq", rnd(0.4, 0.8 + 2 * cx));
       setR("sPow", rnd(3, 12));
       setR("sK", rnd(0.9, 1.4));
-      setR("sBox", Math.random() < 0.3 ? rnd(-2.6, -1.6) : rnd(1.8, 2.9));
+      setR("sBox", rng() < 0.3 ? rnd(-2.6, -1.6) : rnd(1.8, 2.9));
       setR("sThick", rnd(0.08, 0.7));
-      P.rep3 = Math.random() < 0.3 + 0.3 * cx;
+      P.rep3 = rng() < 0.3 + 0.3 * cx;
     P.bound = ([3, 6, 7].indexOf(P.sdf) >= 0 || P.rep3)
       ? pick([1, 1, 2]) : pick([0, 0, 0, 1, 2]);
     setR("boundR", rnd(0.8, 2.2));
@@ -1283,18 +1396,18 @@
       setR("shThick", rnd(0, 0.5));
     }
 
-    if (Math.random() < 0.18) { P.pixelate = true; P.cells = Math.round(rnd(48, 220)); }
-    if (Math.random() < 0.18) { P.posterize = true; P.levels = Math.round(rnd(3, 8)); P.dither = Math.random() < 0.7; }
-    if (Math.random() < 0.25) { P.vignette = true; setR("vigAmt", rnd(0.2, 0.9)); }
-    if (Math.random() < 0.12) { P.grain = true; setR("grainAmt", rnd(0.02, 0.12)); }
-    if (Math.random() < 0.35) {
+    if (rng() < 0.18) { P.pixelate = true; P.cells = Math.round(rnd(48, 220)); }
+    if (rng() < 0.18) { P.posterize = true; P.levels = Math.round(rnd(3, 8)); P.dither = rng() < 0.7; }
+    if (rng() < 0.25) { P.vignette = true; setR("vigAmt", rnd(0.2, 0.9)); }
+    if (rng() < 0.12) { P.grain = true; setR("grainAmt", rnd(0.02, 0.12)); }
+    if (rng() < 0.35) {
       P.bloom = true;
       setR("bloomAmt", rnd(0.6, 2.2));
       setR("bloomThresh", rnd(0.3, 1.4));
       setR("bloomRadius", rnd(1.5, 7));
     }
-    if (Math.random() < 0.12) { P.rgbsplit = true; setR("rgbAmt", rnd(0.6, 3.0)); }
-    if (Math.random() < 0.10) {
+    if (rng() < 0.12) { P.rgbsplit = true; setR("rgbAmt", rnd(0.6, 3.0)); }
+    if (rng() < 0.10) {
       P.scanlines = true; setR("scanAmt", rnd(0.2, 0.6)); setR("scanSpacing", rnd(3, 10));
     }
 
@@ -1413,7 +1526,10 @@
         animT = 0;
         return PRESETS[i][0];
       },
-      presets: PRESETS.map(function (p) { return p[0]; })
+      presets: PRESETS.map(function (p) { return p[0]; }),
+      dice: function (seed, cx) { return dice(seed, cx); },
+      seed: function () { return { seed: P.diceSeed >>> 0, cx: +P.diceCx }; },
+      url: function () { return stateURL(); }
     };
 
     // exposed for a quick sanity sweep from the console
