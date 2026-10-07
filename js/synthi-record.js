@@ -20,7 +20,9 @@
        getPatch:    () => string|null,      // optional: provenance snapshot
        engineVersion: 'aks-2026.07',
        maxSec: 15,                          // number OR () => seconds (re-read per take)
-       syncStart: () => Promise,            // optional: resolve when it's time to roll
+       exactSec: () => seconds,             // optional: musical length to trim the WAV to
+       syncStart: () => Promise<number?>,   // optional: resolve when it's time to roll,
+                                            //   returning the downbeat's audio-clock time
        share: { text, url, hashtags, filenamePrefix }
      });
      rec.enable(true|false);   // toggle the REC button with audio on/off
@@ -61,12 +63,14 @@
 
   // ── inline AudioWorklet: captures PCM off the main thread (no dropout risk),
   //    loaded from a Blob so there's no separate module file to deploy ──
+  //    Every block carries its absolute `currentFrame`, which is what lets a
+  //    take be trimmed to an exact sample window (see buildWavBlob).
   var PCM_WORKLET_CODE =
     "class PcmCapture extends AudioWorkletProcessor{" +
       "process(inputs){var input=inputs[0];" +
         "if(input&&input.length){var chans=[],b=[];" +
           "for(var c=0;c<input.length;c++){var cp=input[c]?input[c].slice():new Float32Array(128);chans.push(cp);b.push(cp.buffer);}" +
-          "this.port.postMessage(chans,b);}" +
+          "this.port.postMessage({f:currentFrame,c:chans},b);}" +
         "return true;}}" +
     "registerProcessor('synthi-pcm-capture',PcmCapture);";
   var pcmWorkletUrl = null;
@@ -124,7 +128,13 @@
 
     var mediaRecorder = null, chunks = [], countdown = null, timeout = null, msDest = null, tapNode = null, arming = false;
     var lastBlob = null, lastUrl = null, lastTs = 0, lastPatch = null;
-    var workletNode = null, silentGain = null, pcmBuffers = [], pcmRate = 44100, recToken = 0;
+    var workletNode = null, silentGain = null, pcmBuffers = [], pcmRate = 44100, recToken = 0, pcmOwner = 0;
+    // Exact-window trimming. A synced take deliberately rolls BEFORE the
+    // downbeat so the first transient can't be clipped, which also means the
+    // raw capture is too long at both ends and would not loop. syncAt is the
+    // host's musical zero on the audio clock, pcmFirstFrame the absolute frame
+    // of the first captured block; together they place the cut exactly.
+    var syncAt = -1, pcmFirstFrame = -1, pcmStopFrame = 0;
 
     function supportedMime() {
       var c = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus"];
@@ -147,12 +157,21 @@
       if (countdown) { clearInterval(countdown); countdown = null; }
       if (timeout) { clearTimeout(timeout); timeout = null; }
     }
-    function cleanupTap() {
-      try { if (tapNode && msDest) tapNode.disconnect(msDest); } catch (e) {}
-      try { if (tapNode && workletNode) tapNode.disconnect(workletNode); } catch (e) {}
-      try { if (workletNode) { workletNode.port.onmessage = null; workletNode.disconnect(); } } catch (e) {}
-      try { if (silentGain) silentGain.disconnect(); } catch (e) {}
+    /* delayMs holds the PCM tap open a little past the end of the take. The
+       exact window ends at the last requested sample, and tearing the worklet
+       down on that same tick loses the final blocks to message latency — the
+       WAV then comes up a few ms short of a whole loop. The node refs are
+       snapshotted so a take started during the wait is never disconnected. */
+    function cleanupTap(delayMs) {
+      var tn = tapNode, md = msDest, wn = workletNode, sg = silentGain;
       msDest = null; tapNode = null; workletNode = null; silentGain = null;
+      function drop() {
+        try { if (tn && md) tn.disconnect(md); } catch (e) {}
+        try { if (tn && wn) tn.disconnect(wn); } catch (e) {}
+        try { if (wn) { wn.port.onmessage = null; wn.disconnect(); } } catch (e) {}
+        try { if (sg) sg.disconnect(); } catch (e) {}
+      }
+      if (delayMs > 0) setTimeout(drop, delayMs); else drop();
     }
 
     async function start() {
@@ -160,15 +179,23 @@
       var ctx = cfg.getContext && cfg.getContext();
       tapNode = cfg.getTap && cfg.getTap();
       if (!ctx || !tapNode) return;
-      var myToken = ++recToken;
+      var myToken = ++recToken, myPcm = ++pcmOwner;
       pcmBuffers = []; pcmRate = ctx.sampleRate || 44100;
+      syncAt = -1; pcmFirstFrame = -1; pcmStopFrame = 0;
       // ── WAV master via AudioWorklet (off main thread); best-effort, WebM below is the fallback ──
       try {
         await ensureWorklet(ctx);
         if (recToken !== myToken || !tapNode) return;   // stopped/restarted while the module loaded
         workletNode = new AudioWorkletNode(ctx, "synthi-pcm-capture");
         workletNode.port.onmessage = function (e) {
-          var chans = e.data, c;
+          if (pcmOwner !== myPcm) return;     // a newer take owns pcmBuffers now
+          // Hard ceiling. The tap is torn down a little after the end of the
+          // take, and if that teardown is ever missed or delayed the buffer
+          // would grow for as long as the page lives. Frames past the ceiling
+          // are simply dropped, so memory is bounded by the take itself.
+          if (pcmStopFrame > 0 && e.data.f > pcmStopFrame) return;
+          var chans = e.data.c, c;
+          if (pcmFirstFrame < 0) pcmFirstFrame = e.data.f;
           if (!pcmBuffers.length) for (c = 0; c < chans.length; c++) pcmBuffers.push([]);
           for (c = 0; c < chans.length && c < pcmBuffers.length; c++) pcmBuffers[c].push(chans[c]);
         };
@@ -195,7 +222,7 @@
         lastBlob = new Blob(chunks, { type: type });
         lastTs = Date.now();
         try { lastPatch = cfg.getPatch ? cfg.getPatch() : null; } catch (e) { lastPatch = null; }
-        cleanupTap();
+        cleanupTap(150);   // keep the PCM tap open briefly — see cleanupTap
         setRecording(false);
         if (lastUrl) URL.revokeObjectURL(lastUrl);
         lastUrl = URL.createObjectURL(lastBlob);
@@ -207,20 +234,34 @@
       if (cfg.syncStart) {
         arming = true;
         btn.textContent = "◌ ARM"; btn.classList.add("rec"); timeEl.textContent = "…";
-        try { await cfg.syncStart(); } catch (e) {}
+        var at = null;
+        try { at = await cfg.syncStart(); } catch (e) {}
         arming = false;
-        if (recToken !== myToken) { cleanupTap(); setRecording(false); return; }
-        pcmBuffers = [];                       // drop the pre-roll from the WAV master
+        if (recToken !== myToken) { cleanupTap(0); setRecording(false); return; }
+        /* The capture deliberately keeps everything from the moment the tap was
+           connected. An earlier version cleared it here to drop the arming
+           pre-roll, which tied the clip's head to whenever this callback
+           happened to run — tens of ms of jitter. The cut is made on absolute
+           frame numbers instead, so the pre-roll is free and harmless. */
+        if (typeof at === "number" && isFinite(at)) syncAt = at;
       }
       var limit = maxSecNow();
-      var started = Date.now();
       mediaRecorder.start();
       setRecording(true);
+      // Anchor the end to the AUDIO clock, not the wall clock. Measuring from a
+      // Date.now() taken before start() folded the recorder's own start latency
+      // into the clip, and setTimeout alone drifts (and is throttled in a
+      // background tab), which made long takes overrun.
+      var zero = syncAt >= 0 ? syncAt : ctx.currentTime;
+      var stopAt = zero + limit;
+      // Capture a short tail past the end so the exact window is fully covered,
+      // and nothing at all beyond it.
+      pcmStopFrame = Math.round((stopAt + 0.25) * pcmRate);
       countdown = setInterval(function () {
-        var left = Math.max(0, limit - (Date.now() - started) / 1000);
+        var left = Math.max(0, stopAt - ctx.currentTime);
         timeEl.textContent = (left >= 10 ? Math.ceil(left) : Math.ceil(left * 10) / 10) + "s";
       }, 250);
-      timeout = setTimeout(stop, limit * 1000);
+      timeout = setTimeout(stop, Math.max(0, (stopAt - ctx.currentTime) * 1000));
     }
     function stop() {
       recToken++;                              // invalidates an in-flight ARM / worklet load
@@ -265,9 +306,28 @@
       }
       return new Blob([view], { type: "audio/wav" });
     }
+    /* The musical length of one take, when the host declares one. maxSec is the
+       capture window (it may run past the end on purpose); exactSec is what the
+       clip should actually be, and only that is trimmed to. */
+    function exactSecNow() {
+      var v = typeof cfg.exactSec === "function" ? cfg.exactSec() : cfg.exactSec;
+      v = +v;
+      return isFinite(v) && v > 0 ? v : 0;
+    }
     function buildWavBlob() {
       if (!pcmBuffers.length || !pcmBuffers[0] || !pcmBuffers[0].length) return null;
-      var chans = []; for (var c = 0; c < pcmBuffers.length; c++) chans.push(flatten(pcmBuffers[c]));
+      var chans = [], c; for (c = 0; c < pcmBuffers.length; c++) chans.push(flatten(pcmBuffers[c]));
+      // Cut the exact window: from the downbeat, for exactly the musical length.
+      // Without this the take carries the arming lead-in at the head and the
+      // capture tail at the end, and so does not loop.
+      var exact = exactSecNow();
+      if (syncAt >= 0 && pcmFirstFrame >= 0 && exact > 0) {
+        var from = Math.round(syncAt * pcmRate) - pcmFirstFrame;
+        if (from < 0) from = 0;
+        var to = from + Math.round(exact * pcmRate);
+        if (to > chans[0].length) to = chans[0].length;
+        if (to > from) for (c = 0; c < chans.length; c++) chans[c] = chans[c].subarray(from, to);
+      }
       return encodeWav(chans, pcmRate);
     }
     wavBtn.addEventListener("click", function () {

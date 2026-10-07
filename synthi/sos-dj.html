@@ -2257,14 +2257,32 @@ const sosRec=(window.SynthiRecord?SynthiRecord.mount({
          div:ARP_DIVS[arpDiv].id,bas:basArp,gate:arpGate},
     delay:{div:delayDiv,fb:delayFbAmt,pp:delayPP}}),
   engineVersion:'sos-dj-2026.09.3',
-  maxSec:()=>recSec()+.05,                          // +50ms so the last hit's tail survives
-  /* hold REC until the loop wraps to step 1 (or start the transport there) */
+  /* A clip has to be a whole number of loops to the sample, or it will not
+     loop. maxSec is only the capture window; exactSec is the musical length the
+     WAV master gets cut to, measured from the downbeat syncStart returns. The
+     take still rolls REC_LEAD before the beat so the first transient is never
+     clipped — that lead is trimmed out of the WAV, and is all that is left on
+     the WebM, which MediaRecorder gives no way to cut. */
+  maxSec:()=>recSec(),
+  exactSec:()=>recSec(),
+  /* hold REC until the loop wraps to step 1 (or start the transport there),
+     and hand back the downbeat's audio-clock time so the clip can be cut on it */
   syncStart:()=>new Promise(res=>{
-    if(!playing){if(chain){songPos=0;selectPat(songOrder()[0],true);}play();setTimeout(res,35);return;}
+    const REC_LEAD=.025;
+    if(!playing){
+      if(chain){songPos=0;selectPat(songOrder()[0],true);}
+      play();
+      /* play() seeds nextTime = now+.06, then scheduler() immediately consumes
+         every step inside its 100ms lookahead — so nextTime already points past
+         the downbeat. nextTime is the time of step curStep, so step 0 is this: */
+      const first=nextTime-curStep*stepDur();
+      setTimeout(()=>res(first),Math.max(0,(first-AC.currentTime-REC_LEAD)*1000));
+      return;
+    }
     let target=nextTime+((STEPS-curStep)%STEPS)*stepDur();
     // chained: each wrap advances the SONG, so wait for the one that lands on its first bar
     if(chain){const len=songOrder().length;target+=((len-1-songPos+len)%len)*STEPS*stepDur();}
-    setTimeout(res,Math.max(0,(target-AC.currentTime)*1000-25));   // 25ms lead-in, never clip the downbeat
+    setTimeout(()=>res(target),Math.max(0,(target-AC.currentTime-REC_LEAD)*1000));
   }),
   share:{
     filenamePrefix:'pixel-sos-dj',
