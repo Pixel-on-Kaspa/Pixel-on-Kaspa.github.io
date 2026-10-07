@@ -23,7 +23,12 @@ const DECIMALS = 100_000_000n; // KRC-20 uses 8 decimal places
 
 const KASPLEX_API = "https://api.kasplex.org/v1/krc20";
 const KRC721_API = "https://mainnet.krc721.stream/api/v1/krc721/mainnet";
-const IPFS_GW = ["https://ipfs.io/ipfs/", "https://dweb.link/ipfs/", "https://cloudflare-ipfs.com/ipfs/"];
+// Pinata first — see the note in pay-rewards.ts. ipfs.io returns a 200 with a
+// text notice instead of the file, and cloudflare-ipfs.com is gone from DNS.
+const IPFS_GW = [
+  "https://fuchsia-genuine-stingray-776.mypinata.cloud/ipfs/",
+  "https://dweb.link/ipfs/",
+];
 
 // ─── REWARDS CONFIG (same as pay-rewards.ts) ─────────────────────────────────
 

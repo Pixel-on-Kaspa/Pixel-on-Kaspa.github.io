@@ -216,8 +216,8 @@ Grid/card layout for browsing PIXELONKAS and SYKORA NFT collections.
 - Filters: all/unpaid/paid, all/PIXELONKAS/SYKORA
 - Async metadata loading from krc721.stream API
 - Lightbox with owner info, mint/trade links
-- Concurrent IPFS gateway fallback (3 gateways: dweb.link, ipfs.io, cloudflare-ipfs.com)
-- IPFS → HTTP URL conversion (`ipfs://CID` → `https://ipfs.io/ipfs/CID`)
+- Concurrent IPFS gateway fallback (2 gateways: our dedicated Pinata gateway, then dweb.link)
+- IPFS → HTTP URL conversion (`ipfs://CID` → `https://fuchsia-genuine-stingray-776.mypinata.cloud/ipfs/CID`)
 
 **API endpoints used:**
 - `https://mainnet.krc721.stream/api/v1/krc721/mainnet/nfts/{tick}`
@@ -632,7 +632,7 @@ A search for `TODO`, `FIXME`, `BUG`, `HACK` comments found none in the primary c
 
 1. **API stability:** Reliance on `mainnet.krc721.stream` for NFT metadata. Single-point failure if API goes down.
 
-2. **IPFS gateway fallback:** Uses 3 gateways (dweb.link, ipfs.io, cloudflare-ipfs.com). If all fail simultaneously, images won't load.
+2. **IPFS gateway fallback:** Down to 2 gateways — our dedicated Pinata gateway, then dweb.link. ipfs.io and cloudflare-ipfs.com were dropped on 2026-10-05: ipfs.io now answers path requests with HTTP 200 and a plain-text "switching to a service worker gateway" notice instead of the file, and cloudflare-ipfs.com no longer resolves in DNS. dweb.link rate-limits to 429 under load, so in practice the collection art now depends on the paid Pinata account staying alive.
 
 3. **X API rate limiting:** Posting to 3 profiles without rate-limit handling. Could fail if multiple /post commands run in quick succession.
 

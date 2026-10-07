@@ -415,13 +415,15 @@
     "https://krc721-indexer-2.kaspa.com/api/v1/krc721/mainnet"
   ];
 
+  // Our own Pinata gateway first — it was the last resort until 2026-10-05,
+  // when it became the only one still serving these CIDs. ipfs.io answers a
+  // path request with HTTP 200 and a plain-text "switching to a service worker
+  // gateway" notice instead of the file, and cloudflare-ipfs.com no longer
+  // resolves in DNS. dweb.link stays as a fallback: it rate-limits to 429 under
+  // load but recovers.
   const IPFS_GATEWAYS = [
-    "https://dweb.link/ipfs/",
-    "https://ipfs.io/ipfs/",
-    "https://cloudflare-ipfs.com/ipfs/",
-    // Our own Pinata gateway — last resort, so it only serves traffic the
-    // public gateways dropped (they rate-limit and return 429/timeouts).
     "https://fuchsia-genuine-stingray-776.mypinata.cloud/ipfs/",
+    "https://dweb.link/ipfs/",
   ];
 
   // Per-token metadata: kaspa.com cache first (fast, always up), IPFS gateways as fallback.

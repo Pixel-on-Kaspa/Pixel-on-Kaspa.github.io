@@ -892,10 +892,14 @@
   const KASPA_API  = "https://api.kaspa.com/api";
   // kaspa.com KRC-721 cache — optimized (CDN) cover images. CORS: *
   const CACHE_BASE = "https://krc721-cache.kaspa.com/krc721/mainnet";
+  // Our own Pinata gateway goes first — as of 2026-10-05 it is the only one
+  // still serving these CIDs. ipfs.io answers a path request with HTTP 200 and
+  // a plain-text "switching to a service worker gateway" notice instead of the
+  // file, and cloudflare-ipfs.com no longer resolves in DNS. dweb.link stays as
+  // a fallback: it rate-limits to 429 under load but recovers.
   const IPFS_GATEWAYS = [
+    "https://fuchsia-genuine-stingray-776.mypinata.cloud/ipfs/",
     "https://dweb.link/ipfs/",
-    "https://ipfs.io/ipfs/",
-    "https://cloudflare-ipfs.com/ipfs/",
   ];
 
   const COLLECTIONS = {
@@ -1278,7 +1282,13 @@
   const wrap   = document.getElementById("heroSlideshow");
   if(!wrap) return;
   const heroH1 = document.querySelector(".heroContent h1");
-  const GW     = "https://dweb.link/ipfs/";
+  // Same gateway order as the cover loader above. This used to be a single
+  // dweb.link constant, which left every NFT hero slide blank once dweb.link
+  // started answering 429.
+  const GWS    = [
+    "https://fuchsia-genuine-stingray-776.mypinata.cloud/ipfs/",
+    "https://dweb.link/ipfs/",
+  ];
   const PX_BURI = "bafybeih2phpjzxfrszsscpmxdr44kliaddto3sicsdh44kgx7b3f43fdvm";
   const SY_BURI = "bafybeifema4upmzu7c4iipvxdagctirxf46g3htmsin6l66zm77dibfhaq";
 
@@ -1413,15 +1423,19 @@
 
   // ── Async: resolve NFT image URLs and set srcs ──
   async function getNftImageUrl(buri, id){
-    for(const path of [`${buri}/${id}.json`, `${buri}/${id}`]){
-      try{
-        const r = await fetch(GW + path, { cache:"no-store" });
-        if(!r.ok) continue;
-        const meta = await r.json();
-        const raw = meta?.image || meta?.image_url || meta?.properties?.image;
-        if(!raw) continue;
-        return raw.startsWith("ipfs://") ? GW + raw.slice(7) : raw;
-      }catch(e){}
+    for(const gw of GWS){
+      for(const path of [`${buri}/${id}.json`, `${buri}/${id}`]){
+        try{
+          const r = await fetch(gw + path, { cache:"no-store" });
+          if(!r.ok) continue;
+          // A gateway that has stopped serving files can still answer 200 with
+          // an explanatory text body, so parsing is what decides, not the status.
+          const meta = await r.json();
+          const raw = meta?.image || meta?.image_url || meta?.properties?.image;
+          if(!raw) continue;
+          return raw.startsWith("ipfs://") ? gw + raw.slice(7) : raw;
+        }catch(e){}
+      }
     }
     return null;
   }

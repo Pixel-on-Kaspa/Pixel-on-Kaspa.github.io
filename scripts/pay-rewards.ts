@@ -45,12 +45,16 @@ const API_BASES = [
 const META_CACHE = "https://krc721-cache.kaspa.com/krc721/mainnet/metadata";
 /** Kasplex indexes KRC-20 operations — the record of what was actually paid. */
 const KASPLEX_API = process.env.KASPLEX_API ?? "https://api.kasplex.org/v1/krc20";
+/** Our own Pinata gateway first — as of 2026-10-05 the only one still serving
+ *  these CIDs. ipfs.io answers a path request with HTTP 200 and a plain-text
+ *  "switching to a service worker gateway" notice instead of the file, which a
+ *  status check alone would read as success; cloudflare-ipfs.com no longer
+ *  resolves in DNS. dweb.link stays as a fallback — it 429s under load but
+ *  recovers. Reward lookups fail closed on unreadable metadata, so a dead
+ *  gateway at the head of this list aborts a payout run. */
 const IPFS_GW = [
-  "https://ipfs.io/ipfs/",
-  "https://dweb.link/ipfs/",
-  "https://cloudflare-ipfs.com/ipfs/",
-  // Our own Pinata gateway — last resort, for what the public ones drop.
   "https://fuchsia-genuine-stingray-776.mypinata.cloud/ipfs/",
+  "https://dweb.link/ipfs/",
 ];
 const CONCURRENCY = 5;
 const NETWORK = "mainnet";

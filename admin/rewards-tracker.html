@@ -342,12 +342,13 @@
     "https://krc721-indexer.kaspa.com/api/v1/krc721/mainnet",
     "https://krc721-indexer-2.kaspa.com/api/v1/krc721/mainnet"
   ];
+  // Our own Pinata gateway first — as of 2026-10-05 the only one still serving
+  // these CIDs. ipfs.io answers path requests with HTTP 200 and a plain-text
+  // notice instead of the file; cloudflare-ipfs.com no longer resolves in DNS.
+  // dweb.link stays as a fallback: it 429s under load but recovers.
   const IPFS_GATEWAYS = [
-    "https://dweb.link/ipfs/",
-    "https://ipfs.io/ipfs/",
-    "https://cloudflare-ipfs.com/ipfs/",
-    // Our own Pinata gateway — last resort, for what the public ones drop.
     "https://fuchsia-genuine-stingray-776.mypinata.cloud/ipfs/",
+    "https://dweb.link/ipfs/",
   ];
   // kaspa.com's metadata cache. The public IPFS gateways rate-limit a run of
   // ~100 tokens into failing, which left every Color/Rarity (and so every

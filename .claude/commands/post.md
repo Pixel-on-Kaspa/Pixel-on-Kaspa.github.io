@@ -232,7 +232,11 @@ Pick random entry → note `tokenId`.
 ```
 GET https://mainnet.krc721.stream/api/v1/krc721/mainnet/token/{TICK}/{tokenId}
 ```
-Extract image URL from metadata. If `ipfs://` → convert to `https://ipfs.io/ipfs/{CID}/{path}`.
+Extract image URL from metadata. If `ipfs://` → convert to
+`https://fuchsia-genuine-stingray-776.mypinata.cloud/ipfs/{CID}/{path}` (our dedicated
+Pinata gateway), falling back to `https://dweb.link/ipfs/{CID}/{path}`. Do **not** use
+`ipfs.io` — since 2026-10-05 it answers path requests with HTTP 200 and a plain-text
+notice instead of the image, so the download "succeeds" and X gets a text file.
 
 Download to `/tmp/{tick}_{tokenId}.png`.
 
