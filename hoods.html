@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>GhostDAG Hoods • Pixel on Kaspa</title>
+  <meta name="description" content="Masks born of darkness, and of each other. 1000 generative masks in 80 bloodlines, minting on Robinhood Chain."/>
+  <meta property="og:title" content="GhostDAG Hoods"/>
+  <meta property="og:description" content="Masks born of darkness, and of each other. 1000 masks in 80 bloodlines on Robinhood Chain."/>
+  <meta property="og:image" content="https://pixel-on-kaspa.fyi/assets/img/hoods/banner.jpg"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <link rel="icon" href="assets/img/hoods/logo.jpg"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"/>
+  <style>
+    /* One dark world: every mask is drawn on black. */
+    :root{
+      --ground:#050506; --panel:#0c0c0e; --line:rgba(255,255,255,.09);
+      --ink:#ebe8e2; --mute:#8f8b84; --faint:#5c5954;
+      --bone:#dcd5c8; --copper:#e07836;
+      --ice:#9fe9ff; --blood:#ff3b2a; --night:#7f98ff; --boneC:#f3ead6; --copperC:#e07836; --iris:#e2b8ff; --primal:#b8ff2a;
+      --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
+      --sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+      --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+      color-scheme:dark;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--ground);color:var(--ink);font:17px/1.6 var(--sans)}
+    a{color:inherit}
+    img{max-width:100%;display:block}
+
+    /* site topbar, same as the labs */
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+      background:rgba(5,5,6,.96);border-bottom:1px solid var(--line);padding:10px clamp(16px,3vw,24px);
+      position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+    .brand{display:flex;align-items:baseline;gap:10px;letter-spacing:.14em;text-transform:uppercase;font:900 14px/1 system-ui,sans-serif;text-decoration:none;white-space:nowrap}
+    .brand small{color:var(--mute);font-weight:600;letter-spacing:.06em;text-transform:none;font-size:11px}
+    .nav{display:flex;gap:6px;flex-wrap:wrap}
+    .btn{display:inline-flex;align-items:center;padding:6px 12px;border-radius:4px;border:1px solid var(--line);color:var(--mute);
+      font:700 12px/1 system-ui,sans-serif;letter-spacing:.04em;text-decoration:none}
+    .btn:hover{color:var(--ink);border-color:rgba(255,255,255,.25)}
+
+    .wrap{max-width:1180px;margin:0 auto;padding-inline:clamp(16px,4vw,40px)}
+    section{padding-block:clamp(48px,8vw,96px)}
+    .eyebrow{font:500 12px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+    h1,h2{font-family:var(--serif);font-weight:400;letter-spacing:-.01em;text-wrap:balance}
+    h2{font-size:clamp(34px,5vw,54px);line-height:1.05}
+    .lede{font:italic 400 clamp(26px,3.6vw,40px)/1.2 var(--serif);color:var(--bone);max-width:24ch}
+
+    /* hero */
+    .hero{position:relative}
+    .hero img{width:100%;aspect-ratio:4/1;object-fit:cover;min-height:220px}
+    .hero-text{display:grid;gap:18px;padding-block:28px 8px}
+    .hero h1{font-size:clamp(52px,10vw,124px);line-height:.92}
+    .hero h1 span{display:block;font:500 clamp(13px,1.6vw,16px)/1 var(--mono);letter-spacing:.42em;color:var(--mute);margin-bottom:10px;text-transform:uppercase}
+    .facts{display:flex;flex-wrap:wrap;gap:8px 22px;font:400 13px/1.4 var(--mono);color:var(--mute)}
+    .facts b{color:var(--ink);font-weight:500}
+    .cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:8px}
+    .mint{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border-radius:3px;background:var(--bone);color:#0a0a0a;
+      font:600 15px/1 var(--sans);text-decoration:none;letter-spacing:.02em}
+    .mint:hover{background:#fff}
+    .mint[aria-disabled="true"]{background:transparent;color:var(--bone);border:1px solid var(--bone);cursor:default}
+    .cta small{font:400 12px var(--mono);color:var(--faint)}
+
+    /* story */
+    .story{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:clamp(28px,5vw,72px);align-items:start}
+    .story .prose{display:grid;gap:18px;max-width:62ch;color:#cfcbc4}
+    .story .prose p:last-child{color:var(--bone)}
+
+    /* orders & rites */
+    .head{display:grid;gap:12px;margin-bottom:28px}
+    .head p{color:var(--mute);max-width:60ch}
+    .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px}
+    .card{display:grid;gap:10px}
+    .card img{aspect-ratio:1;object-fit:cover;width:100%}
+    .card h3{font:400 26px/1 var(--serif);display:flex;align-items:baseline;gap:10px}
+    .card h3 i{width:9px;height:9px;border-radius:50%;background:var(--c,var(--bone));display:inline-block;transform:translateY(-3px)}
+    .card p{font-size:15px;color:#bdb8b0}
+    .card .meta{font:400 12px var(--mono);color:var(--faint)}
+
+    /* teaser grid */
+    .grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+    .grid figure{position:relative}
+    .grid img{aspect-ratio:1;object-fit:cover;width:100%}
+    .grid figcaption{position:absolute;left:6px;bottom:5px;font:400 11px var(--mono);color:rgba(255,255,255,.75);text-shadow:0 0 4px #000}
+    @media (max-width:900px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}.story{grid-template-columns:1fr}}
+    @media (max-width:520px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+    /* reveal & provenance */
+    .reveal{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:clamp(24px,4vw,56px);align-items:center}
+    .reveal p{color:#c4bfb7;max-width:60ch}
+    .hash{font:400 12px/1.5 var(--mono);color:var(--mute);word-break:break-all;border-left:2px solid var(--line);padding-left:12px;margin-top:14px}
+    @media (max-width:760px){.reveal{grid-template-columns:1fr}}
+
+    footer{border-top:1px solid var(--line);padding-block:28px 40px;color:var(--faint);font:400 13px var(--mono)}
+    footer a{color:var(--mute)}
+    .mint:focus-visible,.btn:focus-visible,footer a:focus-visible{outline:2px solid var(--copper);outline-offset:3px}
+  </style>
+  <script defer src="https://cloud.umami.is/script.js" data-website-id="6ee0e9a9-7066-4115-b91d-5667d8042abe"></script>
+</head>
+<body>
+
+  <nav class="topbar">
+    <a class="brand" href="index.html">PIXEL ON KASPA <small>GhostDAG Hoods</small></a>
+    <div class="nav">
+      <a class="btn" href="index.html">Home</a>
+      <a class="btn" href="glsl-lab.html">GLSL Lab</a>
+      <a class="btn" href="gallery.html">Gallery</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <img src="assets/img/hoods/banner.jpg" alt="Hood #485, Order of Bone, rendered wide"/>
+    <div class="wrap hero-text">
+      <h1><span>GhostDAG</span>Hoods</h1>
+      <p class="lede">Masks born of darkness, and of each other.</p>
+      <div class="facts">
+        <span><b>1000</b> masks</span><span><b>80</b> bloodlines</span><span><b>6</b> orders</span>
+        <span>Robinhood Chain</span><span><b>0.003 ETH</b></span><span>max <b>25</b> per wallet</span>
+      </div>
+      <div class="cta">
+        <a class="mint" id="mint" href="#" aria-disabled="true">Mint opens soon</a>
+        <small>Public mint on OpenSea · revealed after mint</small>
+      </div>
+    </div>
+  </header>
+
+  <section class="wrap story" aria-labelledby="story-h">
+    <div><span class="eyebrow">The story</span><h2 id="story-h" style="margin-top:14px">Light, mirrored around a single axis.</h2></div>
+    <div class="prose">
+      <p>Each hood is only light, mirrored around a single axis. Where two touch, they burn a dark outline and a colour neither of them had. That is how new ones come to be.</p>
+      <p>The first seventy-one surfaced in three waves: the Founders. Their descendants carry their parents' features. The bloodlines branch, and sometimes grow back together: when two branches meet, a mask is born with two ancestors. That is why they carry the name GhostDAG, after the network where one block can have many parents.</p>
+      <p>In time, some descendants gave up colour and founded the Orders. Every meeting has its rite. Only rarely does the axis break. That is called the Schism.</p>
+      <p>1000 masks. 80 bloodlines. Numbered by lineage: each begins with its founder, or with the empty place a founder left.</p>
+    </div>
+  </section>
+
+  <section class="wrap" aria-labelledby="orders-h">
+    <div class="head"><span class="eyebrow">Orders</span><h2 id="orders-h">Six orders gave up colour. The first never did.</h2>
+      <p>Every mask belongs to one order. The Primal kept the first colours; Crossblood carry an order layered over primal colour.</p></div>
+    <div class="cards" id="orders"></div>
+  </section>
+
+  <section class="wrap" aria-labelledby="rites-h">
+    <div class="head"><span class="eyebrow">Rites</span><h2 id="rites-h">Every meeting has its rite.</h2>
+      <p>How the masks of a piece meet decides its form. Two masks make a Twin, three make a Triad.</p></div>
+    <div class="cards" id="rites"></div>
+  </section>
+
+  <section class="wrap" aria-labelledby="faces-h">
+    <div class="head"><span class="eyebrow">From the bloodlines</span><h2 id="faces-h">Some of the thousand.</h2></div>
+    <div class="grid" id="faces"></div>
+  </section>
+
+  <section class="wrap reveal" aria-labelledby="reveal-h">
+    <img src="assets/img/hoods/unrevealed.jpg" alt="The unrevealed GhostDAG Hoods placeholder"/>
+    <div>
+      <span class="eyebrow">Mint &amp; reveal</span>
+      <h2 id="reveal-h" style="margin-block:14px 16px">You mint in the dark.</h2>
+      <p>Every token stays hidden until the mint ends. Which mask lands on which token was shuffled before the drop, so the founders are not waiting at the front of the line. The order is fixed by the provenance hash below: the hash of all 1000 images in lineage order, published before mint.</p>
+      <p class="hash">provenance sha256<br/>83c45066026573149ad88ee9799ae9de9d72425d50b22a97029ea433d321fc3a</p>
+    </div>
+  </section>
+
+  <section class="wrap" aria-labelledby="made-h" style="padding-top:0">
+    <div class="head"><span class="eyebrow">How they were made</span><h2 id="made-h">Grown in the GLSL Lab, chosen by eye.</h2>
+      <p>Each mask is a raymarched fractal from the <a href="glsl-lab.html">Pixel on Kaspa GLSL Lab</a>, layered two or three times with a difference blend. Around 6,800 candidates were born across eleven generations. Each generation was bred from the masks kept in the one before, and every one of the thousand was chosen by eye.</p></div>
+  </section>
+
+  <footer class="wrap">
+    GhostDAG Hoods · Pixel on Kaspa · <a href="https://x.com/PixelonKas" rel="noreferrer">@PixelonKas</a>
+  </footer>
+
+  <script>
+    // Set once the OpenSea drop exists; until then the button reads "Mint opens soon".
+    const MINT_URL = "";
+
+    const ORDERS = [
+      ["Ice", "--ice", 406, "Ice cools.", 331],
+      ["Blood", "--blood", 849, "Blood remembers.", 66],
+      ["Night", "--night", 15, "Night keeps silent.", 86],
+      ["Bone", "--boneC", 485, "Bone holds the shape.", 141],
+      ["Copper", "--copperC", 730, "Copper burns slowly.", 49],
+      ["Iris", "--iris", 796, "Iris is the rarest.", 12],
+      ["Primal", "--primal", 922, "The first colours, never given up.", 281],
+      ["Crossblood", "--copper", 955, "Primal colour crossed with an order.", 34]
+    ];
+    const RITES = [
+      ["Encounter", 819, "Two faces merge.", 449],
+      ["Birth", 226, "A mother carries her child within.", 128],
+      ["Shadow", 173, "A reflection beneath the surface.", 231],
+      ["Crowning", 263, "A smaller mask set above a greater one.", 52],
+      ["Echo", 995, "One face repeated until it fades.", 126],
+      ["Schism", 42, "The axis breaks.", 13],
+      ["Mirror", null, "One mask only. It stays hidden until the reveal.", 1]
+    ];
+    const FACES = [458, 191, 564, 306, 103, 588, 420, 644, 44, 574, 618, 154, 732, 854, 699, 803, 33, 869, 751, 883, 926, 84, 9, 261];
+    const src = n => n ? `assets/img/hoods/${n}.jpg` : "assets/img/hoods/unrevealed.jpg";
+    const label = name => ["Primal", "Crossblood"].includes(name) ? name : "Order of " + name;
+
+    document.getElementById("orders").innerHTML = ORDERS.map(([name, c, n, line, count]) => `
+      <article class="card" style="--c:var(${c})">
+        <img src="${src(n)}" alt="Hood #${n}, ${label(name)}" loading="lazy"/>
+        <h3><i></i>${label(name)}</h3>
+        <p>${line}</p><span class="meta">${count} masks · Hood #${n}</span>
+      </article>`).join("");
+    document.getElementById("rites").innerHTML = RITES.map(([name, n, line, count]) => `
+      <article class="card">
+        <img src="${src(n)}" alt="${n ? "Hood #" + n + ", " + name + " rite" : "Hidden " + name + " mask"}" loading="lazy"/>
+        <h3>${name}</h3><p>${line}</p><span class="meta">${count} mask${count > 1 ? "s" : ""}${n ? " · Hood #" + n : ""}</span>
+      </article>`).join("");
+    document.getElementById("faces").innerHTML = FACES.map(n => `
+      <figure><img src="${src(n)}" alt="Hood #${n}" loading="lazy"/><figcaption>#${n}</figcaption></figure>`).join("");
+
+    if (MINT_URL) {
+      const m = document.getElementById("mint");
+      m.href = MINT_URL; m.textContent = "Mint on OpenSea →"; m.removeAttribute("aria-disabled");
+      m.target = "_blank"; m.rel = "noreferrer";
+    } else {
+      document.getElementById("mint").addEventListener("click", e => e.preventDefault());
+    }
+  </script>
+</body>
+</html>
