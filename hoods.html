@@ -60,7 +60,6 @@
     .mint{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border-radius:3px;background:var(--bone);color:#0a0a0a;
       font:600 15px/1 var(--sans);text-decoration:none;letter-spacing:.02em}
     .mint:hover{background:#fff}
-    .mint[aria-disabled="true"]{background:transparent;color:var(--bone);border:1px solid var(--bone);cursor:default}
     .cta small{font:400 12px var(--mono);color:var(--faint)}
 
     /* story */
@@ -117,11 +116,11 @@
       <p class="lede">Masks born of darkness, and of each other.</p>
       <div class="facts">
         <span><b>1000</b> masks</span><span><b>80</b> bloodlines</span><span><b>6</b> orders</span>
-        <span>Robinhood Chain</span><span><b>0.003 ETH</b></span><span>max <b>25</b> per wallet</span>
+        <span>Robinhood Chain</span><span>from <b>0.003 ETH</b></span>
       </div>
       <div class="cta">
-        <a class="mint" id="mint" href="#" aria-disabled="true">Mint opens soon</a>
-        <small>Public mint on OpenSea · revealed after mint</small>
+        <a class="mint" id="mint" href="https://opensea.io/collection/ghostdag-hoods" target="_blank" rel="noreferrer">View on OpenSea →</a>
+        <small>Every mask is visible before you buy · pick the one you want</small>
       </div>
     </div>
   </header>
@@ -154,12 +153,12 @@
   </section>
 
   <section class="wrap reveal" aria-labelledby="reveal-h">
-    <img src="assets/img/hoods/unrevealed.jpg" alt="The unrevealed GhostDAG Hoods placeholder"/>
+    <img src="assets/img/hoods/93.jpg" alt="Hood #93, the only Mirror rite in the collection"/>
     <div>
-      <span class="eyebrow">Mint &amp; reveal</span>
-      <h2 id="reveal-h" style="margin-block:14px 16px">You mint in the dark.</h2>
-      <p>Every token stays hidden until the mint ends. Which mask lands on which token was shuffled before the drop, so the founders are not waiting at the front of the line. The order is fixed by the provenance hash below: the hash of all 1000 images in lineage order, published before mint.</p>
-      <p class="hash">provenance sha256<br/>83c45066026573149ad88ee9799ae9de9d72425d50b22a97029ea433d321fc3a</p>
+      <span class="eyebrow">How to collect</span>
+      <h2 id="reveal-h" style="margin-block:14px 16px">Choose your mask.</h2>
+      <p>Nothing is hidden. All 1000 masks are listed on OpenSea, each one visible before you buy, so you can pick the face, the order or the whole bloodline you want. Token numbers follow the lineage: Hood #93 is token 93.</p>
+      <p>Most masks are 0.003 ETH. Founders, the Schism, the Order of Iris and the one Mirror are priced higher.</p>
     </div>
   </section>
 
@@ -173,8 +172,7 @@
   </footer>
 
   <script>
-    // Set once the OpenSea drop exists; until then the button reads "Mint opens soon".
-    const MINT_URL = "";
+    const ITEM = n => `https://opensea.io/item/robinhood/0x22eb7734e9bffa0a753ba8a1539945a5a7bb841b/${n}`;
 
     const ORDERS = [
       ["Ice", "--ice", 406, "Ice cools.", 331],
@@ -193,33 +191,26 @@
       ["Crowning", 263, "A smaller mask set above a greater one.", 52],
       ["Echo", 995, "One face repeated until it fades.", 126],
       ["Schism", 42, "The axis breaks.", 13],
-      ["Mirror", null, "One mask only. It stays hidden until the reveal.", 1]
+      ["Mirror", 93, "Folded twice. Only one mask carries it.", 1]
     ];
     const FACES = [458, 191, 564, 306, 103, 588, 420, 644, 44, 574, 618, 154, 732, 854, 699, 803, 33, 869, 751, 883, 926, 84, 9, 261];
-    const src = n => n ? `assets/img/hoods/${n}.jpg` : "assets/img/hoods/unrevealed.jpg";
+    const src = n => `assets/img/hoods/${n}.jpg`;
     const label = name => ["Primal", "Crossblood"].includes(name) ? name : "Order of " + name;
 
     document.getElementById("orders").innerHTML = ORDERS.map(([name, c, n, line, count]) => `
       <article class="card" style="--c:var(${c})">
-        <img src="${src(n)}" alt="Hood #${n}, ${label(name)}" loading="lazy"/>
+        <a href="${ITEM(n)}" target="_blank" rel="noreferrer"><img src="${src(n)}" alt="Hood #${n}, ${label(name)}" loading="lazy"/></a>
         <h3><i></i>${label(name)}</h3>
         <p>${line}</p><span class="meta">${count} masks · Hood #${n}</span>
       </article>`).join("");
     document.getElementById("rites").innerHTML = RITES.map(([name, n, line, count]) => `
       <article class="card">
-        <img src="${src(n)}" alt="${n ? "Hood #" + n + ", " + name + " rite" : "Hidden " + name + " mask"}" loading="lazy"/>
-        <h3>${name}</h3><p>${line}</p><span class="meta">${count} mask${count > 1 ? "s" : ""}${n ? " · Hood #" + n : ""}</span>
+        <a href="${ITEM(n)}" target="_blank" rel="noreferrer"><img src="${src(n)}" alt="Hood #${n}, ${name} rite" loading="lazy"/></a>
+        <h3>${name}</h3><p>${line}</p><span class="meta">${count} mask${count > 1 ? "s" : ""} · Hood #${n}</span>
       </article>`).join("");
     document.getElementById("faces").innerHTML = FACES.map(n => `
-      <figure><img src="${src(n)}" alt="Hood #${n}" loading="lazy"/><figcaption>#${n}</figcaption></figure>`).join("");
+      <figure><a href="${ITEM(n)}" target="_blank" rel="noreferrer"><img src="${src(n)}" alt="Hood #${n}" loading="lazy"/></a><figcaption>#${n}</figcaption></figure>`).join("");
 
-    if (MINT_URL) {
-      const m = document.getElementById("mint");
-      m.href = MINT_URL; m.textContent = "Mint on OpenSea →"; m.removeAttribute("aria-disabled");
-      m.target = "_blank"; m.rel = "noreferrer";
-    } else {
-      document.getElementById("mint").addEventListener("click", e => e.preventDefault());
-    }
   </script>
 </body>
 </html>
