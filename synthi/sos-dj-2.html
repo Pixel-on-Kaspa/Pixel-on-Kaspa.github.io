@@ -37,6 +37,9 @@ body{
 .brand .v2{font-size:.62em;vertical-align:super;margin-left:.12em;opacity:.75}
     .brand .d{color:var(--amber)}
 .nav{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;justify-content:flex-end;min-width:0}
+.nav .tbtn,.nav .srec-btn{white-space:nowrap}
+#btnLong{padding:6px 8px}
+@media (max-width:400px){.topbar{gap:4px}.brand{font-size:15px;letter-spacing:.06em}.nav{gap:4px}.nav .btn{padding:6px 6px}#btnLong{padding:6px 6px}}
 .btn{display:inline-flex;align-items:center;gap:5px;padding:6px 9px;border-radius:9px;
   font-size:11px;font-weight:700;cursor:pointer;text-decoration:none;line-height:1;
   border:1px solid var(--border2);background:rgba(255,255,255,.05);color:var(--text);
@@ -313,6 +316,16 @@ body{
         <button class="tbtn" id="arpOct" title="Rozsah oktáv">OCT 1</button>
       </div>
       <div class="fxRow">
+        <span class="fxLab"></span>
+        <button class="tbtn" id="arpDbl" title="Druhý hlas — harmonie z téhož akordu">DBL</button>
+        <button class="tbtn" id="btnBasArp" title="Arpeggio pro basu — rozkládá basový tón na oktávy/kvinty">B·ARP</button>
+        <label class="fxSlide gtSlide"><span>GT</span><input id="arpGate" type="range" min="5" max="100" step="1" value="100" aria-label="Arp gate — délka každého tónu"><b id="arpGateVal">100</b></label>
+      </div>
+      <div class="fxRow">
+        <span class="fxLab"></span>
+        <label class="fxSlide gtSlide"><span>DÉLKA</span><input id="arpLen" type="range" min="1" max="16" step="1" value="4" aria-label="Arp délka — kolik kroků hraje jedna nakreslená nota"><b id="arpLenVal">4</b></label>
+      </div>
+      <div class="fxRow">
         <span class="fxLab">LFO 1</span>
         <button class="tbtn" id="lfo1Rate" title="Rychlost — synced k BPM, včetně triol">1/4</button>
         <button class="tbtn" id="lfo1Shape" title="Tvar vlny">∿ SINE</button>
@@ -325,12 +338,6 @@ body{
         <button class="tbtn" id="lfo2Shape" title="Tvar vlny">⊓ SQR</button>
         <button class="tbtn" id="lfo2Dest" title="Co LFO hýbe">PAN</button>
         <label class="fxSlide gtSlide"><span>HLBK</span><input id="lfo2Depth" type="range" min="0" max="100" value="0" aria-label="LFO 2 hloubka"><b id="lfo2DepthVal">0</b></label>
-      </div>
-      <div class="fxRow">
-        <span class="fxLab"></span>
-        <button class="tbtn" id="arpDbl" title="Druhý hlas — harmonie z téhož akordu">DBL</button>
-        <button class="tbtn" id="btnBasArp" title="Arpeggio pro basu — rozkládá basový tón na oktávy/kvinty">B·ARP</button>
-        <label class="fxSlide gtSlide"><span>GT</span><input id="arpGate" type="range" min="5" max="100" step="1" value="100" aria-label="Arp gate — délka každého tónu"><b id="arpGateVal">100</b></label>
       </div>
     </div>
   </section>
@@ -802,7 +809,7 @@ function applyStyle(idx){
     buildLfo(i);
   });
   swing=S.swing!=null?S.swing:50;
-  arpOn=!!S.arpOn;arpOct=S.arpOct||1;basArp=!!S.basArp;arpGate=S.arpGate!=null?S.arpGate:1;
+  arpOn=!!S.arpOn;arpOct=S.arpOct||1;basArp=!!S.basArp;arpGate=S.arpGate!=null?S.arpGate:1;arpLen=S.arpLen||4;
   const am=arpModeOf(S);arpChord=am.c;arpDir=am.d;arpDiv=arpDivOf(S.arpDiv);buildArpSeq();arpIdx=0;
   fltSlider.value=S.filter!=null?S.filter:50;
   setDelayTime();applyDelayMode();applyFilter();setLfoRates();wireLfos();
@@ -831,6 +838,7 @@ function updateFxLabels(){
   if(arpRateBtn)arpRateBtn.textContent=ARP_DIVS[arpDiv].n;
   if(btnSwing)btnSwing.textContent='SWG '+swing;
   if(arpGateBtn){arpGateBtn.value=Math.round(arpGate*100);arpGateVal.textContent=arpGateBtn.value;}
+  if(arpLenBtn){arpLenBtn.value=arpLen;arpLenVal.textContent=arpLen;}
   if(arpOctBtn)arpOctBtn.textContent='OCT '+arpOct;
   if(btnBasArp)btnBasArp.classList.toggle('on',basArp);
 }
@@ -1125,6 +1133,77 @@ function ampCurve(drive,bias){
   }
   return _normCurve(c,true);        // the bias leaves DC behind; take it out
 }
+/* one gain stage of the EL·GTR amp: tanh at gain k, the negative half topping
+   out at `neg` of the positive, which leaves the even harmonics a valve does.
+   Only ever rises — see ampCurve. Peak 1, DC removed; level is set at the voice. */
+function gtrStage(k,neg){
+  const n=4096,c=new Float32Array(n),t=Math.tanh(k);
+  for(let i=0;i<n;i++){
+    const x=i/(n-1)*2-1;
+    c[i]=x>=0?Math.tanh(k*x)/t:neg*Math.tanh(k*x/neg)/Math.tanh(k/neg);
+  }
+  const d=(c[n>>1]+c[(n>>1)-1])/2;for(let i=0;i<n;i++)c[i]-=d;
+  return c;
+}
+/* EL·GTR tones. CLEAN = neck pickup into a clean amp, CRUNCH = bridge into a
+   valve amp on the edge, HEAVY = bridge into two cascaded gain stages. */
+const GTR_TONES=[
+  {n:'HEAVY', chord:1,t60:8,  loopS:.15,beta:.13,pickup:.09,puHz:3200,puQ:2.8,inGain:1, tight:160,hump:5,k1:28,k2:2.4,bass:-2,mids:2,treb:5,out:.045},
+  {n:'CRUNCH',chord:1,t60:6,  loopS:.18,beta:.15,pickup:.1, puHz:3500,puQ:2.4,inGain:1, tight:110,hump:5,k1:7, k2:1.6,bass:-2,mids:6,treb:5,out:.046},
+  {n:'CLEAN', chord:0,t60:4.5,loopS:.12,beta:.18,pickup:.12,puHz:4500,puQ:2.4,inGain:.6,tight:90, hump:3,k1:1.3,k2:1, bass:-3,mids:5,treb:6,out:.3},
+];
+let GTR_TONE=0;
+/* one string: an extended Karplus-Strong. Pluck = a triangle displacement with
+   its apex at `beta` of the length (that is what puts the nulls in the spectrum a
+   real pick leaves), a little noise for the pick itself, dulled by `bright`.
+   Loop = one-zero lowpass (S) times the loss for a t60, plus a first-order
+   allpass for the fractional delay — at 48 kHz an integer delay leaves the
+   fifth of a power chord up to 8 cents out by the 12th fret, and a distorted
+   fifth that is out of tune beats like a chorus. Output = the pickup: the
+   string read at two points `pickup` apart, a comb that hollows out the
+   harmonics the way a bridge pickup does. Mixed into `out` from `off`. */
+function gtrString(out,off,f,t60,S,beta,bright,pickup,sr,gain){
+  const N=sr/f,L=Math.max(2,Math.floor(N-.5)),fr=N-.5-L,C=(1-fr)/(1+fr);
+  const dl=new Float32Array(L),ap=Math.max(1,Math.min(L-1,Math.round(beta*L)));
+  let lp=0,m=0;
+  for(let i=0;i<L;i++){
+    const tri=i<ap?i/ap:(L-i)/(L-ap);
+    lp+=(tri*.9+(Math.random()*2-1)*.25-lp)*bright;dl[i]=lp;m+=lp;
+  }
+  m/=L;for(let i=0;i<L;i++)dl[i]-=m;
+  const rho=Math.pow(.001,1/(f*t60)),pk=Math.max(1,Math.round(pickup*N)),H=pk+1,hist=new Float32Array(H);
+  let idx=0,prev=0,apIn=0,apOut=0,hi=0;
+  for(let n=off;n<out.length;n++){
+    const y=dl[idx];
+    const lo=rho*((1-S)*y+S*prev);prev=y;
+    const a=C*lo+apIn-C*apOut;apIn=lo;apOut=a;
+    dl[idx]=a;idx=idx+1===L?0:idx+1;
+    hist[hi]=y;const o=y-hist[(hi+1)%H];hi=(hi+1)%H;
+    out[n]+=o*gain;
+  }
+}
+/* a closed 4×12 with a dynamic mic on it, as an impulse response: the cone's
+   low resonance, a dip in the low mids, the 2–3 kHz presence of the cone, a
+   notch and a cliff above 5 kHz, and two early reflections off the grille and
+   the floor that put the comb fine-structure in. Built once per context. */
+let _gtrIR=null;
+function gtrCabIR(){
+  if(_gtrIR&&_gtrIR.sampleRate===AC.sampleRate)return _gtrIR;
+  const sr=AC.sampleRate,n=Math.round(sr*.04),x=new Float32Array(n);
+  x[0]=1;x[Math.round(sr*.00035)]+=.32;x[Math.round(sr*.0011)]-=.18;x[Math.round(sr*.0023)]+=.08;
+  const bq=(type,f,q,g)=>{                               // RBJ biquad, run in place
+    const w=2*Math.PI*f/sr,cw=Math.cos(w),al=Math.sin(w)/(2*q),A=Math.pow(10,(g||0)/40);let b0,b1,b2,a0,a1,a2;
+    if(type==='lp'){b0=(1-cw)/2;b1=1-cw;b2=b0;a0=1+al;a1=-2*cw;a2=1-al;}
+    else if(type==='hp'){b0=(1+cw)/2;b1=-(1+cw);b2=b0;a0=1+al;a1=-2*cw;a2=1-al;}
+    else{b0=1+al*A;b1=-2*cw;b2=1-al*A;a0=1+al/A;a1=-2*cw;a2=1-al/A;}
+    let x1=0,x2=0,y1=0,y2=0;
+    for(let i=0;i<n;i++){const v=x[i],y=(b0*v+b1*x1+b2*x2-a1*y1-a2*y2)/a0;x2=x1;x1=v;y2=y1;y1=y;x[i]=y;}
+  };
+  bq('hp',80,.8);bq('pk',115,1.3,3);bq('pk',420,.9,-3);bq('pk',1500,1.2,2);bq('pk',2700,2.2,5);
+  bq('pk',4300,3,-9);bq('lp',5000,.75);bq('lp',5600,.6);bq('lp',7500,.5);
+  const b=AC.createBuffer(1,n,sr);b.getChannelData(0).set(x);
+  return _gtrIR=b;
+}
 function distCurve(amount){
   if(!(amount>0))return driveCurve(0);
   const n=2048,c=new Float32Array(n);
@@ -1196,9 +1275,9 @@ function gateSteps(id,from){for(let k=1;k<=STEPS;k++){if(patterns[id][(from+k)%S
    voice; moving the formants up is what makes it read as female rather than
    simply higher. */
 function voxVoice(dest,f,time,amp,dur,F,vibHz,vibCents){
-  const sus=dur!=null?Math.max(.18,dur):.5,end=sus+.18;
+  const sus=dur!=null?Math.max(.02,dur):.5,end=sus+(dur!=null?Math.min(.18,Math.max(.02,dur)):.18);
   const g=AC.createGain();
-  g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp,time+.06);      // breath takes a moment
+  g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp,time+(dur!=null?Math.min(.06,Math.max(.004,dur*.35)):.06));      // breath takes a moment
   g.gain.setValueAtTime(amp,time+sus);g.gain.exponentialRampToValueAtTime(.001,time+end);
   const vib=AC.createOscillator(),vg=AC.createGain();vib.type='sine';vib.frequency.value=vibHz;
   vg.gain.setValueAtTime(0,time);vg.gain.setValueAtTime(0,time+Math.min(.12,sus*.4));
@@ -1235,7 +1314,13 @@ function plucked(dur,natural,rel){
   return dur!=null?Math.max(.05,Math.min(natural,dur+Math.min(rel||.15,dur*.8))):natural;}
 function playMel(n,f,time,e,amp,dur){
   const dest=n.bus;
-  const hold=dur!=null?Math.max(.04,dur*.92):null;      // gate length: proportional, so ARP GATE actually bites
+  const hold=dur!=null?Math.max(.015,dur*.92):null;     // gate length: proportional, so ARP GATE actually bites
+  /* A fixed .16–.2 s release and a 50–75 ms attack swallowed the gate: at a 1/16
+     arp with GT 10 the note was over in 12 ms and then rang for another 200, so
+     the slider did nothing on half the engines. Release and attack now shrink
+     with the note when it is short — a long note keeps its own envelope. */
+  const relOf=r=>dur!=null?Math.min(r,Math.max(.02,dur)):r;
+  const attOf=a=>dur!=null?Math.min(a,Math.max(.004,dur*.35)):a;
   if(e===2){                                            // BELL — two inharmonic FM pairs + a mallet
     /* One 2-op pair at ratio 2.01 is a factory preset. A struck bell has at least
        two inharmonic partial GROUPS — which is exactly why its pitch is ambiguous
@@ -1269,7 +1354,7 @@ function playMel(n,f,time,e,amp,dur){
     const sus=hold!=null?hold:.55;
     /* the 1/√7 below matches an INCOHERENT sum; seven saws start in phase, so the
        attack arrives √7 times louder than intended. Trim it at the envelope. */
-    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.41,time+.012);g.gain.setValueAtTime(amp*.41,time+sus);g.gain.exponentialRampToValueAtTime(.001,time+sus+.18);
+    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.41,time+.012);g.gain.setValueAtTime(amp*.41,time+sus);g.gain.exponentialRampToValueAtTime(.001,time+sus+relOf(.18));
     const dets=[-18,-11,-5,0,5,11,18];
     const un=AC.createGain();un.gain.value=1/Math.sqrt(dets.length);un.connect(lp);   // 7-voice sum, level-matched
     dets.forEach(det=>{const o=AC.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(f,time);o.detune.value=det;o.connect(un);o.start(time);o.stop(time+sus+.2);});
@@ -1278,7 +1363,7 @@ function playMel(n,f,time,e,amp,dur){
   if(e===5){                                            // ORGAN — drawbar sines + Leslie chorus + percussive key click
     const g=AC.createGain();
     const sus=hold!=null?hold:.5;
-    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.5,time+.01);g.gain.setValueAtTime(amp*.5,time+sus);   // .82 was the loudest sustained voice in the box by 5.5 dBg.gain.exponentialRampToValueAtTime(.001,time+sus+.16);
+    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.5,time+.01);g.gain.setValueAtTime(amp*.5,time+sus);g.gain.exponentialRampToValueAtTime(.001,time+sus+relOf(.16));   // .82 was the loudest sustained voice in the box by 5.5 dB
     const lfo=AC.createOscillator(),lg=AC.createGain();lfo.type='sine';lfo.frequency.value=6.2;lg.gain.value=7;lfo.connect(lg);   // ±7 cent Leslie
     [[1,.6],[2,.36],[3,.22],[4,.14],[6,.09],[8,.05]].forEach(([h,a])=>{const o=AC.createOscillator(),og=AC.createGain();o.type='sine';o.frequency.setValueAtTime(f*h,time);lg.connect(o.detune);og.gain.value=a;o.connect(og);og.connect(g);o.start(time);o.stop(time+sus+.18);});
     lfo.start(time);lfo.stop(time+sus+.18);
@@ -1291,7 +1376,7 @@ function playMel(n,f,time,e,amp,dur){
        a bell resonance, a scoop into pitch, and above all BRASSINESS: the tone
        gets brighter as the note blooms, then settles. That envelope on the
        filter is the sound; the grit is only seasoning. */
-    const sus=hold!=null?hold:.42,end=sus+.2;
+    const sus=hold!=null?hold:.42,end=sus+relOf(.2);
     const g=AC.createGain(),ws=AC.createWaveShaper(),lp=AC.createBiquadFilter(),bell=AC.createBiquadFilter(),cab=AC.createBiquadFilter();
     ws.curve=driveCurve(.12);                            // a little rasp, not a fuzzbox
     lp.type='lowpass';lp.Q.value=2.2;
@@ -1300,7 +1385,7 @@ function playMel(n,f,time,e,amp,dur){
     lp.frequency.exponentialRampToValueAtTime(Math.min(f*4.5,4200),time+Math.min(.3,sus)); // …then settles back
     bell.type='peaking';bell.frequency.value=1200;bell.Q.value=1.1;bell.gain.value=5;      // the bell
     cab.type='lowpass';cab.frequency.value=5200;cab.Q.value=.7;
-    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.29,time+.05);        // lips take a moment
+    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.29,time+attOf(.05));        // lips take a moment
     g.gain.setValueAtTime(amp*.29,time+sus);g.gain.exponentialRampToValueAtTime(.001,time+end);
     const lfo=AC.createOscillator(),lg=AC.createGain();lfo.type='sine';lfo.frequency.value=5.1;
     lg.gain.setValueAtTime(0,time);lg.gain.setValueAtTime(0,time+Math.min(.16,sus*.45));
@@ -1427,9 +1512,9 @@ function playMel(n,f,time,e,amp,dur){
        the work — the MUSETTE pair (two reeds a dozen cents apart, whose beating is
        the whole sound of a cumbia or a valse) and the couplers stacked an octave
        either side, which is where the box gets its size. */
-    const sus=hold!=null?hold:.5,end=sus+.1;
+    const sus=hold!=null?hold:.5,end=sus+relOf(.1);
     const g=AC.createGain();
-    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.72,time+.032);   // the bellows take up
+    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.72,time+attOf(.032));   // the bellows take up
     g.gain.setValueAtTime(amp*.72,time+sus);g.gain.exponentialRampToValueAtTime(.001,time+end);
     const reed=AC.createBiquadFilter();reed.type='peaking';reed.frequency.value=620;reed.Q.value=1.1;reed.gain.value=7;   // reed-block formant
     const nasal=AC.createBiquadFilter();nasal.type='peaking';nasal.frequency.value=1100;nasal.Q.value=1.2;nasal.gain.value=4;  // a reed is a nasal thing
@@ -1459,7 +1544,7 @@ function playMel(n,f,time,e,amp,dur){
     voxVoice(dest,f,time,amp*3.6,hold,[[850,1,9],[1220,.55,11],[2810,.26,13],[4000,.12,14]],5.8,22);return;
   }
   if(e===12){                                           // SYNTH — PWM lead: a saw minus a delayed copy IS a pulse,
-    const sus=hold!=null?hold:.5,end=sus+.16;           //   and modulating the delay sweeps the pulse width
+    const sus=hold!=null?hold:.5,end=sus+relOf(.16);     //   and modulating the delay sweeps the pulse width
     const g=AC.createGain();
     g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.22,time+.01);
     g.gain.setValueAtTime(amp*.22,time+sus);g.gain.exponentialRampToValueAtTime(.001,time+end);
@@ -1484,9 +1569,9 @@ function playMel(n,f,time,e,amp,dur){
     lp.connect(g);g.connect(dest);return;
   }
   if(e===10){                                           // VIOLIN — bowed string: Helmholtz saw, body resonances, late vibrato
-    const sus=hold!=null?hold:.6,end=sus+.14;
+    const sus=hold!=null?hold:.6,end=sus+relOf(.14);
     const g=AC.createGain();
-    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.22,time+.075);   // the bow takes hold, it does not click
+    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(amp*.22,time+attOf(.075));   // the bow takes hold, it does not click
     g.gain.setValueAtTime(amp*.22,time+sus);g.gain.exponentialRampToValueAtTime(.001,time+end);
     /* vibrato arrives AFTER the entry — a player does not vibrate on the attack */
     const vib=AC.createOscillator(),vg=AC.createGain();vib.type='sine';vib.frequency.value=5.4;
@@ -1506,54 +1591,51 @@ function playMel(n,f,time,e,amp,dur){
     s2.connect(nbp);nbp.connect(ng);ng.connect(dest);s2.start(time);s2.stop(time+.13);  // rosin on the entry
     lp.connect(b1);b1.connect(b2);b2.connect(b3);b3.connect(g);g.connect(dest);return;
   }
-  if(e===16){                                           // EL·GTR — power chord into a cranked amp
-    /* GUITAR (8) is a single-coil lead through a small valve amp. This is the
-       other guitar, the one a riff needs: a POWER CHORD — root, fifth, octave —
-       struck as three strings a few milliseconds apart, palm-muted when the step
-       is short, into an amp that is past polite. The chord lives inside the voice
-       because a guitar does not voice a triad the way a keyboard does.
-
-       Three things kept it from reading as an electric guitar:
-
-       1. The melodic lane is rooted at A3 (MEL_BASE.STB = 220 Hz), so the chord
-          was built a full octave above where a guitar plays a riff — a twelfth
-          fret shape, thin and synthetic. A guitar's low E is 82 Hz. Dropped into
-          its own register, the same way OUD does it.
-       2. The amp was distCurve, which folds back on itself. See ampCurve.
-       3. amp (the velocity) only scaled the gain AFTER the shaper, so every hit
-          drove the amp to exactly the same place and the distortion never moved.
-          Hitting harder has to push the amp harder — that dynamic is most of
-          what makes an overdriven guitar sound played rather than triggered.
-          Now the velocity sets the level going IN, and the output trims back. */
-    const gatesec=dur!=null?dur:.5, palm=gatesec<.22;
+  if(e===16){                                           // EL·GTR — a modelled guitar, not a synth through an amp
+    /* Three rounds of a Karplus-Strong drum of filtered noise through a waveshaper
+       and a few biquads never read as a guitar, however the EQ was set. What the
+       ear keys on is upstream of the amp, so the strings are now computed per note
+       in JS (see gtrString): a real pluck shape at a real pluck point, a fractional
+       delay so the power chord is actually in tune, a pickup comb near the bridge
+       and the pickup's own resonance — that comb is what makes it ELECTRIC. Then
+       the amp, and a cabinet as a convolution rather than four filters. And it is
+       double-tracked: two separate performances, hard left and right, which is how
+       every rhythm guitar on a record is made. */
+    const P=GTR_TONES[GTR_TONE];
+    const gatesec=dur!=null?dur:.5, palm=gatesec<.16;
     const f0=f*.5;                                      // into the guitar's own register
-    const NAT=palm?.45:2.0, gdec=plucked(dur,NAT,.2), damp=palm?.9905:.9976;
+    const NAT=palm?.3:2.8, gdec=dur!=null?Math.max(.025,Math.min(NAT,dur+Math.min(palm?.05:.22,dur*.8))):NAT;
     const hit=Math.max(.12,Math.min(1,amp));
-    const inp=AC.createGain();inp.gain.value=.05+hit*1.05;   // velocity into the amp, not after it
-    [[1,0,1],[1.4983,.004,.7],[2,.009,.38]].forEach(([mul,off,a])=>{
-      const src=AC.createBufferSource();src.buffer=ksBuf(f0*mul,NAT+.1,damp,.6,.16,.3);
-      const sg=AC.createGain();sg.gain.value=a;
-      src.connect(sg);sg.connect(inp);src.start(time+off);src.stop(time+off+gdec+.05);
+    const sr=AC.sampleRate,len=Math.ceil((gdec+.06)*sr);
+    const buf=AC.createBuffer(2,len,sr);
+    [0,1].forEach(ch=>{                                 // two takes: never the same pick, never quite the same time
+      const d=buf.getChannelData(ch),skew=ch?Math.round(sr*.009):0,cents=ch?3.5:-2;
+      const chord=P.chord?[[1,0,1],[1.4983,.006,.8],[2,.012,.55]]:[[1,0,1]];
+      chord.forEach(([mul,off,a])=>gtrString(d,skew+Math.round(off*sr*(ch?1.15:1)),f0*mul*Math.pow(2,cents/1200),
+        palm?.18:P.t60*(mul>1?.8:1),palm?.62:P.loopS,P.beta,palm?.35:(.35+.55*hit),P.pickup,sr,a*.5));
     });
-    const pu=AC.createBiquadFilter();pu.type='peaking';pu.frequency.value=2600;pu.Q.value=2.2;pu.gain.value=7;   // humbucker
-    const amp_ws=AC.createWaveShaper();amp_ws.oversample='2x';amp_ws.curve=ampCurve(palm?.72:1,.1);              // a cranked amp
-    const scoop=AC.createBiquadFilter();scoop.type='peaking';scoop.frequency.value=500;scoop.Q.value=1.1;scoop.gain.value=-4;
-    const pres=AC.createBiquadFilter();pres.type='peaking';pres.frequency.value=2000;pres.Q.value=.9;pres.gain.value=5;
-    const cab=AC.createBiquadFilter();cab.type='lowpass';cab.frequency.value=4200;cab.Q.value=2;                 // 4×12
-    const cab2=AC.createBiquadFilter();cab2.type='lowpass';cab2.frequency.value=5200;cab2.Q.value=.7;            // second pole — a cone is not 12 dB/oct
-    const ghp=AC.createBiquadFilter();ghp.type='highpass';ghp.frequency.value=95;ghp.Q.value=.8;
-    const g=AC.createGain();
-    /* the amp compresses, so the output only tracks velocity part of the way —
-       the rest of the dynamic now lives in the timbre, which is the point */
-    const lvl=.054*(.55+.45*hit);
-    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(lvl,time+.004);
-    if(palm)g.gain.exponentialRampToValueAtTime(.001,time+gdec);
-    else{g.gain.setValueAtTime(lvl,time+Math.max(.03,gdec-.25));g.gain.exponentialRampToValueAtTime(.001,time+gdec);}
-    inp.connect(pu);pu.connect(amp_ws);amp_ws.connect(scoop);scoop.connect(pres);pres.connect(cab);cab.connect(cab2);cab2.connect(ghp);ghp.connect(g);g.connect(dest);
-    const pk=AC.createBufferSource();pk.buffer=noiseBuf(.016);
-    const pbp=AC.createBiquadFilter();pbp.type='bandpass';pbp.frequency.value=3200;pbp.Q.value=1.1;
-    const pg=AC.createGain();pg.gain.setValueAtTime(amp*.18,time);pg.gain.exponentialRampToValueAtTime(.001,time+.018);
-    pk.connect(pbp);pbp.connect(pg);pg.connect(dest);pk.start(time);pk.stop(time+.025);     // pick on a wound string
+    const src=AC.createBufferSource();src.buffer=buf;
+    const inp=AC.createGain();inp.gain.value=(.35+hit*.75)*P.inGain;
+    const pu=AC.createBiquadFilter();pu.type='lowpass';pu.frequency.value=P.puHz;pu.Q.value=P.puQ;   // pickup + cable resonance
+    const tight=AC.createBiquadFilter();tight.type='highpass';tight.frequency.value=palm?100:P.tight;tight.Q.value=.7;
+    const hump=AC.createBiquadFilter();hump.type='peaking';hump.frequency.value=700;hump.Q.value=.8;hump.gain.value=P.hump;
+    const st1=AC.createWaveShaper();st1.oversample='4x';st1.curve=gtrStage(P.k1,.9);
+    const cpl=AC.createBiquadFilter();cpl.type='highpass';cpl.frequency.value=40;   // coupling cap between stages
+    const mid=AC.createBiquadFilter();mid.type='lowpass';mid.frequency.value=6000;mid.Q.value=.5;
+    const st2=AC.createWaveShaper();st2.oversample='4x';st2.curve=gtrStage(P.k2,.8);
+    const bass=AC.createBiquadFilter();bass.type='lowshelf';bass.frequency.value=180;bass.gain.value=P.bass;
+    const mids=AC.createBiquadFilter();mids.type='peaking';mids.frequency.value=650;mids.Q.value=.7;mids.gain.value=P.mids;
+    const treb=AC.createBiquadFilter();treb.type='highshelf';treb.frequency.value=2200;treb.gain.value=P.treb;
+    const env=AC.createGain(),lvl=P.out*(.8+.2*hit);
+    env.gain.setValueAtTime(lvl,time);
+    if(palm)env.gain.setValueAtTime(lvl,time+gdec*.4),env.gain.exponentialRampToValueAtTime(.001,time+gdec);
+    else{env.gain.setValueAtTime(lvl,time+Math.max(.03,gdec-.12));env.gain.exponentialRampToValueAtTime(.001,time+gdec);}
+    env.gain.linearRampToValueAtTime(0,time+gdec+.004);
+    const cab=AC.createConvolver();cab.normalize=false;cab.buffer=gtrCabIR();
+    src.connect(inp);inp.connect(pu);pu.connect(tight);tight.connect(hump);hump.connect(st1);st1.connect(cpl);cpl.connect(mid);
+    mid.connect(st2);st2.connect(bass);bass.connect(mids);mids.connect(treb);treb.connect(env);env.connect(cab);cab.connect(dest);
+    src.start(time);src.stop(time+gdec+.06);
+    setTimeout(()=>{try{cab.disconnect();}catch(_){}},Math.max(0,(time-AC.currentTime+gdec)*1000)+400);
     return;
   }
   /* STAB(0) · PLUCK(1) · SAW(3) — richer default voices through a resonant filter env */
@@ -1575,7 +1657,8 @@ function playMel(n,f,time,e,amp,dur){
   if(e===0){dec=.3;q=5;peak=amp*.58;sustains=true;dets=[-12,0,12];subLvl=.32;} // STAB — resonant, holds, has a sub
   if(e===1){dec=.26;att=.002;q=7;peak=amp*.72;dets=[-8,8];}                    // PLUCK — sharp, always plucks
   if(e===3){dec=.5;q=2.2;peak=amp*.76;sustains=true;dets=[-15,-5,5,15];}       // SAW — pad-ish, widest unison
-  const sus=(sustains&&hold!=null)?hold:dec, end=sus+(sustains?.16:.03);
+  if(!sustains&&hold!=null)dec=Math.min(dec,Math.max(.03,hold+relOf(.08)));   // PLUCK shortens with the gate too
+  const sus=(sustains&&hold!=null)?hold:dec, end=sus+(sustains?relOf(.16):.03);
   un.gain.value=.92/Math.sqrt(dets.length);
   lp.type='lowpass';lp.Q.value=q;
   lp2.type='lowpass';lp2.Q.value=.65;lp2.frequency.value=Math.min(f*18,14000);
@@ -1971,7 +2054,7 @@ function trig(vi,time,step,arpFreq,arpDur,vel){
 let playing=false,bpm=124,curStep=0,nextTime=0,timer=null;
 /* the 303's slide needs to know what the last note was and when */
 let acidLast={f:0,t:-1};
-let arpOn=false,arpIdx=0,arpChord=0,arpDir=0,arpOct=1,arpDbl=false,arpDiv=7,basArp=false,arpGate=1;
+let arpOn=false,arpIdx=0,arpChord=0,arpDir=0,arpOct=1,arpDbl=false,arpDiv=7,basArp=false,arpGate=1,arpLen=4;
 /* GATE — how much of each arp step the note actually sounds for. This is what
    turns a wash into a groove: short = staccato stabs, long = legato lines. */
 /* GT used to cycle four fixed steps. It is the difference between a staccato
@@ -2092,6 +2175,13 @@ function arpFreqFor(baseDeg,off,chro){
    whatever chord is loaded instead of always adding a scale third */
 function arpHarm(seq,slot,chro){const L=seq.length,i=slot+2;
   return seq[i%L]+(i>=L?(chro?12:7):0);}
+/* How long one drawn note keeps the arp rolling: until the next drawn note, but
+   never longer than one beat. Uncapped, a lane with a single note wrapped round
+   to itself and rippled through the whole loop — one note in, sixteen steps of
+   arpeggio out. */
+/* DÉLKA slider: 1–16 steps, default one beat. At 16 it is the old behaviour —
+   roll until the next drawn note. */
+function arpSpan(id,s){return Math.min(gateSteps(id,s),arpLen);}
 const LOOKAHEAD=.1,TICK=25;
 function stepDur(){return 60/bpm/4;}
 function scheduler(){
@@ -2107,7 +2197,7 @@ function scheduler(){
            the note length — triplets, quintuplets and dotted values included. */
         if(patterns.STB[s]){
           const base=melDeg('STB',s),L=arpSeq.length,iv=ARP_DIVS[arpDiv].b*(60/bpm);
-          const spanSec=gateSteps('STB',s)*stepDur(),nN=Math.max(1,Math.min(Math.round(spanSec/iv),96));
+          const spanSec=arpSpan('STB',s)*stepDur(),nN=Math.max(1,Math.min(Math.round(spanSec/iv),96));
           for(let j=0;j<nN;j++){
             const slot=arpSlot(j,L),t=at+j*iv;
             trig(vi,t,s,arpFreqFor(base,arpSeq[slot]),iv*arpGate,vel);
@@ -2119,7 +2209,7 @@ function scheduler(){
         /* bass arpeggiator — rolls the drawn bass note through octave/fifth */
         if(patterns.BAS[s]){
           const base=melDeg('BAS',s),iv=ARP_DIVS[arpDiv].b*(60/bpm);
-          const spanSec=gateSteps('BAS',s)*stepDur(),nN=Math.max(1,Math.min(Math.round(spanSec/iv),96));
+          const spanSec=arpSpan('BAS',s)*stepDur(),nN=Math.max(1,Math.min(Math.round(spanSec/iv),96));
           for(let j=0;j<nN;j++){
             const f=MEL_BASE.BAS*Math.pow(2,degSemi(base+BASARP_SHAPE[j%BASARP_SHAPE.length])/12);
             trig(vi,at+j*iv,s,f,iv*arpGate,vel);
@@ -2725,6 +2815,8 @@ arpGateBtn.addEventListener('input',()=>{
   arpGate=(+arpGateBtn.value)/100;
   arpGateVal.textContent=arpGateBtn.value;
 });
+const arpLenBtn=document.getElementById('arpLen'),arpLenVal=document.getElementById('arpLenVal');
+arpLenBtn.addEventListener('input',()=>{arpLen=+arpLenBtn.value;arpLenVal.textContent=arpLenBtn.value;});
 const arpOctBtn=document.getElementById('arpOct');
 arpOctBtn.addEventListener('click',()=>{arpOct=arpOct%4+1;buildArpSeq();arpIdx=0;arpOctBtn.textContent='OCT '+arpOct;});
 const arpDblBtn=document.getElementById('arpDbl');
@@ -2767,26 +2859,20 @@ function recLoops(){
   return n;
 }
 function recSec(){return loopSec()*recLoops();}
-/* Long takes are mine, not a shipped feature: /synthi/sos-dj-2.html?rec=long
-   unlocks a 1 MIN toggle next to REC on this device (?rec=loop locks it again).
-   Everyone else keeps the loop-length clip. */
-(function longTakeUnlock(){
-  const KEY='sosdj.recLong', ST='sosdj.recLongOn';
+/* 1 MIN — a long take, at least a minute rounded up to whole loops. Was hidden
+   behind ?rec=long; it is a visible toggle next to REC now. The choice is
+   remembered per device. */
+(function longTakeToggle(){
+  const ST='sosdj.recLongOn';
   let ls=null; try{ls=localStorage;}catch(e){}
-  const q=new URLSearchParams(location.search).get('rec');
-  if(q==='long'&&ls) ls.setItem(KEY,'1');
-  if(q==='loop'&&ls){ ls.removeItem(KEY); ls.removeItem(ST); }
-  let unlocked=false; try{unlocked=ls&&ls.getItem(KEY)==='1';}catch(e){}
-  if(!unlocked)return;
-  try{recLong=ls.getItem(ST)==='1';}catch(e){}
+  try{recLong=!!ls&&ls.getItem(ST)==='1';}catch(e){}
   const b=document.createElement('button');
   b.className='tbtn';b.id='btnLong';b.type='button';b.textContent='1 MIN';
   b.title='Long take — at least 1 min, rounded up to whole loops';
-  b.style.marginRight='6px';
   b.classList.toggle('on',recLong);
   b.addEventListener('click',()=>{
     recLong=!recLong;b.classList.toggle('on',recLong);
-    try{ls.setItem(ST,recLong?'1':'0');}catch(e){}
+    try{ls&&ls.setItem(ST,recLong?'1':'0');}catch(e){}
     if(recUI&&recUI.refresh)recUI.refresh();
   });
   const mount=document.getElementById('srecMount');
@@ -2799,7 +2885,7 @@ const sosRec=(window.SynthiRecord?SynthiRecord.mount({
   ensureAudio:ensureAudio,
   getPatch:()=>({matrix:state,pats:PATS,bpm,engines:engIdx,steps:STEPS,pat:curPat,chain,song:SONGS[songIdx].n,muted,swing,filter:+document.getElementById('fltSlider').value,
     arp:{on:arpOn,chord:ARP_CHORDS[arpChord].id,shape:ARP_DIRS[arpDir].id,oct:arpOct,dbl:arpDbl,
-         div:ARP_DIVS[arpDiv].id,bas:basArp,gate:arpGate},
+         div:ARP_DIVS[arpDiv].id,bas:basArp,gate:arpGate,len:arpLen},
     lfo:LFOS.map(L=>({rate:LFO_RATES[L.rate].id,shape:LFO_SHAPES[L.shape].id,
                       dest:LFO_DESTS[L.dest].id,depth:L.depth})),
     delay:{div:DELAY_DIVS[delayDiv].id,fb:delayFbAmt,pp:delayPP,sync:delaySync}}),
@@ -2807,7 +2893,7 @@ const sosRec=(window.SynthiRecord?SynthiRecord.mount({
      the audio is only a cache, so a patch saved here must never be replayed
      through the other page's engine — the LFOs, the synced delay and the extra
      voices simply do not exist there. */
-  engineVersion:'sos-dj2-2026.10.12',
+  engineVersion:'sos-dj2-2026.11',
   /* A clip has to be a whole number of loops to the sample, or it will not
      loop. maxSec is only the capture window; exactSec is the musical length the
      WAV master gets cut to, measured from the downbeat syncStart returns. The
