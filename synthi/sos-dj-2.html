@@ -306,7 +306,7 @@ body{
           <div class="mBar" role="meter" aria-label="Master level"><i id="mFill"></i><i id="mPeak"></i></div>
           <b class="over" id="mOver">OVER</b>
         </div>
-        <label class="bpm"><input id="masterSlider" type="range" min="0" max="100" value="72" aria-label="Master volume"><b id="masterVal">72</b><span>VOL</span></label>
+        <label class="bpm"><input id="masterSlider" type="range" min="0" max="100" value="65" aria-label="Master volume"><b id="masterVal">65</b><span>VOL</span></label>
         <label class="bpm flt"><input id="fltSlider" type="range" min="0" max="100" value="50" aria-label="Master filter"><span>FLT</span></label>
         <label class="bpm tempo"><input id="bpmSlider" type="range" min="70" max="180" value="124" aria-label="Tempo"><b id="bpmVal">124</b><span>BPM</span></label>
       </div>
@@ -626,6 +626,7 @@ const STYLES=[
   {name:'TRAP',bpm:140,tag:'808 half',swing:54,
    eng:{KCK:0,BAS:3,STB:2,HAT:0,CLP:1},
    pat:{KCK:_H(0,7,10),CLP:_H(8),HAT:_H(0,2,4,6,7,8,10,12,13,14,15),BAS:_H(0,7,10),STB:_H(0)},
+   roll:{HAT:{7:2,10:1.5,13:2,15:3}},
    notes:{BAS:_M({7:4,10:0}),STB:_M({0:0})},
    mix:{BAS:{LVL:86,LPF:40},STB:{RVB:44,DLY:24},HAT:{LVL:40}},delayDiv:2,filter:50},
 
@@ -2596,6 +2597,9 @@ function variationOf(src){
     out.notes[id]=arr;
   });
   out.vel=newVels(STEPS);VOICES.forEach(v=>{out.vel[v.id]=accentLoose(STEPS);});
+  /* a roll belongs to the groove, not to bar A: where the hit survives, so does its roll */
+  out.roll=newRolls(STEPS);VOICES.forEach(v=>{const sr=(src.roll&&src.roll[v.id])||[],L=sr.length;
+    if(L)for(let i=0;i<STEPS;i++)if(out[v.id][i])out.roll[v.id][i]=sr[i%L]||1;});
   return out;
 }
 /* A derived pattern counts as "auto" until you touch it — after that styles /
