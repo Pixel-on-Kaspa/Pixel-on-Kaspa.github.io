@@ -117,6 +117,22 @@ body{
 .fxSlide input[type=range]{flex:1;width:100%;height:22px;accent-color:var(--accent);cursor:pointer;margin:0}
 .fxSlide b{font-family:var(--mono);font-size:11px;color:var(--amber);min-width:24px;text-align:right}
 .gtSlide{flex:1 1 150px}
+/* ── takes ── */
+.takes{display:flex;flex-direction:column;gap:6px}
+.take{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:var(--socket);
+  border:1px solid var(--border);box-shadow:inset 0 2px 5px rgba(0,0,0,.5)}
+.take.cur{border-color:var(--accent)}
+.tPlay{flex:0 0 auto;width:30px;height:30px;border-radius:50%;border:1px solid var(--border2);background:rgba(255,255,255,.05);
+  color:var(--accent);font-size:12px;cursor:pointer;line-height:1}
+.tPlay.on{background:var(--accent);color:#031014;border-color:var(--accent)}
+.tMeta{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
+.tMeta b{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tMeta small{font-family:var(--mono);font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tMeta small i{font-style:normal;color:var(--amber)}
+.tDel{flex:0 0 auto;border:0;background:transparent;color:var(--muted);font-size:12px;cursor:pointer;padding:6px 4px;font-family:var(--mono)}
+.tDel.arm{color:#ff3b30;font-size:9px;font-weight:700}
+.takesEmpty,.takesMsg{font-size:10px;color:var(--muted);line-height:1.4;margin:2px 0 0}
+.takesMsg{color:var(--amber);min-height:0}
 .fxHint{font-size:8px;letter-spacing:.5px;color:var(--muted);line-height:1.3}
 .fxHint b{color:var(--accent);font-weight:700}   /* the one continuous control in the ARP row — give it real travel */
 /* ── pick sheet ──
@@ -194,6 +210,9 @@ body{
 .step{height:26px;min-width:0;border-radius:3px;background:#0a0f0d;cursor:pointer;
   box-shadow:inset 0 1px 2px rgba(0,0,0,.6);transition:background .06s,filter .06s;touch-action:manipulation}
 .step:nth-child(4n+1){box-shadow:inset 0 1px 2px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.06)}
+.step{position:relative}
+.step .rl{position:absolute;left:0;right:0;bottom:1px;text-align:center;font-family:var(--mono);font-size:8px;font-weight:700;
+  line-height:1;color:#031014;pointer-events:none;letter-spacing:-.5px}
 .step.on{background:linear-gradient(180deg,var(--accent),#1f9c86);box-shadow:0 0 6px rgba(73,234,203,.4),inset 0 1px 1px rgba(255,255,255,.4)}
 .step.play{box-shadow:inset 0 0 0 1px rgba(238,243,242,.85),0 0 7px rgba(238,243,242,.3)}
 .step.on.play{box-shadow:inset 0 0 0 1px rgba(238,243,242,.9),0 0 9px rgba(73,234,203,.6);filter:brightness(1.25)}
@@ -353,12 +372,22 @@ body{
         <button class="tbtn" id="btnUndo" title="Zpět (RND / styl / MUT / CLR)">↶</button>
         <button class="tbtn" id="btnLen" title="Počet kroků 8/16/32/64">LEN 16</button>
         <button class="tbtn" id="btnAcc" title="Akcenty — táhni ↕ po kroku a nastav jeho důraz">ACC</button>
+        <button class="tbtn" id="btnRoll" title="Roll — ťukáním na krok: ×2 (1/32) · ×3 · ×4 (1/64) · ×6 · ×8 · T (1/16 triola přes dva kroky)">ROLL</button>
         <button class="tbtn" id="btnSwing" title="Swing — 50 rovně, 66 triolový shuffle">SWG 50</button>
         <button class="tbtn" id="btnRnd" title="Náhodný groove">🎲 RND</button>
         <button class="tbtn" id="btnClr" title="Smazat kroky">CLR</button>
       </div>
     </div>
     <div class="panelBody"><div id="seqRows"></div></div>
+  </section>
+
+  <section class="panel" id="takesPanel">
+    <div class="panelHead"><b>Nahrávky</b></div>
+    <div class="panelBody">
+      <div class="takes" id="takesList"></div>
+      <p class="takesEmpty" id="takesEmpty">Nahraj něco přes ● REC — záběr se tu objeví i s celým nastavením. <b>DO MATICE</b> ho vrátí do patche a hraje dál.</p>
+      <p class="takesMsg" id="takesMsg" hidden></p>
+    </div>
   </section>
 
   <p class="foot">Ťukni na pin → vyjede knob → táhni pro hodnotu. <b>Create, not mint.</b></p>
@@ -442,7 +471,7 @@ function voiceRatio(vi){const semi=Math.round((state[vi][TUNCI].val-50)/50*24);r
 
 let STEPS=16;
 const PATA={KCK:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],BAS:[1,0,0,1,0,0,1,0,1,0,0,1,0,1,0,0],STB:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,1,0],HAT:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,1],CLP:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0]};
-function emptyPat(){const P={};VOICES.forEach(v=>P[v.id]=Array(16).fill(0));P.notes=newNotes(16);P.vel=newVels(16);return P;}
+function emptyPat(){const P={};VOICES.forEach(v=>P[v.id]=Array(16).fill(0));P.notes=newNotes(16);P.vel=newVels(16);P.roll=newRolls(16);return P;}
 /* melodic step notes — scale-index per step (A natural minor, ~1.5 oct).
    BASS + STAB are pitchable lanes; each pattern keeps notes.{BAS,STB} arrays. */
 const MEL_IDS=['BAS','STB'];
@@ -475,6 +504,15 @@ function newNotes(n){const o={};MEL_IDS.forEach(id=>o[id]=Array(n).fill(0));retu
 /* ACCENTS — per-step velocity, 1 = as written. Every hit having the same weight
    is most of why a programmed grid sounds like a typewriter. */
 function newVels(n){const o={};VOICES.forEach(v=>o[v.id]=Array(n).fill(1));return o;}
+/* ROLL — per-step ratchet. A number = that many hits inside the step (2 = 1/32,
+   3 = 1/48, 4 = 1/64 …); 1.5 = the drill triplet, three hits across this step
+   and the next (1/16T). 1 = a plain hit. */
+const ROLLS=[1,2,3,4,6,8,1.5];
+function newRolls(n){const o={};VOICES.forEach(v=>o[v.id]=Array(n).fill(1));return o;}
+function rollOf(id,step){const a=patterns.roll&&patterns.roll[id];return (a&&a[step])||1;}
+function setRoll(id,i,r){if(!patterns.roll)patterns.roll=newRolls(STEPS);
+  if(!patterns.roll[id])patterns.roll[id]=Array(STEPS).fill(1);patterns.roll[id][i]=r;}
+function rollLabel(r){return r===1?'':(r===1.5?'T':'×'+r);}
 function velOf(id,step){const a=patterns.vel&&patterns.vel[id];return (a&&a[step]!=null)?a[step]:1;}
 function setVel(id,i,v){if(!patterns.vel)patterns.vel=newVels(STEPS);
   if(!patterns.vel[id])patterns.vel[id]=Array(STEPS).fill(1);patterns.vel[id][i]=v;}
@@ -486,12 +524,12 @@ function accentLoose(n){const a=Array(n).fill(1);
   for(let i=0;i<n;i++){const b=i%4===0?1.06:(i%2===0?.88:.72);
     a[i]=Math.max(.35,Math.min(1.3,b+(Math.random()-.5)*.22));}return a;}
 PATA.notes=newNotes(16);[4,12,14].forEach((i,k)=>PATA.notes.STB[i]=[0,4,2][k]);
-PATA.vel=newVels(16);
+PATA.vel=newVels(16);PATA.roll=newRolls(16);
 /* Four patterns, not two. B/C/D start empty; CHAIN fills whichever ones the
    SONG order actually visits, so a chained take never plays a bar of silence. */
 const PATS=[PATA,emptyPat(),emptyPat(),emptyPat()];
 const PAT_NAMES=['A','B','C','D'];
-let curPat=0,chain=false,accMode=false;
+let curPat=0,chain=false,accMode=false,rollMode=false;
 let patterns=PATS[curPat];
 /* scale-degree → semitone for a melodic voice's step (0 if unset) */
 function melSemi(id,step){const arr=patterns.notes&&patterns.notes[id];
@@ -757,6 +795,7 @@ const STYLES=[
   {name:'DRILL',bpm:142,tag:'sliding 808',
    eng:{KCK:0,BAS:3,STB:2,HAT:0,CLP:1},
    pat:{KCK:_H(0,7,10),CLP:_H(8),HAT:_H(0,2,3,4,6,8,10,11,12,14,15),BAS:_H(0,7,10),STB:_H(0)},
+   roll:{HAT:{3:2,6:1.5,11:3,15:4}},
    notes:{BAS:_M({0:0,7:2,10:5}),STB:_M({0:0})},
    mix:{BAS:{LVL:88,LPF:40},STB:{LVL:48,RVB:40,DLY:24},HAT:{LVL:42}},delayDiv:2,filter:50},
 ];
@@ -794,6 +833,8 @@ function applyStyle(idx){
   if(!patterns.notes)patterns.notes=newNotes(STEPS);
   MEL_IDS.forEach(id=>{patterns.notes[id]=tile(S.notes&&S.notes[id],STEPS);});
   patterns.vel=newVels(STEPS);VOICES.forEach(v=>{patterns.vel[v.id]=accentCurve(STEPS,v.id==='HAT'?1:.6);});
+  patterns.roll=newRolls(STEPS);
+  if(S.roll)Object.keys(S.roll).forEach(id=>{const m=S.roll[id];for(let i=0;i<STEPS;i++){const r=m[i%16];if(r)patterns.roll[id][i]=r;}});
   VOICES.forEach(v=>{if(S.eng&&S.eng[v.id]!=null)engIdx[v.id]=S.eng[v.id];});
   setMatrix(mergeMix(baseMix(),S.mix||{}));
   VOICES.forEach((v,vi)=>COLS.forEach((c,ci)=>{applyParam(vi,ci);refreshPin(vi,ci);}));
@@ -1924,6 +1965,9 @@ function trig(vi,time,step,arpFreq,arpDur,vel){
     if(e===1){dec=.3;hpf=7000;amp=.44;}                 // OPEN
     if(e===2){dec=.95;hpf=4600;amp=.3;ring=.72;}        // RIDE — a cymbal rings, it does not stop
     hpf*=r;
+    /* inside a roll every hit is choked before the next one — an open hat or a
+       ride left to ring would smear three hits 40 ms apart into one */
+    if(arpDur)dec=Math.min(dec,Math.max(.03,arpDur*1.15));
     /* Six squares into one bandpass is a buzz with hiss on top. The metal in a
        cymbal is PARTIALS BEATING against each other, so: the real 808 ratios,
        two bands (a body and an air band) instead of one, a fold after them so the
@@ -2216,7 +2260,14 @@ function scheduler(){
           }
         }
       }
-      else if(patterns[v.id][s])trig(vi,at,s,undefined,undefined,vel);
+      else if(patterns[v.id][s]){
+        const r=rollOf(v.id,s);
+        if(r===1)trig(vi,at,s,undefined,undefined,vel);
+        else{                                            // a roll: n hits over `span` steps, leaning into the last
+          const n=r===1.5?3:r,span=r===1.5?2:1,dt=span*stepDur()/n;
+          for(let k=0;k<n;k++)trig(vi,at+k*dt,s,undefined,k<n-1?dt:undefined,vel*(.72+.28*k/(n-1)));   // dt = choke before the next hit
+        }
+      }
     });
     setTimeout(()=>flashStep(s),Math.max(0,(at-AC.currentTime)*1000));
     nextTime+=stepDur();
@@ -2358,6 +2409,7 @@ function buildSeq(){
         st.classList.add('mel');const nt=el('span','nt');st.appendChild(nt);
         updateNoteLabel(v.id,i,st);
       }
+      st.appendChild(el('span','rl'));
       attachStep(st,v.id,i);applyVel(st,v.id,i);
       steps.appendChild(st);stepEls[v.id][i]=st;
     }
@@ -2388,6 +2440,7 @@ function updateNoteLabel(id,i,st){
 /* accent reads as weight: quiet steps sit back, accents brighten */
 function applyVel(st,id,i){
   if(!st)return;
+  const rl=st.querySelector('.rl');if(rl)rl.textContent=patterns[id][i]?rollLabel(rollOf(id,i)):'';
   if(!patterns[id][i]){st.style.opacity='';st.style.filter='';return;}
   const v=velOf(id,i);
   st.style.opacity=String(.35+.65*Math.min(1,v));
@@ -2399,7 +2452,7 @@ function attachStep(st,id,i){
   let sy=0,sVal=0,moved=false,down=false,mode='';
   st.addEventListener('pointerdown',e=>{
     down=true;moved=false;sy=e.clientY;
-    mode=accMode?'vel':(mel?'note':'');
+    mode=rollMode?'':(accMode?'vel':(mel?'note':''));
     sVal=mode==='vel'?velOf(id,i):(mel?melDeg(id,i):0);
     try{st.setPointerCapture(e.pointerId);}catch(_){}
   });
@@ -2420,6 +2473,10 @@ function attachStep(st,id,i){
   });
   st.addEventListener('pointerup',()=>{
     if(!down)return;down=false;
+    if(rollMode){                                         // ROLL armed: a tap cycles the ratchet, and arms the step
+      const r=patterns[id][i]?ROLLS[(ROLLS.indexOf(rollOf(id,i))+1)%ROLLS.length]:rollOf(id,i);
+      patterns[id][i]=1;setRoll(id,i,r);st.classList.add('on');applyVel(st,id,i);patAuto[curPat]=false;return;
+    }
     if(!moved){patterns[id][i]^=1;st.classList.toggle('on',!!patterns[id][i]);applyVel(st,id,i);patAuto[curPat]=false;}
     if(patterns[id][i]&&mel&&!accMode){ensureAudio();previewMel(id,i);}
   });
@@ -2581,6 +2638,7 @@ function clonePat(P){
   const o={};VOICES.forEach(v=>o[v.id]=(P[v.id]||[]).slice());
   o.notes={};MEL_IDS.forEach(id=>o.notes[id]=((P.notes&&P.notes[id])||[]).slice());
   o.vel={};VOICES.forEach(v=>o.vel[v.id]=((P.vel&&P.vel[v.id])||[]).slice());
+  o.roll={};VOICES.forEach(v=>o.roll[v.id]=((P.roll&&P.roll[v.id])||[]).slice());
   return o;
 }
 function pushUndo(){
@@ -2597,6 +2655,7 @@ function undoLast(){
   VOICES.forEach(v=>{P[v.id]=u.data[v.id].slice();});
   P.notes=P.notes||newNotes(STEPS);MEL_IDS.forEach(id=>{P.notes[id]=u.data.notes[id].slice();});
   P.vel=P.vel||newVels(STEPS);VOICES.forEach(v=>{P.vel[v.id]=u.data.vel[v.id].slice();});
+  if(u.data.roll){P.roll=P.roll||newRolls(STEPS);VOICES.forEach(v=>{P.roll[v.id]=(u.data.roll[v.id]||[]).slice();});}
   u.mix.forEach((r,vi)=>r.forEach((c,ci)=>{state[vi][ci].on=c.on;state[vi][ci].val=c.val;}));
   Object.keys(u.eng).forEach(k=>engIdx[k]=u.eng[k]);
   VOICES.forEach((v,vi)=>COLS.forEach((c,ci)=>{applyParam(vi,ci);refreshPin(vi,ci);}));
@@ -2628,7 +2687,8 @@ function selectPat(i,keepPos){
 /* growing the loop REPEATS what's there (4 bars of the groove, not 1 bar + silence);
    shrinking truncates. Then VARY can mutate the long form. */
 function setSteps(n){PATS.forEach(P=>{VOICES.forEach(v=>{const old=P[v.id],na=Array(n).fill(0);for(let i=0;i<n;i++)na[i]=old.length?old[i%old.length]:0;P[v.id]=na;});if(!P.notes)P.notes=newNotes(n);MEL_IDS.forEach(id=>{const on=P.notes[id]||[],nn=Array(n).fill(0);for(let i=0;i<n;i++)nn[i]=on.length?on[i%on.length]:0;P.notes[id]=nn;});
-  if(!P.vel)P.vel=newVels(n);VOICES.forEach(v=>{const ov=P.vel[v.id]||[],nv=Array(n).fill(1);for(let i=0;i<n;i++)nv[i]=ov.length?ov[i%ov.length]:1;P.vel[v.id]=nv;});});STEPS=n;curStep=0;buildSeq();const b=document.getElementById('btnLen');if(b)b.textContent='LEN '+n;if(recUI&&recUI.refresh)recUI.refresh();}
+  if(!P.vel)P.vel=newVels(n);VOICES.forEach(v=>{const ov=P.vel[v.id]||[],nv=Array(n).fill(1);for(let i=0;i<n;i++)nv[i]=ov.length?ov[i%ov.length]:1;P.vel[v.id]=nv;});
+  if(!P.roll)P.roll=newRolls(n);VOICES.forEach(v=>{const orr=P.roll[v.id]||[],nr=Array(n).fill(1);for(let i=0;i<n;i++)nr[i]=orr.length?(orr[i%orr.length]||1):1;P.roll[v.id]=nr;});});STEPS=n;curStep=0;buildSeq();const b=document.getElementById('btnLen');if(b)b.textContent='LEN '+n;if(recUI&&recUI.refresh)recUI.refresh();}
 function setDelayTime(){if(!dL)return;const t=delayTime(),now=AC.currentTime;dL.delayTime.setTargetAtTime(t,now,.05);dR.delayTime.setTargetAtTime(t,now,.05);}
 function pickDelay(){openPick('DELAY · RYTMUS',DELAY_DIVS,delaySync?-1:delayDiv,i=>{
   delayDiv=i;delaySync=false;setDelayTime();updateFxLabels();});}
@@ -2746,7 +2806,11 @@ document.getElementById('btnRnd').addEventListener('click',()=>{
 document.getElementById('btnClr').addEventListener('click',clearSteps);
 const btnAcc=document.getElementById('btnAcc');
 btnAcc.addEventListener('click',()=>{accMode=!accMode;btnAcc.classList.toggle('on',accMode);
-  seqRows.classList.toggle('acc',accMode);});
+  seqRows.classList.toggle('acc',accMode);
+  if(accMode&&rollMode){rollMode=false;btnRoll.classList.remove('on');}});
+const btnRoll=document.getElementById('btnRoll');
+btnRoll.addEventListener('click',()=>{rollMode=!rollMode;btnRoll.classList.toggle('on',rollMode);
+  if(rollMode&&accMode){accMode=false;btnAcc.classList.remove('on');seqRows.classList.remove('acc');}});
 const btnSwing=document.getElementById('btnSwing');
 btnSwing.addEventListener('click',()=>{
   swing=SWINGS[(SWINGS.indexOf(swing)+1)%SWINGS.length];btnSwing.textContent='SWG '+swing;});
@@ -2878,22 +2942,159 @@ function recSec(){return loopSec()*recLoops();}
   const mount=document.getElementById('srecMount');
   mount.parentNode.insertBefore(b,mount);
 })();
+/* ── TAKES — a small player of what was recorded ───────────────────────────────
+   Every take keeps the audio AND the whole patch it was played from, snapshotted
+   on the downbeat the take starts on (not at the end — what you hear is what was
+   playing when it rolled). DO MATICE puts that patch back: steps, notes, accents,
+   all four patterns and the song order, the matrix, engines, mutes, tempo, swing,
+   filter, volume, arp, both LFOs, delay. Stored in this browser (IndexedDB), the
+   newest TAKES_MAX kept. A take from an older engine still loads, but is marked:
+   the patch is the asset, and a changed engine may not play it back the same. */
+const ENGINE_VERSION='sos-dj2-2026.11';
+const TAKES_MAX=30;
+let takePatch=null;
+function snapPatch(){
+  const scale=Object.keys(SCALES).find(k=>SCALES[k]===SCALE)||'minor';
+  return JSON.parse(JSON.stringify({
+    v:1,style:curStyle,styleName:STYLES[curStyle]?STYLES[curStyle].name:'',scale,maqam:curMaqamIdx,
+    steps:STEPS,group:groupMarks,groupKey,freeSteps,
+    pats:PATS.map(clonePat),patAuto,curPat,chain,song:songIdx,
+    matrix:state.map(r=>r.map(c=>({on:c.on,val:c.val}))),engines:engIdx,muted,
+    bpm,swing,filter:+fltSlider.value,vol:+masterSlider.value,gtrTone:GTR_TONE,
+    arp:{on:arpOn,chord:ARP_CHORDS[arpChord].id,shape:ARP_DIRS[arpDir].id,oct:arpOct,dbl:arpDbl,
+         div:ARP_DIVS[arpDiv].id,bas:basArp,gate:arpGate,len:arpLen},
+    lfo:LFOS.map(L=>({rate:LFO_RATES[L.rate].id,shape:LFO_SHAPES[L.shape].id,dest:LFO_DESTS[L.dest].id,depth:L.depth})),
+    delay:{div:DELAY_DIVS[delayDiv].id,fb:delayFbAmt,pp:delayPP,sync:delaySync}}));
+}
+function restorePatch(P){
+  if(!P||!P.pats||!P.matrix)return false;
+  ensureAudio();
+  SCALE=SCALES[P.scale]||SCALES.minor;curMaqamIdx=P.maqam||0;
+  groupMarks=P.group||null;groupKey=P.groupKey||'';freeSteps=P.freeSteps||16;
+  PATS.forEach((T,i)=>{const S=P.pats[i];if(!S)return;
+    Object.keys(T).forEach(k=>delete T[k]);Object.assign(T,JSON.parse(JSON.stringify(S)));});
+  (P.patAuto||[]).forEach((a,i)=>{patAuto[i]=!!a;});
+  setSteps(P.steps||16);                                 // same length as the saved arrays → rebuilds the grid only
+  Object.assign(engIdx,P.engines||{});
+  P.matrix.forEach((r,vi)=>r.forEach((c,ci)=>{const t=state[vi]&&state[vi][ci];if(t){t.on=!!c.on;t.val=c.val;}}));
+  (P.muted||[]).forEach((m,vi)=>{muted[vi]=!!m;if(muteEls[vi])muteEls[vi].classList.toggle('on',muted[vi]);});
+  VOICES.forEach((v,vi)=>COLS.forEach((c,ci)=>{applyParam(vi,ci);refreshPin(vi,ci);}));
+  bpm=P.bpm||124;bpmSlider.value=bpm;bpmValEl.textContent=bpm;
+  swing=P.swing!=null?P.swing:50;
+  fltSlider.value=P.filter!=null?P.filter:50;
+  if(P.vol!=null){masterSlider.value=P.vol;masterValEl.textContent=P.vol;if(master)master.gain.setTargetAtTime(P.vol/100,AC.currentTime,.02);}
+  GTR_TONE=P.gtrTone||0;
+  const a=P.arp||{};
+  arpOn=!!a.on;arpChord=idxById(ARP_CHORDS,a.chord,0);arpDir=idxById(ARP_DIRS,a.shape,0);arpOct=a.oct||1;
+  arpDbl=!!a.dbl;arpDiv=arpDivOf(a.div);basArp=!!a.bas;arpGate=a.gate!=null?a.gate:1;arpLen=a.len||4;
+  buildArpSeq();arpIdx=0;arpDblBtn.classList.toggle('on',arpDbl);
+  LFOS.forEach((L,i)=>{const d=(P.lfo||[])[i];if(!d)return;
+    L.rate=idxById(LFO_RATES,d.rate,L.rate);L.shape=idxById(LFO_SHAPES,d.shape,L.shape);
+    L.dest=idxById(LFO_DESTS,d.dest,L.dest);L.depth=d.depth||0;buildLfo(i);});
+  const d=P.delay||{};
+  delayDiv=delayDivOf(d.div);delayFbAmt=d.fb!=null?d.fb:.28;delayPP=!!d.pp;delaySync=!!d.sync;
+  chain=!!P.chain;btnChain.classList.toggle('on',chain);
+  setSong(P.song||0);
+  selectPat(P.curPat||0,false);
+  setDelayTime();applyDelayMode();applyFilter();setLfoRates();wireLfos();
+  refreshSteps();refreshEngineLabels();updateFxLabels();
+  curStyle=P.style!=null?P.style:-1;
+  document.querySelectorAll('.sty').forEach((b,i)=>b.classList.toggle('on',i===curStyle));
+  if(recUI&&recUI.refresh)recUI.refresh();
+  return true;
+}
+/* IndexedDB, with an in-memory fallback so a private window still has a player
+   for as long as the page is open */
+const TakeDB=(()=>{
+  let dbp=null;const mem=new Map();
+  function open(){
+    if(!dbp)dbp=new Promise((res,rej)=>{
+      try{const r=indexedDB.open('sosdj2-takes',1);
+        r.onupgradeneeded=()=>r.result.createObjectStore('takes',{keyPath:'id'});
+        r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}
+    }).catch(()=>null);
+    return dbp;}
+  function run(mode,fn){return open().then(db=>{
+    if(!db)return fn(null);
+    return new Promise((res,rej)=>{const t=db.transaction('takes',mode),q=fn(t.objectStore('takes'));
+      t.oncomplete=()=>res(q&&'result' in q?q.result:undefined);t.onerror=t.onabort=()=>rej(t.error);});});}
+  return {
+    all:()=>run('readonly',st=>st?st.getAll():{result:[...mem.values()]}),
+    put:o=>run('readwrite',st=>st?st.put(o):(mem.set(o.id,o),null)),
+    del:id=>run('readwrite',st=>st?st.delete(id):(mem.delete(id),null))};
+})();
+let takes=[],takeAudio=null,takeUrl=null,takePlaying=null,takeCur=null;
+const takesList=document.getElementById('takesList'),takesEmpty=document.getElementById('takesEmpty'),takesMsg=document.getElementById('takesMsg');
+function takeMsg(t){takesMsg.textContent=t||'';takesMsg.hidden=!t;}
+function fmtDur(s){s=Math.round(s||0);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
+function stopTake(){if(takeAudio)takeAudio.pause();takePlaying=null;renderTakes();}
+function playTake(t){
+  if(takePlaying===t.id){stopTake();return;}
+  if(playing)stop();                                      // one thing at a time on the speakers
+  if(!takeAudio){takeAudio=new Audio();takeAudio.addEventListener('ended',()=>{takePlaying=null;renderTakes();});}
+  if(takeUrl)URL.revokeObjectURL(takeUrl);
+  takeUrl=URL.createObjectURL(t.blob);takeAudio.src=takeUrl;
+  takeAudio.play().catch(()=>{});takePlaying=t.id;renderTakes();
+}
+function loadTake(t){
+  if(takeAudio)takeAudio.pause();takePlaying=null;
+  if(!restorePatch(t.patch)){takeMsg('Tenhle záběr nemá uložený patch.');renderTakes();return;}
+  takeCur=t.id;
+  takeMsg(t.engineVersion!==ENGINE_VERSION?'Záběr je ze starší verze enginu ('+t.engineVersion+') — nastavení je zpátky, ale nemusí znít úplně stejně.':'');
+  if(!playing)play();
+  renderTakes();
+}
+function renderTakes(){
+  takesList.textContent='';
+  takesEmpty.hidden=takes.length>0;
+  takes.forEach(t=>{
+    const row=document.createElement('div');row.className='take'+(t.id===takeCur?' cur':'');
+    const pb=document.createElement('button');pb.type='button';pb.className='tPlay'+(takePlaying===t.id?' on':'');
+    pb.textContent=takePlaying===t.id?'■':'▶';pb.title='Přehrát záběr';pb.addEventListener('click',()=>playTake(t));
+    const m=document.createElement('div');m.className='tMeta';
+    const b=document.createElement('b');b.textContent='#'+t.n+' · '+((t.patch&&t.patch.styleName)||'VLASTNÍ');
+    const sm=document.createElement('small');
+    const when=new Date(t.ts);
+    sm.textContent=((t.patch&&t.patch.bpm)||'?')+' BPM · '+fmtDur(t.sec)+' · '+when.toLocaleDateString('cs-CZ',{day:'numeric',month:'numeric'})+' '+when.toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit'});
+    if(t.engineVersion!==ENGINE_VERSION){const i=document.createElement('i');i.textContent=' · starší engine';sm.appendChild(i);}
+    m.appendChild(b);m.appendChild(sm);
+    const lb=document.createElement('button');lb.type='button';lb.className='tbtn';lb.textContent='DO MATICE';
+    lb.title='Vrátit nastavení záběru do matice a hrát';lb.disabled=!t.patch;lb.addEventListener('click',()=>loadTake(t));
+    const db=document.createElement('button');db.type='button';db.className='tDel';db.textContent='✕';db.title='Smazat záběr';
+    db.addEventListener('click',()=>{                     // two taps: first arms, second deletes
+      if(!db.classList.contains('arm')){db.classList.add('arm');db.textContent='SMAZAT?';
+        setTimeout(()=>{db.classList.remove('arm');db.textContent='✕';},2500);return;}
+      if(takePlaying===t.id)stopTake();
+      takes=takes.filter(x=>x.id!==t.id);TakeDB.del(t.id).catch(()=>{});renderTakes();});
+    row.appendChild(pb);row.appendChild(m);row.appendChild(lb);row.appendChild(db);
+    takesList.appendChild(row);
+  });
+}
+function addTake(tk){
+  if(!tk||!tk.blob)return;
+  const n=takes.reduce((a,t)=>Math.max(a,t.n||0),0)+1;
+  const t={id:tk.ts+'-'+Math.random().toString(36).slice(2,7),n,ts:tk.ts,blob:tk.blob,patch:tk.patch||null,
+           engineVersion:tk.engineVersion,sec:tk.sec};
+  takes.unshift(t);
+  TakeDB.put(t).catch(()=>takeMsg('Záběr se nepodařilo uložit — zůstane jen do zavření stránky.'));
+  while(takes.length>TAKES_MAX){const old=takes.pop();TakeDB.del(old.id).catch(()=>{});}
+  takeCur=t.id;renderTakes();
+}
+TakeDB.all().then(list=>{takes=(list||[]).sort((a,b)=>b.ts-a.ts);renderTakes();}).catch(()=>renderTakes());
+playBtn.addEventListener('click',()=>{if(takePlaying)stopTake();});   // the live box and a take never talk over each other
+
 const sosRec=(window.SynthiRecord?SynthiRecord.mount({
   container:'srecMount',
   getContext:()=>AC,
   getTap:()=>recTap,
   ensureAudio:ensureAudio,
-  getPatch:()=>({matrix:state,pats:PATS,bpm,engines:engIdx,steps:STEPS,pat:curPat,chain,song:SONGS[songIdx].n,muted,swing,filter:+document.getElementById('fltSlider').value,
-    arp:{on:arpOn,chord:ARP_CHORDS[arpChord].id,shape:ARP_DIRS[arpDir].id,oct:arpOct,dbl:arpDbl,
-         div:ARP_DIVS[arpDiv].id,bas:basArp,gate:arpGate,len:arpLen},
-    lfo:LFOS.map(L=>({rate:LFO_RATES[L.rate].id,shape:LFO_SHAPES[L.shape].id,
-                      dest:LFO_DESTS[L.dest].id,depth:L.depth})),
-    delay:{div:DELAY_DIVS[delayDiv].id,fb:delayFbAmt,pp:delayPP,sync:delaySync}}),
+  getPatch:()=>takePatch||snapPatch(),
+  onTake:tk=>{takePatch=null;addTake(tk);},
   /* A DIFFERENT engine id from sos-dj.html on purpose. A patch is the asset and
      the audio is only a cache, so a patch saved here must never be replayed
      through the other page's engine — the LFOs, the synced delay and the extra
      voices simply do not exist there. */
-  engineVersion:'sos-dj2-2026.11',
+  engineVersion:ENGINE_VERSION,
   /* A clip has to be a whole number of loops to the sample, or it will not
      loop. maxSec is only the capture window; exactSec is the musical length the
      WAV master gets cut to, measured from the downbeat syncStart returns. The
@@ -2913,13 +3114,13 @@ const sosRec=(window.SynthiRecord?SynthiRecord.mount({
          every step inside its 100ms lookahead — so nextTime already points past
          the downbeat. nextTime is the time of step curStep, so step 0 is this: */
       const first=nextTime-curStep*stepDur();
-      setTimeout(()=>res(first),Math.max(0,(first-AC.currentTime-REC_LEAD)*1000));
+      setTimeout(()=>{takePatch=snapPatch();res(first);},Math.max(0,(first-AC.currentTime-REC_LEAD)*1000));
       return;
     }
     let target=nextTime+((STEPS-curStep)%STEPS)*stepDur();
     // chained: each wrap advances the SONG, so wait for the one that lands on its first bar
     if(chain){const len=songOrder().length;target+=((len-1-songPos+len)%len)*STEPS*stepDur();}
-    setTimeout(()=>res(target),Math.max(0,(target-AC.currentTime-REC_LEAD)*1000));
+    setTimeout(()=>{takePatch=snapPatch();res(target);},Math.max(0,(target-AC.currentTime-REC_LEAD)*1000));
   }),
   share:{
     filenamePrefix:'pixel-sos-dj-2',

@@ -23,7 +23,9 @@
        exactSec: () => seconds,             // optional: musical length to trim the WAV to
        syncStart: () => Promise<number?>,   // optional: resolve when it's time to roll,
                                             //   returning the downbeat's audio-clock time
-       share: { text, url, hashtags, filenamePrefix }
+       share: { text, url, hashtags, filenamePrefix },
+       onTake: (take) => {}                 // optional: called once per finished take with
+                                            //   { blob, patch, engineVersion, ts, sec }
      });
      rec.enable(true|false);   // toggle the REC button with audio on/off
    ───────────────────────────────────────────────────────────── */
@@ -228,6 +230,9 @@
         lastUrl = URL.createObjectURL(lastBlob);
         audio.src = lastUrl;
         result.classList.add("on");
+        if (cfg.onTake) {
+          try { cfg.onTake({ blob: lastBlob, patch: lastPatch, engineVersion: engineVersion, ts: lastTs, sec: exactSecNow() || maxSecNow() }); } catch (e) {}
+        }
       };
       // ARM: hold until the host says it is musically time to roll (loop downbeat),
       // so the clip starts on beat 1 and can loop seamlessly.
