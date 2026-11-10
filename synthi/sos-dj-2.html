@@ -302,7 +302,7 @@ body{
     <div class="panelHead">
       <div class="phLeft"><button class="play" id="play" data-on="0" aria-label="Play"><span class="ico"></span></button><b>Patch Matrix</b></div>
       <div class="transport">
-        <div class="meter" id="meter" title="Master — sloupec je výstup, OVER je mix PŘED limiterem">
+        <div class="meter" id="meter" title="Master — the bar is the output, OVER is the mix BEFORE the limiter">
           <div class="mBar" role="meter" aria-label="Master level"><i id="mFill"></i><i id="mPeak"></i></div>
           <b class="over" id="mOver">OVER</b>
         </div>
@@ -321,42 +321,42 @@ body{
     <div class="panelBody fxBody">
       <div class="fxRow">
         <span class="fxLab">DELAY</span>
-        <button class="tbtn" id="dlyTime" title="Délka delaye — 16 hodnot včetně triol a kvintol">1/8</button>
-        <button class="tbtn" id="dlySync" title="Echo jede v rytmu arpeggia (ARP RATE)">SYNC·ARP</button>
+        <button class="tbtn" id="dlyTime" title="Delay time — 16 values incl. triplets and quintuplets">1/8</button>
+        <button class="tbtn" id="dlySync" title="Echo follows the arp rhythm (ARP RATE)">SYNC·ARP</button>
         <button class="tbtn" id="dlyPP" title="Ping-pong stereo">PING·PONG</button>
         <label class="fxSlide"><span>FB</span><input id="dlyFb" type="range" min="0" max="90" value="28" aria-label="Delay feedback"><b id="dlyFbVal">28</b></label>
       </div>
       <div class="fxRow">
         <span class="fxLab">ARP</span>
-        <button class="tbtn" id="btnArp" title="Arpeggiator — hraje na STAB kroky">OFF</button>
-        <button class="tbtn" id="arpChord" title="Akord — které tóny arpeggio rozkládá (MIN7, MAJ9, SUS4…)">TRIAD</button>
-        <button class="tbtn" id="arpDir" title="Tvar — v jakém pořadí ty tóny jdou">UP</button>
-        <button class="tbtn" id="arpRate" title="Rytmus arpeggia — 1/12 je triola, 1/20 kvintola">1/8</button>
-        <button class="tbtn" id="arpOct" title="Rozsah oktáv">OCT 1</button>
+        <button class="tbtn" id="btnArp" title="Arpeggiator — plays on STAB steps">OFF</button>
+        <button class="tbtn" id="arpChord" title="Chord — which notes the arp spreads (MIN7, MAJ9, SUS4…)">TRIAD</button>
+        <button class="tbtn" id="arpDir" title="Shape — the order the notes are played in">UP</button>
+        <button class="tbtn" id="arpRate" title="Arp rhythm — 1/12 is a triplet, 1/20 a quintuplet">1/8</button>
+        <button class="tbtn" id="arpOct" title="Octave range">OCT 1</button>
       </div>
       <div class="fxRow">
         <span class="fxLab"></span>
-        <button class="tbtn" id="arpDbl" title="Druhý hlas — harmonie z téhož akordu">DBL</button>
-        <button class="tbtn" id="btnBasArp" title="Arpeggio pro basu — rozkládá basový tón na oktávy/kvinty">B·ARP</button>
-        <label class="fxSlide gtSlide"><span>GT</span><input id="arpGate" type="range" min="5" max="100" step="1" value="100" aria-label="Arp gate — délka každého tónu"><b id="arpGateVal">100</b></label>
+        <button class="tbtn" id="arpDbl" title="Second voice — harmony from the same chord">DBL</button>
+        <button class="tbtn" id="btnBasArp" title="Bass arpeggio — rolls the bass note through octaves/fifths">B·ARP</button>
+        <label class="fxSlide gtSlide"><span>GT</span><input id="arpGate" type="range" min="5" max="100" step="1" value="100" aria-label="Arp gate — length of each note"><b id="arpGateVal">100</b></label>
       </div>
       <div class="fxRow">
         <span class="fxLab"></span>
-        <label class="fxSlide gtSlide"><span>DÉLKA</span><input id="arpLen" type="range" min="1" max="16" step="1" value="4" aria-label="Arp délka — kolik kroků hraje jedna nakreslená nota"><b id="arpLenVal">4</b></label>
+        <label class="fxSlide gtSlide"><span>LEN</span><input id="arpLen" type="range" min="1" max="16" step="1" value="4" aria-label="Arp length — how many steps one drawn note rolls"><b id="arpLenVal">4</b></label>
       </div>
       <div class="fxRow">
         <span class="fxLab">LFO 1</span>
-        <button class="tbtn" id="lfo1Rate" title="Rychlost — synced k BPM, včetně triol">1/4</button>
-        <button class="tbtn" id="lfo1Shape" title="Tvar vlny">∿ SINE</button>
-        <button class="tbtn" id="lfo1Dest" title="Co LFO hýbe">FILTR</button>
-        <label class="fxSlide gtSlide"><span>HLBK</span><input id="lfo1Depth" type="range" min="0" max="100" value="0" aria-label="LFO 1 hloubka"><b id="lfo1DepthVal">0</b></label>
+        <button class="tbtn" id="lfo1Rate" title="Rate — synced to BPM, incl. triplets">1/4</button>
+        <button class="tbtn" id="lfo1Shape" title="Waveform">∿ SINE</button>
+        <button class="tbtn" id="lfo1Dest" title="What the LFO moves">FILTER</button>
+        <label class="fxSlide gtSlide"><span>DEPTH</span><input id="lfo1Depth" type="range" min="0" max="100" value="0" aria-label="LFO 1 depth"><b id="lfo1DepthVal">0</b></label>
       </div>
       <div class="fxRow">
         <span class="fxLab">LFO 2</span>
-        <button class="tbtn" id="lfo2Rate" title="Rychlost — synced k BPM, včetně triol">1/8</button>
-        <button class="tbtn" id="lfo2Shape" title="Tvar vlny">⊓ SQR</button>
-        <button class="tbtn" id="lfo2Dest" title="Co LFO hýbe">PAN</button>
-        <label class="fxSlide gtSlide"><span>HLBK</span><input id="lfo2Depth" type="range" min="0" max="100" value="0" aria-label="LFO 2 hloubka"><b id="lfo2DepthVal">0</b></label>
+        <button class="tbtn" id="lfo2Rate" title="Rate — synced to BPM, incl. triplets">1/8</button>
+        <button class="tbtn" id="lfo2Shape" title="Waveform">⊓ SQR</button>
+        <button class="tbtn" id="lfo2Dest" title="What the LFO moves">PAN</button>
+        <label class="fxSlide gtSlide"><span>DEPTH</span><input id="lfo2Depth" type="range" min="0" max="100" value="0" aria-label="LFO 2 depth"><b id="lfo2DepthVal">0</b></label>
       </div>
     </div>
   </section>
@@ -366,37 +366,37 @@ body{
       <b>Sequencer</b>
       <div class="tools">
         <button class="tbtn" id="btnAB" title="Pattern A / B / C / D">PAT A</button>
-        <button class="tbtn" id="btnChain" title="Řetězit patterny podle SONG">CHAIN</button>
-        <button class="tbtn" id="btnSong" title="Pořadí patternů v řetězu">A·B</button>
-        <button class="tbtn" id="btnMut" title="Zmutuj tenhle pattern — krok stranou, ne nový groove">MUT</button>
-        <button class="tbtn" id="btnUndo" title="Zpět (RND / styl / MUT / CLR)">↶</button>
-        <button class="tbtn" id="btnLen" title="Počet kroků 8/16/32/64">LEN 16</button>
-        <button class="tbtn" id="btnAcc" title="Akcenty — táhni ↕ po kroku a nastav jeho důraz">ACC</button>
-        <button class="tbtn" id="btnRoll" title="Roll — ťukáním na krok: ×2 (1/32) · ×3 · ×4 (1/64) · ×6 · ×8 · T (1/16 triola přes dva kroky)">ROLL</button>
-        <button class="tbtn" id="btnSwing" title="Swing — 50 rovně, 66 triolový shuffle">SWG 50</button>
-        <button class="tbtn" id="btnRnd" title="Náhodný groove">🎲 RND</button>
-        <button class="tbtn" id="btnClr" title="Smazat kroky">CLR</button>
+        <button class="tbtn" id="btnChain" title="Chain patterns in SONG order">CHAIN</button>
+        <button class="tbtn" id="btnSong" title="Pattern order in the chain">A·B</button>
+        <button class="tbtn" id="btnMut" title="Mutate this pattern — a step sideways, not a new groove">MUT</button>
+        <button class="tbtn" id="btnUndo" title="Undo (RND / style / MUT / CLR)">↶</button>
+        <button class="tbtn" id="btnLen" title="Steps 8/16/32/64">LEN 16</button>
+        <button class="tbtn" id="btnAcc" title="Accents — drag ↕ on a step to set its weight">ACC</button>
+        <button class="tbtn" id="btnRoll" title="Roll — tap a step: ×2 (1/32) · ×3 · ×4 (1/64) · ×6 · ×8 · T (1/16 triplet across two steps)">ROLL</button>
+        <button class="tbtn" id="btnSwing" title="Swing — 50 straight, 66 triplet shuffle">SWG 50</button>
+        <button class="tbtn" id="btnRnd" title="Random groove">🎲 RND</button>
+        <button class="tbtn" id="btnClr" title="Clear steps">CLR</button>
       </div>
     </div>
     <div class="panelBody"><div id="seqRows"></div></div>
   </section>
 
   <section class="panel" id="takesPanel">
-    <div class="panelHead"><b>Nahrávky</b></div>
+    <div class="panelHead"><b>Takes</b></div>
     <div class="panelBody">
       <div class="takes" id="takesList"></div>
-      <p class="takesEmpty" id="takesEmpty">Nahraj něco přes ● REC — záběr se tu objeví i s celým nastavením. <b>DO MATICE</b> ho vrátí do patche a hraje dál.</p>
+      <p class="takesEmpty" id="takesEmpty">Record with ● REC — the take lands here with its whole patch. <b>LOAD</b> puts it back into the matrix and plays on.</p>
       <p class="takesMsg" id="takesMsg" hidden></p>
     </div>
   </section>
 
-  <p class="foot">Ťukni na pin → vyjede knob → táhni pro hodnotu. <b>Create, not mint.</b></p>
+  <p class="foot">Tap a pin → a knob rises → drag to set it. <b>Create, not mint.</b></p>
 </div>
 
 <div class="scrim" id="scrim"></div>
 <div class="pickLayer" id="pickLayer" hidden>
   <div class="pickSheet">
-    <div class="pickHead"><b id="pickTitle">CHORD</b><i>ťukni pro výběr · vedle pro zavření</i></div>
+    <div class="pickHead"><b id="pickTitle">CHORD</b><i>tap to choose · tap outside to close</i></div>
     <div class="pickBox" id="pickBox"></div>
   </div>
 </div>
@@ -410,7 +410,7 @@ body{
     <div class="val" id="knobVal">0</div>
   </div>
 </div>
-<div class="hint" id="hint" style="display:none">táhni ↑ / ↓ · ťukni vedle pro zavření</div>
+<div class="hint" id="hint" style="display:none">drag ↑ / ↓ · tap outside to close</div>
 
 <script src="/js/share.js"></script>
 <script src="/js/synthi-record.js"></script>
@@ -448,8 +448,8 @@ const COLS=[
   {id:'LPF',name:'LOPASS',sub:'cut'},
   {id:'DLY',name:'DELAY',sub:'send'},
   {id:'RVB',name:'REVERB',sub:'send'},
-  {id:'DRV',name:'DRIVE',sub:'sytost'},
-  {id:'DST',name:'DIST',sub:'zkresl'},
+  {id:'DRV',name:'DRIVE',sub:'satur'},
+  {id:'DST',name:'DIST',sub:'fuzz'},
   {id:'TUN',name:'TUNE',sub:'note'},
 ];
 const TUNCI=COLS.findIndex(c=>c.id==='TUN');
@@ -547,22 +547,22 @@ function melDeg(id,step){const arr=patterns.notes&&patterns.notes[id];return (ar
    of the time — hence SYNC·ARP below. Sixteen is too many to tap through, so
    DELAY opens the pick sheet like CHORD/SHAPE/RATE do. */
 const DELAY_DIVS=[
-  {id:'1/32',n:'1/32',d:'dvaatřicetiny',          b:.125},
-  {id:'1/24',n:'1/24',d:'šestnáctinová triola',   b:1/6},
-  {id:'1/20',n:'1/20',d:'šestnáctinová kvintola', b:.2},
-  {id:'1/16',n:'1/16',d:'šestnáctiny',            b:.25},
-  {id:'1/12',n:'1/12',d:'osminová triola',        b:1/3},
-  {id:'3/32',n:'3/32',d:'tečkovaná šestnáctina',  b:.375},
-  {id:'1/10',n:'1/10',d:'osminová kvintola',      b:.4},
-  {id:'1/8', n:'1/8', d:'osminy',                 b:.5},
-  {id:'1/6', n:'1/6', d:'čtvrťová triola',        b:2/3},
-  {id:'3/16',n:'3/16',d:'tečkovaná osmina',       b:.75},
-  {id:'1/4', n:'1/4', d:'čtvrťky',                b:1},
-  {id:'1/3', n:'1/3', d:'půlová triola',          b:4/3},
-  {id:'3/8', n:'3/8', d:'tečkovaná čtvrťka',      b:1.5},
-  {id:'1/2', n:'1/2', d:'půlová',                 b:2},
-  {id:'3/4', n:'3/4', d:'tečkovaná půlová',       b:3},
-  {id:'1/1', n:'1/1', d:'celý takt',              b:4},
+  {id:'1/32',n:'1/32',d:'32nds',          b:.125},
+  {id:'1/24',n:'1/24',d:'16th triplet',   b:1/6},
+  {id:'1/20',n:'1/20',d:'16th quintuplet', b:.2},
+  {id:'1/16',n:'1/16',d:'16ths',            b:.25},
+  {id:'1/12',n:'1/12',d:'8th triplet',        b:1/3},
+  {id:'3/32',n:'3/32',d:'dotted 16th',  b:.375},
+  {id:'1/10',n:'1/10',d:'8th quintuplet',      b:.4},
+  {id:'1/8', n:'1/8', d:'8ths',                 b:.5},
+  {id:'1/6', n:'1/6', d:'quarter triplet',        b:2/3},
+  {id:'3/16',n:'3/16',d:'dotted 8th',       b:.75},
+  {id:'1/4', n:'1/4', d:'quarters',                b:1},
+  {id:'1/3', n:'1/3', d:'half triplet',          b:4/3},
+  {id:'3/8', n:'3/8', d:'dotted quarter',      b:1.5},
+  {id:'1/2', n:'1/2', d:'half',                 b:2},
+  {id:'3/4', n:'3/4', d:'dotted half',       b:3},
+  {id:'1/1', n:'1/1', d:'whole bar',              b:4},
 ];
 /* styles — and patches taken before the list grew — name a delay by the index it
    had when there were seven: 1/16, 1/8T, 1/8, 1/8., 1/4, 1/4., 1/2 */
@@ -857,7 +857,7 @@ function applyStyle(idx){
   refreshSteps();refreshEngineLabels();updateFxLabels();syncAutoPats();
   if(recUI&&recUI.refresh)recUI.refresh();
   curStyle=idx;document.querySelectorAll('.sty').forEach((b,i)=>b.classList.toggle('on',i===idx));
-  const rb=document.getElementById('btnRnd');if(rb){rb.textContent='🎲 VARY';rb.title='Variace v rámci stylu '+S.name;}
+  const rb=document.getElementById('btnRnd');if(rb){rb.textContent='🎲 VARY';rb.title='Variation within '+S.name;}
 }
 /* keep the FX-rack + transport buttons in sync after a style loads them */
 function updateFxLabels(){
@@ -893,30 +893,30 @@ function updateFxLabels(){
    modulated delay = vibrato on the whole mix), level (tremolo) or pan. Depth 0
    leaves every stage transparent, so an untouched LFO costs nothing. */
 const LFO_RATES=[
-  {id:'4b',  n:'4 TAKTY',d:'velmi pomalu — dech',   b:16},
-  {id:'2b',  n:'2 TAKTY',d:'pomalu',                b:8},
-  {id:'1b',  n:'1 TAKT',  d:'jeden takt na cyklus', b:4},
-  {id:'1/2', n:'1/2',     d:'půlová',               b:2},
-  {id:'1/4', n:'1/4',     d:'čtvrťová — na beat',   b:1},
-  {id:'1/4T',n:'1/4T',    d:'čtvrťová triola',      b:2/3},
-  {id:'1/8', n:'1/8',     d:'osminová',             b:.5},
-  {id:'1/8T',n:'1/8T',    d:'osminová triola',      b:1/3},
-  {id:'1/16',n:'1/16',    d:'šestnáctinová',        b:.25},
-  {id:'1/16T',n:'1/16T',  d:'šestnáctinová triola', b:1/6},
-  {id:'1/32',n:'1/32',    d:'na hraně slyšitelnosti',b:.125},
+  {id:'4b',  n:'4 BARS',d:'very slow — a breath',   b:16},
+  {id:'2b',  n:'2 BARS',d:'slow',                b:8},
+  {id:'1b',  n:'1 BAR',  d:'one bar per cycle', b:4},
+  {id:'1/2', n:'1/2',     d:'half',               b:2},
+  {id:'1/4', n:'1/4',     d:'quarter — on the beat',   b:1},
+  {id:'1/4T',n:'1/4T',    d:'quarter triplet',      b:2/3},
+  {id:'1/8', n:'1/8',     d:'8th',             b:.5},
+  {id:'1/8T',n:'1/8T',    d:'8th triplet',      b:1/3},
+  {id:'1/16',n:'1/16',    d:'16th',        b:.25},
+  {id:'1/16T',n:'1/16T',  d:'16th triplet', b:1/6},
+  {id:'1/32',n:'1/32',    d:'at the edge of hearing',b:.125},
 ];
 const LFO_SHAPES=[
-  {id:'sine',n:'∿ SINE',d:'plynule tam a zpět',      w:'sine'},
-  {id:'tri', n:'△ TRI', d:'lineárně — ostřejší vrchol',w:'triangle'},
-  {id:'saw', n:'◺ SAW', d:'nahoru a skok zpět',      w:'sawtooth'},
-  {id:'sqr', n:'⊓ SQR', d:'přepíná mezi dvěma stavy',w:'square'},
-  {id:'sh',  n:'⌁ S&H', d:'náhodná hodnota, drží cyklus',w:null},
+  {id:'sine',n:'∿ SINE',d:'smoothly there and back',      w:'sine'},
+  {id:'tri', n:'△ TRI', d:'linear — a sharper peak',w:'triangle'},
+  {id:'saw', n:'◺ SAW', d:'up, then a jump back',      w:'sawtooth'},
+  {id:'sqr', n:'⊓ SQR', d:'flips between two states',w:'square'},
+  {id:'sh',  n:'⌁ S&H', d:'random value, held for a cycle',w:null},
 ];
 const LFO_DESTS=[
-  {id:'filt', n:'FILTR',d:'zavírá a otevírá filtr celého mixu'},
-  {id:'pitch',n:'PITCH',d:'vibrato — rozladí celý mix'},
-  {id:'level',n:'LEVEL',d:'tremolo — hlasitost'},
-  {id:'pan',  n:'PAN',  d:'pohyb ve stereu'},
+  {id:'filt', n:'FILTER',d:'opens and closes the filter on the whole mix'},
+  {id:'pitch',n:'PITCH',d:'vibrato — detunes the whole mix'},
+  {id:'level',n:'LEVEL',d:'tremolo — volume'},
+  {id:'pan',  n:'PAN',  d:'movement across the stereo field'},
 ];
 const LFOS=[{rate:4,shape:0,dest:0,depth:0},{rate:6,shape:3,dest:3,depth:0}];
 const lfoNodes=[null,null];
@@ -2119,51 +2119,51 @@ function swingOff(step){return (step%2)?stepDur()*(2*swing/100-1):0;}
      c = SEMITONES      — a real chord quality, identical in every mode (12 = octave)
    Pools marked x are the deliberately odd ones — they do not want to resolve. */
 const ARP_CHORDS=[
-  {id:'triad',n:'TRIAD', d:'1·3·5 v dané stupnici',      s:[0,2,4]},
-  {id:'sev',  n:'7th',   d:'1·3·5·7 v dané stupnici',    s:[0,2,4,6]},
-  {id:'oct',  n:'OCT·5', d:'základ · kvinta · oktáva',   s:[0,4,7]},
-  {id:'scale',n:'SCALE', d:'běh celým módem',            s:[0,1,2,3,4,5,6]},
-  {id:'min7', n:'MIN7',  d:'1·♭3·5·♭7 — mollová sedmička', c:[0,3,7,10]},
+  {id:'triad',n:'TRIAD', d:'1·3·5 in the current scale',      s:[0,2,4]},
+  {id:'sev',  n:'7th',   d:'1·3·5·7 in the current scale',    s:[0,2,4,6]},
+  {id:'oct',  n:'OCT·5', d:'root · fifth · octave',   s:[0,4,7]},
+  {id:'scale',n:'SCALE', d:'a run through the whole mode',            s:[0,1,2,3,4,5,6]},
+  {id:'min7', n:'MIN7',  d:'1·♭3·5·♭7 — minor seventh', c:[0,3,7,10]},
   {id:'min9', n:'MIN9',  d:'1·♭3·5·♭7·9',                c:[0,3,7,10,14]},
-  {id:'maj7', n:'MAJ7',  d:'1·3·5·7 — velká sedmička',   c:[0,4,7,11]},
+  {id:'maj7', n:'MAJ7',  d:'1·3·5·7 — major seventh',   c:[0,4,7,11]},
   {id:'maj9', n:'MAJ9',  d:'1·3·5·7·9',                  c:[0,4,7,11,14]},
-  {id:'dom7', n:'DOM7',  d:'1·3·5·♭7 — dominanta',       c:[0,4,7,10]},
-  {id:'six9', n:'6/9',   d:'1·3·5·6·9 — otevřený',       c:[0,4,7,9,14]},
-  {id:'sus4', n:'SUS4',  d:'1·4·5·♭7 — bez terce',       c:[0,5,7,10]},
-  {id:'hdim', n:'ø7',    d:'1·♭3·♭5·♭7 — polozmenšený',  c:[0,3,6,10]},
-  {id:'dim7', n:'DIM7',  d:'malé terce na sobě',         c:[0,3,6,9]},
-  {id:'aug',  n:'AUG',   d:'velké terce na sobě',        c:[0,4,8]},
-  {id:'penta',n:'PENTA', d:'mollová pentatonika',        c:[0,3,5,7,10]},
-  {id:'quart',n:'QUART', d:'kvarty na sobě',             c:[0,5,10,15],x:1},
-  {id:'whole',n:'WHOLE', d:'celotónový — bez domova',    c:[0,2,4,6,8,10],x:1},
-  {id:'chrom',n:'CHROM', d:'chromatický klastr',         c:[0,1,2,3,4],x:1},
-  {id:'harm', n:'HARM',  d:'harmonická řada',            c:[0,12,19,24,28,31],x:1},
+  {id:'dom7', n:'DOM7',  d:'1·3·5·♭7 — dominant',       c:[0,4,7,10]},
+  {id:'six9', n:'6/9',   d:'1·3·5·6·9 — open',       c:[0,4,7,9,14]},
+  {id:'sus4', n:'SUS4',  d:'1·4·5·♭7 — no third',       c:[0,5,7,10]},
+  {id:'hdim', n:'ø7',    d:'1·♭3·♭5·♭7 — half-diminished',  c:[0,3,6,10]},
+  {id:'dim7', n:'DIM7',  d:'stacked minor thirds',         c:[0,3,6,9]},
+  {id:'aug',  n:'AUG',   d:'stacked major thirds',        c:[0,4,8]},
+  {id:'penta',n:'PENTA', d:'minor pentatonic',        c:[0,3,5,7,10]},
+  {id:'quart',n:'QUART', d:'stacked fourths',             c:[0,5,10,15],x:1},
+  {id:'whole',n:'WHOLE', d:'whole-tone — no home key',    c:[0,2,4,6,8,10],x:1},
+  {id:'chrom',n:'CHROM', d:'chromatic cluster',         c:[0,1,2,3,4],x:1},
+  {id:'harm', n:'HARM',  d:'harmonic series',            c:[0,12,19,24,28,31],x:1},
 ];
 const ARP_DIRS=[
-  {id:'up',   n:'UP',    d:'zdola nahoru'},
-  {id:'dn',   n:'DN',    d:'shora dolů'},
-  {id:'updn', n:'UP·DN', d:'nahoru a zpět'},
-  {id:'dnup', n:'DN·UP', d:'dolů a zpět'},
-  {id:'inout',n:'IN·OUT',d:'od krajů ke středu'},
-  {id:'thumb',n:'THUMB', d:'základ mezi každým tónem'},
-  {id:'rand', n:'RAND',  d:'volně z akordu'},
-  {id:'walk', n:'WALK',  d:'náhodná chůze po akordu',x:1},
+  {id:'up',   n:'UP',    d:'bottom to top'},
+  {id:'dn',   n:'DN',    d:'top to bottom'},
+  {id:'updn', n:'UP·DN', d:'up and back'},
+  {id:'dnup', n:'DN·UP', d:'down and back'},
+  {id:'inout',n:'IN·OUT',d:'from the edges inward'},
+  {id:'thumb',n:'THUMB', d:'the root between every note'},
+  {id:'rand', n:'RAND',  d:'freely from the chord'},
+  {id:'walk', n:'WALK',  d:'a random walk through the chord',x:1},
 ];
 /* RHYTHM as a beat fraction (b); 1 beat = a 1/4 note. Named by note value, so
    1/12 is an 8th triplet and 1/20 a 16th quintuplet — the odd divisions are what
    stop an arp sounding like a metronome. Ordered fastest → slowest. */
 const ARP_DIVS=[
-  {id:'1/32',n:'1/32',d:'dvaatřicetiny',    b:.125},
-  {id:'1/24',n:'1/24',d:'šestnáctinová triola', b:1/6},
-  {id:'1/20',n:'1/20',d:'šestnáctinová kvintola', b:.2},
-  {id:'1/16',n:'1/16',d:'šestnáctiny',      b:.25},
-  {id:'1/12',n:'1/12',d:'osminová triola',  b:1/3},
-  {id:'3/32',n:'3/32',d:'tečkovaná šestnáctina', b:.375},
-  {id:'1/10',n:'1/10',d:'osminová kvintola',b:.4},
-  {id:'1/8', n:'1/8', d:'osminy',           b:.5},
-  {id:'1/6', n:'1/6', d:'čtvrťová triola',  b:2/3},
-  {id:'3/16',n:'3/16',d:'tečkovaná osmina', b:.75},
-  {id:'1/4', n:'1/4', d:'čtvrťky',          b:1},
+  {id:'1/32',n:'1/32',d:'32nds',    b:.125},
+  {id:'1/24',n:'1/24',d:'16th triplet', b:1/6},
+  {id:'1/20',n:'1/20',d:'16th quintuplet', b:.2},
+  {id:'1/16',n:'1/16',d:'16ths',      b:.25},
+  {id:'1/12',n:'1/12',d:'8th triplet',  b:1/3},
+  {id:'3/32',n:'3/32',d:'dotted 16th', b:.375},
+  {id:'1/10',n:'1/10',d:'8th quintuplet',b:.4},
+  {id:'1/8', n:'1/8', d:'8ths',           b:.5},
+  {id:'1/6', n:'1/6', d:'quarter triplet',  b:2/3},
+  {id:'3/16',n:'3/16',d:'dotted 8th', b:.75},
+  {id:'1/4', n:'1/4', d:'quarters',          b:1},
 ];
 const BASARP_SHAPE=[0,7,0,4];   // bass arp ripple = root / octave / root / fifth (scale degrees)
 /* Styles — and patch snapshots taken before the split — name an arp by the index
@@ -2293,13 +2293,13 @@ function el(t,c){const e=document.createElement(t);if(c)e.className=c;return e;}
 (function buildGrid(){
   grid.appendChild(el('div'));
   COLS.forEach(c=>{const d=el('div','col-lab');d.innerHTML=`${c.name}<small>${c.sub}</small>`;
-    if(c.id==='DLY'){d.classList.add('clik');d.title='Délka delaye';delaySmallEl=d.querySelector('small');delaySmallEl.textContent=delaySync?'ARP':DELAY_DIVS[delayDiv].n;d.addEventListener('click',pickDelay);}
+    if(c.id==='DLY'){d.classList.add('clik');d.title='Delay time';delaySmallEl=d.querySelector('small');delaySmallEl.textContent=delaySync?'ARP':DELAY_DIVS[delayDiv].n;d.addEventListener('click',pickDelay);}
     grid.appendChild(d);});
   VOICES.forEach((v,vi)=>{
-    const rl=el('div','row-lab');rl.setAttribute('role','button');rl.tabIndex=0;rl.title='Změň nástroj';
+    const rl=el('div','row-lab');rl.setAttribute('role','button');rl.tabIndex=0;rl.title='Change instrument';
     rl.innerHTML=`<span class="vn">${v.name}</span><span class="ve"></span>`+
       `<span class="vctl"><b class="mute" role="button" tabindex="0" title="Mute ${v.name}">M</b>`+
-      `<i class="clip" title="Clip — tahle dráha přebuzuje"></i></span>`;
+      `<i class="clip" title="Clip — this lane is overloading"></i></span>`;
     rl.addEventListener('click',()=>cycleEngine(vi));
     rl.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();cycleEngine(vi);}});
     const mb=rl.querySelector('.mute');
@@ -2690,7 +2690,7 @@ function setSteps(n){PATS.forEach(P=>{VOICES.forEach(v=>{const old=P[v.id],na=Ar
   if(!P.vel)P.vel=newVels(n);VOICES.forEach(v=>{const ov=P.vel[v.id]||[],nv=Array(n).fill(1);for(let i=0;i<n;i++)nv[i]=ov.length?ov[i%ov.length]:1;P.vel[v.id]=nv;});
   if(!P.roll)P.roll=newRolls(n);VOICES.forEach(v=>{const orr=P.roll[v.id]||[],nr=Array(n).fill(1);for(let i=0;i<n;i++)nr[i]=orr.length?(orr[i%orr.length]||1):1;P.roll[v.id]=nr;});});STEPS=n;curStep=0;buildSeq();const b=document.getElementById('btnLen');if(b)b.textContent='LEN '+n;if(recUI&&recUI.refresh)recUI.refresh();}
 function setDelayTime(){if(!dL)return;const t=delayTime(),now=AC.currentTime;dL.delayTime.setTargetAtTime(t,now,.05);dR.delayTime.setTargetAtTime(t,now,.05);}
-function pickDelay(){openPick('DELAY · RYTMUS',DELAY_DIVS,delaySync?-1:delayDiv,i=>{
+function pickDelay(){openPick('DELAY · RHYTHM',DELAY_DIVS,delaySync?-1:delayDiv,i=>{
   delayDiv=i;delaySync=false;setDelayTime();updateFxLabels();});}
 function toggleDelaySync(){delaySync=!delaySync;ensureAudio();setDelayTime();updateFxLabels();}
 /* route the stereo delay: ping-pong (cross-feed, hard L/R) vs centered echo */
@@ -2829,11 +2829,11 @@ const lfoEls=[0,1].map(i=>({
   depthVal:document.getElementById(`lfo${i+1}DepthVal`),
 }));
 lfoEls.forEach((E,i)=>{
-  E.rate.addEventListener('click',()=>openPick(`LFO ${i+1} · RYCHLOST`,LFO_RATES,LFOS[i].rate,k=>{
+  E.rate.addEventListener('click',()=>openPick(`LFO ${i+1} · RATE`,LFO_RATES,LFOS[i].rate,k=>{
     LFOS[i].rate=k;ensureAudio();setLfoRates();updateFxLabels();}));
-  E.shape.addEventListener('click',()=>openPick(`LFO ${i+1} · TVAR`,LFO_SHAPES,LFOS[i].shape,k=>{
+  E.shape.addEventListener('click',()=>openPick(`LFO ${i+1} · SHAPE`,LFO_SHAPES,LFOS[i].shape,k=>{
     LFOS[i].shape=k;ensureAudio();buildLfo(i);wireLfos();updateFxLabels();}));
-  E.dest.addEventListener('click',()=>openPick(`LFO ${i+1} · CÍL`,LFO_DESTS,LFOS[i].dest,k=>{
+  E.dest.addEventListener('click',()=>openPick(`LFO ${i+1} · TARGET`,LFO_DESTS,LFOS[i].dest,k=>{
     LFOS[i].dest=k;ensureAudio();wireLfos();updateFxLabels();}));
   E.depth.addEventListener('input',()=>{
     LFOS[i].depth=(+E.depth.value)/100;E.depthVal.textContent=E.depth.value;
@@ -2866,13 +2866,13 @@ function openPick(title,list,cur,cb){
 pickLayer.addEventListener('click',e=>{if(e.target===pickLayer)closePick();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pickLayer.hidden)closePick();});
 const arpChordBtn=document.getElementById('arpChord');
-arpChordBtn.addEventListener('click',()=>openPick('ARP · AKORD',ARP_CHORDS,arpChord,i=>{
+arpChordBtn.addEventListener('click',()=>openPick('ARP · CHORD',ARP_CHORDS,arpChord,i=>{
   arpChord=i;buildArpSeq();arpIdx=0;updateFxLabels();}));
 const arpDirBtn=document.getElementById('arpDir');
-arpDirBtn.addEventListener('click',()=>openPick('ARP · TVAR',ARP_DIRS,arpDir,i=>{
+arpDirBtn.addEventListener('click',()=>openPick('ARP · SHAPE',ARP_DIRS,arpDir,i=>{
   arpDir=i;buildArpSeq();arpIdx=0;updateFxLabels();}));
 const arpRateBtn=document.getElementById('arpRate');
-arpRateBtn.addEventListener('click',()=>openPick('ARP · RYTMUS',ARP_DIVS,arpDiv,i=>{
+arpRateBtn.addEventListener('click',()=>openPick('ARP · RHYTHM',ARP_DIVS,arpDiv,i=>{
   arpDiv=i;if(delaySync)setDelayTime();updateFxLabels();}));
 const arpGateBtn=document.getElementById('arpGate'),arpGateVal=document.getElementById('arpGateVal');
 arpGateBtn.addEventListener('input',()=>{
@@ -3038,9 +3038,9 @@ function playTake(t){
 }
 function loadTake(t){
   if(takeAudio)takeAudio.pause();takePlaying=null;
-  if(!restorePatch(t.patch)){takeMsg('Tenhle záběr nemá uložený patch.');renderTakes();return;}
+  if(!restorePatch(t.patch)){takeMsg('This take has no saved patch.');renderTakes();return;}
   takeCur=t.id;
-  takeMsg(t.engineVersion!==ENGINE_VERSION?'Záběr je ze starší verze enginu ('+t.engineVersion+') — nastavení je zpátky, ale nemusí znít úplně stejně.':'');
+  takeMsg(t.engineVersion!==ENGINE_VERSION?'This take is from an older engine ('+t.engineVersion+') — the settings are back, but it may not sound exactly the same.':'');
   if(!playing)play();
   renderTakes();
 }
@@ -3050,19 +3050,19 @@ function renderTakes(){
   takes.forEach(t=>{
     const row=document.createElement('div');row.className='take'+(t.id===takeCur?' cur':'');
     const pb=document.createElement('button');pb.type='button';pb.className='tPlay'+(takePlaying===t.id?' on':'');
-    pb.textContent=takePlaying===t.id?'■':'▶';pb.title='Přehrát záběr';pb.addEventListener('click',()=>playTake(t));
+    pb.textContent=takePlaying===t.id?'■':'▶';pb.title='Play take';pb.addEventListener('click',()=>playTake(t));
     const m=document.createElement('div');m.className='tMeta';
-    const b=document.createElement('b');b.textContent='#'+t.n+' · '+((t.patch&&t.patch.styleName)||'VLASTNÍ');
+    const b=document.createElement('b');b.textContent='#'+t.n+' · '+((t.patch&&t.patch.styleName)||'CUSTOM');
     const sm=document.createElement('small');
     const when=new Date(t.ts);
-    sm.textContent=((t.patch&&t.patch.bpm)||'?')+' BPM · '+fmtDur(t.sec)+' · '+when.toLocaleDateString('cs-CZ',{day:'numeric',month:'numeric'})+' '+when.toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit'});
-    if(t.engineVersion!==ENGINE_VERSION){const i=document.createElement('i');i.textContent=' · starší engine';sm.appendChild(i);}
+    sm.textContent=((t.patch&&t.patch.bpm)||'?')+' BPM · '+fmtDur(t.sec)+' · '+when.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' '+when.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    if(t.engineVersion!==ENGINE_VERSION){const i=document.createElement('i');i.textContent=' · older engine';sm.appendChild(i);}
     m.appendChild(b);m.appendChild(sm);
-    const lb=document.createElement('button');lb.type='button';lb.className='tbtn';lb.textContent='DO MATICE';
-    lb.title='Vrátit nastavení záběru do matice a hrát';lb.disabled=!t.patch;lb.addEventListener('click',()=>loadTake(t));
-    const db=document.createElement('button');db.type='button';db.className='tDel';db.textContent='✕';db.title='Smazat záběr';
+    const lb=document.createElement('button');lb.type='button';lb.className='tbtn';lb.textContent='LOAD';
+    lb.title='Load this take back into the matrix and play';lb.disabled=!t.patch;lb.addEventListener('click',()=>loadTake(t));
+    const db=document.createElement('button');db.type='button';db.className='tDel';db.textContent='✕';db.title='Delete take';
     db.addEventListener('click',()=>{                     // two taps: first arms, second deletes
-      if(!db.classList.contains('arm')){db.classList.add('arm');db.textContent='SMAZAT?';
+      if(!db.classList.contains('arm')){db.classList.add('arm');db.textContent='DELETE?';
         setTimeout(()=>{db.classList.remove('arm');db.textContent='✕';},2500);return;}
       if(takePlaying===t.id)stopTake();
       takes=takes.filter(x=>x.id!==t.id);TakeDB.del(t.id).catch(()=>{});renderTakes();});
@@ -3076,7 +3076,7 @@ function addTake(tk){
   const t={id:tk.ts+'-'+Math.random().toString(36).slice(2,7),n,ts:tk.ts,blob:tk.blob,patch:tk.patch||null,
            engineVersion:tk.engineVersion,sec:tk.sec};
   takes.unshift(t);
-  TakeDB.put(t).catch(()=>takeMsg('Záběr se nepodařilo uložit — zůstane jen do zavření stránky.'));
+  TakeDB.put(t).catch(()=>takeMsg('Could not save the take — it stays only until the page is closed.'));
   while(takes.length>TAKES_MAX){const old=takes.pop();TakeDB.del(old.id).catch(()=>{});}
   takeCur=t.id;renderTakes();
 }
